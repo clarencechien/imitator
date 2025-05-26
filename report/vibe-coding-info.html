@@ -1,472 +1,614 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 驅動軟體開發趨勢資訊圖表</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Visualization & Content Choices:
-        - Hero Stat (N-Fold Productivity): Goal: Inform. Viz: Big Number (HTML). Justification: Impact. Method: HTML/Tailwind. NO SVG.
-        - LLM Accuracy (45%): Goal: Inform. Viz: Donut Chart. Justification: Proportion. Method: Chart.js (Canvas). NO SVG.
-        - Stdlib Loop: Goal: Organize. Viz: Flow Chart (HTML/CSS). Justification: Process. Method: HTML/Tailwind. NO SVG/Mermaid.
-        - Vibe Components: Goal: Organize. Viz: HTML Cards. Justification: Clarity. Method: HTML/Tailwind. NO SVG.
-        - LLM Dual Nature: Goal: Compare. Viz: Two Columns. Justification: Contrast. Method: HTML/Tailwind. NO SVG.
-        - Productivity Bar Chart: Goal: Compare. Viz: Bar Chart. Justification: Magnitude. Method: Chart.js (Canvas). NO SVG.
-        - Comparison Table: Goal: Compare. Viz: HTML Table. Justification: Detail. Method: HTML/Tailwind. NO SVG.
-        CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- Removed redundant Chart.js CDN link: <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', 'Noto Sans TC', sans-serif;
-            scroll-behavior: smooth;
-            background-color: #F8F9FA; /* Light Gray Background */
-            color: #212529; /* Dark Text */
-            @apply text-base; /* Base font size */
-        }
-        .section-container {
-            @apply container mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20; /* Increased padding */
-        }
-        .infographic-title {
-            @apply text-4xl sm:text-5xl lg:text-6xl font-extrabold text-center mb-5 sm:mb-6; /* Adjusted margin */
-            color: #FF7F50; /* Orange */
-        }
-        .infographic-subtitle {
-            @apply text-lg sm:text-xl lg:text-2xl text-center text-slate-600 mb-12 sm:mb-16; /* Increased size */
-        }
-        .card {
-            @apply bg-white rounded-xl shadow-lg p-6 sm:p-8 transition-all duration-300 hover:shadow-2xl;
-        }
-        .card-title { /* For section titles */
-            @apply text-3xl sm:text-4xl font-bold mb-10 text-center; /* Centered and increased margin */
-            color: #008080; /* Teal */
-        }
-        .card-subtitle { /* For titles within cards */
-             @apply text-xl sm:text-2xl font-semibold mb-4;
-             color: #008080; /* Teal */
-        }
-        .highlight-stat {
-            @apply text-6xl sm:text-8xl font-bold my-4 text-center; /* Increased size */
-            color: #FF7F50; /* Orange */
-        }
-        .highlight-stat-label {
-            @apply text-lg sm:text-xl text-slate-500 text-center mb-6;
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 580px; /* Slightly adjusted max-width */
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px; /* Adjusted base height */
-            max-height: 380px;
-        }
-        @media (min-width: 768px) { /* md */
-            .chart-container {
-                height: 360px; /* Adjusted md height */
-            }
-        }
-        .flow-step {
-            @apply bg-sky-100 border-l-4 border-sky-500 p-4 rounded-lg shadow-sm mb-3 text-sm sm:text-base; /* Added rounded-lg */
-        }
-        .flow-arrow {
-            @apply text-sky-500 text-3xl font-bold text-center my-1 sm:my-2;
-        }
-        .comparison-table th, .comparison-table td {
-            @apply border border-slate-300 px-3 py-2.5 text-sm sm:text-base; /* Increased padding */
-            word-break: break-word;
-        }
-        .comparison-table th {
-            @apply bg-slate-100 font-semibold text-left; /* Align th text left */
-            color: #008080; /* Teal */
-        }
-        .accent-yellow { color: #FFD700; } /* Yellow */
-        .accent-pink { color: #FF69B4; } /* Pink */
-        .sticky-nav {
-            @apply sticky top-0 bg-white/90 backdrop-blur-lg shadow-md z-40 py-2.5; /* Increased blur and padding */
-        }
-        .sticky-nav a {
-            @apply px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-FF7F50 rounded-md transition-colors; /* Increased padding */
-        }
-        .prose-custom { /* Custom prose styling for better control */
-            @apply text-slate-700 text-base sm:text-lg leading-relaxed;
-        }
-        .prose-custom h3 {
-            @apply text-xl sm:text-2xl font-semibold mt-6 mb-3;
-            color: #008080; /* Teal */
-        }
-        .prose-custom p {
-            @apply mb-4;
-        }
-        .prose-custom strong {
-            @apply font-semibold;
-        }
-        .prose-custom ul {
-            @apply list-disc list-outside ml-5 space-y-1 mb-4;
-        }
-        .text-content { /* General text content class */
-            @apply text-slate-700 text-base sm:text-lg leading-relaxed;
-        }
+      body {
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/client": "https://esm.sh/react-dom@^19.1.0/client",
+    "react": "https://esm.sh/react@^19.1.0",
+    "chart.js": "https://esm.sh/chart.js@^4.4.9",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/"
+  }
+}
+</script>
 </head>
-<body>
+<body class="bg-[#F8F9FA] text-[#212529]">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module">
+      import React, { useState, useEffect, useCallback, useRef } from 'react';
+      import ReactDOM from 'react-dom/client';
+      import { Chart, DoughnutController, ArcElement, BarController, BarElement, CategoryScale, LinearScale, Title, Tooltip, Legend } from 'chart.js';
 
-    <header class="bg-white py-6 shadow-sm"> <div class="container mx-auto px-4">
-            <h1 class="infographic-title">AI 程式碼革命</h1>
-            <p class="infographic-subtitle">探索 Geoffrey Huntley 的洞見：從標準函式庫到 Vibe Coding 的未來開發趨勢</p>
-        </div>
-    </header>
+      // Register Chart.js components
+      Chart.register(DoughnutController, ArcElement, BarController, BarElement, CategoryScale, LinearScale, Title, Tooltip, Legend);
 
-    <nav class="sticky-nav hidden md:block">
-        <div class="container mx-auto px-4 flex justify-center space-x-2 sm:space-x-4"> <a href="#section-problem">當前挑戰</a>
-            <a href="#section-stdlib">標準函式庫</a>
-            <a href="#section-vibecoding">Vibe Coding</a>
-            <a href="#section-llm">LLM 剖析</a>
-            <a href="#section-impact">市場衝擊</a>
-            <a href="#section-comparison">方法比較</a>
-        </div>
-    </nav>
+      // --- START OF INLINED constants.ts ---
+      const NAV_LINKS = [
+        { id: 'section-problem', label: '當前挑戰', href: '#section-problem' },
+        { id: 'section-stdlib', label: '標準函式庫', href: '#section-stdlib' },
+        { id: 'section-vibecoding', label: 'Vibe Coding', href: '#section-vibecoding' },
+        { id: 'section-llm', label: 'LLM 剖析', href: '#section-llm' },
+        { id: 'section-impact', label: '市場衝擊', href: '#section-impact' },
+        { id: 'section-comparison', label: '方法比較', href: '#section-comparison' },
+      ];
+      // --- END OF INLINED constants.ts ---
 
-    <main>
-        <section class="section-container bg-gradient-to-br from-sky-500 to-indigo-600 text-white">
-            <div class="text-center py-12 sm:py-20"> <p class="text-2xl sm:text-3xl lg:text-4xl font-semibold mb-4">軟體開發的未來已來</p>
-                <p class="text-7xl sm:text-8xl lg:text-9xl font-extrabold mb-5 tracking-tight">N 倍</p>
-                <p class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-10">生產力躍升潛力</p>
-                <p class="max-w-3xl mx-auto text-lg sm:text-xl lg:text-2xl opacity-90 leading-relaxed">
-                    Geoffrey Huntley 提出的「Vibe Coding」等概念，預示著開發者能以數小時完成以往數週的工作量，這將從根本上改變行業格局。
-                </p>
-            </div>
-        </section>
+      // --- START OF INLINED components/UIElements.tsx ---
+      const Card = ({ children, className = '', borderAccent }) => (
+        React.createElement('div', { className: `bg-white rounded-xl shadow-lg p-6 sm:p-8 transition-all duration-300 hover:shadow-2xl ${borderAccent ? `border-t-4 ${borderAccent}` : ''} ${className}` },
+          children
+        )
+      );
 
-        <section id="section-problem" class="section-container scroll-mt-20">
-            <h2 class="card-title">當前挑戰：釋放 AI 真正潛力</h2>
-            <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
-                <div class="prose-custom">
-                    <h3>誤用的 AI：低於預期的效能</h3>
-                    <p>許多開發者將 AI 工具視為簡單的搜尋引擎或傳統 IDE 的延伸，未能發揮其「可程式化自主代理」的潛力。這種誤用導致 AI 效能遠未達到最佳狀態。</p>
-                    <p>根據 Huntley 的觀察，基礎 LLM 模型在未經適當引導的情況下，處理複雜軟體開發任務的準確率僅約 <strong class="text-2xl sm:text-3xl" style="color: #FF7F50;">45%</strong>。這意味著近一半的時間，AI 的產出需要人工介入修正，凸顯了建立更智慧互動框架的迫切性。</p>
-                </div>
-                <div class="card text-center"> <h3 class="card-subtitle mb-4">基礎 LLM 初始準確率</h3>
-                    <div class="chart-container" style="height: 280px; max-height: 320px;">
-                        <canvas id="llmAccuracyChart"></canvas>
-                    </div>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-4">此圖表概念性地展示了在缺乏有效引導時，基礎 LLM 的初始準確率。資料來源：G. Huntley [1]</p>
-                </div>
-            </div>
-        </section>
+      const FlowStep = ({ title, children }) => (
+        React.createElement('div', { className: "bg-sky-50 border-l-4 border-sky-500 p-4 rounded-lg shadow-sm mb-4 transition-shadow hover:shadow-md" },
+          React.createElement('strong', { className: "text-sky-700 block mb-1" }, title),
+          React.createElement('div', { className: "text-base text-slate-700" }, children)
+        )
+      );
 
-        <section id="section-stdlib" class="section-container bg-slate-50 scroll-mt-20">
-            <h2 class="card-title">解決方案：標準函式庫 (Stdlib)</h2>
-            <p class="text-center text-slate-600 max-w-3xl mx-auto mb-12 text-lg sm:text-xl leading-relaxed">為提升 AI 效能與可靠性，Huntley 提倡建立一個包含數千條可組合提示規則的「標準函式庫」，將最佳實踐與技術約束編碼化，有效「教導」AI。</p>
-            <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
-                <div class="card">
-                    <h3 class="card-subtitle">Stdlib：AI 的自我完善教科書</h3>
-                    <p class="text-content mb-5">Stdlib 不僅是靜態規則集，更是一個動態的、由 AI 自行更新的知識庫。AI 從錯誤和成功中學習，並將經驗轉化為新的或更新的規則。</p>
-                    <div class="mt-6">
-                        <p class="font-semibold text-md sm:text-lg mb-4" style="color: #008080;">Stdlib 自我完善回饋迴路：</p>
-                        <div class="space-y-3">
-                            <div class="flow-step"><strong>1. 初始表現：</strong>LLM (準確率約 45%) 嘗試任務。</div>
-                            <div class="flow-arrow">▼</div>
-                            <div class="flow-step"><strong>2. 人工介入：</strong>開發者修正或引導 LLM。</div>
-                            <div class="flow-arrow">▼</div>
-                            <div class="flow-step"><strong>3. 規則編碼：</strong><span class="accent-pink font-semibold">關鍵步驟!</span> LLM 將修正邏輯編碼為 Stdlib 新規則。</div>
-                            <div class="flow-arrow">▼</div>
-                            <div class="flow-step"><strong>4. 效能提升：</strong>未來 AI 從新規則中受益，提高自主性。</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3 class="card-subtitle">Stdlib 的核心優勢</h3>
-                    <ul class="list-none space-y-4 text-content">
-                        <li class="flex items-start">
-                            <span class="text-3xl mr-3 accent-yellow">💡</span>
-                            <div><strong class="text-slate-800">提升準確性：</strong>大幅超越基礎 LLM 的 45% 準確率。</div>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-3xl mr-3 accent-yellow">🔄</span>
-                            <div><strong class="text-slate-800">一致性保障：</strong>確保 AI 遵循特定技術規範與最佳實踐。</div>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-3xl mr-3 accent-yellow">🧠</span>
-                            <div><strong class="text-slate-800">知識可擴展：</strong>將專家知識編碼，便於團隊共享與規模化應用。</div>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-3xl mr-3 accent-yellow">🛠️</span>
-                            <div><strong class="text-slate-800">任務自動化：</strong>處理如偵錯、Git 提交、Nix 建置等複雜任務。</div>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-3xl mr-3 accent-yellow">📈</span>
-                            <div><strong class="text-slate-800">持續進化：</strong>AI 自我學習並更新規則，形成良性循環。</div>
-                        </li>
-                    </ul>
-                     <p class="mt-8 text-sm sm:text-base text-slate-500">Stdlib 的應用，使得開發者能更有效地駕馭 AI，將其從一個不穩定的助手，轉變為一個可靠的、可程式化的協作夥伴。</p>
-                </div>
-            </div>
-        </section>
+      const FlowArrow = () => (
+        React.createElement('div', { className: "text-sky-500 text-3xl font-bold text-center my-2 transform rotate-90 md:rotate-0" }, "➔")
+      );
 
-        <section id="section-vibecoding" class="section-container scroll-mt-20">
-            <h2 class="card-title">進階方法：Vibe Coding</h2>
-            <p class="text-center text-slate-600 max-w-3xl mx-auto mb-12 text-lg sm:text-xl leading-relaxed">「Vibe Coding」是 Huntley 方法論的頂峰，開發者設定高層次「Vibe」（意圖與規格），AI 在 Stdlib 與 Specs（規格庫）的驅動下執行任務，旨在實現「解放雙手」的開發體驗。</p>
-            <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
-                <div class="card border-t-4 border-orange-500 text-center"> <h3 class="font-semibold text-lg sm:text-xl mb-2" style="color: #FF7F50;">📜 規格庫 (Specs)</h3>
-                    <p class="text-sm sm:text-base text-slate-600">定義應用程式「應該做什麼」，是 AI 理解功能目標的核心。位於 <code>specs/</code> 資料夾。</p>
-                </div>
-                <div class="card border-t-4 border-teal-500 text-center"> <h3 class="font-semibold text-lg sm:text-xl mb-2" style="color: #008080;">📚 標準函式庫 (Stdlib)</h3>
-                    <p class="text-sm sm:text-base text-slate-600">透過 <code>.cursor/rules</code> 提供「如何實作」的指引，確保技術一致性與最佳實踐。</p>
-                </div>
-                <div class="card border-t-4 border-pink-500 text-center"> <h3 class="font-semibold text-lg sm:text-xl mb-2" style="color: #FF69B4;">💻 健全的程式語言</h3>
-                    <p class="text-sm sm:text-base text-slate-600">如 Rust/Haskell，其強型別和清晰錯誤訊息為 AI 提供精確回饋。</p>
-                </div>
-            </div>
-            <div class="card mt-8 sm:mt-10 bg-sky-50">
-                <h3 class="text-xl sm:text-2xl font-semibold mb-4 text-center" style="color: #008080;">核心迭代提示詞示例：</h3>
-                <p class="text-center font-mono bg-slate-100 p-4 sm:p-5 rounded-lg text-sm sm:text-base shadow-inner leading-relaxed">"研究 @SPECS.md 以了解功能規格。研究 @.cursor 以了解技術需求。實作尚未實作的部分。建立測試。執行『cargo build』並驗證應用程式是否正常運作。"</p>
-                <p class="text-xs sm:text-sm text-slate-500 mt-4 text-center">此提示詞會被持續發出，驅動 AI 完成開發循環。</p>
-            </div>
-        </section>
+      const SectionTitle = ({children, className = ''}) => (
+          React.createElement('h2', { className: `text-3xl sm:text-4xl lg:text-5xl font-bold text-center mb-12 sm:mb-16 text-[#008080] ${className}` },
+              children
+          )
+      );
 
-        <section id="section-llm" class="section-container bg-slate-50 scroll-mt-20">
-            <h2 class="card-title">引擎探秘：LLM 的雙面性</h2>
-            <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
-                <div class="card">
-                    <h3 class="card-subtitle accent-yellow">🚀 「Oh Fuck」時刻：LLM 的驚人技藝</h3>
-                    <p class="text-content mb-3">LLM 在反混淆、轉譯、結構到結構轉換方面表現卓越。</p>
-                    <ul class="list-disc list-outside ml-5 space-y-1.5 text-sm sm:text-base text-slate-600">
-                        <li>C 語言轉 Z/80 Speccy 磁帶程式。</li>
-                        <li>對壓縮混淆的 JavaScript 進行淨室轉譯。</li>
-                        <li>理解並在不同抽象層次生成程式碼。</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h3 class="card-subtitle accent-pink">⚠️ 「自迴歸失敗女王」：LLM 的潛在陷阱</h3>
-                    <p class="text-content mb-3">LLM 有時會因上下文管理不當而產生離譜建議。</p>
-                    <ul class="list-disc list-outside ml-5 space-y-1.5 text-sm sm:text-base text-slate-600">
-                        <li><strong>緩解策略 1:</strong> 一個任務，一個上下文視窗。</li>
-                        <li><strong>緩解策略 2:</strong> 避免上下文視窗超載。</li>
-                        <li>開發者需成為熟練的「上下文工程師」。</li>
-                    </ul>
-                </div>
-            </div>
-             <p class="text-center text-slate-600 mt-12 text-md sm:text-lg leading-relaxed">即使在「解放雙手」模式下，人工監督與迭代優化仍至關重要，確保 AI 在正確軌道上運行。</p>
-        </section>
+      const HighlightStat = ({ stat, label }) => (
+        React.createElement(React.Fragment, null,
+          React.createElement('p', { className: "text-6xl sm:text-8xl font-extrabold text-white mb-2 tracking-tight" }, stat),
+          React.createElement('p', { className: "text-3xl sm:text-4xl font-semibold text-white/90 mb-6" }, label)
+        )
+      );
+      // --- END OF INLINED components/UIElements.tsx ---
 
-        <section id="section-impact" class="section-container scroll-mt-20">
-            <h2 class="card-title">市場衝擊與未來展望</h2>
-            <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
-                <div class="card">
-                    <h3 class="card-subtitle" style="color: #FF7F50;">生產力飛躍：行業變革引擎</h3>
-                    <p class="mb-5 text-content">AI 驅動的開發預示著生產力的巨大提升。Vibe Coding 模式下，以往數週的任務有望在數小時內完成。</p>
-                    <div class="chart-container" style="height:300px; max-height:350px;">
-                        <canvas id="productivityImpactChart"></canvas>
-                    </div>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-4 text-center">概念圖：傳統開發 vs. Vibe Coding 任務完成時間對比。</p>
-                </div>
-                <div class="space-y-6 lg:space-y-8">
-                    <div class="card">
-                        <h4 class="font-semibold text-lg sm:text-xl mb-2" style="color: #008080;">開發者轉型：「NGMI」警示</h4>
-                        <p class="text-sm sm:text-base text-slate-600 leading-relaxed">未能適應並學習程式設計 LLM 的開發者，可能面臨被淘汰的風險 ("ngmi")。企業將更看重能駕馭 AI 的人才。</p>
-                    </div>
-                    <div class="card">
-                        <h4 class="font-semibold text-lg sm:text-xl mb-2" style="color: #FF69B4;">IP 與授權顛覆</h4>
-                        <p class="text-sm sm:text-base text-slate-600 leading-relaxed">LLM 的反編譯能力可能使傳統軟體授權模式失效，淨室重寫的低成本化將衝擊現有 IP 保護體系。</p>
-                    </div>
-                    <div class="card">
-                        <h4 class="font-semibold text-lg sm:text-xl mb-2 accent-yellow">生態系統隱憂</h4>
-                        <p class="text-sm sm:text-base text-slate-600 leading-relaxed">大型科技公司對開發工具和平台的控制，可能扼殺 AI 開發領域的開放性與創新，需警惕「生態系統分裂」。</p>
-                    </div>
-                </div>
-            </div>
-        </section>
+      // --- START OF INLINED components/ChartComponents.tsx ---
+      const wrapLabels = (label, maxLength = 15) => {
+          if (Array.isArray(label)) {
+              return label;
+          }
+          if (typeof label !== 'string' || label.length <= maxLength) {
+              return [label];
+          }
+          
+          const words = label.split(' ');
+          const lines = [];
+          let currentLine = '';
 
-        <section id="section-comparison" class="section-container bg-slate-50 scroll-mt-20">
-            <h2 class="card-title">方法論對決：開發範式比較</h2>
-            <p class="text-center text-slate-600 max-w-3xl mx-auto mb-12 text-lg sm:text-xl leading-relaxed">下表比較了傳統軟體開發、由 Stdlib 驅動的 AI 輔助開發，以及 Huntley 願景中的「Vibe Coding」範式，揭示了開發者工作性質的演變。</p>
-            <div class="overflow-x-auto card shadow-xl"> <table class="min-w-full comparison-table">
-                    <thead>
-                        <tr>
-                            <th>層面</th>
-                            <th>傳統開發</th>
-                            <th>Stdlib 驅動的 AI 輔助</th>
-                            <th>「Vibe Coding」</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white">
-                        <tr><td>開發者角色</td><td>手動編碼者、除錯者</td><td>AI 提示工程師、規則維護者</td><td>規格制定者、AI 訓練師</td></tr>
-                        <tr><td>AI 互動</td><td>無或基本補全</td><td>提示工程、規則引導</td><td>高層次「Vibe」指導</td></tr>
-                        <tr><td>自動化程度</td><td>低</td><td>中 (特定任務)</td><td>高 (端到端實作)</td></tr>
-                        <tr><td>規格依賴</td><td>不定</td><td>增強</td><td>至關重要 (Specs 驅動)</td></tr>
-                        <tr><td>錯誤處理</td><td>手動除錯</td><td>AI 嘗試 + 人工修正</td><td>AI 自我修正 (測試引導)</td></tr>
-                        <tr><td>知識編碼</td><td>文件、部落知識</td><td>Stdlib 明確規則</td><td>Specs + 進化型 Stdlib</td></tr>
-                        <tr><td>生產力焦點</td><td>個人技能</td><td>任務效率</td><td>系統吞吐量 (N 倍)</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+          for (const word of words) {
+              if (currentLine.length === 0) {
+                  currentLine = word;
+              } else if (currentLine.length + word.length + 1 <= maxLength) {
+                  currentLine += ` ${word}`;
+              } else {
+                  lines.push(currentLine);
+                  currentLine = word;
+              }
+          }
+          if (currentLine.length > 0) {
+              lines.push(currentLine);
+          }
+          return lines.length > 0 ? lines : [label]; // Fallback
+      };
 
-        <section class="section-container bg-gradient-to-tr from-teal-500 to-cyan-600 text-white">
-            <div class="text-center py-12 sm:py-20"> <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-8">擁抱 Vibe，或面臨淘汰？</h2>
-                <p class="max-w-3xl mx-auto text-lg sm:text-xl lg:text-2xl opacity-90 mb-10 leading-relaxed">
-                    軟體開發正處於轉捩點。Geoffrey Huntley 的洞見為我們揭示了 AI 驅動的未來。開發者需積極學習程式設計與協調 AI，掌握 Stdlib 和 Vibe Coding 等新範式，方能在這場變革中立於不敗之地。
-                </p>
-                <a href="https://ghuntley.com/stdlib/" target="_blank" rel="noopener noreferrer" 
-                   class="inline-block bg-white text-teal-600 font-semibold px-10 py-4 rounded-lg shadow-xl hover:bg-slate-100 transition-colors text-lg sm:text-xl transform hover:scale-105">
-                    深入了解 Huntley 的理念
-                </a>
-            </div>
-        </section>
-    </main>
+      const commonTooltipOptions = {
+          callbacks: {
+              title: (tooltipItems) => { 
+                  const item = tooltipItems[0];
+                  let label = item.chart.data.labels[item.dataIndex];
+                  if (Array.isArray(label)) {
+                    return label.join(' ');
+                  }
+                  return label;
+              }
+          },
+          bodyFont: {
+              family: 'Inter, Noto Sans TC, sans-serif'
+          },
+          titleFont: {
+              family: 'Inter, Noto Sans TC, sans-serif'
+          }
+      };
 
-    <footer class="text-center py-10 bg-slate-800 text-slate-400 text-sm sm:text-base"> <p>&copy; 2024 AI 驅動軟體開發趨勢資訊圖表 (概念演示)。內容基於 Geoffrey Huntley 的公開分享。</p>
-    </footer>
+      const DoughnutChart = ({ data, labels, colors, hoverColors }) => {
+        const chartRef = useRef(null);
+        const chartInstanceRef = useRef(null);
 
-    <script>
-        function wrapLabels(label, maxLength = 16) {
-            if (typeof label !== 'string') {
-                return label; 
+        useEffect(() => {
+          if (chartRef.current) {
+            if (chartInstanceRef.current) {
+              chartInstanceRef.current.destroy();
             }
-            if (label.length <= maxLength) {
-                return label;
-            }
-            const words = label.split(' ');
-            const lines = [];
-            let currentLine = '';
-            for (const word of words) {
-                if ((currentLine + word).length > maxLength && currentLine.length > 0) {
-                    lines.push(currentLine.trim());
-                    currentLine = '';
-                }
-                currentLine += word + ' ';
-            }
-            if (currentLine.trim().length > 0) {
-                lines.push(currentLine.trim());
-            }
-            return lines.length > 0 ? lines : [label]; 
-        }
-
-        const commonTooltipOptions = {
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        title: function(tooltipItems) {
-                            const item = tooltipItems[0];
-                            let label = item.chart.data.labels[item.dataIndex];
-                            if (Array.isArray(label)) {
-                              return label.join(' ');
-                            }
-                            return label;
-                        }
-                    }
-                }
-            }
-        };
-
-        const llmAccuracyCtx = document.getElementById('llmAccuracyChart');
-        if (llmAccuracyCtx) {
-            new Chart(llmAccuracyCtx.getContext('2d'), {
+            const ctx = chartRef.current.getContext('2d');
+            if (ctx) {
+              chartInstanceRef.current = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['初始準確率 (45%)', '需引導/修正 (55%)'],
-                    datasets: [{
-                        data: [45, 55],
-                        backgroundColor: ['#008080', '#FF7F50'], 
-                        hoverBackgroundColor: ['#005C5C', '#D96A49'],
-                        borderColor: '#F8F9FA',
-                        borderWidth: 3 // Increased border width
-                    }]
+                  labels: labels,
+                  datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    hoverBackgroundColor: hoverColors,
+                    borderColor: '#F8F9FA',
+                    borderWidth: 3,
+                    hoverBorderWidth: 3,
+                  }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '60%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                font: { size: 11 }, // Increased legend font size
-                                boxWidth: 18, // Increased box width
-                                padding: 12 // Increased padding
-                            }
-                        },
-                        title: { display: false },
-                        tooltip: commonTooltipOptions.plugins.tooltip
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  cutout: '65%',
+                  plugins: {
+                    legend: {
+                      position: 'bottom',
+                      labels: {
+                        font: { size: 12, family: 'Inter, Noto Sans TC, sans-serif' }, // Increased from 11 to 12
+                        boxWidth: 15,
+                        padding: 15,
+                        color: '#475569'
+                      }
+                    },
+                    title: { display: false },
+                    tooltip: {
+                      ...commonTooltipOptions,
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                      padding: 10,
                     }
+                  }
                 }
-            });
-        }
+              });
+            }
+          }
+          return () => {
+            if (chartInstanceRef.current) {
+              chartInstanceRef.current.destroy();
+              chartInstanceRef.current = null;
+            }
+          };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [data, labels, colors, hoverColors]);
 
-        const productivityCtx = document.getElementById('productivityImpactChart');
-        if (productivityCtx) {
-            new Chart(productivityCtx.getContext('2d'), {
+        return React.createElement('canvas', { ref: chartRef });
+      };
+
+      const BarChart = ({ data, labels, datasetLabel, colors, borderColors, chartTitle, xAxisLabel }) => {
+        const chartRef = useRef(null);
+        const chartInstanceRef = useRef(null);
+        
+        const wrappedLabels = labels.map(label => wrapLabels(label));
+
+        useEffect(() => {
+          if (chartRef.current) {
+            if (chartInstanceRef.current) {
+              chartInstanceRef.current.destroy();
+            }
+            const ctx = chartRef.current.getContext('2d');
+            if (ctx) {
+              chartInstanceRef.current = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: [wrapLabels('傳統開發模式'), wrapLabels('Vibe Coding 模式')],
-                    datasets: [{
-                        label: '估計任務完成時間 (相對值)',
-                        data: [100, 20], 
-                        backgroundColor: ['#FF69B4', '#008080'], 
-                        borderColor: ['#D147A3', '#005C5C'],
-                        borderWidth: 1,
-                        borderRadius: 5, // Slightly more rounded
-                    }]
+                  labels: wrappedLabels,
+                  datasets: [{
+                    label: datasetLabel,
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: borderColors,
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    barThickness: 'flex',
+                    maxBarThickness: 50
+                  }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            title: { display: true, text: '相對時間單位', font: {size: 12} }, // Added font size
-                             ticks: { font: {size: 11}} // Added font size
-                        },
-                        y: {
-                             ticks: { font: {size: 11}} // Added font size
-                        }
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  indexAxis: 'y',
+                  scales: {
+                    x: {
+                      beginAtZero: true,
+                      title: { 
+                          display: true, 
+                          text: xAxisLabel, 
+                          font: { size: 13, family: 'Inter, Noto Sans TC, sans-serif' }, // Increased from 12
+                          color: '#475569'
+                      },
+                      grid: {
+                          drawOnChartArea: false,
+                      },
+                      ticks: {
+                          font: { family: 'Inter, Noto Sans TC, sans-serif', size: 12 }, // Added size
+                          color: '#475569'
+                      }
                     },
-                    plugins: {
-                        legend: { display: false },
-                        title: {
-                            display: true,
-                            text: '生產力提升概念比較',
-                            font: { size: 15, weight: '600' }, // Increased title font size & weight
-                            padding: { bottom: 18 } // Increased padding
-                        },
-                        tooltip: commonTooltipOptions.plugins.tooltip
+                    y: {
+                       grid: {
+                          color: '#e2e8f0'
+                       },
+                       ticks: {
+                          font: { family: 'Inter, Noto Sans TC, sans-serif', size: 12 }, // Added size
+                          color: '#475569'
+                       }
                     }
+                  },
+                  plugins: {
+                    legend: { display: false },
+                    title: {
+                      display: true,
+                      text: chartTitle,
+                      font: { size: 18, weight: '600', family: 'Inter, Noto Sans TC, sans-serif' }, // Increased from 16
+                      padding: { top: 5, bottom: 20 },
+                      color: '#334155'
+                    },
+                    tooltip: {
+                      ...commonTooltipOptions,
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                      padding: 10,
+                    }
+                  }
                 }
-            });
-        }
-        
-        const nav = document.querySelector('.sticky-nav');
-        if (nav) {
-            const navLinks = nav.querySelectorAll('a');
-            const sections = Array.from(navLinks).map(link => {
-                const href = link.getAttribute('href');
-                if (href && href.startsWith('#')) {
-                    return document.querySelector(href);
-                }
-                return null;
-            }).filter(Boolean);
-
-            function updateActiveLink() {
-                let currentSection = null;
-                sections.forEach(section => {
-                    const sectionTop = section.offsetTop - nav.offsetHeight - 30; // Adjusted offset for better accuracy
-                    if (window.scrollY >= sectionTop) {
-                        currentSection = section;
-                    }
-                });
-
-                navLinks.forEach(link => {
-                    link.classList.remove('font-bold', 'text-FF7F50', 'scale-110'); // Reset active styles
-                    if (currentSection && link.getAttribute('href') === `#${currentSection.id}`) {
-                        link.classList.add('font-bold', 'text-FF7F50', 'scale-110'); // Add scale for active
-                    }
-                });
+              });
             }
-            window.addEventListener('scroll', updateActiveLink);
-            updateActiveLink(); 
-        }
+          }
+          return () => {
+            if (chartInstanceRef.current) {
+              chartInstanceRef.current.destroy();
+              chartInstanceRef.current = null;
+            }
+          };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [data, wrappedLabels, datasetLabel, colors, borderColors, chartTitle, xAxisLabel]);
 
+        return React.createElement('canvas', { ref: chartRef });
+      };
+      // --- END OF INLINED components/ChartComponents.tsx ---
+
+      // --- START OF INLINED components/Layout.tsx ---
+      const Header = () => (
+        React.createElement('header', { className: "bg-white py-8 sm:py-12 shadow-sm" },
+          React.createElement('div', { className: "container mx-auto px-4 text-center" },
+            React.createElement('h1', { className: "text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#FF7F50] mb-4" }, "AI 程式碼革命"),
+            React.createElement('p', { className: "text-xl sm:text-2xl text-slate-600 max-w-3xl mx-auto" }, "探索 Geoffrey Huntley 的洞見：從標準函式庫到 Vibe Coding 的未來開發趨勢")
+          )
+        )
+      );
+
+      const StickyNav = ({ navLinks }) => {
+        const [activeSection, setActiveSection] = useState(null);
+
+        const handleScroll = useCallback(() => {
+          let currentSectionId = null;
+          for (const link of navLinks) {
+            const section = document.getElementById(link.id);
+            if (section) {
+              const sectionTop = section.offsetTop - 100;
+              if (window.scrollY >= sectionTop) {
+                currentSectionId = link.id;
+              } else {
+                break; 
+              }
+            }
+          }
+          if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100 && navLinks.length > 0) {
+              currentSectionId = navLinks[navLinks.length - 1].id;
+          }
+          setActiveSection(currentSectionId);
+        }, [navLinks]);
+
+        useEffect(() => {
+          window.addEventListener('scroll', handleScroll);
+          handleScroll();
+          return () => window.removeEventListener('scroll', handleScroll);
+        }, [handleScroll]);
+
+        return (
+          React.createElement('nav', { className: "sticky top-0 bg-white/90 backdrop-blur-md shadow-md z-40 py-3 hidden md:block" },
+            React.createElement('div', { className: "container mx-auto px-4 flex justify-center space-x-3 sm:space-x-4" },
+              navLinks.map((link) => (
+                React.createElement('a', {
+                  key: link.id,
+                  href: `#${link.id}`,
+                  className: `px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out ${activeSection === link.id ? 'text-[#FF7F50] font-semibold' : 'text-slate-700 hover:text-[#FF7F50]'}`
+                }, link.label)
+              ))
+            )
+          )
+        );
+      };
+
+      const Footer = () => (
+        React.createElement('footer', { className: "text-center py-8 bg-slate-800 text-slate-400 text-base" }, // Changed text-sm to text-base
+          React.createElement('p', null, `© ${new Date().getFullYear()} AI 驅動軟體開發趨勢資訊圖表 (概念演示)。`),
+          React.createElement('p', null, "內容基於 Geoffrey Huntley 的公開分享。")
+        )
+      );
+
+      const SectionContainer = ({ children, className = '', id }) => (
+        React.createElement('section', { id: id, className: `container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 scroll-mt-20 ${className}` },
+          children
+        )
+      );
+      // --- END OF INLINED components/Layout.tsx ---
+
+      // --- START OF INLINED components/SectionComponents.tsx ---
+      const HeroSection = () => (
+        React.createElement('section', { className: "bg-gradient-to-br from-sky-500 to-indigo-600 text-white" },
+          React.createElement('div', { className: "container mx-auto px-4 text-center py-20 sm:py-28" },
+            React.createElement('p', { className: "text-2xl sm:text-3xl font-semibold mb-3 opacity-90" }, "軟體開發的未來已來"),
+            React.createElement(HighlightStat, { stat: "N 倍", label: "生產力躍升潛力" }),
+            React.createElement('p', { className: "max-w-2xl mx-auto text-lg sm:text-xl opacity-90 leading-relaxed" }, "Geoffrey Huntley 提出的「Vibe Coding」等概念，預示著開發者能以數小時完成以往數週的工作量，這將從根本上改變行業格局。")
+          )
+        )
+      );
+
+      const ProblemSection = ({ id }) => (
+        React.createElement(SectionContainer, { id: id },
+          React.createElement(SectionTitle, null, "當前挑戰：釋放 AI 真正潛力"),
+          React.createElement('div', { className: "grid md:grid-cols-2 gap-10 lg:gap-16 items-center" },
+            React.createElement('div', { className: "prose prose-slate lg:prose-xl max-w-none text-slate-700 leading-relaxed" },
+              React.createElement('h3', { className: "text-xl sm:text-2xl font-semibold mb-4 text-[#008080]" }, "誤用的 AI：低於預期的效能"),
+              React.createElement('p', null, "許多開發者將 AI 工具視為簡單的搜尋引擎或傳統 IDE 的延伸，未能發揮其「可程式化自主代理」的潛力。這種誤用導致 AI 效能遠未達到最佳狀態。"),
+              React.createElement('p', null, "根據 Huntley 的觀察，基礎 LLM 模型在未經適當引導的情況下，處理複雜軟體開發任務的準確率僅約 ", React.createElement('strong', {className: "text-2xl font-bold text-[#FF7F50]"}, "45%"), "。這意味著近一半的時間，AI 的產出需要人工介入修正，凸顯了建立更智慧互動框架的迫切性。")
+            ),
+            React.createElement(Card, { className: "max-w-md mx-auto w-full" },
+              React.createElement('h3', { className: "text-lg font-semibold text-center mb-4 text-[#008080]" }, "基礎 LLM 初始準確率"),
+              React.createElement('div', { className: "h-64 sm:h-72 md:h-80" },
+                React.createElement(DoughnutChart, { 
+                  data: [45, 55], 
+                  labels: ['初始準確率 (45%)', '需引導/修正 (55%)'],
+                  colors: ['#008080', '#FF7F50'],
+                  hoverColors: ['#005C5C', '#D96A49']
+                })
+              ),
+              React.createElement('p', { className: "text-sm text-slate-500 mt-4 text-center" }, "此圖表概念性地展示了在缺乏有效引導時，基礎 LLM 的初始準確率。資料來源：G. Huntley [1]") // Changed text-xs to text-sm
+            )
+          )
+        )
+      );
+
+      const stdlibAdvantages = [
+        { icon: '💡', text: '提升準確性：大幅超越基礎 LLM 的 45% 準確率。' },
+        { icon: '🔄', text: '一致性保障：確保 AI 遵循特定技術規範與最佳實踐。' },
+        { icon: '🧠', text: '知識可擴展：將專家知識編碼，便於團隊共享與規模化應用。' },
+        { icon: '🛠️', text: '任務自動化：處理如偵錯、Git 提交、Nix 建置等複雜任務。' },
+        { icon: '📈', text: '持續進化：AI 自我學習並更新規則，形成良性循環。' },
+      ];
+
+      const StdlibSection = ({ id }) => (
+        React.createElement(SectionContainer, { id: id, className: "bg-slate-100" },
+          React.createElement(SectionTitle, null, "解決方案：標準函式庫 (Stdlib)"),
+          React.createElement('p', { className: "text-center text-slate-600 max-w-3xl mx-auto mb-12 text-lg leading-relaxed" }, "為提升 AI 效能與可靠性，Huntley 提倡建立一個包含數千條可組合提示規則的「標準函式庫」，將最佳實踐與技術约束編碼化，有效「教導」AI。"),
+          React.createElement('div', { className: "grid md:grid-cols-2 gap-10 lg:gap-16 items-start" },
+            React.createElement(Card, null,
+              React.createElement('h3', { className: "text-xl sm:text-2xl font-semibold mb-6 text-[#008080]" }, "Stdlib：AI 的自我完善教科書"),
+              React.createElement('p', { className: "mb-6 text-slate-700 text-base leading-relaxed" }, "Stdlib 不僅是靜態規則集，更是一個動態的、由 AI 自行更新的知識庫。AI 從錯誤和成功中學習，並將經驗轉化為新的或更新的規則。"), // Added text-base
+              React.createElement('div', null,
+                React.createElement('p', { className: "font-semibold text-md mb-3 text-[#008080]" }, "Stdlib 自我完善回饋迴路："),
+                React.createElement(FlowStep, { title: "1. 初始表現" }, "LLM (準確率約 45%) 嘗試任務。"), // FlowStep children now text-base
+                React.createElement(FlowArrow),
+                React.createElement(FlowStep, { title: "2. 人工介入" }, "開發者修正或引導 LLM。"),
+                React.createElement(FlowArrow),
+                React.createElement(FlowStep, { title: "3. 規則編碼" }, React.createElement('span', {className: "text-[#FF69B4] font-semibold"}, "關鍵步驟!"), " LLM 將修正邏輯編碼為 Stdlib 新規則。"),
+                React.createElement(FlowArrow),
+                React.createElement(FlowStep, { title: "4. 效能提升" }, "未來 AI 從新規則中受益，提高自主性。")
+              )
+            ),
+            React.createElement(Card, null,
+              React.createElement('h3', { className: "text-xl sm:text-2xl font-semibold mb-6 text-[#008080]" }, "Stdlib 的核心優勢"),
+              React.createElement('ul', { className: "space-y-4" },
+                stdlibAdvantages.map(adv => (
+                  React.createElement('li', { key: adv.icon, className: "flex items-start" },
+                    React.createElement('span', { className: "text-3xl mr-4 text-[#FFD700]" }, adv.icon),
+                    React.createElement('div', { className: "text-base text-slate-700" }, React.createElement('strong', {className: "text-slate-800"}, `${adv.text.split('：')[0]}：`), adv.text.split('：')[1]) // Added text-base
+                  )
+                ))
+              ),
+              React.createElement('p', { className: "mt-8 text-base text-slate-500 leading-relaxed" }, "Stdlib 的應用，使得開發者能更有效地駕馭 AI，將其從一個不穩定的助手，轉變為一個可靠的、可程式化的協作夥伴。") // Changed text-sm to text-base
+            )
+          )
+        )
+      );
+
+      const vibeComponents = [
+          { title: '📜 規格庫 (Specs)', description: '定義應用程式「應該做什麼」，是 AI 理解功能目標的核心。位於 `specs/` 資料夾。', borderColor: 'border-[#FF7F50]' , titleColor: 'text-[#FF7F50]'},
+          { title: '📚 標準函式庫 (Stdlib)', description: '透過 `.cursor/rules` 提供「如何實作」的指引，確保技術一致性與最佳實踐。', borderColor: 'border-[#008080]', titleColor: 'text-[#008080]' },
+          { title: '💻 健全的程式語言', description: '如 Rust/Haskell，其強型別和清晰錯誤訊息為 AI 提供精確回饋。', borderColor: 'border-[#FF69B4]', titleColor: 'text-[#FF69B4]' },
+      ];
+
+      const VibeCodingSection = ({ id }) => (
+        React.createElement(SectionContainer, { id: id },
+          React.createElement(SectionTitle, null, "進階方法：Vibe Coding"),
+          React.createElement('p', { className: "text-center text-slate-600 max-w-3xl mx-auto mb-12 text-lg leading-relaxed" }, "「Vibe Coding」是 Huntley 方法論的頂峰，開發者設定高層次「Vibe」（意圖與規格），AI 在 Stdlib 與 Specs（規格庫）的驅動下執行任務，旨在實現「解放雙手」的開發體驗。"),
+          React.createElement('div', { className: "grid md:grid-cols-3 gap-8 mb-10" },
+            vibeComponents.map(comp => (
+              React.createElement(Card, { key: comp.title, borderAccent: comp.borderColor, className: "flex flex-col" },
+                React.createElement('h3', { className: `font-semibold text-xl mb-3 ${comp.titleColor}` }, comp.title),
+                React.createElement('p', { className: "text-base text-slate-600 leading-relaxed flex-grow" }, comp.description) // Changed text-sm to text-base
+              )
+            ))
+          ),
+          React.createElement(Card, { className: "bg-sky-50" },
+            React.createElement('h3', { className: "text-xl font-semibold mb-4 text-center text-[#008080]" }, "核心迭代提示詞示例："),
+            React.createElement('p', { className: "text-center font-mono bg-slate-200 p-6 rounded-lg text-base sm:text-lg shadow-inner text-slate-800" }, "\"研究 @SPECS.md 以了解功能規格。研究 @.cursor 以了解技術需求。實作尚未實作的部分。建立測試。執行『cargo build』並驗證應用程式是否正常運作。\""), // Increased text-sm sm:text-base
+            React.createElement('p', { className: "text-sm text-slate-500 mt-4 text-center" }, "此提示詞會被持續發出，驅動 AI 完成開發循環。") // Changed text-xs to text-sm
+          )
+        )
+      );
+
+      const LlmDualNatureSection = ({ id }) => (
+        React.createElement(SectionContainer, { id: id, className: "bg-slate-100" },
+          React.createElement(SectionTitle, null, "引擎探秘：LLM 的雙面性"),
+          React.createElement('div', { className: "grid md:grid-cols-2 gap-8 lg:gap-12" },
+            React.createElement(Card, null,
+              React.createElement('h3', { className: "text-xl sm:text-2xl font-semibold mb-4 text-[#FFD700]" }, "🚀 「Oh Fuck」時刻：LLM 的驚人技藝"),
+              React.createElement('p', { className: "text-slate-700 mb-3 leading-relaxed text-base" }, "LLM 在反混淆、轉譯、結構到結構轉換方面表現卓越。"), // Added text-base
+              React.createElement('ul', { className: "list-disc list-inside space-y-2 text-base text-slate-600 leading-relaxed" }, // Changed text-sm to text-base
+                React.createElement('li', null, "C 語言轉 Z/80 Speccy 磁帶程式。"),
+                React.createElement('li', null, "對壓縮混淆的 JavaScript 進行淨室轉譯。"),
+                React.createElement('li', null, "理解並在不同抽象層次生成程式碼。")
+              )
+            ),
+            React.createElement(Card, null,
+              React.createElement('h3', { className: "text-xl sm:text-2xl font-semibold mb-4 text-[#FF69B4]" }, "⚠️ 「自迴歸失敗女王」：LLM 的潛在陷阱"),
+              React.createElement('p', { className: "text-slate-700 mb-3 leading-relaxed text-base" }, "LLM 有時會因上下文管理不當而產生離譜建議。"), // Added text-base
+              React.createElement('ul', { className: "list-disc list-inside space-y-2 text-base text-slate-600 leading-relaxed" }, // Changed text-sm to text-base
+                React.createElement('li', null, React.createElement('strong', null, "緩解策略 1:"), " 一個任務，一個上下文視窗。"),
+                React.createElement('li', null, React.createElement('strong', null, "緩解策略 2:"), " 避免上下文視窗超載。"),
+                React.createElement('li', null, "開發者需成為熟練的「上下文工程師」。")
+              )
+            )
+          ),
+          React.createElement('p', { className: "text-center text-slate-600 mt-12 text-lg max-w-2xl mx-auto leading-relaxed" }, "即使在「解放雙手」模式下，人工監督與迭代優化仍至關重要，確保 AI 在正確軌道上運行。") // Increased text-md to text-lg
+        )
+      );
+
+      const ImpactSection = ({ id }) => (
+        React.createElement(SectionContainer, { id: id },
+          React.createElement(SectionTitle, null, "市場衝擊與未來展望"),
+          React.createElement('div', { className: "grid lg:grid-cols-5 gap-10 lg:gap-12 items-start" },
+            React.createElement(Card, { className: "lg:col-span-3" },
+              React.createElement('h3', { className: "text-xl sm:text-2xl font-semibold mb-4 text-[#FF7F50]" }, "生產力飛躍：行業變革引擎"),
+              React.createElement('p', { className: "mb-6 text-slate-700 leading-relaxed text-base" }, "AI 驅動的開發預示著生產力的巨大提升。Vibe Coding 模式下，以往數週的任務有望在數小時内完成。"), // Added text-base
+              React.createElement('div', { className: "h-80 sm:h-96" },
+                React.createElement(BarChart, { 
+                  data: [100, 20], 
+                  labels: ['傳統開發模式', 'Vibe Coding 模式'],
+                  datasetLabel: "估計任務完成時間 (相對值)",
+                  colors: ['#FF69B4', '#008080'],
+                  borderColors: ['#D147A3', '#005C5C'],
+                  chartTitle: "生產力提升概念比較",
+                  xAxisLabel: "相對時間單位"
+                })
+              ),
+              React.createElement('p', { className: "text-sm text-slate-500 mt-4 text-center" }, "概念圖：傳統開發 vs. Vibe Coding 任務完成時間對比。") // Changed text-xs to text-sm
+            ),
+            React.createElement('div', { className: "lg:col-span-2 space-y-6" },
+              React.createElement(Card, null,
+                React.createElement('h4', { className: "font-semibold text-lg mb-2 text-[#008080]" }, "開發者轉型：「NGMI」警示"),
+                React.createElement('p', { className: "text-base text-slate-600 leading-relaxed" }, "未能適應並學習程式設計 LLM 的開發者，可能面臨被淘汰的風險 (\"ngmi\")。企業將更看重能駕馭 AI 的人才。") // Changed text-sm to text-base
+              ),
+              React.createElement(Card, null,
+                React.createElement('h4', { className: "font-semibold text-lg mb-2 text-[#FF69B4]" }, "IP 與授權顛覆"),
+                React.createElement('p', { className: "text-base text-slate-600 leading-relaxed" }, "LLM 的反編譯能力可能使傳統軟體授權模式失效，淨室重寫的低成本化將衝擊現有 IP 保護體系。") // Changed text-sm to text-base
+              ),
+              React.createElement(Card, null,
+                React.createElement('h4', { className: "font-semibold text-lg mb-2 text-[#FFD700]" }, "生態系統隱憂"),
+                React.createElement('p', { className: "text-base text-slate-600 leading-relaxed" }, "大型科技公司對開發工具和平台的控制，可能扼殺 AI 開發領域的開放性與創新，需警惕「生態系統分裂」。") // Changed text-sm to text-base
+              )
+            )
+          )
+        )
+      );
+
+      const comparisonData = [
+          { aspect: '開發者角色', traditional: '手動編碼者、除錯者', stdlib: 'AI 提示工程師、規則維護者', vibe: '規格制定者、AI 訓練師' },
+          { aspect: 'AI 互動', traditional: '無或基本補全', stdlib: '提示工程、規則引導', vibe: '高層次「Vibe」指導' },
+          { aspect: '自動化程度', traditional: '低', stdlib: '中 (特定任務)', vibe: '高 (端到端實作)' },
+          { aspect: '規格依賴', traditional: '不定', stdlib: '增強', vibe: '至關重要 (Specs 驅動)' },
+          { aspect: '錯誤處理', traditional: '手動除錯', stdlib: 'AI 嘗試 + 人工修正', vibe: 'AI 自我修正 (測試引導)' },
+          { aspect: '知識編碼', traditional: '文件、部落知識', stdlib: 'Stdlib 明確規則', vibe: 'Specs + 進化型 Stdlib' },
+          { aspect: '生產力焦點', traditional: '個人技能', stdlib: '任務效率', vibe: '系統吞吐量 (N 倍)' },
+      ];
+
+      const ComparisonSection = ({ id }) => (
+        React.createElement(SectionContainer, { id: id, className: "bg-slate-100" },
+          React.createElement(SectionTitle, null, "方法論對決：開發範式比較"),
+          React.createElement('p', { className: "text-center text-slate-600 max-w-3xl mx-auto mb-12 text-lg leading-relaxed" }, "下表比較了傳統軟體開發、由 Stdlib 驅動的 AI 輔助開發，以及 Huntley 願景中的「Vibe Coding」範式，揭示了開發者工作性質的演變。"),
+          React.createElement(Card, { className: "overflow-x-auto p-0 sm:p-0" }, 
+            React.createElement('table', { className: "min-w-full w-full" },
+              React.createElement('thead', { className: "bg-slate-200" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-base font-semibold text-[#008080] uppercase tracking-wider whitespace-nowrap sm:px-6" }, "層面"), // Changed text-sm to text-base
+                  React.createElement('th', { className: "px-4 py-3 text-left text-base font-semibold text-[#008080] uppercase tracking-wider whitespace-nowrap sm:px-6" }, "傳統開發"), // Changed text-sm to text-base
+                  React.createElement('th', { className: "px-4 py-3 text-left text-base font-semibold text-[#008080] uppercase tracking-wider whitespace-nowrap sm:px-6" }, "Stdlib 驅動的 AI 輔助"), // Changed text-sm to text-base
+                  React.createElement('th', { className: "px-4 py-3 text-left text-base font-semibold text-[#008080] uppercase tracking-wider whitespace-nowrap sm:px-6" }, "「Vibe Coding」") // Changed text-sm to text-base
+                )
+              ),
+              React.createElement('tbody', { className: "bg-white divide-y divide-slate-200" },
+                comparisonData.map((row, index) => (
+                  React.createElement('tr', { key: index, className: index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50' },
+                    React.createElement('td', { className: "px-4 py-3 text-base font-medium text-slate-800 whitespace-nowrap sm:px-6" }, row.aspect), // Changed text-sm to text-base
+                    React.createElement('td', { className: "px-4 py-3 text-base text-slate-600 whitespace-normal sm:px-6 leading-relaxed" }, row.traditional), // Changed text-sm to text-base
+                    React.createElement('td', { className: "px-4 py-3 text-base text-slate-600 whitespace-normal sm:px-6 leading-relaxed" }, row.stdlib), // Changed text-sm to text-base
+                    React.createElement('td', { className: "px-4 py-3 text-base text-slate-600 whitespace-normal sm:px-6 leading-relaxed" }, row.vibe) // Changed text-sm to text-base
+                  )
+                ))
+              )
+            )
+          )
+        )
+      );
+
+      const CallToActionSection = () => (
+        React.createElement('section', { className: "bg-gradient-to-tr from-teal-500 to-cyan-600 text-white" },
+          React.createElement('div', { className: "container mx-auto px-4 text-center py-20 sm:py-28" },
+            React.createElement('h2', { className: "text-3xl sm:text-4xl lg:text-5xl font-bold mb-8" }, "擁抱 Vibe，或面臨淘汰？"),
+            React.createElement('p', { className: "max-w-2xl mx-auto text-lg sm:text-xl opacity-90 mb-10 leading-relaxed" }, "軟體開發正處於轉捩點。Geoffrey Huntley 的洞見為我們揭示了 AI 驅動的未來。開發者需積極學習程式設計與協調 AI，掌握 Stdlib 和 Vibe Coding 等新範式，方能在這場變革中立於不敗之地。"),
+            React.createElement('a', { 
+              href: "https://ghuntley.com/stdlib/", 
+              target: "_blank", 
+              rel: "noopener noreferrer", 
+              className: "inline-block bg-white text-teal-600 font-semibold px-10 py-4 rounded-lg shadow-lg hover:bg-slate-100 transition-all duration-300 ease-in-out text-lg transform hover:scale-105"
+            }, "深入了解 Huntley 的理念")
+          )
+        )
+      );
+      // --- END OF INLINED components/SectionComponents.tsx ---
+
+      // --- START OF INLINED App.tsx ---
+      const App = () => {
+        return (
+          React.createElement('div', { className: "flex flex-col min-h-screen" },
+            React.createElement(Header),
+            React.createElement(StickyNav, { navLinks: NAV_LINKS }),
+            React.createElement('main', { className: "flex-grow" },
+              React.createElement(HeroSection),
+              React.createElement(ProblemSection, { id: NAV_LINKS[0].id }),
+              React.createElement(StdlibSection, { id: NAV_LINKS[1].id }),
+              React.createElement(VibeCodingSection, { id: NAV_LINKS[2].id }),
+              React.createElement(LlmDualNatureSection, { id: NAV_LINKS[3].id }),
+              React.createElement(ImpactSection, { id: NAV_LINKS[4].id }),
+              React.createElement(ComparisonSection, { id: NAV_LINKS[5].id }),
+              React.createElement(CallToActionSection)
+            ),
+            React.createElement(Footer)
+          )
+        );
+      };
+      // --- END OF INLINED App.tsx ---
+
+      // --- START OF INLINED index.tsx (main rendering logic) ---
+      const rootElement = document.getElementById('root');
+      if (!rootElement) {
+        throw new Error("Could not find root element to mount to");
+      }
+
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(
+        React.createElement(React.StrictMode, null, 
+          React.createElement(App)
+        )
+      );
+      // --- END OF INLINED index.tsx ---
     </script>
 </body>
 </html>
