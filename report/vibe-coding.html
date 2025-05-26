@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剖析 Geoffrey Huntley 的 Vibe Coding</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Stdlib Feedback Loop: Goal: Organize/Inform. Viz: HTML/CSS diagram. Interaction: Click to show step details. Justification: Visually explains a core process. Method: HTML/Tailwind/JS.
+        - Vibe Coding Components: Goal: Organize/Inform. Viz: Interactive HTML/CSS diagram/cards. Interaction: Click component for details. Justification: Clearly presents the framework's parts. Method: HTML/Tailwind/JS.
+        - LLM Dual Nature: Goal: Compare/Inform. Viz: Two-column/toggle card layout. Interaction: Click/toggle. Justification: Highlights contrasts effectively. Method: HTML/Tailwind/JS.
+        - N-Fold Productivity: Goal: Inform/Impact. Viz: Bar Chart (Chart.js). Interaction: Tooltips. Justification: Visualizes the claimed productivity leap. Method: Chart.js.
+        - Comparison Table: Goal: Compare. Viz: HTML Table. Interaction: Static, clear. Justification: Directly presents comparative data. Method: HTML/Tailwind.
+        - Textual Summaries: Goal: Inform. Viz: Styled text blocks. Justification: Conveys qualitative insights. Method: HTML/Tailwind.
+        CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+        .section-title {
+            @apply text-3xl font-bold text-sky-700 mb-6 text-center;
+        }
+        .subsection-title {
+            @apply text-2xl font-semibold text-sky-600 mb-4 mt-6;
+        }
+        .content-card {
+            @apply bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300;
+        }
+        .nav-link {
+            @apply px-4 py-2 text-slate-700 hover:text-sky-600 hover:bg-sky-100 rounded-md transition-colors duration-200;
+        }
+        .active-nav-link {
+            @apply text-sky-700 bg-sky-100 font-semibold;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* max-w-2xl equivalent */
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px; /* h-80 */
+            max-height: 400px; /* max-h-[400px] */
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .chart-container {
+                height: 384px; /* h-96 */
+            }
+        }
+        .interactive-card {
+            @apply bg-sky-50 p-4 rounded-lg shadow-md cursor-pointer hover:bg-sky-100 transition-colors;
+        }
+        .interactive-card-content {
+            @apply mt-2 text-sm text-slate-600 hidden;
+        }
+         .tab-button {
+            @apply px-4 py-2 font-medium text-sm leading-5 rounded-md;
+        }
+        .active-tab {
+            @apply bg-sky-600 text-white;
+        }
+        .inactive-tab {
+            @apply text-slate-600 hover:bg-slate-200 hover:text-slate-700;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-700">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-2xl font-bold text-sky-700">Geoffrey Huntley 的 Vibe Coding 洞察</h1>
+                <nav class="hidden md:flex space-x-1" id="desktop-nav">
+                    <a href="#overview" class="nav-link">概覽</a>
+                    <a href="#stdlib" class="nav-link">標準函式庫</a>
+                    <a href="#vibe-coding" class="nav-link">Vibe Coding</a>
+                    <a href="#llm-nature" class="nav-link">LLM 特性</a>
+                    <a href="#future-outlook" class="nav-link">未來展望</a>
+                    <a href="#comparison" class="nav-link">方法比較</a>
+                </nav>
+                <button id="mobile-menu-button" class="md:hidden text-slate-500 hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg">
+            <a href="#overview" class="block px-4 py-3 text-base nav-link">概覽</a>
+            <a href="#stdlib" class="block px-4 py-3 text-base nav-link">標準函式庫</a>
+            <a href="#vibe-coding" class="block px-4 py-3 text-base nav-link">Vibe Coding</a>
+            <a href="#llm-nature" class="block px-4 py-3 text-base nav-link">LLM 特性</a>
+            <a href="#future-outlook" class="block px-4 py-3 text-base nav-link">未來展望</a>
+            <a href="#comparison" class="block px-4 py-3 text-base nav-link">方法比較</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <section id="overview" class="pt-16 -mt-16 mb-12">
+            <h2 class="section-title">概覽：AI 驅動的軟體開發新紀元</h2>
+            <div class="content-card max-w-3xl mx-auto">
+                <p class="mb-4">本應用程式旨在剖析 Geoffrey Huntley 關於 AI 驅動軟體開發的深刻見解，特別聚焦於他提出的「標準函式庫 (Stdlib)」與「Vibe Coding」等核心概念。軟體開發正經歷一場由大型語言模型 (LLM) 引領的範式轉移，AI 的角色從簡單輔助演變為具備代理能力的協作夥伴。</p>
+                <p class="mb-4">Huntley 強調，開發者需從 AI 的「使用者」轉變為「程式設計師」，主動引導和程式設計 AI 以充分發揮其潛力。他的理念挑戰了傳統開發思維，並為我們描繪了一個更高效、更自動化的軟體創造未來。</p>
+                <blockquote class="border-l-4 border-sky-500 pl-4 py-2 my-4 bg-sky-50 text-sky-700">
+                    <p>"開發者需要從 AI 的『使用者』轉變為 AI 的『程式設計師』。" - Geoffrey Huntley (改述)</p>
+                </blockquote>
+                <p>透過本應用程式，您將逐步了解 Huntley 的核心思想，從基本原則到進階方法論，再到這些變革對未來的深遠影響。</p>
+            </div>
+        </section>
+
+        <section id="stdlib" class="pt-16 -mt-16 mb-12">
+            <h2 class="section-title">標準函式庫 (Stdlib)：超越提示詞工程</h2>
+            <div class="content-card max-w-3xl mx-auto">
+                <p class="mb-4">Huntley 批評許多開發者未能充分利用 AI 工具（如 Cursor AI）的可程式化潛力，僅將其視為傳統 IDE 或搜尋引擎的延伸。他指出，基礎 LLM 模型準確率有限（約 45%），需要頻繁引導。為解決此問題，他提倡建立一個包含數千條可組合提示規則的「標準函式庫 (stdlib)」。</p>
+                <p class="mb-4">這個 stdlib 不僅是規則的集合，更是一個動態的、不斷演進的知識庫，它將最佳實踐、技術約束和已習得的解決方案編碼化，從而有效地「教導」AI。</p>
+                
+                <div class="my-6">
+                    <h3 class="subsection-title text-xl text-center">Stdlib 的自我完善回饋迴路</h3>
+                    <div class="grid md:grid-cols-2 gap-4 items-center">
+                        <div class="space-y-3">
+                            <div class="interactive-card" data-target="stdlib-step-1">
+                                <p class="font-semibold">1. 初始 LLM 表現</p>
+                                <div id="stdlib-step-1" class="interactive-card-content">
+                                    <p>基礎 LLM 模型在無引導情況下，處理複雜任務的初始準確率可能僅約 45%，需要人工介入。</p>
+                                </div>
+                            </div>
+                            <div class="interactive-card" data-target="stdlib-step-2">
+                                <p class="font-semibold">2. 人工介入與引導</p>
+                                <div id="stdlib-step-2" class="interactive-card-content">
+                                    <p>開發者修正 AI 的錯誤或提供更清晰的指令，引導 AI 完成任務。</p>
+                                </div>
+                            </div>
+                            <div class="interactive-card" data-target="stdlib-step-3">
+                                <p class="font-semibold">3. AI 編碼學習經驗</p>
+                                <div id="stdlib-step-3" class="interactive-card-content">
+                                    <p>關鍵步驟：要求 AI 將修正的邏輯或新學到的經驗編碼為 stdlib 中的一條新規則或更新現有規則。</p>
+                                </div>
+                            </div>
+                             <div class="interactive-card" data-target="stdlib-step-4">
+                                <p class="font-semibold">4. 未來效能提升</p>
+                                <div id="stdlib-step-4" class="interactive-card-content">
+                                    <p>AI 在未來遇到類似任務時，能從已編碼的規則中受益，提高自主性和準確率，形成持續改進的循環。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center items-center p-4">
+                            <div class="relative w-64 h-64">
+                                <div class="absolute inset-0 border-4 border-sky-300 border-dashed rounded-full animate-spin-slow"></div>
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-sky-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a8 8 0 11-14.856-4.856M12 6v6l4 2" />
+                                    </svg>
+                                    <p class="font-semibold text-sky-600">持續進化</p>
+                                </div>
+                                <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3/4 bg-white px-2 py-1 rounded shadow text-xs text-slate-600">LLM (45%)</div>
+                                <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3/4 bg-white px-2 py-1 rounded shadow text-xs text-slate-600">人工引導</div>
+                                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-3/4 bg-white px-2 py-1 rounded shadow text-xs text-slate-600">規則編碼</div>
+                                <div class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3/4 bg-white px-2 py-1 rounded shadow text-xs text-slate-600">效能提升</div>
+                            </div>
+                        </div>
+                    </div>
+                     <p class="text-sm text-slate-500 mt-4 text-center">點擊上方卡片查看詳細說明。這個循環展示了 Stdlib 如何透過 AI 自我學習和規則更新來實現持續改進。</p>
+                </div>
+
+                <p class="mt-6">Huntley 強調，他 stdlib 中的所有規則都是由 Cursor AI 自行撰寫的。這是一個核心概念：stdlib 並非僅由人工維護，而是一個自我完善的系統。AI 從其錯誤和成功中學習，並將這些經驗教訓轉化為新的或更新的規則，由此形成一個強大的持續改進回饋迴路。</p>
+                <p class="mt-4">Stdlib 的意義超越個體效率提升，它允許將專家知識編碼到開發流程中，確保團隊或組織層面的一致性和品質。</p>
+            </div>
+        </section>
+
+        <section id="vibe-coding" class="pt-16 -mt-16 mb-12">
+            <h2 class="section-title">Vibe Coding：邁向解放雙手的軟體創造</h2>
+            <div class="content-card max-w-4xl mx-auto">
+                <p class="mb-4">「Vibe Coding」是 Huntley 方法論的頂峰，代表了一種利用 AI 程式碼助理進行軟體開發的新方法。開發者在此模式下設定「vibe」（即高層次的意圖和規格），而 AI 則在 `stdlib` 和 `specs`（功能規格庫）的驅動下執行具體任務。</p>
+                <p class="mb-4">這種組合旨在實現「在數小時內完成相當於同事數週工作量的 N 倍產出，且無需手動操作」。這需要開發者「放手並建立信任」，將大量實作細節委派給 AI。</p>
+
+                <h3 class="subsection-title text-xl text-center">Vibe Coding 的核心組成</h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                    <div class="interactive-card" data-target="vibe-specs">
+                        <p class="font-semibold text-lg">📜 規格庫 (Specs)</p>
+                        <div id="vibe-specs" class="interactive-card-content">
+                            <p>包含應用程式的功能規格，定義應用程式*應該做什麼*。通常位於 `specs/` 資料夾，以 Markdown 檔案形式存在。</p>
+                        </div>
+                    </div>
+                    <div class="interactive-card" data-target="vibe-stdlib">
+                        <p class="font-semibold text-lg">📚 標準函式庫 (Stdlib)</p>
+                        <div id="vibe-stdlib" class="interactive-card-content">
+                            <p>透過 `.cursor/rules` 中的規則集，提供關於*如何*實作的指引，確保遵循技術需求和最佳實踐。</p>
+                        </div>
+                    </div>
+                    <div class="interactive-card" data-target="vibe-language">
+                        <p class="font-semibold text-lg">💻 健全的程式語言</p>
+                        <div id="vibe-language" class="interactive-card-content">
+                            <p>如 Rust/Haskell，具有強型別系統和清晰的編譯器錯誤訊息，為 AI 提供精確的回饋。</p>
+                        </div>
+                    </div>
+                    <div class="interactive-card" data-target="vibe-tests">
+                        <p class="font-semibold text-lg">🧪 基於屬性的測試</p>
+                        <div id="vibe-tests" class="interactive-card-content">
+                            <p>穩固的測試套件用於品質保證，並作為 AI 自我修正的回饋迴路一部分。</p>
+                        </div>
+                    </div>
+                    <div class="interactive-card" data-target="vibe-feedback">
+                        <p class="font-semibold text-lg">🔄 有效的回饋迴路</p>
+                        <div id="vibe-feedback" class="interactive-card-content">
+                            <p>AI 實作、自動化測試/建置，並將結果（成功或失敗）回饋給 AI 的持續循環。</p>
+                        </div>
+                    </div>
+                     <div class="interactive-card" data-target="vibe-prompt">
+                        <p class="font-semibold text-lg">🗣️ 核心迭代提示詞</p>
+                        <div id="vibe-prompt" class="interactive-card-content">
+                            <p>例如：「研究 @SPECS.md 以了解功能規格。研究 @.cursor 以了解技術需求。實作尚未實作的部分。建立測試。執行『cargo build』並驗證應用程式是否正常運作」。此提示詞會被持續發出。</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-500 mb-6 text-center">點擊上方卡片查看各組成部分的詳細說明。</p>
+                
+                <p class="mt-4">Huntley 的「解放雙手 Vibe Coding」工作流程依賴 AI 理解規格、遵守 stdlib、根據建置/測試失敗進行自我修正，並逐步建構應用程式的能力。這代表了開發流程中更高層次的抽象，開發者從控制每一行程式碼轉向控制輸入（規格、規則）和驗證過程。</p>
+            </div>
+        </section>
+
+        <section id="llm-nature" class="pt-16 -mt-16 mb-12">
+            <h2 class="section-title">LLM 的雙面刃：能力與警示</h2>
+            <div class="content-card max-w-3xl mx-auto">
+                <p class="mb-6">大型語言模型 (LLM) 展現出驚人的技藝，但也伴隨著需要警惕的陷阱。理解這兩方面對於有效利用 AI 至關重要。</p>
+
+                <div class="mb-6">
+                    <div class="flex border-b border-slate-200">
+                        <button id="llm-capabilities-tab" class="tab-button flex-1 active-tab" onclick="switchTab('llm', 'capabilities')">🚀 LLM 的驚人技藝</button>
+                        <button id="llm-pitfalls-tab" class="tab-button flex-1 inactive-tab" onclick="switchTab('llm', 'pitfalls')">⚠️ 「自迴歸失敗女王」</button>
+                    </div>
+
+                    <div id="llm-capabilities-content" class="py-4">
+                        <h3 class="subsection-title text-xl">「Oh Fuck」時刻：LLM 的非凡潛力</h3>
+                        <p class="mb-2">LLM 在反混淆、轉譯以及結構到結構的轉換方面表現驚人。Huntley 成功引導 LLM 將 C 語言程式碼轉換為組合語言，再生成 Z/80 Speccy 磁帶程式。LLM 甚至能對壓縮混淆的 JavaScript 進行「淨室轉譯」，生成可讀原始碼和技術規格。</p>
+                        <p>這些案例展示了 LLM 理解、轉換並在不同抽象層次生成程式碼的能力，是實現 AI 代理承擔複雜開發任務的基礎。</p>
+                    </div>
+
+                    <div id="llm-pitfalls-content" class="py-4 hidden">
+                        <h3 class="subsection-title text-xl">理解並緩解 LLM 的錯誤</h3>
+                        <p class="mb-2">儘管 LLM 功能強大，但 Huntley 用「自迴歸失敗女王」形容它們有時會提出離譜建議的情況。這通常發生在上下文過於複雜或不同關注點混合時。問題根源在於 LLM 上下文視窗管理不當，導致「噪音」並產生不良結果。</p>
+                        <p class="font-semibold mt-3 mb-1">緩解建議：</p>
+                        <ul class="list-disc list-inside space-y-1 text-slate-600">
+                            <li><strong>一個任務，一個上下文視窗：</strong>若 AI 行為異常，應創建新的上下文視窗。</li>
+                            <li><strong>避免上下文視窗超載：</strong>不要將上下文容量推向極限。</li>
+                        </ul>
+                        <p class="mt-2">這提醒我們 LLM 的「理解」是統計性的，開發者需成為熟練的「上下文工程師」。</p>
+                    </div>
+                </div>
+                <p class="mt-4">即使在「解放雙手 vibe coding」模式下，人工監督與迭代優化仍至關重要。LLM 可能會出錯，需要人類提供回饋來引導修正。這是一個協作且迭代的過程。</p>
+            </div>
+        </section>
+
+        <section id="future-outlook" class="pt-16 -mt-16 mb-12">
+            <h2 class="section-title">未來展望：N 倍生產力與產業變革</h2>
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <div class="content-card">
+                    <h3 class="subsection-title text-xl">🚀 「N 倍」生產力躍升</h3>
+                    <p class="mb-4">Huntley 預見 AI 驅動的開發將帶來生產力上的巨大飛躍。「Vibe Coding」旨在實現「相當於同事數週工作量的 N 倍產出，且只需數小時」。例如，將 C 程式碼移植到 Z/80 平台的複雜任務，據稱僅花費約兩小時。</p>
+                    <p class="mb-4">這種「代理式軟體開發」將從根本上改變專案時程和資源分配模式。</p>
+                    <div class="chart-container my-6">
+                        <canvas id="productivityChart"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 text-center">上圖概念性地展示了 Vibe Coding 帶來的潛在生產力提升幅度。</p>
+                </div>
+                <div class="content-card">
+                    <h3 class="subsection-title text-xl">⚠️ 開發者適應的迫切性：「NGMI」警示</h3>
+                    <p class="mb-4">對於未能擁抱這一變革的開發者，Huntley 發出嚴厲警告：「ngmi」(not gonna make it)。他觀察到許多經驗豐富的開發者因過時經驗而輕視新型 AI 工具，未能意識到其飛速進步。企業績效衡量標準將轉向尋求具備「程式設計 LLM」能力的開發者。</p>
+                    <h3 class="subsection-title text-xl mt-6">📜 對授權與 IP 的衝擊</h3>
+                    <p class="mb-4">LLM 的反編譯和轉譯能力使「限制性軟體授權正變得無關緊要」。Huntley 聲稱可在數小時內對現存軟體進行淨室重新實作，這極大降低了市場競爭門檻，可能顛覆傳統 IP 觀念和軟體商業模式。</p>
+                     <h3 class="subsection-title text-xl mt-6">🌍 對生態系統控制的擔憂</h3>
+                    <p>Huntley 對主要參與者控制底層工具和平台的現象表示擔憂，認為這可能扼殺 AI 開發領域的創新和開放性，並倡導建立「真正開放的生態系統」。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="pt-16 -mt-16 mb-12">
+            <h2 class="section-title">方法比較：傳統 vs. Stdlib 驅動 vs. Vibe Coding</h2>
+            <div class="content-card max-w-5xl mx-auto overflow-x-auto">
+                 <p class="mb-4 text-center">下表比較了傳統軟體開發、由 stdlib 驅動的 AI 輔助開發，以及 Huntley 願景中的「Vibe Coding」範式，揭示了開發者工作性質的演變。</p>
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">層面</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">傳統開發</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Stdlib 驅動的 AI 輔助</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">「Vibe Coding」(Huntley 的願景)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200 text-sm">
+                        <tr>
+                            <td class="px-4 py-3 font-medium">開發者角色</td>
+                            <td class="px-4 py-3">手動編碼者、除錯者、整合者</td>
+                            <td class="px-4 py-3">編碼者、AI 提示工程師、規則維護者、除錯者</td>
+                            <td class="px-4 py-3">規格制定者、協調者、驗證者、AI 訓練師</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">AI 互動</td>
+                            <td class="px-4 py-3">無或基本程式碼補全</td>
+                            <td class="px-4 py-3">提示工程、基於規則的引導 (Stdlib)</td>
+                            <td class="px-4 py-3">透過 Specs & Stdlib 進行高層次的「Vibe」指導</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">任務自動化程度</td>
+                            <td class="px-4 py-3">低 (手動任務)</td>
+                            <td class="px-4 py-3">中 (特定任務由規則自動化)</td>
+                            <td class="px-4 py-3">高 (端到端功能實作)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">對規格的依賴</td>
+                            <td class="px-4 py-3">不定，通常非正式</td>
+                            <td class="px-4 py-3">因 AI 需清晰指令而增強</td>
+                            <td class="px-4 py-3">至關重要 (Specs 是主要驅動力)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">錯誤處理</td>
+                            <td class="px-4 py-3">手動除錯</td>
+                            <td class="px-4 py-3">AI 嘗試 + 人工修正，Stdlib 更新</td>
+                            <td class="px-4 py-3">AI 透過測試/建置自我修正，人工監督</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">知識編碼化</td>
+                            <td class="px-4 py-3">文件、程式碼註解、部落知識</td>
+                            <td class="px-4 py-3">Stdlib 中的明確規則，自我改進</td>
+                            <td class="px-4 py-3">Specs + 高度進化、自我編寫的 Stdlib</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">生產力焦點</td>
+                            <td class="px-4 py-3">個人技能、程式碼行數</td>
+                            <td class="px-4 py-3">任務效率、一致性</td>
+                            <td class="px-4 py-3">系統吞吐量、「N 倍」產出</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">控制點</td>
+                            <td class="px-4 py-3">逐行程式碼</td>
+                            <td class="px-4 py-3">提示詞、規則、干預</td>
+                            <td class="px-4 py-3">Specs、Stdlib 設計、驗證</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <section id="conclusion" class="pt-16 -mt-16 mb-12">
+            <h2 class="section-title">結論：擁抱 Vibe，抑或面臨淘汰？</h2>
+            <div class="content-card max-w-3xl mx-auto">
+                <p class="mb-4">Geoffrey Huntley 的論述描繪了一個 AI 深度融合於軟體開發的未來。核心觀點是：透過強大的「標準函式庫 (stdlib)」和明確的「規格庫 (specs)」，結合健全的程式語言與測試框架，可以實現高度自主的「Vibe Coding」開發範式。</p>
+                <p class="mb-4">這場變革潛力巨大，預示著「N 倍」生產力提升和對傳統軟體商業模式的顛覆。然而，也伴隨著挑戰：LLM 的不可預測性、開發者心態的轉變，以及對開放創新生態的潛在威脅。</p>
+                <p class="mb-4">軟體開發領域正處於轉捩點。開發者面臨抉擇：積極學習程式設計和協調 AI，還是冒著被時代淘汰的風險。Huntley 的工作為我們指明了一條通往 AI 驅動未來的實踐路徑，強調結構化互動、人與 AI 的持續學習，以及主動建構下一代開發工具和方法。</p>
+                <blockquote class="border-l-4 border-sky-500 pl-4 py-2 my-4 bg-sky-50 text-sky-700">
+                    <p>"這是一場關乎適應與創新的賽跑，而 Huntley 的洞見無疑為我們提供了寶貴的啟示。"</p>
+                </blockquote>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 py-8 text-center">
+        <p>&copy; 2024 Geoffrey Huntley Vibe Coding 洞察分析 (概念演示)。</p>
+        <p class="text-sm">本頁面根據公開報告內容生成，僅供學習與研究用途。</p>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Smooth scrolling and active nav link highlighting
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                mobileMenu.classList.add('hidden'); // Close mobile menu on click
+
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+                
+                // Update active link
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active-nav-link');
+                });
+                if (!this.classList.contains('block')) { // Desktop links
+                    this.classList.add('active-nav-link');
+                } else { // Mobile links - find corresponding desktop link
+                    document.querySelectorAll('#desktop-nav a[href="' + targetId + '"]').forEach(dLink => dLink.classList.add('active-nav-link'));
+                }
+
+            });
+        });
+        
+        // Set initial active link based on hash or default to overview
+        function updateActiveLinkOnLoad() {
+            let hash = window.location.hash;
+            if (!hash) {
+                hash = '#overview';
+            }
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active-nav-link');
+                if (link.getAttribute('href') === hash) {
+                    link.classList.add('active-nav-link');
+                }
+            });
+        }
+        window.addEventListener('load', updateActiveLinkOnLoad);
+        window.addEventListener('hashchange', updateActiveLinkOnLoad);
+
+
+        // Interactive cards toggle content
+        document.querySelectorAll('.interactive-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const contentId = card.dataset.target;
+                const contentElement = document.getElementById(contentId);
+                if (contentElement) {
+                    contentElement.classList.toggle('hidden');
+                }
+            });
+        });
+
+        // Tab switching for LLM Nature section
+        function switchTab(tabGroupName, tabName) {
+            // Hide all content for this tab group
+            document.querySelectorAll(`[id^="${tabGroupName}-"][id$="-content"]`).forEach(content => {
+                content.classList.add('hidden');
+            });
+            // Deactivate all tabs for this group
+            document.querySelectorAll(`[id^="${tabGroupName}-"][id$="-tab"]`).forEach(tab => {
+                tab.classList.remove('active-tab');
+                tab.classList.add('inactive-tab');
+            });
+
+            // Show selected content
+            document.getElementById(`${tabGroupName}-${tabName}-content`).classList.remove('hidden');
+            // Activate selected tab
+            const activeTab = document.getElementById(`${tabGroupName}-${tabName}-tab`);
+            activeTab.classList.add('active-tab');
+            activeTab.classList.remove('inactive-tab');
+        }
+        
+        // Productivity Chart
+        const ctx = document.getElementById('productivityChart').getContext('2d');
+        const productivityChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['傳統開發 (估計任務A)', 'Vibe Coding (估計任務A)'],
+                datasets: [{
+                    label: '估計所需時間 (小時)',
+                    data: [40, 4], // Conceptual data: 40 hours vs 4 hours (N=10)
+                    backgroundColor: [
+                        'rgba(156, 163, 175, 0.6)', // Tailwind gray-400
+                        'rgba(59, 130, 246, 0.6)'  // Tailwind blue-500
+                    ],
+                    borderColor: [
+                        'rgba(107, 114, 128, 1)', // Tailwind gray-500
+                        'rgba(37, 99, 235, 1)'   // Tailwind blue-600
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '小時'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + ' 小時';
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '概念性生產力比較',
+                        padding: {
+                            top: 10,
+                            bottom:10
+                        },
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
