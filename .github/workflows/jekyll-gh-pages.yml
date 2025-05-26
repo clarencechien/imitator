@@ -1,0 +1,54 @@
+name: Generate Report List
+
+on:
+  push:
+    branches:
+      - main # Or your default branch
+    paths:
+      - 'report/**.html' # Only run if HTML files in report/ change
+      - '.github/workflows/main.yml' # Or if the workflow itself changes
+
+jobs:
+  generate_list:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to commit back to the repo
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Generate report_list.json
+        run: |
+          import os
+          import json
+
+          report_dir = 'report'
+          report_files = [f for f in os.listdir(report_dir) if f.endswith('.html')]
+          
+          # Sort files for consistent ordering
+          report_files.sort()
+
+          with open('report_list.json', 'w') as f:
+            json.dump(report_files, f, indent=2)
+          
+          print("Generated report_list.json:")
+          with open('report_list.json', 'r') as f:
+            print(f.read())
+
+      - name: Commit report_list.json
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add report_list.json
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to report_list.json to commit."
+          else
+            git commit -m "docs: Auto-generate report_list.json"
+            git push
+          fi
