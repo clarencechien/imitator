@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣央行政策互動解析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Visualization & Content Choices:
+        - Overview: Text intro. Goal: Set context.
+        - "Privilege of Wealth": Tabs/cards for critiques. Chart.js line chart (Interest vs. Housing Prices), bar chart (Wage Growth Comparison - illustrative). Goal: Inform, Compare. Interaction: Click tabs, chart tooltips.
+        - 1980s History: HTML/CSS/JS timeline, Chart.js line chart (NTD & TAIEX). Goal: Show Change, Inform. Interaction: Clickable timeline, chart tooltips.
+        - Current FX Dynamics: HTML table (Pros/Cons of Appreciation), JS interactive calculator. Goal: Compare, Inform, Engage. Interaction: Clickable table details, input for calculator.
+        - FX Reserves: Chart.js line chart (FX Reserve Growth), HTML/CSS "balance scale" visual. Goal: Inform, Compare, Organize. Interaction: Chart tooltips, clickable scale points.
+        - Wealth Distribution: HTML/CSS infographic text blocks, potentially illustrative Chart.js donut chart. Goal: Inform, Highlight Disparities. Interaction: Hover effects.
+        - Outlook: Text. Goal: Conclude.
+        All charts via Chart.js (Canvas). No SVG/Mermaid. Focus on illustrating report's key arguments and data trends. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', 'Inter', sans-serif;
+            background-color: #FDFBF6; /* Warm Neutral Background */
+            color: #3C3C3C; /* Dark Gray Text */
+        }
+        .nav-link {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors;
+        }
+        .nav-link.active {
+            @apply bg-blue-500 text-white;
+        }
+        .content-section {
+            @apply pt-8 pb-16 min-h-screen; /* Added min-h-screen for better scrollspy behavior */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Default max-width */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 400px; /* Max height */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px; /* Taller on md screens and up */
+            }
+        }
+        .tab-button {
+            @apply px-4 py-2 font-semibold border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none transition-colors;
+        }
+        .tab-button.active {
+            @apply border-blue-500 text-blue-600;
+        }
+        .timeline-item {
+            @apply relative pl-8 sm:pl-32 py-6 group;
+        }
+        .timeline-marker {
+            @apply absolute left-0 sm:left-24 top-1/2 -mt-3 flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-sm font-semibold group-hover:bg-blue-600 transition-colors;
+        }
+        .timeline-content {
+            @apply p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow;
+        }
+        .balance-scale-item {
+            @apply p-3 bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer transition-colors;
+        }
+        h1, h2, h3 {
+            font-family: 'Noto Sans TC', 'Inter', sans-serif;
+            font-weight: 700;
+        }
+        .section-intro {
+            @apply text-lg text-gray-700 mb-8 leading-relaxed max-w-3xl mx-auto;
+        }
+        .card {
+            @apply bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300;
+        }
+        .accent-color { color: #4A90E2; } /* A calm blue accent */
+        .secondary-accent-color { color: #50E3C2; } /* A calm teal/green accent */
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav id="navbar" class="bg-white/80 backdrop-blur-md shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-blue-600">央行政策解析</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-link">總覽</a>
+                        <a href="#critique" class="nav-link">《致富的特權》</a>
+                        <a href="#history" class="nav-link">歷史鏡鑑</a>
+                        <a href="#current_fx" class="nav-link">當前匯率</a>
+                        <a href="#fx_reserves" class="nav-link">外匯存底</a>
+                        <a href="#wealth_distribution" class="nav-link">財富分配</a>
+                        <a href="#outlook" class="nav-link">未來展望</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#overview" class="block nav-link text-base">總覽</a>
+                <a href="#critique" class="block nav-link text-base">《致富的特權》</a>
+                <a href="#history" class="block nav-link text-base">歷史鏡鑑</a>
+                <a href="#current_fx" class="block nav-link text-base">當前匯率</a>
+                <a href="#fx_reserves" class="block nav-link text-base">外匯存底</a>
+                <a href="#wealth_distribution" class="block nav-link text-base">財富分配</a>
+                <a href="#outlook" class="block nav-link text-base">未來展望</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <section id="overview" class="content-section text-center">
+            <h1 class="text-4xl font-bold mb-6 text-blue-700">台灣中央銀行政策的深遠影響</h1>
+            <p class="section-intro">
+                本互動報告旨在解析台灣中央銀行政策對經濟及民眾日常生活的影響。我們將探討《致富的特權》一書中的主要論點，回顧歷史經驗，分析當前挑戰，並展望未來可能的政策方向。透過互動圖表與清晰解說，希望能幫助您更深入理解這個複雜且重要的議題。
+            </p>
+            <div class="grid md:grid-cols-3 gap-6 mt-12">
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-2 accent-color">🎯 央行使命</h3>
+                    <p class="text-gray-600">維持物價與金融穩定，促進經濟發展，但其政策選擇常引發廣泛討論。</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-2 accent-color">🔑 核心爭議</h3>
+                    <p class="text-gray-600">低利率、匯率干預、高房價、產業升級、財富分配等問題是否與央行政策相關？</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-2 accent-color">💡 探索目標</h3>
+                    <p class="text-gray-600">透過數據與分析，客觀評估央行政策的利弊得失，引發更深入的思考。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="critique" class="content-section">
+            <h2 class="text-3xl font-bold text-center mb-10 text-blue-700">解構《致富的特權》：主要論點與評析</h2>
+            <p class="section-intro text-center">
+                《致富的特權：二十年來我們為央行政策付出的代價》一書對央行政策提出了尖銳批評。本節將解析書中核心論點，並呈現相關數據與不同觀點，助您全面理解這場重要的政策辯論。
+            </p>
+            <div id="critique-tabs" class="mb-8 flex justify-center border-b">
+                <button class="tab-button active" data-tab="low_interest">低利率政策</button>
+                <button class="tab-button" data-tab="exchange_rate">壓低匯率</button>
+                <button class="tab-button" data-tab="cbc_profit">央行特權</button>
+                <button class="tab-button" data-tab="transparency">透明度問題</button>
+            </div>
+
+            <div id="critique-content" class="space-y-8">
+                <div class="tab-content active" data-tab-content="low_interest">
+                    <h3 class="text-2xl font-semibold mb-4 text-center accent-color">長期低利率的代價？</h3>
+                    <div class="grid md:grid-cols-2 gap-8 items-center">
+                        <div>
+                            <p class="text-gray-700 mb-4 leading-relaxed">書中指出，央行長達二十年的低利率政策，是推升台灣房價的關鍵因素。低利率降低了購房與信貸成本，刺激了房地產的投資甚至投機行為，也可能催生缺乏競爭力的「殭屍企業」，阻礙資源有效配置。</p>
+                            <p class="text-gray-700 leading-relaxed"><strong>反思點：</strong>房價的形成因素多元，包括土地供給、營建成本、總體經濟、資金流動及市場預期等。低利率的影響程度與範圍，以及其對不同經濟部門的利弊，值得深入探討。</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="interestRateHousingPriceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content hidden" data-tab-content="exchange_rate">
+                    <h3 class="text-2xl font-semibold mb-4 text-center accent-color">壓低匯率的影響？</h3>
+                     <div class="grid md:grid-cols-2 gap-8 items-center">
+                        <div>
+                            <p class="text-gray-700 mb-4 leading-relaxed">書中認為，央行長期壓抑新台幣匯率，雖短期有利出口，但長期而言阻礙產業升級（因進口設備昂貴）、導致薪資成長停滯（企業依賴成本競爭而非創新），並可能助長人才外流，形成「內富外窮」的局面。</p>
+                            <p class="text-gray-700 leading-relaxed"><strong>反思點：</strong>產業升級與薪資水平受多重因素影響，包括研發投入、全球供應鏈、產業政策等。匯率政策在其中的確切角色與影響路徑，以及如何平衡出口競爭力與內需購買力，是重要課題。</p>
+                        </div>
+                        <div class="chart-container">
+                             <canvas id="wageGrowthChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content hidden" data-tab-content="cbc_profit">
+                    <h3 class="text-2xl font-semibold mb-4 text-center accent-color">央行的「無本生意」？</h3>
+                    <p class="text-gray-700 mb-4 leading-relaxed max-w-3xl mx-auto">《致富的特權》質疑央行透過獨佔貨幣發行權及管理龐大外匯存底來獲取巨額利潤，並將盈餘上繳國庫的作法。批評者擔心，政府對央行盈餘的依賴，可能使央行在制定貨幣政策時，傾向追求盈餘最大化（例如維持弱勢匯率以增加外匯資產的新台幣價值，或維持低利率以降低沖銷成本），從而損害其政策獨立性與客觀性。</p>
+                    <p class="text-gray-700 leading-relaxed max-w-3xl mx-auto"><strong>反思點：</strong>央行盈餘上繳是許多國家的作法，但其規模、制度設計以及對央行政策獨立性的潛在影響，確實需要透明化並接受公眾檢驗。如何在國家財政需求與央行核心職責間取得平衡，至關重要。</p>
+                </div>
+
+                <div class="tab-content hidden" data-tab-content="transparency">
+                    <h3 class="text-2xl font-semibold mb-4 text-center accent-color">透明度與問責機制？</h3>
+                    <p class="text-gray-700 mb-4 leading-relaxed max-w-3xl mx-auto">書中批評央行在政策溝通上缺乏透明度，決策過程不夠公開，難以有效問責。例如，對於房市選擇性信用管制的實施標準與預期效果，未能提供清晰說明，使政策成效難以評估。</p>
+                    <p class="text-gray-700 leading-relaxed max-w-3xl mx-auto"><strong>反思點：</strong>在全球央行日益重視溝通與透明度的趨勢下，台灣央行如何提升其政策制定的透明度、強化與公眾及學術界的對話、並建立更完善的問責機制，是提升治理效能的關鍵。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="history" class="content-section">
+            <h2 class="text-3xl font-bold text-center mb-10 text-blue-700">歷史鏡鑑：1980年代新台幣升值風雲</h2>
+            <p class="section-intro text-center">
+                1980年代後期，台灣經歷了劇烈的新台幣升值，這段歷史對台灣經濟產生了深遠影響，也為今日的政策制定提供了寶貴教訓。本節將帶您回顧這段「台灣錢淹腳目」的時期，探討其成因、影響與啟示。
+            </p>
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <div class="relative">
+                    <div class="border-l-4 border-blue-500">
+                        <div class="timeline-item">
+                            <div class="timeline-marker">1</div>
+                            <div class="timeline-content">
+                                <h4 class="font-semibold text-lg mb-1">1985年：廣場協議</h4>
+                                <p class="text-sm text-gray-600">美日等五國簽訂，促使美元貶值，台灣面臨新台幣升值壓力。</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker">2</div>
+                            <div class="timeline-content">
+                                <h4 class="font-semibold text-lg mb-1">1986-1989年：新台幣急升</h4>
+                                <p class="text-sm text-gray-600">新台幣兌美元從約40元升至約26元，熱錢湧入。</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker">3</div>
+                            <div class="timeline-content">
+                                <h4 class="font-semibold text-lg mb-1">1987-1989年：資產泡沫</h4>
+                                <p class="text-sm text-gray-600">股市從千點飆至萬點，房價暴漲三倍，「台灣錢淹腳目」。</p>
+                            </div>
+                        </div>
+                         <div class="timeline-item">
+                            <div class="timeline-marker">4</div>
+                            <div class="timeline-content">
+                                <h4 class="font-semibold text-lg mb-1">1989年：無殼蝸牛運動</h4>
+                                <p class="text-sm text-gray-600">數萬人抗議高房價，社會對貧富差距感受強烈。</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker">5</div>
+                            <div class="timeline-content">
+                                <h4 class="font-semibold text-lg mb-1">1990年：泡沫破滅</h4>
+                                <p class="text-sm text-gray-600">股市崩盤，房市降溫，經濟面臨調整。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container mt-8 md:mt-0">
+                    <canvas id="ntdTaiex1980sChart"></canvas>
+                    <p class="text-center text-sm text-gray-500 mt-2">圖示：1980年代新台幣匯率與台股指數走勢 (示意圖)</p>
+                </div>
+            </div>
+             <div class="mt-8 card">
+                <h3 class="text-xl font-semibold mb-2 accent-color">1980年代的教訓：</h3>
+                <ul class="list-disc list-inside text-gray-700 space-y-1">
+                    <li>小型開放經濟體易受外部壓力影響，政策自主性面臨考驗。</li>
+                    <li>管理匯率快速升值、避免資產泡沫是央行的持續挑戰。</li>
+                    <li>需有效監管短期資本流動，防範金融市場失序。</li>
+                    <li>資產泡沫可能加劇貧富差距，衝擊社會價值觀。</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="current_fx" class="content-section">
+            <h2 class="text-3xl font-bold text-center mb-10 text-blue-700">當前匯率風雲：升值壓力與潛在影響</h2>
+            <p class="section-intro text-center">
+                近年來，新台幣匯率再次面臨複雜的內外環境。強勁的出口、全球資金流動及地緣政治因素，共同形塑其價值。本節將探討新台幣升值的潛在影響，並與1980年代情景進行比較。
+            </p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-3 accent-color">新台幣升值的主要驅動因素</h3>
+                    <ul class="list-disc list-inside text-gray-700 space-y-1">
+                        <li>強勁出口表現 (尤其半導體產業) 與貿易順差。</li>
+                        <li>外國資本因看好台灣經濟前景而流入。</li>
+                        <li>全球美元走勢及美國聯準會的貨幣政策。</li>
+                        <li>地緣政治因素與市場對潛在貿易談判的預期。</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-3 accent-color">與1980年代的異同</h3>
+                    <p class="text-gray-700 mb-2"><strong>相似處：</strong>可能面臨外部壓力、對出口競爭力的擔憂。</p>
+                    <p class="text-gray-700"><strong>不同處：</strong>經濟結構更成熟(高科技佔比高)、全球化更深、金融市場更完善、央行經驗更豐富、外匯存底更龐大。</p>
+                </div>
+            </div>
+
+            <div class="mt-10 card">
+                <h3 class="text-2xl font-semibold mb-6 text-center secondary-accent-color">新台幣大幅升值的潛在經濟後果</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">影響層面</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">正面影響 (可能)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">負面影響 (可能)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap font-medium">出口產業</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">迫使產業升級、提升附加價值</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">價格競爭力削弱，衝擊傳統產業</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap font-medium">進口與通膨</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">進口成本降低，助於抑制CPI通膨</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">-</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap font-medium">國內消費</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">提升對進口品及海外旅遊購買力</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">可能衝擊部分國內內需產業</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap font-medium">家庭財富</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">新台幣資產國際購買力提升</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">外幣資產以新台幣計價縮水</td>
+                            </tr>
+                             <tr>
+                                <td class="px-6 py-4 whitespace-nowrap font-medium">資產價格</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">-</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">若引發過度資本流入，可能推升房市、股市等資產價格，形成泡沫風險 (非CPI通膨)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="mt-4 text-sm text-gray-600 text-center">註：新台幣升值對經濟的影響是多面向且複雜的，實際效果取決於升值幅度、持續時間、國內外經濟環境及配套政策。</p>
+            </div>
+        </section>
+
+        <section id="fx_reserves" class="content-section">
+            <h2 class="text-3xl font-bold text-center mb-10 text-blue-700">外匯存底的雙面刃：穩定器還是絆腳石？</h2>
+            <p class="section-intro text-center">
+                台灣擁有鉅額外匯存底，常被視為經濟穩定的基石。然而，其累積方式、管理效益以及潛在成本也引發諸多討論。本節將探討外匯存底的利弊得失，以及其在央行政策中所扮演的角色。
+            </p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="chart-container">
+                    <canvas id="fxReservesGrowthChart"></canvas>
+                    <p class="text-center text-sm text-gray-500 mt-2">圖示：台灣外匯存底成長趨勢 (示意圖)</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold mb-3 accent-color">外匯存底如何累積？</h3>
+                    <ul class="list-disc list-inside text-gray-700 space-y-1 mb-4">
+                        <li>央行市場干預：為緩和新台幣升值，拋售新台幣、買入外幣。</li>
+                        <li>沖銷操作：發行央行定存單回收市場過多新台幣，是干預的配套。</li>
+                        <li>投資收益：外匯存底的投資所得。</li>
+                    </ul>
+                    <p class="text-gray-700">大部分外匯存底投資於美元資產，特別是美國公債，以追求安全性與流動性。</p>
+                </div>
+            </div>
+
+            <div class="mt-10 card">
+                <h3 class="text-2xl font-semibold mb-6 text-center secondary-accent-color">外匯存底的效益 vs. 成本</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2 text-green-600">效益 <span class="text-2xl">👍</span></h4>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li>抵禦外部金融衝擊，維持金融穩定。</li>
+                            <li>確保國際支付能力。</li>
+                            <li>提升國際社會對台灣經濟的信心。</li>
+                            <li>央行操作盈餘上繳國庫，挹注財政。</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2 text-red-600">成本/風險 <span class="text-2xl">👎</span></h4>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li>機會成本高：資金可轉作國內更高回報投資。</li>
+                            <li>貨幣政策自主性可能受損 (三元悖論)。</li>
+                            <li>若沖銷不完全，過剩流動性可能助長資產泡沫。</li>
+                            <li>長期依賴弱勢匯率可能阻礙產業升級。</li>
+                            <li>可能引發國際對匯率操縱的指控。</li>
+                            <li>壓低匯率政策可能加劇財富分配不均。</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="mt-6 text-gray-700 leading-relaxed text-center">追求「越多越好」的外匯存底，是否讓台灣付出了過高的經濟結構扭曲與社會成本，是值得深思的議題。</p>
+            </div>
+        </section>
+
+        <section id="wealth_distribution" class="content-section">
+            <h2 class="text-3xl font-bold text-center mb-10 text-blue-700">財富誰與共享？國家富裕與人民感受</h2>
+            <p class="section-intro text-center">
+                央行政策不僅影響總體經濟，也對財富分配和民眾生活感受產生深遠影響。本節探討在國家財富增長的同時，為何部分民眾可能感受到生活壓力增加與財富分配不均的問題。
+            </p>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-3 accent-color">低利率與高房價效應 <span class="text-2xl">🏠</span></h3>
+                    <p class="text-gray-700">長期低利率被指為推升房價的因素之一。房產持有者財富增加，但無房者（尤其年輕世代）購房壓力劇增，產生「相對剝奪感」，加劇財富不均。</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-3 accent-color">低匯率與購買力矛盾 <span class="text-2xl">💸</span></h3>
+                    <p class="text-gray-700">弱勢匯率使進口品昂貴，削弱國民實質國際購買力（「內富外窮」）。過度依賴匯率優勢可能影響薪資提升與產業升級，甚至導致人才外流。</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-3 accent-color">資源錯置與發展不均 <span class="text-2xl">⚙️</span></h3>
+                    <p class="text-gray-700">政策若過度側重扶植特定出口產業，可能導致資源集中，不利經濟結構均衡發展。低利率也可能讓「殭屍企業」存活，拖累整體效率。</p>
+                </div>
+            </div>
+            <div class="mt-10 card bg-amber-50">
+                 <h3 class="text-2xl font-semibold mb-4 text-center text-amber-700">國富民「感」？</h3>
+                 <p class="text-gray-800 leading-relaxed text-center max-w-3xl mx-auto">
+                    學者指出，央行政策雖在累積外匯存底、貢獻財政方面有成效，但也可能在財富分配公平性、人民實質購買力、產業結構健康發展等方面付出代價。國家帳面財富增加，但成果若未公平惠及所有國民，可能導致部分民眾對「國家富裕」無感，甚至感到生活壓力不減反增。
+                 </p>
+            </div>
+        </section>
+
+        <section id="outlook" class="content-section">
+            <h2 class="text-3xl font-bold text-center mb-10 text-blue-700">未來展望與政策省思</h2>
+            <p class="section-intro text-center">
+                台灣經濟要邁向更永續與包容的成長，央行政策的思維與操作勢必需要與時俱進。社會各界的理性討論、監督，以及央行自身的開放態度與專業精神，將是關鍵。
+            </p>
+            <div class="max-w-3xl mx-auto card">
+                <h3 class="text-xl font-semibold mb-4 accent-color">政策建議方向：</h3>
+                <ul class="list-disc list-inside text-gray-700 space-y-2">
+                    <li><strong>提升政策透明度與溝通：</strong>強化與市場、學界及公眾的對話，提供充分政策依據。</li>
+                    <li><strong>重新評估匯率政策長期目標：</strong>在出口競爭力與國民購買力間求取更佳平衡。</li>
+                    <li><strong>關注貨幣政策的分配效應：</strong>細緻評估政策對不同群體的影響，緩解財富分配惡化。</li>
+                    <li><strong>強化央行獨立性：</strong>檢討盈餘上繳制度，確保央行專注核心職責。</li>
+                    <li><strong>靈活運用多元政策工具：</strong>積極審慎運用宏觀審慎工具，應對特定市場風險。</li>
+                </ul>
+                <p class="mt-6 text-gray-700 leading-relaxed">中央銀行的政策影響深遠且複雜。在追求國家經濟發展的同時，如何兼顧社會公平、環境永續及提升國民整體福祉，是持續面對的重大挑戰與使命。</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-sm">&copy; 2025 央行政策互動解析。本內容僅供教育與討論目的，不構成任何投資建議。</p>
+            <p class="text-xs mt-1">資訊主要參考自相關研究報告與公開資料。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navbar = document.getElementById('navbar');
+            const navLinks = navbar.querySelectorAll('a.nav-link');
+            const sections = document.querySelectorAll('.content-section');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            function changeNav() {
+                let currentSection = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - (navbar.offsetHeight + 20)) { // Adjusted offset
+                        currentSection = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').substring(1) === currentSection) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            
+            window.addEventListener('scroll', changeNav);
+            changeNav(); // Initial call
+
+            navLinks.forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        const offsetTop = targetElement.offsetTop - navbar.offsetHeight;
+                         window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
+            const critiqueTabs = document.querySelectorAll('#critique-tabs .tab-button');
+            const critiqueContents = document.querySelectorAll('#critique-content .tab-content');
+
+            critiqueTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    critiqueTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const targetTab = tab.getAttribute('data-tab');
+                    critiqueContents.forEach(content => {
+                        if (content.getAttribute('data-tab-content') === targetTab) {
+                            content.classList.remove('hidden');
+                            content.classList.add('active');
+                        } else {
+                            content.classList.add('hidden');
+                            content.classList.remove('active');
+                        }
+                    });
+                });
+            });
+            
+            function createChart(ctx, type, data, options) {
+                new Chart(ctx, { type, data, options });
+            }
+
+            const commonChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        ticks: { 
+                            autoSkip: true,
+                            maxTicksLimit: 10, // Limit number of x-axis ticks for readability
+                             callback: function(value, index, values) {
+                                const label = this.getLabelForValue(value);
+                                return label.length > 16 ? label.substring(0, 14) + '...' : label;
+                            }
+                        } 
+                    },
+                    y: { beginAtZero: false } // Allow y-axis to not start at zero for better trend visibility
+                }
+            };
+            
+            const interestRateHousingPriceCtx = document.getElementById('interestRateHousingPriceChart')?.getContext('2d');
+            if (interestRateHousingPriceCtx) {
+                createChart(interestRateHousingPriceCtx, 'line', {
+                    labels: ['2003', '2005', '2007', '2009', '2011', '2013', '2015', '2017', '2019', '2021', '2023'],
+                    datasets: [
+                        {
+                            label: '房價指數 (示意)',
+                            data: [60, 65, 75, 80, 95, 110, 115, 120, 125, 140, 150],
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            tension: 0.1,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: '重貼現率 (%) (示意)',
+                            data: [1.375, 2.125, 3.375, 1.25, 1.875, 1.875, 1.875, 1.375, 1.375, 1.125, 1.875],
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            tension: 0.1,
+                            yAxisID: 'y1',
+                        }
+                    ]
+                }, { ...commonChartOptions, scales: {
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '房價指數'} },
+                    y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: '利率 (%)'}, grid: { drawOnChartArea: false } }
+                }});
+            }
+
+            const wageGrowthCtx = document.getElementById('wageGrowthChart')?.getContext('2d');
+            if (wageGrowthCtx) {
+                 createChart(wageGrowthCtx, 'bar', {
+                    labels: ['台灣', '韓國', '新加坡', '德國', '美國'],
+                    datasets: [{
+                        label: '平均年薪資成長率 (2010-2020, 示意)',
+                        data: [1.5, 2.5, 2.2, 1.8, 2.0], // Hypothetical data for illustration
+                        backgroundColor: [
+                            'rgba(255, 159, 64, 0.5)',
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(153, 102, 255, 0.5)',
+                            'rgba(255, 205, 86, 0.5)',
+                            'rgba(54, 162, 235, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 205, 86, 1)',
+                            'rgba(54, 162, 235, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                }, { ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { beginAtZero: true, title: { display: true, text: '年均成長率 (%)' } } } });
+            }
+            
+            const ntdTaiex1980sCtx = document.getElementById('ntdTaiex1980sChart')?.getContext('2d');
+            if (ntdTaiex1980sCtx) {
+                createChart(ntdTaiex1980sCtx, 'line', {
+                    labels: ['1985', '1986', '1987', '1988', '1989', '1990', '1991', '1992'],
+                    datasets: [
+                        {
+                            label: '新台幣兌美元匯率 (示意)',
+                            data: [40.5, 39.8, 35.5, 28.5, 26.2, 27.0, 25.5, 25.2], // Lower is stronger NTD
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            yAxisID: 'y',
+                            tension: 0.1
+                        },
+                        {
+                            label: '台股加權指數 (示意)',
+                            data: [800, 1000, 2500, 5000, 9600, 4500, 4000, 3500], // Simplified TAIEX
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            yAxisID: 'y1',
+                            tension: 0.1
+                        }
+                    ]
+                }, { ...commonChartOptions, scales: {
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '新台幣/美元'} },
+                    y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: '台股指數'}, grid: { drawOnChartArea: false } }
+                }});
+            }
+
+            const fxReservesGrowthCtx = document.getElementById('fxReservesGrowthChart')?.getContext('2d');
+            if (fxReservesGrowthCtx) {
+                createChart(fxReservesGrowthCtx, 'line', {
+                    labels: ['2000', '2005', '2010', '2015', '2020', '2024'],
+                    datasets: [{
+                        label: '台灣外匯存底 (十億美元, 示意)',
+                        data: [106, 253, 384, 426, 529, 570], // Simplified data
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                }, { ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { beginAtZero: true, title: { display: true, text: '十億美元' } } } });
+            }
+        });
+    </script>
+</body>
+</html>
