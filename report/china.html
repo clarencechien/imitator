@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-T">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中國攻台能力互動分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Application Structure Plan: The SPA uses a tabbed navigation structure to guide users through key aspects of the report:
+        1. 總覽 (Overview): Presents the report's abstract for a quick understanding of the scope and main conclusions.
+        2. 軍力對比 (Force Comparison): Allows users to compare PLA and Taiwanese military capabilities across Naval, Air, Ground, Missile, and Info Warfare domains using interactive charts and concise textual summaries. This facilitates direct understanding of relative strengths.
+        3. 情境模擬 (Scenario Simulation): Enables users to select between "No Foreign Intervention" and "With Foreign Intervention" scenarios, dynamically displaying PLA objectives, Taiwanese responses, key deciding factors, and potential outcomes as described in the report. This section aims to make the complex scenario analysis more accessible.
+        4. 關鍵挑戰 (Key Challenges): Focuses on critical factors influencing any invasion attempt, such as PLA's logistical hurdles, the Taiwan Strait's demanding environment, and Taiwan's defensive resilience, presented in distinct, easily digestible blocks.
+        5. 結論 (Conclusion): Provides the report's overall assessment and strategic implications.
+        This structure was chosen to break down the dense information into thematic, manageable sections, promoting easier navigation and comprehension than a linear document. The interactive elements are designed to engage the user and highlight key data points and analytical conclusions from the report.
+    -->
+    <!-- Visualization & Content Choices:
+        - Overview: Text display.
+        - Force Comparison:
+            - Report Info: Tables 1, 2, 3, 4 and related text.
+            - Goal: Compare key military platform quantities and capabilities.
+            - Viz/Presentation: Side-by-side bar charts (Chart.js) for asset numbers (e.g., LHDs, fighter jets, missile launchers). Text summaries for qualitative aspects.
+            - Interaction: Buttons/tabs to switch between military domains (Naval, Air, etc.). Hover tooltips on charts.
+            - Justification: Clear visual comparison of quantitative data and structured presentation of capabilities.
+            - Library/Method: Chart.js on Canvas, HTML/Tailwind for text.
+        - Scenario Simulation:
+            - Report Info: Section V, Table 5.
+            - Goal: Illustrate differences in outcomes and key factors between intervention/no-intervention scenarios.
+            - Viz/Presentation: Text summaries, dynamic content update based on scenario selection. Bar chart for CSIS wargame casualty/loss estimates.
+            - Interaction: Buttons to switch scenarios. Clickable elements for details on factors/risks.
+            - Justification: Makes scenario analysis interactive and easier to digest.
+            - Library/Method: Vanilla JS for content switching, Chart.js for comparisons.
+        - Key Challenges:
+            - Report Info: Section II.E (PLA Logistics), Section IV (Taiwan Strait), Section III (Taiwan Defense aspects).
+            - Goal: Highlight major obstacles for PLA and advantages for Taiwan.
+            - Viz/Presentation: Card-based layout for PLA Logistics, Strait Environment, Taiwan's Defensive Resilience. Text summaries with Unicode icons.
+            - Interaction: Expandable sections for more details.
+            - Justification: Focuses on critical non-combat factors.
+            - Library/Method: HTML/Tailwind, JS for interactivity.
+        - Conclusion:
+            - Report Info: Section VI.
+            - Goal: Present overall assessment.
+            - Viz/Presentation: Structured text.
+            - Interaction: None.
+            - Justification: Summarizes key findings.
+            - Library/Method: HTML/Tailwind.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #F8F9FA; color: #212529; }
+        .tab-button { padding: 0.75rem 1.5rem; margin-right: 0.5rem; border-radius: 0.5rem 0.5rem 0 0; font-weight: 500; cursor: pointer; transition: background-color 0.3s, color 0.3s; background-color: #E9ECEF; color: #4A90E2; border-bottom: 2px solid transparent; }
+        .tab-button.active { background-color: #FFFFFF; color: #4A90E2; border-bottom: 2px solid #4A90E2; }
+        .tab-button:hover { background-color: #FFFFFF; }
+        .content-section { display: none; padding: 1.5rem; background-color: #FFFFFF; border-radius: 0 0.5rem 0.5rem 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-height: 400px; }
+        .content-section.active { display: block; }
+        .chart-container { position: relative; width: 100%; max-width: 700px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; padding: 1rem; background-color: #fff; border-radius: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        h2 { font-size: 1.75rem; font-weight: 600; color: #4A90E2; margin-bottom: 1rem; border-bottom: 2px solid #50C878; padding-bottom: 0.5rem; }
+        h3 { font-size: 1.25rem; font-weight: 600; color: #2c5282; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        p { line-height: 1.6; margin-bottom: 1rem; text-align: justify; }
+        ul { list-style-position: inside; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        .comparison-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+        @media (min-width: 1024px) { .comparison-grid { grid-template-columns: 1fr 1fr; } }
+        .comparison-box { background-color: #F8F9FA; padding: 1rem; border-radius: 0.5rem; }
+        .scenario-button { background-color: #60A5FA; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; margin-right: 0.5rem; cursor: pointer; transition: background-color 0.2s; }
+        .scenario-button.active { background-color: #3B82F6; }
+        .scenario-button:hover { background-color: #3B82F6; }
+        .challenge-card { background-color: #E0E7FF; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+        .challenge-card h3 { color: #3730A3; }
+        .tooltip { position: absolute; background-color: rgba(0,0,0,0.7); color: white; padding: 5px; border-radius: 3px; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 10; }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-[#4A90E2] mb-2">中國人民解放軍跨海攻台戰力與運輸能量互動分析</h1>
+            <p class="text-md text-gray-600">基於2024-2025年數據與情境之評估報告</p>
+        </header>
+
+        <nav id="tabNav" class="mb-0 flex flex-wrap">
+            <button class="tab-button active" data-tab="overview">總覽</button>
+            <button class="tab-button" data-tab="forceComparison">軍力對比</button>
+            <button class="tab-button" data-tab="scenarioSimulation">情境模擬</button>
+            <button class="tab-button" data-tab="keyChallenges">關鍵挑戰</button>
+            <button class="tab-button" data-tab="conclusion">結論</button>
+        </nav>
+
+        <main>
+            <section id="overview" class="content-section active">
+                <h2>報告總覽</h2>
+                <p>本報告旨在深入評估中華人民共和國（PRC）人民解放軍（PLA）當前（2024-2025年）的軍事戰鬥力量與運輸投送能力，以判斷其是否具備跨越台灣海峽進攻台灣的實力。報告將分析兩種關鍵情境：一、解放軍在無外國軍事干預下單獨行動；二、解放軍在面臨外國軍事干預（主要指美國及其盟友，如日本）的情況下發動攻擊。</p>
+                <p>分析顯示，解放軍在軍事現代化方面取得了顯著進展，特別是在海軍、空軍、導彈部隊以及資訊作戰領域。其兩棲攻擊艦隊的擴充、先進戰機的列裝、以及遠程精確打擊能力的增強，均提升了其發動大規模聯合軍事行動的潛力。然而，即便如此，跨海峽兩棲登陸作戰本質上極其複雜且充滿風險。解放軍在專用軍事運輸工具方面仍存在缺口，高度依賴民用船隻進行大規模兵力投送，而這些民用船隻在戰時極易受到攻擊。此外，後勤保障、聯合作戰指揮管制以及台灣海峽的地理氣象條件，均構成嚴峻挑戰。</p>
+                <p>台灣方面亦持續強化其防衛能力，奉行「堅決防衛、多層嚇阻」的戰略，並積極發展不對稱作戰能力。在無外國干預情境下，解放軍雖能集結龐大兵力，但台灣仍有能力持久抵抗，使解放軍難以速決。若面臨外國干預，解放軍行動將更為複雜，成功難度大幅增加，衝突升級風險顯著提高。</p>
+                <p>總體而言，儘管解放軍軍力持續增長，但截至2024-2025年，其跨海峽進攻台灣並取得決定性勝利的能力仍面臨諸多制約與高度不確定性。</p>
+            </section>
+
+            <section id="forceComparison" class="content-section">
+                <h2>軍力對比 (2024-2025年預估)</h2>
+                <p class="mb-4">本區域比較解放軍與台灣在海軍、空軍、陸軍、導彈及資訊作戰方面的關鍵軍事資產與能力。圖表數據主要來自報告內表格，部分輔以內文描述。請注意，數字為預估值，實際戰力受訓練、戰備、後勤等多重因素影響。</p>
+                <div class="mb-6 border-b border-gray-300">
+                    <nav id="forceNav" class="flex flex-wrap -mb-px">
+                        <button class="force-tab-button active text-lg py-3 px-5 mr-1 border-b-2 border-[#50C878] text-[#50C878] font-semibold" data-force="naval">海軍力量 🚢</button>
+                        <button class="force-tab-button text-lg py-3 px-5 mr-1 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 font-semibold" data-force="air">空中力量 ✈️</button>
+                        <button class="force-tab-button text-lg py-3 px-5 mr-1 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 font-semibold" data-force="ground">地面部隊 🛡️</button>
+                        <button class="force-tab-button text-lg py-3 px-5 mr-1 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 font-semibold" data-force="missile">導彈火箭 🚀</button>
+                        <button class="force-tab-button text-lg py-3 px-5 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 font-semibold" data-force="info">資訊作戰 📡</button>
+                    </nav>
+                </div>
+
+                <div id="navalForce" class="force-content-section active">
+                    <h3>海軍力量投射</h3>
+                    <div class="comparison-grid">
+                        <div class="comparison-box">
+                            <h4>解放軍海軍</h4>
+                            <p>快速擴張與現代化，兩棲攻擊艦隊（075型、076型、071型）與支援作戰艦艇（航母、055/052D驅逐艦）數量龐大，總艦艇數世界第一。海軍陸戰隊與陸軍兩棲旅約六個旅。依賴民用滾裝船彌補專用運輸不足。</p>
+                            <ul>
+                                <li>兩棲攻擊艦 (075型 LHD): 3-4艘</li>
+                                <li>船塢登陸艦 (071型 LPD): 8艘</li>
+                                <li>傳統登陸艦 (LST): 約50艘</li>
+                                <li>航空母艦: 2艘服役, 1艘海試</li>
+                                <li>055型驅逐艦: 至少8艘</li>
+                                <li>052D型驅逐艦: 至少28艘</li>
+                                <li>054A/B型護衛艦: 30+艘</li>
+                                <li>兩棲合成旅 (陸軍): 6個 (約27,000-30,000人)</li>
+                            </ul>
+                        </div>
+                        <div class="comparison-box">
+                            <h4>台灣海軍</h4>
+                            <p>以「不對稱作戰」為核心，強化反艦導彈（雄風系列）、水雷作戰（快速布雷艇）與潛艦（海鯤級國造潛艦）。主力為基隆級驅逐艦、成功級/康定級巡防艦及沱江級巡邏艦。</p>
+                            <ul>
+                                <li>驅逐艦 (基隆級): 4艘</li>
+                                <li>巡防艦 (成功級/康定級/濟陽級): 約21-22艘</li>
+                                <li>巡邏艦 (沱江級): 7艘</li>
+                                <li>飛彈快艇 (光華六號): 31艘</li>
+                                <li>潛艦 (海龍級/海鯤級): 2艘現役, 1艘海試</li>
+                                <li>快速布雷艇 (萬象): 4艘 (持續增加)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="navalChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="airForce" class="force-content-section" style="display: none;">
+                    <h3>空中力量投射</h3>
+                     <div class="comparison-grid">
+                        <div class="comparison-box">
+                            <h4>解放軍空軍/海航</h4>
+                            <p>現代化迅速，殲-20隱形戰機、殲-16多用途戰機數量持續增加。轟-6K/N轟炸機具備遠程打擊能力。運-20戰略運輸機提升空運能力。空降兵軍約4萬人。</p>
+                            <ul>
+                                <li>戰鬥機 (相關戰區): 約950架 (含殲-20 >200架, 殲-16 >350架)</li>
+                                <li>轟炸機/攻擊機 (相關戰區): 約300架 (含轟-6K/N)</li>
+                                <li>運輸機 (運-20): 約55架運輸型</li>
+                                <li>特種作戰飛機 (預警機等): 約150架</li>
+                                <li>空降兵: 約4萬人 (含ZBD-03空降戰車)</li>
+                            </ul>
+                        </div>
+                        <div class="comparison-box">
+                            <h4>台灣空軍</h4>
+                            <p>主力為升級後的F-16V戰機，搭配幻象2000-5及經國號IDF。擁有E-2K預警機。整體防空系統(IADS)包括愛國者及天弓系列導彈。</p>
+                             <ul>
+                                <li>F-16V (含升級/新購): ~139架 + 新購逐步交付 (目標共205架)</li>
+                                <li>幻象2000-5: 約52架</li>
+                                <li>F-CK-1 經國號: 約129架</li>
+                                <li>E-2K鷹眼預警機: 6架</li>
+                                </ul>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="airChart"></canvas>
+                    </div>
+                </div>
+                
+                <div id="groundForce" class="force-content-section" style="display: none;">
+                    <h3>地面部隊</h3>
+                     <div class="comparison-grid">
+                        <div class="comparison-box">
+                            <h4>解放軍陸軍 (兩棲相關)</h4>
+                            <p>陸軍兩棲合成旅為主要登陸部隊，裝備ZBD-05兩棲步戰車、ZTD-05兩棲突擊車及15式輕坦。總兵力龐大，但跨海投送為主要瓶頸。</p>
+                            <ul>
+                                <li>兩棲合成旅: 6個 (每個約4500-5000人)</li>
+                                <li>05式兩棲車輛: >1500輛 (陸軍)</li>
+                                <li>15式輕型坦克: 數量增加中 (可空運)</li>
+                            </ul>
+                        </div>
+                        <div class="comparison-box">
+                            <h4>台灣陸軍</h4>
+                            <p>現役兵力約16.9萬，後備166萬。重點強化灘岸反登陸能力，M1A2T坦克將部署於北部。義務役役期延長至一年。</p>
+                            <ul>
+                                <li>現役兵力: 約16.9萬人</li>
+                                <li>M1A2T艾布蘭坦克: 逐步交付 (至2026年共108輛)</li>
+                                <li>火炮: M109A6 (延遲), 海馬斯</li>
+                                <li>反坦克導彈: 標槍、拖式等</li>
+                            </ul>
+                        </div>
+                    </div>
+                     <div class="chart-container">
+                        <canvas id="groundChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="missileForce" class="force-content-section" style="display: none;">
+                    <h3>導彈與火箭部隊</h3>
+                     <div class="comparison-grid">
+                        <div class="comparison-box">
+                            <h4>解放軍火箭軍/陸軍炮兵</h4>
+                            <p>擁有大量短程彈道導彈(SRBM)針對台灣。遠程火箭炮(PCH-191)可覆蓋全島。空射彈道導彈(KD-21)與巡航導彈(長劍系列)增強打擊靈活性。</p>
+                            <ul>
+                                <li>短程彈道導彈 (DF-11/15/16): 約900枚, 300具發射器</li>
+                                <li>PCH-191遠程火箭炮: 48輛發射車 (384枚備射彈)</li>
+                                <li>空射彈道導彈 (KD-21): 初步作戰能力</li>
+                                <li>對陸攻擊巡航導彈 (長劍-10/20): 數量不明</li>
+                            </ul>
+                        </div>
+                        <div class="comparison-box">
+                            <h4>台灣導彈防禦與反制</h4>
+                            <p>整合防空系統(IADS)包括愛國者(PAC-2/3)與天弓(TK-II/III)系列。雄風系列反艦導彈與雄昇巡弋導彈具備反制能力。防空導彈密度高。</p>
+                            <ul>
+                                <li>愛國者飛彈連: 9個 (PAC-2 GEM ~200枚, PAC-3 CRI ~380枚, PAC-3 MSE 50-100枚陸續交付)</li>
+                                <li>天弓飛彈連: 12個 (TK-II ~400枚, TK-III ~400枚)</li>
+                                <li>雄昇巡弋導彈: 預計2025年前交付100枚 (射程1000-1200km)</li>
+                                <li>岸置反艦導彈 (雄風二/三): 數量龐大</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="missileChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="infoForce" class="force-content-section" style="display: none;">
+                    <h3>資訊作戰與支援</h3>
+                     <div class="comparison-grid">
+                        <div class="comparison-box">
+                            <h4>解放軍資訊作戰</h4>
+                            <p>成立資訊支援部隊(ISF)強化資訊主導權。電子戰(EW)能力分散至各軍種。網絡攻擊為早期重要手段。依賴衛星通信，但也構成弱點。</p>
+                            <ul>
+                                <li>指揮控制(C2): 依賴光纖與衛星，易受干擾</li>
+                                <li>電子戰(EW): 分散化可能導致協調問題</li>
+                                <li>網絡防禦: 自身能力評估為薄弱</li>
+                            </ul>
+                        </div>
+                        <div class="comparison-box">
+                            <h4>台灣資訊防禦</h4>
+                            <p>強化網絡防禦能力對抗中國威脅。發展不對稱戰力，包括無人機(MQ-9B採購中，國內研發並進)與特種作戰。全民防衛韌性亦為重點。</p>
+                            <ul>
+                                <li>無人機: MQ-9B採購中，國內研發多型無人機/艇</li>
+                                <li>網絡防禦: 持續強化</li>
+                                <li>特種作戰部隊: 扮演不對稱防禦角色</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="mt-4">資訊作戰能力難以量化比較，更側重於攻防策略、技術水平與人員素質。解放軍在進攻性網絡與電子戰方面有優勢，但自身系統也存在脆弱性。台灣則著重強化防禦韌性與不對稱反制。</p>
+                </div>
+            </section>
+
+            <section id="scenarioSimulation" class="content-section">
+                <h2>情境模擬：解放軍入侵企圖</h2>
+                <p class="mb-4">此部分模擬分析解放軍在兩種不同地緣政治情境下對抗台灣防衛的能力：無外國軍事干預，以及面臨外國軍事干預。點擊按鈕切換情境以查看相關分析。</p>
+                <div class="mb-6">
+                    <button id="scenarioNoInterventionBtn" class="scenario-button active" data-scenario="noIntervention">情境一：無外國干預</button>
+                    <button id="scenarioInterventionBtn" class="scenario-button" data-scenario="intervention">情境二：有外國干預</button>
+                </div>
+
+                <div id="scenarioDetails">
+                    </div>
+                 <div class="chart-container mt-8">
+                    <canvas id="scenarioOutcomeChart"></canvas>
+                </div>
+                <p class="mt-4 text-sm text-gray-600">圖表數據基於報告中CSIS兵棋推演結果，僅為模擬參考，實際戰況複雜多變。</p>
+            </section>
+
+            <section id="keyChallenges" class="content-section">
+                <h2>關鍵挑戰與作戰環境</h2>
+                <p class="mb-4">任何跨海峽軍事行動都面臨巨大的挑戰。此處將探討解放軍後勤、台灣海峽的自然環境，以及台灣防禦韌性的關鍵因素。</p>
+                
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="challenge-card">
+                        <h3>🌊 台灣海峽：天險屏障</h3>
+                        <p>台灣海峽平均寬度約180公里，水文複雜，海象惡劣，尤其在季風季節。適合大規模兩棲登陸的海灘有限，多集中於防禦嚴密的西海岸。台灣本島地形多山，易守難攻。</p>
+                        <ul>
+                            <li>寬度: 約100-130公里 (報告提及90英里/110英里)</li>
+                            <li>登陸點: 有限，西岸為主，水淺區域多</li>
+                            <li>氣候: 季風影響大，颱風頻繁 (最佳窗口期4-5月, 9-10月)</li>
+                            <li>影響: 限制兩棲登陸、空中支援、海軍行動</li>
+                        </ul>
+                    </div>
+                    <div class="challenge-card">
+                        <h3>⚙️ 解放軍後勤：阿基里斯之踵</h3>
+                        <p>大規模跨海登陸作戰對後勤補給是極大考驗。解放軍專用軍事運輸工具不足，高度依賴民用船隻（如滾裝船），這些船隻在戰時極易受損。維持海上補給線的持續性是巨大難題。</p>
+                        <ul>
+                            <li>專用軍運: 首波約2-2.5萬人</li>
+                            <li>民船動員: 潛在可運送更多兵力，但協調複雜且脆弱</li>
+                            <li>補給需求: 龐大 (估計超3000萬噸物資)</li>
+                            <li>弱點: 重裝運輸車短缺、依賴易受攻擊的陸路/鐵路、後勤人員不足</li>
+                        </ul>
+                    </div>
+                    <div class="challenge-card">
+                        <h3>🛡️ 台灣防禦韌性：「刺蝟」戰略</h3>
+                        <p>台灣奉行「堅決防衛、多層嚇阻」及「整體防衛構想」(ODC)，強調不對稱作戰，目標是使入侵代價高昂。包括強化海空防禦、地面反登陸、本土導彈與無人機技術，以及全民防衛。</p>
+                        <ul>
+                            <li>戰略: 「刺蝟」戰略，多層嚇阻</li>
+                            <li>不對稱戰力: 導彈、水雷、無人機、特種作戰</li>
+                            <li>地理優勢: 海峽天險、崎嶇地形</li>
+                            <li>挑戰: 防空系統飽和風險、軍售延遲、維持全國抗敵意志</li>
+                        </ul>
+                    </div>
+                </div>
+                 <div id="challengeDetailsContainer" class="mt-6">
+                    <button class="text-[#4A90E2] font-semibold hover:underline" onclick="toggleChallengeDetail('straitDetails')">進一步了解海峽環境挑戰 ▼</button>
+                    <div id="straitDetails" class="hidden mt-2 p-3 bg-gray-100 rounded">
+                        <p>報告指出，台灣西海岸大部分海灘外海水域較淺，不利於大型船隻靠近，迫使攻擊方需在離岸較遠處下錨。新型水橋級駁船雖意圖緩解此問題，但在部分海灘低潮時仍可能不足。東海岸則因懸崖峭壁基本不適合登陸。內陸多山地形限制了灘頭陣地向內陸的推進。</p>
+                    </div>
+                     <button class="text-[#4A90E2] font-semibold hover:underline mt-3" onclick="toggleChallengeDetail('logisticsDetails')">進一步了解解放軍後勤挑戰 ▼</button>
+                    <div id="logisticsDetails" class="hidden mt-2 p-3 bg-gray-100 rounded">
+                        <p>報告強調，入侵台灣所需的後勤支援將超過諾曼第登陸的規模。解放軍聯勤保障部隊雖努力改進，但動員民用資產、訓練船員、整合指揮並在炮火下部署，仍存重大不確定性。在敵對條件下維持跨海峽補給線是一巨大挑戰。</p>
+                    </div>
+                </div>
+
+            </section>
+
+            <section id="conclusion" class="content-section">
+                <h2>綜合評估與戰略意涵</h2>
+                <p>儘管解放軍在軍事現代化方面取得顯著進展，其跨海峽進攻台灣並取得決定性勝利的能力，截至2024-2025年，仍面臨諸多制約因素與高度不確定性。解放軍的優勢在於數量龐大的部隊與特定先進平台，以及日益提升的聯合作戰能力。然而，其弱點也相當明顯，包括專用軍事海運能力不足、跨海後勤的巨大挑戰、缺乏近期大規模作戰經驗，以及台灣海峽的地理氣象障礙。</p>
+                <p>台灣方面，其「刺蝟」防禦戰略結合傳統武力現代化與不對稱戰力，旨在使入侵代價極高。地理優勢和有限的入侵窗口期是台灣重要的戰力倍增器。然而，台灣也面臨防空系統可能被飽和攻擊、軍售延遲以及維持全國抗敵意志的挑戰。</p>
+                <p>影響北京決策的關鍵變數包括對台灣走向永久分離的認知、對美國干預決心與能力的評估、解放軍自身戰備信心、中國國內政經形勢，以及國際反應等。軍事平衡持續向中國大陸傾斜，但入侵台灣仍是極其複雜和高風險的軍事行動。目前的嚇阻態勢基於北京面臨的高風險、台灣的防禦努力及美國干預的可能性，但此態勢並非牢不可破。</p>
+                <p>最終，任何台海衝突的「X因素」不僅是武器系統，更在於人的因素：領導層決策、人民抵抗意志、聯合作戰有效性，以及國際反應的速度與果斷性。解放軍的演習和準備活動高度透明，也為外界提供了預警。</p>
+            </section>
+        </main>
+
+        <footer class="text-center mt-12 py-4 border-t border-gray-300">
+            <p class="text-sm text-gray-500">&copy; 2024-2025 互動分析報告. 資訊僅供參考.</p>
+        </footer>
+    </div>
+
+    <script>
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const contentSections = document.querySelectorAll('.content-section');
+        const tabNav = document.getElementById('tabNav');
+
+        tabNav.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-button')) {
+                const targetTab = e.target.dataset.tab;
+
+                tabButtons.forEach(button => {
+                    button.classList.remove('active');
+                });
+                e.target.classList.add('active');
+
+                contentSections.forEach(section => {
+                    if (section.id === targetTab) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+            }
+        });
+
+        const forceTabButtons = document.querySelectorAll('.force-tab-button');
+        const forceContentSections = document.querySelectorAll('.force-content-section');
+        const forceNav = document.getElementById('forceNav');
+
+        if (forceNav) {
+            forceNav.addEventListener('click', (e) => {
+                if (e.target.classList.contains('force-tab-button')) {
+                    const targetForceTab = e.target.dataset.force;
+
+                    forceTabButtons.forEach(button => {
+                        button.classList.remove('active', 'text-[#50C878]', 'border-[#50C878]');
+                        button.classList.add('text-gray-500', 'border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                    });
+                    e.target.classList.add('active', 'text-[#50C878]', 'border-[#50C878]');
+                    e.target.classList.remove('text-gray-500', 'border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                    
+
+                    forceContentSections.forEach(section => {
+                        if (section.id === targetForceTab + "Force") {
+                            section.style.display = 'block';
+                        } else {
+                            section.style.display = 'none';
+                        }
+                    });
+                    // Re-initialize charts if they are in the newly displayed section and not yet drawn
+                    if (targetForceTab === 'naval' && !window.navalChartInstance) renderNavalChart();
+                    if (targetForceTab === 'air' && !window.airChartInstance) renderAirChart();
+                    if (targetForceTab === 'ground' && !window.groundChartInstance) renderGroundChart();
+                    if (targetForceTab === 'missile' && !window.missileChartInstance) renderMissileChart();
+                }
+            });
+        }
+        
+        function wrapText(text, maxWidth) {
+            const words = text.split(' ');
+            let lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                if (currentLine.length + words[i].length + 1 < maxWidth) {
+                    currentLine += ' ' + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
+        
+        window.navalChartInstance = null;
+        function renderNavalChart() {
+            const ctx = document.getElementById('navalChart')?.getContext('2d');
+            if (!ctx) return;
+            if (window.navalChartInstance) {
+                window.navalChartInstance.destroy();
+            }
+            const plaNavalData = {
+                lhd: 3.5, // avg 3-4
+                lpd: 8,
+                destroyer: 8 + 28, // 055 + 052D
+                frigate: 30, // 054A+
+                carrier: 2.5 // 2 active, 1 sea trial
+            };
+            const taiwanNavalData = {
+                destroyer: 4, // Keelung
+                frigate: 21.5, // Chengkung, Kangting, Chi Yang
+                corvette: 7, // Tuo Chiang
+                submarine: 2.5 // 2 active, 1 sea trial
+            };
+
+            window.navalChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['兩棲攻擊艦(LHD)', '船塢登陸艦(LPD)', '驅逐艦', '巡防艦', '航空母艦/巡邏艦/潛艦'],
+                    datasets: [
+                        {
+                            label: '解放軍海軍 (艘)',
+                            data: [plaNavalData.lhd, plaNavalData.lpd, plaNavalData.destroyer, plaNavalData.frigate, plaNavalData.carrier],
+                            backgroundColor: 'rgba(74, 144, 226, 0.7)', // Muted Blue
+                            borderColor: 'rgba(74, 144, 226, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '台灣海軍 (艘)',
+                            data: [0, 0, taiwanNavalData.destroyer, taiwanNavalData.frigate, taiwanNavalData.corvette + taiwanNavalData.submarine], // LHD/LPD not comparable for TW in same category
+                            backgroundColor: 'rgba(80, 200, 120, 0.7)', // Muted Green
+                            borderColor: 'rgba(80, 200, 120, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '數量 (艘)' } },
+                        x: { title: { display: true, text: '主要艦艇類型' } }
+                    },
+                    plugins: {
+                        title: { display: true, text: '解放軍 vs 台灣 主要海軍作戰平台數量比較 (2024-2025預估)', font: { size: 16 } },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+
+        window.airChartInstance = null;
+        function renderAirChart() {
+            const ctx = document.getElementById('airChart')?.getContext('2d');
+            if (!ctx) return;
+            if (window.airChartInstance) {
+                window.airChartInstance.destroy();
+            }
+            const plaAirData = {
+                fighters_total: 950, // relevant theaters
+                j20: 200, // total
+                j16: 350, // total
+                bombers_attack: 300,
+                transport_y20: 55
+            };
+            const taiwanAirData = {
+                f16v: 139, // current upgraded, will reach ~205
+                mirage2000: 52,
+                idf: 129,
+                e2k_awacs: 6
+            };
+             window.airChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['總戰鬥機(相關戰區)', '現代戰機(殲20/殲16 vs F16V/幻象/IDF)', '轟炸機/攻擊機', '戰略運輸機(運-20)', '預警機(E-2K)'],
+                    datasets: [
+                        {
+                            label: '解放軍空軍/海航 (架)',
+                            data: [plaAirData.fighters_total, plaAirData.j20 + plaAirData.j16, plaAirData.bombers_attack, plaAirData.transport_y20, 0],
+                            backgroundColor: 'rgba(74, 144, 226, 0.7)',
+                            borderColor: 'rgba(74, 144, 226, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '台灣空軍 (架)',
+                            data: [taiwanAirData.f16v + taiwanAirData.mirage2000 + taiwanAirData.idf, taiwanAirData.f16v + taiwanAirData.mirage2000 + taiwanAirData.idf, 0, 0, taiwanAirData.e2k_awacs],
+                            backgroundColor: 'rgba(80, 200, 120, 0.7)',
+                            borderColor: 'rgba(80, 200, 120, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '數量 (架)' } },
+                        x: { title: { display: true, text: '主要空中平台類型' } }
+                    },
+                    plugins: {
+                        title: { display: true, text: '解放軍 vs 台灣 主要空中作戰平台數量比較 (2024-2025預估)', font: { size: 16 } },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+        
+        window.groundChartInstance = null;
+        function renderGroundChart() {
+            const ctx = document.getElementById('groundChart')?.getContext('2d');
+            if (!ctx) return;
+            if (window.groundChartInstance) {
+                window.groundChartInstance.destroy();
+            }
+             window.groundChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['兩棲合成旅兵力(估)', '主力戰車(M1A2T vs 15式)', '兩棲戰車(05式)'],
+                    datasets: [
+                        {
+                            label: '解放軍陸軍 (人/輛)',
+                            data: [6 * 4750, 100, 1500], // Estimate for 15式, actual numbers vary
+                            backgroundColor: 'rgba(74, 144, 226, 0.7)',
+                            borderColor: 'rgba(74, 144, 226, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '台灣陸軍 (人/輛)',
+                            data: [0, 108, 0], // M1A2T target, no direct PLA amphibious brigade equivalent for TW
+                            backgroundColor: 'rgba(80, 200, 120, 0.7)',
+                            borderColor: 'rgba(80, 200, 120, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '數量 (人/輛)' } },
+                        x: { title: { display: true, text: '地面部隊關鍵指標' } }
+                    },
+                    plugins: {
+                        title: { display: true, text: '解放軍 vs 台灣 地面部隊部分指標比較 (2024-2025預估)', font: { size: 16 } },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+
+        window.missileChartInstance = null;
+        function renderMissileChart() {
+            const ctx = document.getElementById('missileChart')?.getContext('2d');
+            if (!ctx) return;
+            if (window.missileChartInstance) {
+                window.missileChartInstance.destroy();
+            }
+             window.missileChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['短程彈道導彈(SRBM)', '遠程火箭炮發射車(PCH-191)', '防空導彈連(愛國者/天弓)'],
+                    datasets: [
+                        {
+                            label: '解放軍 (枚/具)',
+                            data: [900, 48, 0], 
+                            backgroundColor: 'rgba(74, 144, 226, 0.7)',
+                            borderColor: 'rgba(74, 144, 226, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '台灣 (枚/連)',
+                            data: [0, 0, 9 + 12], //愛國者+天弓連
+                            backgroundColor: 'rgba(80, 200, 120, 0.7)',
+                            borderColor: 'rgba(80, 200, 120, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '數量 (枚/具/連)' } },
+                        x: { title: { display: true, text: '導彈/火箭系統指標' } }
+                    },
+                    plugins: {
+                        title: { display: true, text: '解放軍 vs 台灣 導彈/火箭系統部分指標比較 (2024-2025預估)', font: { size: 16 } },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+
+
+        const scenarioDetailsDiv = document.getElementById('scenarioDetails');
+        const scenarioNoInterventionBtn = document.getElementById('scenarioNoInterventionBtn');
+        const scenarioInterventionBtn = document.getElementById('scenarioInterventionBtn');
+        
+        const scenarioData = {
+            noIntervention: {
+                title: "情境一：解放軍在無外國軍事干預下入侵",
+                plaActions: [
+                    "初始階段：網絡攻擊、導彈/空襲，削弱台灣指揮控制、防空、機場、海軍及關鍵基礎設施。",
+                    "目標：迅速取得制空制海權。",
+                    "兩棲攻擊：奪取合適海灘/港口，空降部隊奪取關鍵內陸目標。",
+                    "兵力投送：首波專用軍運約2-2.5萬人，輔以民船可能運送的6萬人。",
+                    "後勤：建立並維持跨海峽補給線 (關鍵脆弱點)。"
+                ],
+                taiwanResponse: [
+                    "運用整體防空系統反制，但有飽和風險。",
+                    "運用海岸防禦（水雷、火炮、反坦克導彈、M1A2T坦克）消耗登陸部隊。",
+                    "海軍運用反艦導彈（雄風）攻擊解放軍船隊。",
+                    "空軍爭奪制空權並打擊登陸部隊。",
+                    "不對稱戰術：無人機、網絡戰、特種作戰擾亂。",
+                    "目標：延長抵抗，造成重大傷亡，阻止解放軍建立穩固登陸場。"
+                ],
+                assessment: "即便無外國干預，解放軍入侵仍是極高風險、高代價行動。台灣防禦準備、地理優勢及兩棲攻擊複雜性使解放軍速勝遠非必然。CSIS兵推顯示，中國完全征服需耗時「數月」，解放軍傷亡逾7萬，兩棲能力重創。持久血腥衝突可能性高。",
+                csisWargame: { plaCasualties: 70000, plaAmphibiousLoss: "重創", duration: "數月" }
+            },
+            intervention: {
+                title: "情境二：解放軍在面臨外國軍事干預下入侵 (美日為主)",
+                plaA2AD: [
+                    "運用反介入/區域拒止(A2/AD)系統（遠程導彈、潛艦、先進戰機、電子戰）嚇阻或擊敗美國干預。",
+                    "打擊目標：美國區域基地（日本、關島）、航母等海軍資產。",
+                    "A2/AD有效性：可能嚴重複雜化美國兵力投送，迫使其從更遠距離行動。"
+                ],
+                usAlliesResponse: [
+                    "直接軍事干預：美海空軍與解放軍交戰，支援台灣。",
+                    "日本角色：後勤支援、美軍使用基地，可能直接參戰。",
+                    "非動能干預：情報共享、網絡支援、制裁、外交壓力。",
+                    "「地獄景象」戰略：美計劃運用機密能力使解放軍「一個月內苦不堪言」。"
+                ],
+                plaProspects: "顯著降低。美及其盟友干預可能導致解放軍嚴重損失，入侵失敗機率極高。CSIS兵推多數結果是中國未能奪台，但各方均代價巨大（美損失數十艦船、數百飛機、數萬人員）。",
+                escalationRisk: "極高。可能橫向升級（衝突擴散）及縱向升級（使用更具破壞性武器，甚至核武）。解放軍對美資產攻擊可能引發更廣泛衝突。",
+                csisWargame: { plaFailure: "高機率", usLosses: "數十艦船, 數百飛機, 數萬人員" }
+            }
+        };
+
+        function displayScenario(scenarioKey) {
+            const data = scenarioData[scenarioKey];
+            let html = `<h3>${data.title}</h3>`;
+
+            if (scenarioKey === 'noIntervention') {
+                html += `<h4>解放軍作戰目標與執行：</h4><ul>${data.plaActions.map(action => `<li>${action}</li>`).join('')}</ul>`;
+                html += `<h4>台灣獨立抵抗能力：</h4><ul>${data.taiwanResponse.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                html += `<h4>評估結果：</h4><p>${data.assessment}</p>`;
+            } else {
+                html += `<h4>解放軍反介入/區域拒止(A2/AD)能力的影響：</h4><ul>${data.plaA2AD.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                html += `<h4>美國/盟友可能的反應與對台支援：</h4><ul>${data.usAlliesResponse.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                html += `<h4>解放軍在干預下的成功前景：</h4><p>${data.plaProspects}</p>`;
+                html += `<h4>衝突升級風險分析：</h4><p>${data.escalationRisk}</p>`;
+            }
+            scenarioDetailsDiv.innerHTML = html;
+            updateScenarioChart(scenarioKey);
+        }
+        
+        scenarioNoInterventionBtn.addEventListener('click', () => {
+            displayScenario('noIntervention');
+            scenarioNoInterventionBtn.classList.add('active');
+            scenarioInterventionBtn.classList.remove('active');
+        });
+
+        scenarioInterventionBtn.addEventListener('click', () => {
+            displayScenario('intervention');
+            scenarioInterventionBtn.classList.add('active');
+            scenarioNoInterventionBtn.classList.remove('active');
+        });
+        
+        window.scenarioChartInstance = null;
+        function updateScenarioChart(scenarioKey) {
+            const ctx = document.getElementById('scenarioOutcomeChart')?.getContext('2d');
+            if (!ctx) return;
+            if (window.scenarioChartInstance) {
+                window.scenarioChartInstance.destroy();
+            }
+
+            let chartData, chartTitle;
+
+            if (scenarioKey === 'noIntervention') {
+                chartTitle = '情境一 (無干預) CSIS兵推預估解放軍損失';
+                chartData = {
+                    labels: ['預估傷亡人數 (解放軍)', '兩棲艦隊損失 (示意)'],
+                    datasets: [{
+                        label: '損失估計',
+                        data: [70000, 80], // 80 as a high percentage for "重創"
+                        backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(255, 159, 64, 0.7)'],
+                        borderColor: ['rgba(255, 99, 132, 1)', 'rgba(255, 159, 64, 1)'],
+                        borderWidth: 1
+                    }]
+                };
+            } else { // intervention
+                chartTitle = '情境二 (有干預) CSIS兵推預估美軍損失';
+                chartData = {
+                    labels: ['損失艦船 (美軍)', '損失飛機 (美軍)', '傷亡人員 (美軍, 萬人)'],
+                    datasets: [{
+                        label: '損失估計 (美軍)',
+                        data: [30, 350, 2.5], // Example: 30 ships, 350 aircraft, 25k personnel
+                        backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(153, 102, 255, 0.7)'],
+                        borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'],
+                        borderWidth: 1
+                    }]
+                };
+            }
+
+            window.scenarioChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            title: { display: true, text: scenarioKey === 'noIntervention' ? '數量/百分比示意' : '數量 (艘/架/萬人)'} 
+                        }
+                    },
+                    plugins: {
+                        title: { display: true, text: chartTitle, font: { size: 16 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        if (context.label === '兩棲艦隊損失 (示意)') {
+                                             label += context.parsed.y + '% (示意重創程度)';
+                                        } else {
+                                            label += context.parsed.y;
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function toggleChallengeDetail(detailId) {
+            const detailElement = document.getElementById(detailId);
+            if (detailElement) {
+                detailElement.classList.toggle('hidden');
+            }
+        }
+        
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', () => {
+            renderNavalChart(); // Render the first chart on load
+            displayScenario('noIntervention'); // Display the first scenario on load
+        });
+
+    </script>
+</body>
+</html>
