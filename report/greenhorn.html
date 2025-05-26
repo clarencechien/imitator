@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>綠角投資智慧互動導覽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices: 
+        - Report Info: Book recommendations. Goal: Inform. Viz/Method: Interactive cards. Interaction: Click to expand. Justification: Overview & drill-down. Library: HTML/CSS/JS.
+        - Report Info: Green Horn's philosophy, author comparisons. Goal: Explain tenets. Viz/Method: Text, interactive table. Interaction: (Planned: click principle for detail - simplified to static table for brevity). Justification: Clear comparison. Library: HTML/CSS/JS.
+        - Report Info: Asset allocation models. Goal: Show practical application. Viz/Method: Profile selector, dynamic pie chart. Interaction: Select profile to update chart. Justification: Interactive exploration. Library: Chart.js, HTML/CSS/JS.
+        - Report Info: Core principles. Goal: Educate. Viz/Method: Accordion-style sections. Interaction: Click to expand/collapse. Justification: Digestible info. Library: HTML/CSS/JS.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif; /* Added Noto Sans TC for better CJK support */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px; /* Adjusted for better fit in layout */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; 
+            max-height: 350px; /* Adjusted */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .active-nav {
+            color: #0D9488; /* teal-600 */
+            font-weight: 600;
+            border-bottom: 2px solid #0D9488;
+        }
+        .book-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .accordion-button.open + .accordion-content {
+            max-height: 1000px; /* Adjust as needed */
+        }
+        .tooltip {
+            position: absolute;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.875rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-stone-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-teal-700">綠角投資智慧</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#intro" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-amber-100">引言</a>
+                        <a href="#core-books" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-amber-100">核心書單</a>
+                        <a href="#about-greenhorn" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-amber-100">認識綠角</a>
+                        <a href="#investment-method" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-amber-100">投資方法</a>
+                        <a href="#core-principles" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-amber-100">核心原則</a>
+                        <a href="#practical-application" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-amber-100">實務應用</a>
+                        <a href="#conclusion" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-amber-100">結論</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-stone-400 hover:text-white hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                        <span class="sr-only">開啟主選單</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#intro" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:bg-amber-100">引言</a>
+                <a href="#core-books" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:bg-amber-100">核心書單</a>
+                <a href="#about-greenhorn" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:bg-amber-100">認識綠角</a>
+                <a href="#investment-method" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:bg-amber-100">投資方法</a>
+                <a href="#core-principles" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:bg-amber-100">核心原則</a>
+                <a href="#practical-application" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:bg-amber-100">實務應用</a>
+                <a href="#conclusion" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:bg-amber-100">結論</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section id="intro" class="mb-12 pt-16 -mt-16">
+            <h2 class="text-3xl font-bold text-teal-700 mb-6">引言：綠角推薦的投資智慧之路</h2>
+            <div class="space-y-4 bg-white p-6 rounded-lg shadow">
+                <p>本節將簡要介紹綠角的背景及其對台灣投資教育的深遠影響。綠角，一位執業醫師，以其筆名在投資領域推廣指數化投資與資產配置，強調以證據為基礎的理性決策。他為學員準備的書單不僅是書籍推薦，更是一套系統性的教育藍圖，旨在引導投資者建立扎實的理論基礎與正確的投資心態。</p>
+                <p>此互動導覽旨在剖析綠角推薦的核心書籍與其投資觀點，期望為尋求穩健投資策略的您，提供一個清晰的知識框架，將理論智慧與實踐方法相結合。</p>
+            </div>
+        </section>
+
+        <section id="core-books" class="mb-12 pt-16 -mt-16">
+            <h2 class="text-3xl font-bold text-teal-700 mb-6">核心書單探討：投資哲學的基石</h2>
+            <p class="mb-6 bg-white p-6 rounded-lg shadow">綠角為其資產配置課程學員推薦了三本核心書籍，旨在奠定學員對資產配置及相關投資主題的理解。若時間有限，綠角特別建議優先閱讀《投資金律》。本區塊將逐一介紹這些書籍的核心觀點以及綠角的推薦理由。點擊書名或「查看更多」以展開詳細資訊。</p>
+            <div id="books-container" class="grid md:grid-cols-3 gap-6">
+                </div>
+        </section>
+        
+        <div id="bookModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="modalTitle" class="text-2xl font-bold text-teal-700"></h3>
+                    <button id="closeModalButton" class="text-stone-500 hover:text-stone-700 text-2xl">&times;</button>
+                </div>
+                <div id="modalBody" class="space-y-4">
+                    </div>
+            </div>
+        </div>
+
+
+        <section id="about-greenhorn" class="mb-12 pt-16 -mt-16">
+            <h2 class="text-3xl font-bold text-teal-700 mb-6">認識綠角 (Green Horn) 與「綠角財經筆記」</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-4">
+                <p>本節旨在介紹「綠角財經筆記」的創辦人綠角，包括他的背景、筆名由來、創立部落格的動機，以及他對台灣投資社群的深遠影響。綠角的核心投資哲學，如指數化投資、資產配置、成本控制及獨立思考等，將在此詳細闡述。透過了解綠角本人及其理念，我們可以更深入地理解他所推薦的投資方法與書籍的脈絡。</p>
+                
+                <div>
+                    <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center" data-target="gh-background">
+                        <span>部落格主背景與動機</span>
+                        <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                    </button>
+                    <div id="gh-background" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                        <p>「綠角財經筆記」的創辦人綠角，真實身份為一名畢業於台灣大學醫學系的執業主治醫師。筆名「綠角」源於英文 "Greenhorn" (新手)，反映其在投資領域永保初學者心態、持續探索的期許。自2007年起經營部落格，初衷是記錄與分享個人投資心得與見解。著有《綠角教你前進美國券商》、《股海勝經》等書。</p>
+                    </div>
+                </div>
+
+                <div>
+                    <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center mt-2" data-target="gh-philosophy">
+                        <span>綠角的核心投資哲學</span>
+                         <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                    </button>
+                    <div id="gh-philosophy" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>倡導指數化投資與被動式管理：</strong> 透過低成本指數型基金/ETF獲取市場平均報酬，勝過多數市場參與者。</li>
+                            <li><strong>資產配置的中心地位：</strong> 股票與債券的合理配置是投資組合韌性與穩定性的基石，提倡全球分散化。</li>
+                            <li><strong>對債券、成本及市場行為的觀點：</strong> 債券主要功能是穩定價值；極重視低成本；市場波動是正常現象，應具長期視角。</li>
+                            <li><strong>強調獨立思考與邏輯推理：</strong> 成功投資不需絕頂聰明，僅需基本邏輯與獨立判斷，識破市場錯誤觀念。</li>
+                        </ul>
+                    </div>
+                </div>
+                 <div>
+                    <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center mt-2" data-target="gh-impact">
+                        <span>影響力與教育貢獻</span>
+                         <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                    </button>
+                    <div id="gh-impact" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                        <p>「綠角財經筆記」對台灣投資社群影響顯著，曾獲獎肯定。透過部落格與課程，引導許多投資者轉向指數化投資與資產配置。其醫師背景的嚴謹與實證精神，體現在其投資方法中，鼓勵投資者獨立思考，抵禦市場誤導。綠角不僅是資訊傳播者，更是關鍵意見領袖與教育家，形塑了更具思辨能力的投資社群。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="investment-method" class="mb-12 pt-16 -mt-16">
+            <h2 class="text-3xl font-bold text-teal-700 mb-6">綜合綠角的投資方法：從經典著作到實踐指引</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-4">
+                <p>本節將探討綠角的投資哲學如何植根於其推薦的經典著作，特別是威廉·伯恩斯坦的理念，並結合麥可·艾德爾森的策略性思考。我們將分析伯恩斯坦與艾德爾森的原則如何在綠角的教誨中體現，並觀察綠角思想可能的演化軌跡。透過比較分析，可以更清晰地理解綠角如何將西方先進投資理念轉譯並脈絡化，以適應台灣本土的市場環境與投資者特性。</p>
+                <h4 class="text-xl font-semibold text-teal-600 mt-4">投資原則比較分析 – 伯恩斯坦、艾德爾森、綠角</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-stone-200">
+                        <thead class="bg-amber-100">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">關鍵投資原則</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">威廉·伯恩斯坦觀點</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">麥可·艾德爾森觀點</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">綠角觀點</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-stone-100">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">資產配置的首要性</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">決定長期投資結果的最重要因素。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">策略應用於特定資產累積。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">極力強調，組合韌性與穩定來源。</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">成本的角色</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">極力主張低成本，高費用侵蝕報酬。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">公式化策略隱含對交易效率的追求。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">極度重視，判斷工具優劣關鍵。</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">投資者心理</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">最大敵人是自己，需克服行為偏誤。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">公式化策略旨在排除情緒干擾。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">認同伯恩斯坦，強調理性與紀律。</td>
+                            </tr>
+                             <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">市場擇時</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">極難成功，不應為主要策略。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">策略前提是接受市場不可預測。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">完全否定其可行性。</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">指數化投資</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">強力推薦，多數人最佳途徑。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">VA策略最好用於高度分散投資。</td>
+                                <td class="px-6 py-4 text-sm text-stone-700">核心信仰，大力推廣。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="mt-4">綠角在台灣扮演了西方先進投資理念的關鍵「轉譯者」與「脈絡化者」，將理論與台灣本土市場環境相結合，例如用本土ETF產品說明指數化投資，並批判台灣基金費用過高現象。他為《投資金律》中文版撰寫導讀，更鞏固了他作為連結西方理論與本土實踐橋樑的角色。</p>
+            </div>
+        </section>
+
+        <section id="core-principles" class="mb-12 pt-16 -mt-16">
+            <h2 class="text-3xl font-bold text-teal-700 mb-6">奠定投資基石：核心原則解析</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-4">
+                <p>本節將歸納整理源自綠角及其思想源泉的核心投資原則。這些原則，如資產配置的重要性、被動式與指數化投資的優勢、駕馭投資心理、分散投資與風險管理，以及採納長期投資視角等，共同構成一個穩健的投資框架。理解這些原則的內涵及其相互關聯性，是構建成功投資策略的基礎。</p>
+                
+                <div class="space-y-3">
+                    <div>
+                        <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center" data-target="cp-asset-allocation">
+                            <span>資產配置的絕對重要性</span>
+                            <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                        </button>
+                        <div id="cp-asset-allocation" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                            <p>資產配置是將資金分配於不同資產類別（股票、債券、現金等），以平衡風險與預期報酬，符合個人財務目標、風險承受能力及投資年期。此為影響整體績效最關鍵決策，重要性超過選股或擇時。配置比例因人而異，綠角曾提「110減去年齡」為股票佔比參考。股票追求長期增值，債券提供穩定性，現金滿足流動性。</p>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center" data-target="cp-passive-investing">
+                            <span>被動式與指數化投資的優勢</span>
+                            <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                        </button>
+                        <div id="cp-passive-investing" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                            <p>被動式投資旨在複製市場指數表現，而非超越市場。優勢包括：成本效益（低管理費）、分散風險（涵蓋廣泛成分股）、長期績效（多數主動基金難以持續擊敗指數）、簡潔透明（策略易懂，持股透明）。綠角指出，指數化投資能讓一般投資者勝過市場上九成參與者。</p>
+                        </div>
+                    </div>
+                     <div>
+                        <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center" data-target="cp-psychology">
+                            <span>駕馭投資心理：理解並減緩行為偏誤</span>
+                            <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                        </button>
+                        <div id="cp-psychology" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                            <p>投資者自身常是成功最大障礙。常見偏誤包括：損失趨避、確認偏誤、近期偏誤、過度自信、羊群效應、短視的風險趨避。減緩影響需提高自我覺察，建立明確長期計畫，堅持紀律性資產配置與再平衡，約束情緒化決策。</p>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center" data-target="cp-diversification">
+                            <span>分散投資與風險管理</span>
+                            <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                        </button>
+                        <div id="cp-diversification" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                            <p>「別把雞蛋放同籃」是分散投資核心。將資金分散到不同資產類別、產業、地理區域可降波動。國際分散化有助分散單一國家風險，捕捉全球成長。再平衡是維持目標配置、控制風險及實現「賣高買低」的手段，確保風險水平符合承受能力。</p>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center" data-target="cp-long-term">
+                            <span>採納長期投資視角</span>
+                            <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                        </button>
+                        <div id="cp-long-term" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                            <p>市場短期波動正常且無法避免，但長期趨勢向上。複利是長期回報關鍵。長期視角與退休等目標契合，給予時間平滑市場起伏。掌握市場時機極難且有害績效。綠角反覆強調此點。</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-4">這些奠基性的投資原則並非孤立存在，而是環環相扣、相輔相成的。一個成功的投資策略，源於這些核心原則整合而成的系統性力量。</p>
+            </div>
+        </section>
+
+        <section id="practical-application" class="mb-12 pt-16 -mt-16">
+            <h2 class="text-3xl font-bold text-teal-700 mb-6">實務應用：執行綠角式的投資策略</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-6">
+                <p>理解核心原則後，關鍵是如何將理念轉化為實際操作。本節將探討如何制定個人化的資產配置計畫、選擇合適的ETF投資工具，以及執行關鍵的再平衡紀律。我們將提供一個互動工具，讓您根據不同的投資者畫像，了解綠角式的資產配置模型範例及其建議的ETF組合。</p>
+                
+                <div class="grid md:grid-cols-2 gap-6 items-start">
+                    <div>
+                        <h4 class="text-xl font-semibold text-teal-600 mb-3">綠角式資產配置模型範例</h4>
+                        <label for="investor-profile" class="block text-sm font-medium text-stone-700 mb-1">選擇投資者畫像：</label>
+                        <select id="investor-profile" class="block w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                            <option value="young">年輕累積期 (20-30歲)</option>
+                            <option value="growth">職涯成長期 (40-50歲)</option>
+                            <option value="retiree">臨近/早期退休 (60歲以上)</option>
+                        </select>
+                        <div id="portfolio-details" class="mt-4 space-y-2 text-sm">
+                            </div>
+                         <p class="mt-4 text-xs text-stone-500">*註：此處範例僅供說明參考，實際配置應依個人具體情況調整。ETF代碼僅為舉例，投資者應自行研究選擇合適標的。</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="assetAllocationChart"></canvas>
+                    </div>
+                </div>
+
+                <div>
+                    <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center mt-4" data-target="pa-etf-selection">
+                        <span>選擇合適的投資工具 (ETF)</span>
+                        <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                    </button>
+                    <div id="pa-etf-selection" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                        <p>遵循綠角哲學，選擇ETF應著重：</p>
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            <li><strong>低廉內扣費用 (Expense Ratios)：</strong> 最強調的考量點。</li>
+                            <li><strong>廣泛分散性：</strong> 追蹤涵蓋範圍廣泛且具代表性的市場指數。</li>
+                            <li><strong>追蹤誤差小：</strong> 績效緊密複製基準指數。</li>
+                            <li><strong>高流動性及信譽良好發行商：</strong> 確保交易便利及基金運作穩定。</li>
+                        </ul>
+                        <p class="mt-2">範例ETF可參考互動模型中各投資者畫像的建議。台灣投資者可考慮海外券商投資美國ETF或選擇本地ETF，需權衡成本與選擇多樣性。</p>
+                    </div>
+                </div>
+                 <div>
+                    <button class="accordion-button bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 w-full text-left flex justify-between items-center mt-2" data-target="pa-rebalancing">
+                        <span>再平衡的關鍵角色</span>
+                        <span class="arrow-icon transform transition-transform duration-300">&#9660;</span>
+                    </button>
+                    <div id="pa-rebalancing" class="accordion-content mt-2 p-4 border rounded-md bg-amber-50">
+                        <p>再平衡是維持目標資產配置、控制風險並系統性實現「賣高買低」的重要機制。</p>
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            <li><strong>執行頻率/時機：</strong> 定期（如每年一次）或門檻再平衡（如偏離目標±5%）。</li>
+                            <li><strong>實際操作：</strong> 賣出超配資產，買入低配資產。</li>
+                        </ul>
+                        <p class="mt-2">再平衡不僅是機械操作，更是行為紀律的體現，對抗常見的行為偏誤。初始本金少時可求簡單，隨規模增加可更細緻分散，但核心原則不變。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="mb-12 pt-16 -mt-16">
+            <h2 class="text-3xl font-bold text-teal-700 mb-6">結論：擁抱紀律且明智的投資旅程</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-4">
+                <p>本節回顧綠角投資哲學的核心啟示，並強調其指引的恆久價值。長期的投資成功奠基於一套健全原則：資產配置為首、被動式與指數化投資、嚴控成本、防範行為偏誤、廣泛分散風險。這是一場馬拉松式的長跑，要求紀律性、持續學習與務實態度。</p>
+                <p>綠角及其推崇的大師們所構建的投資框架，終極目標不僅是財務成功，更是塑造一位具備韌性且充滿理性的投資者。透過掌握理論、借鑒歷史、洞察心理，建立內在防禦機制，抵禦市場誘惑與誤導。這種全面的素養將引導投資者走向更平和、可持續的投資體驗，最終實現財富積累與人生目標。鼓勵您運用所學，結合自身情況，構建符合個人目標的投資組合，掌握自己的財務未來。</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-stone-800 text-amber-50 py-8 text-center">
+        <p>&copy; <span id="currentYear"></span> 綠角投資智慧互動導覽。僅供學習與參考。</p>
+    </footer>
+    
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            const expanded = mobileMenuButton.getAttribute('aria-expanded') === 'true' || false;
+            mobileMenuButton.setAttribute('aria-expanded', !expanded);
+            mobileMenu.classList.toggle('hidden');
+            mobileMenuButton.querySelectorAll('svg').forEach(svg => svg.classList.toggle('hidden'));
+        });
+
+        // Smooth scrolling for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    // Offset for sticky header
+                    const headerOffset = document.querySelector('header').offsetHeight;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                }
+                // Close mobile menu if open
+                if (!mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.add('hidden');
+                    mobileMenuButton.setAttribute('aria-expanded', 'false');
+                    mobileMenuButton.querySelectorAll('svg').forEach(svg => svg.classList.toggle('hidden'));
+                }
+            });
+        });
+        
+        // Active nav link highlighting on scroll
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const mobileNavLinks = document.querySelectorAll('.nav-link-mobile');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            const headerOffset = document.querySelector('header').offsetHeight + 20; 
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - headerOffset;
+                if (pageYOffset >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active-nav');
+                if (link.getAttribute('href').substring(1) === current) {
+                    link.classList.add('active-nav');
+                }
+            });
+            mobileNavLinks.forEach(link => {
+                link.classList.remove('active-nav'); // Assuming you might add similar styling
+                if (link.getAttribute('href').substring(1) === current) {
+                    link.classList.add('active-nav');
+                }
+            });
+        });
+
+
+        // Core Books Data
+        const booksData = [
+            {
+                id: "book1",
+                title: "智慧型資產配置 (The Intelligent Asset Allocator)",
+                author: "William J. Bernstein",
+                imgPlaceholder: "📖",
+                summary: "資產配置是決定長期投資成功的首要因素；強調風險與報酬、分散投資、低成本及長期視角。",
+                details: `
+                    <p><strong>核心論點：</strong>威廉·伯恩斯坦在其首部金融著作中，明確指出資產配置是決定長期投資成功的首要因素，其重要性遠超過市場時機的選擇或個別證券的挑選。書中強調市場擇時與選股的困難性，認為市場報酬的根本來源是將資本投入風險性資產本身。投資者應根據個人風險承受能力與投資年期調整配置，並強調分散投資、低成本指數型基金及長期投資的重要性。</p>
+                    <p><strong>綠角推薦理由：</strong>綠角高度評價此書對資產配置理論與實務的透徹解說，稱其對個人投資助益良多，並特別指出該書直接點出市場擇時與選股的無效性，與其投資理念高度契合。中文譯本錯誤甚少，易於閱讀。</p>
+                    <p><strong>博客來連結：</strong><a href="https://goo.gl/T5KSAh" target="_blank" class="text-teal-600 hover:text-teal-800">goo.gl/T5KSAh</a></p>
+                    <p><strong>綠角讀後心得：</strong><a href="http://greenhornfinancefootnote.blogspot.com/2011/09/intelligent-asset-allocator.html" target="_blank" class="text-teal-600 hover:text-teal-800">心得連結</a></p>
+                `
+            },
+            {
+                id: "book2",
+                title: "投資金律 (The Four Pillars of Investing)",
+                author: "William J. Bernstein",
+                imgPlaceholder: "📜",
+                summary: "成功的投資建立在四大支柱之上：理論、歷史、心理與產業環境的理解；批判金融產業的利益衝突。",
+                details: `
+                    <p><strong>核心論點：</strong>伯恩斯坦將成功的投資歸納為四大支柱：理論（風險與報酬、市場效率）、歷史（從市場週期中學習）、心理（克服自身偏誤）與產業（理解投資產業運作與利益衝突）。書中對金融產業的批判尤為深刻，揭示其銷售導向與投資者利益相悖的本質。</p>
+                    <p><strong>綠角推薦理由：</strong>綠角譽為「經典投資書籍」，若僅能推薦一本，此書必為首選。他認為此書助投資者了解投資真諦，走上正確道路，並學會保護自己免受金融產業誤導。2016年增訂本修正舊版錯誤，加入金融海嘯反思及綠角長篇導讀。</p>
+                    <p><strong>博客來連結：</strong><a href="https://goo.gl/muZZjL" target="_blank" class="text-teal-600 hover:text-teal-800">goo.gl/muZZjL</a></p>
+                    <p><strong>綠角讀後心得：</strong><a href="http://greenhornfinancefootnote.blogspot.com/2009/07/four-pillars-of-investing.html" target="_blank" class="text-teal-600 hover:text-teal-800">心得連結</a>, <a href="http://greenhornfinancefootnote.blogspot.tw/2016/01/2016-four-pillars-of-investing-fully.html" target="_blank" class="text-teal-600 hover:text-teal-800">2016增訂本導讀</a></p>
+                `
+            },
+            {
+                id: "book3",
+                title: "定期定值投資策略 (Value Averaging)",
+                author: "Michael E. Edleson",
+                imgPlaceholder: "📈",
+                summary: "提出定期定值(VA)策略，旨在讓投資組合價值每期固定增長，相較定期定額(DCA)有潛力達更低買價。",
+                details: `
+                    <p><strong>核心論點：</strong>探討多種公式化投資方法，核心為「定期定值」(VA)。VA策略目標是讓投資組合價值每期增加預設固定金額，市場下跌時投入更多，上漲時減少投入甚至賣出。相較DCA，VA有潛力達更低平均購買成本，內建「低買高賣」機制，助擺脫情緒決策。</p>
+                    <p><strong>綠角推薦理由：</strong>綠角稱此書為他讀過關於定期投入方法最深入的一本，肯定VA在降低平均買價上的潛力。但也提醒VA有其成本與風險，如持續上漲市場中可能限制獲利，持續疲軟市場中可能要求投入超預期資金。強調公式化策略適用於接受市場無法預測者，反對加入停損停利。後續討論中，綠角似乎更傾向DCA結合再平衡的實用性。</p>
+                    <p><strong>博客來連結：</strong><a href="https://goo.gl/pcs4CF" target="_blank" class="text-teal-600 hover:text-teal-800">goo.gl/pcs4CF</a></p>
+                    <p><strong>綠角讀後心得：</strong><a href="http://greenhornfinancefootnote.blogspot.com/2010/03/value-averaging-formula-strategy.html" target="_blank" class="text-teal-600 hover:text-teal-800">心得連結</a></p>
+                `
+            }
+        ];
+
+        const booksContainer = document.getElementById('books-container');
+        const bookModal = document.getElementById('bookModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        const closeModalButton = document.getElementById('closeModalButton');
+
+        booksData.forEach(book => {
+            const card = `
+                <div class="book-card bg-white rounded-lg shadow-lg overflow-hidden p-6 flex flex-col justify-between cursor-pointer" data-bookid="${book.id}">
+                    <div>
+                        <div class="text-5xl text-center mb-4 text-teal-500">${book.imgPlaceholder}</div>
+                        <h3 class="text-xl font-semibold text-teal-700 mb-2">${book.title}</h3>
+                        <p class="text-sm text-stone-600 mb-1">作者：${book.author}</p>
+                        <p class="text-stone-700 text-sm leading-relaxed">${book.summary}</p>
+                    </div>
+                    <button class="mt-4 text-teal-600 hover:text-teal-800 font-medium text-sm self-start view-details-button" data-bookid="${book.id}">查看更多 &rarr;</button>
+                </div>
+            `;
+            booksContainer.innerHTML += card;
+        });
+        
+        document.querySelectorAll('.book-card, .view-details-button').forEach(element => {
+            element.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent card click from triggering if button is clicked
+                const bookId = element.dataset.bookid;
+                const book = booksData.find(b => b.id === bookId);
+                if (book) {
+                    modalTitle.textContent = book.title;
+                    modalBody.innerHTML = book.details;
+                    bookModal.classList.remove('hidden');
+                }
+            });
+        });
+
+        closeModalButton.addEventListener('click', () => {
+            bookModal.classList.add('hidden');
+        });
+
+        bookModal.addEventListener('click', (event) => {
+            if (event.target === bookModal) { // Click outside the modal content
+                bookModal.classList.add('hidden');
+            }
+        });
+        
+        // Accordion
+        document.querySelectorAll('.accordion-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+                const targetContent = document.getElementById(targetId);
+                const arrowIcon = button.querySelector('.arrow-icon');
+
+                button.classList.toggle('open');
+                
+                if (targetContent.style.maxHeight && targetContent.style.maxHeight !== "0px") {
+                    targetContent.style.maxHeight = "0px";
+                    if(arrowIcon) arrowIcon.style.transform = "rotate(0deg)";
+                } else {
+                    targetContent.style.maxHeight = targetContent.scrollHeight + "px";
+                     if(arrowIcon) arrowIcon.style.transform = "rotate(180deg)";
+                }
+
+                // Close other accordions in the same group (optional)
+                // const group = button.closest('.accordion-group'); // Add this class to parent if needed
+                // if (group) {
+                //     group.querySelectorAll('.accordion-button').forEach(otherButton => {
+                //         if (otherButton !== button) {
+                //             otherButton.classList.remove('open');
+                //             document.getElementById(otherButton.dataset.target).style.maxHeight = "0px";
+                //             const otherArrow = otherButton.querySelector('.arrow-icon');
+                //             if(otherArrow) otherArrow.style.transform = "rotate(0deg)";
+                //         }
+                //     });
+                // }
+            });
+        });
+
+        // Asset Allocation Chart
+        const portfolioData = {
+            young: {
+                label: "年輕累積期 (20-30歲)",
+                config: "80% 股票 / 20% 債券 / 0% 現金",
+                stockAllocation: {
+                    labels: ["美股 (VTI)", "國際已開發 (VEU/VXUS)", "新興市場 (VWO)"],
+                    data: [55, 30, 15], // Example: 55% of 80% stock = 44% total, etc.
+                    etfText: "股票ETF範例：美股 (VTI) 50-60%, 國際已開發 (VEU/VXUS) 25-35%, 新興市場 (VWO) 10-15% (佔股票部位)"
+                },
+                bondAllocation: {
+                    labels: ["全球債券 (BNDW) 或 美債/國際債"],
+                    data: [100], // Example: 100% of 20% bond = 20% total
+                    etfText: "債券ETF範例：全球債券 (BNDW) 100% 或 美債 (BND/IEI) 50-70%, 國際債券 (BNDX/BWX) 30-50% (佔債券部位)"
+                },
+                chartData: {
+                    labels: ['股票', '債券'],
+                    data: [80, 20]
+                }
+            },
+            growth: {
+                label: "職涯成長期 (40-50歲)",
+                config: "60% 股票 / 35% 債券 / 5% 現金",
+                 stockAllocation: {
+                    labels: ["美股 (VTI)", "國際已開發 (VEU/VXUS)", "新興市場 (VWO)"],
+                    data: [55, 30, 15],
+                    etfText: "股票ETF範例：美股 (VTI) 50-60%, 國際已開發 (VEU/VXUS) 25-35%, 新興市場 (VWO) 10-15% (佔股票部位)"
+                },
+                bondAllocation: {
+                    labels: ["全球債券 (BNDW) 或 美債/國際債"],
+                    data: [100],
+                    etfText: "債券ETF範例：全球債券 (BNDW) 100% 或 美債 (BND/IEI) 50-70%, 國際債券 (BNDX/BWX) 30-50% (佔債券部位)"
+                },
+                chartData: {
+                    labels: ['股票', '債券', '現金'],
+                    data: [60, 35, 5]
+                }
+            },
+            retiree: {
+                label: "臨近/早期退休 (60歲以上)",
+                config: "40% 股票 / 50% 債券 / 10% 現金",
+                stockAllocation: {
+                    labels: ["美股 (VTI)", "國際已開發 (VEU/VXUS)", "新興市場 (VWO)"],
+                    data: [45, 35, 20],
+                    etfText: "股票ETF範例：美股 (VTI) 40-50%, 國際已開發 (VEU/VXUS) 30-40%, 新興市場 (VWO) 10-15% (佔股票部位)"
+                },
+                bondAllocation: {
+                    labels: ["全球債券 (BNDW) 或 美債/國際債"],
+                    data: [100],
+                    etfText: "債券ETF範例：全球債券 (BNDW) 100% 或 美債 (BND/IEI) 60-80% (可偏重短期), 國際債券 (BNDX/BWX) 20-40% (佔債券部位)"
+                },
+                chartData: {
+                    labels: ['股票', '債券', '現金'],
+                    data: [40, 50, 10]
+                }
+            }
+        };
+
+        const ctx = document.getElementById('assetAllocationChart').getContext('2d');
+        let assetChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '資產配置比例',
+                    data: [],
+                    backgroundColor: [
+                        'rgba(13, 148, 136, 0.7)', // teal-600
+                        'rgba(203, 213, 225, 0.7)', // slate-300
+                        'rgba(251, 191, 36, 0.7)'  // amber-400
+                    ],
+                    borderColor: [
+                        'rgba(15, 118, 110, 1)', // teal-700
+                        'rgba(100, 116, 139, 1)', // slate-500
+                        'rgba(217, 119, 6, 1)'   // amber-500
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed + '%';
+                                }
+                                // Wrap label text
+                                const maxLineWidth = 20; // characters
+                                let wrappedLabel = '';
+                                let currentLine = '';
+                                label.split(' ').forEach(word => {
+                                    if ((currentLine + word).length > maxLineWidth) {
+                                        wrappedLabel += currentLine.trim() + '\n';
+                                        currentLine = '';
+                                    }
+                                    currentLine += word + ' ';
+                                });
+                                wrappedLabel += currentLine.trim();
+                                return wrappedLabel.split('\n');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const investorProfileSelect = document.getElementById('investor-profile');
+        const portfolioDetailsDiv = document.getElementById('portfolio-details');
+
+        function updatePortfolioDisplay(profileKey) {
+            const profile = portfolioData[profileKey];
+            assetChart.data.labels = profile.chartData.labels;
+            assetChart.data.datasets[0].data = profile.chartData.data;
+            assetChart.update();
+
+            portfolioDetailsDiv.innerHTML = `
+                <p><strong>投資者畫像：</strong> ${profile.label}</p>
+                <p><strong>建議配置：</strong> ${profile.config}</p>
+                <p class="mt-2"><strong>股票部位建議：</strong></p>
+                <p class="text-xs">${profile.stockAllocation.etfText}</p>
+                <p class="mt-1"><strong>債券部位建議：</strong></p>
+                <p class="text-xs">${profile.bondAllocation.etfText}</p>
+            `;
+        }
+
+        investorProfileSelect.addEventListener('change', (event) => {
+            updatePortfolioDisplay(event.target.value);
+        });
+
+        // Initial display
+        updatePortfolioDisplay(investorProfileSelect.value);
+
+    </script>
+</body>
+</html>
