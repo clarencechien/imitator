@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麥格納國際：互動式報告瀏覽器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Magna Overview: Text, key stats (Goal: Inform).
+        - Magna Steyr Capabilities: Text, key stats (Goal: Inform).
+        - BMW Models: Interactive cards/timeline (Report Info: Table 1, text; Goal: Inform/Compare; Viz: HTML/JS cards, Chart.js bar chart for production periods; Interaction: Click/Hover on cards, tooltips on chart; Justification: Clear visual summary of diverse models and timelines).
+        - Mercedes Models: Interactive cards/timeline, focus on G-Class (Report Info: Table 2, text; Goal: Inform/Compare/Change; Viz: HTML/JS cards, Chart.js bar/timeline for G-Class longevity; Interaction: Click/Hover, tooltips; Justification: Highlights iconic long-term partnership and model diversity).
+        - Other OEMs: Interactive list/cards (Report Info: Text; Goal: Inform/Organize; Viz: HTML/JS; Interaction: Click/Filter; Justification: Showcases breadth of partnerships).
+        - Market Insights: Text, potentially a qualitative chart. Gemini API powered button for "Advanced Market Analysis" (Goal: Inform/Synthesize/Extend; Viz: HTML/JS for button and dynamic text display; Interaction: Click to generate; Justification: Adds AI-powered depth to existing insights).
+        - All charts use Chart.js (Canvas). Textual summaries and interactive elements are HTML/CSS/JS. No SVG/Mermaid used. This approach aims to make complex information digestible and engaging. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Assuming Inter is a good default, fallback to sans-serif */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Default max-width, can be overridden by Tailwind */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 400px; /* Max height */
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .smooth-scroll {
+            scroll-behavior: smooth;
+        }
+        .section-title {
+            @apply text-3xl font-bold text-sky-700 mb-6 text-center;
+        }
+        .card {
+            @apply bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300;
+        }
+        .nav-link {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-sky-700 hover:text-white transition-colors;
+        }
+        .nav-link.active {
+            @apply bg-sky-700 text-white;
+        }
+        /* Tab styles */
+        .tab-button {
+            @apply px-4 py-2 font-medium text-sm leading-5 rounded-t-lg;
+            @apply text-slate-600 hover:text-sky-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500;
+        }
+        .tab-button.active {
+            @apply text-sky-700 bg-white border-b-2 border-sky-600;
+        }
+        .tab-content {
+            @apply hidden p-4 bg-white rounded-b-lg rounded-tr-lg shadow;
+        }
+        .tab-content.active {
+            @apply block;
+        }
+        .stat-card {
+            @apply bg-sky-50 p-6 rounded-lg shadow-md text-center;
+        }
+        .stat-value {
+            @apply text-3xl font-bold text-sky-600;
+        }
+        .stat-label {
+            @apply text-slate-600 mt-1;
+        }
+        .gemini-button {
+            @apply mt-6 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg text-base transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #0ea5e9; /* sky-500 */
+            animation: spin 1s ease infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .gemini-result-container {
+            @apply mt-6 p-6 bg-sky-50 rounded-lg shadow;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 smooth-scroll">
+
+    <header class="bg-sky-800 sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-white">麥格納國際透視</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#hero" class="nav-link active">首頁</a>
+                        <a href="#about-magna" class="nav-link">關於麥格納</a>
+                        <a href="#magna-steyr" class="nav-link">麥格納斯太爾</a>
+                        <a href="#bmw-partnership" class="nav-link">合作夥伴：寶馬</a>
+                        <a href="#mercedes-partnership" class="nav-link">合作夥伴：賓士</a>
+                        <a href="#broader-collaborations" class="nav-link">更廣泛的合作</a>
+                        <a href="#market-insights" class="nav-link">市場洞察</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-slate-300 hover:text-white focus:outline-none">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#hero" class="block nav-link text-center">首頁</a>
+                <a href="#about-magna" class="block nav-link text-center">關於麥格納</a>
+                <a href="#magna-steyr" class="block nav-link text-center">麥格納斯太爾</a>
+                <a href="#bmw-partnership" class="block nav-link text-center">合作夥伴：寶馬</a>
+                <a href="#mercedes-partnership" class="block nav-link text-center">合作夥伴：賓士</a>
+                <a href="#broader-collaborations" class="block nav-link text-center">更廣泛的合作</a>
+                <a href="#market-insights" class="block nav-link text-center">市場洞察</a>
+            </div>
+        </div>
+    </header>
+
+    <section id="hero" class="bg-gradient-to-r from-sky-600 to-sky-800 text-white py-20 min-h-[60vh] flex items-center">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-5xl font-bold mb-6">麥格納國際：汽車產業的幕後巨擘</h1>
+            <p class="text-xl mb-8 max-w-3xl mx-auto">深入探索全球汽車零組件領導者麥格納國際及其子公司麥格納斯太爾在整車代工領域的卓越能力，以及與寶馬、賓士等頂級品牌的合作關係。</p>
+            <a href="#about-magna" class="bg-amber-400 hover:bg-amber-500 text-sky-800 font-bold py-3 px-8 rounded-lg text-lg transition-colors">開始探索</a>
+        </div>
+    </section>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        <section id="about-magna" class="py-16">
+            <h2 class="section-title">關於麥格納國際</h2>
+            <p class="text-lg text-slate-700 mb-10 max-w-3xl mx-auto text-center">麥格納國際不僅是全球頂尖的汽車零組件供應商，更將自身定位為一家「行動科技公司」。本節將帶您了解麥格納的核心業務、全球佈局以及其在汽車產業創新中的角色。</p>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                <div class="stat-card">
+                    <div class="stat-value">~17萬</div>
+                    <div class="stat-label">全球員工</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">~28國</div>
+                    <div class="stat-label">業務遍及國家</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">~340+</div>
+                    <div class="stat-label">製造基地</div>
+                </div>
+            </div>
+
+            <div class="card mb-8">
+                <h3 class="text-2xl font-semibold text-sky-700 mb-4">核心業務概覽</h3>
+                <p class="text-slate-600 mb-4">麥格納為全球幾乎所有主要汽車製造商提供廣泛的汽車系統、總成、模組和零組件。其產品能力極為廣泛，涵蓋：</p>
+                <ul class="list-disc list-inside space-y-2 text-slate-600">
+                    <li>車身、底盤、外飾</li>
+                    <li>座椅系統</li>
+                    <li>動力總成系統</li>
+                    <li>電子系統與先進駕駛輔助系統 (ADAS)</li>
+                    <li>後視鏡、閉鎖系統、車頂系統</li>
+                    <li>整車工程設計與合約製造</li>
+                </ul>
+                <p class="text-slate-600 mt-4">這種從單一零件到整車系統的全面覆蓋能力，及其「全系統方法」，使其在業界中獨樹一幟。</p>
+            </div>
+
+            <div class="card">
+                <h3 class="text-2xl font-semibold text-sky-700 mb-4">創新與技術焦點</h3>
+                <p class="text-slate-600 mb-4">麥格納積極投入研發並與科技巨頭合作，推動汽車產業的技術變革：</p>
+                <ul class="list-disc list-inside space-y-2 text-slate-600">
+                    <li>與輝達 (NVIDIA) 合作推進下一代 ADAS 技術，目標實現 Level 5 自動駕駛。</li>
+                    <li>積極參與車輛電動化解決方案的開發。</li>
+                    <li>利用新材料實現車輛「輕量化」。</li>
+                </ul>
+                <p class="text-slate-600 mt-4">麥格納的策略是從傳統製造商轉型為技術夥伴，提供整合的智慧化系統。</p>
+            </div>
+        </section>
+
+        <section id="magna-steyr" class="py-16 bg-slate-100 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+            <h2 class="section-title">麥格納斯太爾：整車製造的藝術與科學</h2>
+            <p class="text-lg text-slate-700 mb-10 max-w-3xl mx-auto text-center">麥格納斯太爾是麥格納國際旗下的子公司，位於奧地利格拉茨，是全球領先、品牌獨立的汽車製造商工程與製造夥伴。本節將介紹其全方位能力及在汽車產業中的策略角色。</p>
+
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                 <div class="stat-card bg-white">
+                    <div class="stat-value">>40款</div>
+                    <div class="stat-label">已開發整車及衍生車型</div>
+                </div>
+                <div class="stat-card bg-white">
+                    <div class="stat-value">~400萬輛</div>
+                    <div class="stat-label">已生產汽車總量</div>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="card">
+                    <h3 class="text-2xl font-semibold text-sky-700 mb-4">全方位能力</h3>
+                    <p class="text-slate-600 mb-4">麥格納斯太爾提供廣泛的服務，其製造能力十分全面：</p>
+                    <ul class="list-disc list-inside space-y-2 text-slate-600">
+                        <li>工程服務與整車合約製造</li>
+                        <li>車頂系統、燃油系統和電池系統</li>
+                        <li>白車身製造 (鋼製、多材料混合、全鋁)</li>
+                        <li>高科技塗裝解決方案</li>
+                        <li>整車組裝，能同時處理內燃機、混合動力和純電動車型，甚至在同一產線。</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="text-2xl font-semibold text-sky-700 mb-4">策略角色</h3>
+                    <p class="text-slate-600 mb-2">麥格納斯太爾為汽車製造商扮演關鍵策略夥伴：</p>
+                    <ul class="list-disc list-inside space-y-2 text-slate-600">
+                        <li>為傳統車廠提供額外產能支援。</li>
+                        <li>協助新進者將產品推向市場。</li>
+                        <li>降低車廠資本支出風險，管理生產溢出。</li>
+                        <li>「品牌獨立」地位贏得客戶信任，能同時為競爭品牌製造。</li>
+                    </ul>
+                     <p class="text-slate-600 mt-4">在技術快速變革的時代，其靈活性與經驗使其策略價值日益凸顯。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="bmw-partnership" class="py-16">
+            <h2 class="section-title">合作夥伴：寶馬 (BMW)</h2>
+            <p class="text-lg text-slate-700 mb-10 max-w-3xl mx-auto text-center">麥格納斯太爾與寶馬集團建立了長久且深入的製造夥伴關係，不僅代工生產多款車型，更參與核心部件的供應與車輛開發。本節將展示雙方合作的亮點車型與合作性質。</p>
+            
+            <div id="bmw-tabs" class="mb-8">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+                        <button class="tab-button active" data-target="bmw-x3">寶馬 X3</button>
+                        <button class="tab-button" data-target="bmw-mini">MINI 車型</button>
+                        <button class="tab-button" data-target="bmw-5series">寶馬 5系列</button>
+                        <button class="tab-button" data-target="bmw-z4">寶馬 Z4</button>
+                    </nav>
+                </div>
+                <div id="bmw-x3" class="tab-content active">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">寶馬 X3 (E83)</h4>
+                    <p class="text-slate-600">生產週期：2003–2010</p>
+                    <p class="text-slate-600 mt-2">合作重點：麥格納斯太爾不僅承擔了初代寶馬X3的大量開發工作，並獨家生產了所有該型號的X3。這在當時是汽車產業內一項重大的舉措。</p>
+                </div>
+                <div id="bmw-mini" class="tab-content">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">MINI Countryman & Paceman</h4>
+                    <p class="text-slate-600">Countryman 生產週期：2010–2016</p>
+                    <p class="text-slate-600">Paceman 生產週期：2012–2016</p>
+                    <p class="text-slate-600 mt-2">合作重點：負責這兩款MINI車型的生產。</p>
+                </div>
+                <div id="bmw-5series" class="tab-content">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">寶馬 5系列 (G30)</h4>
+                    <p class="text-slate-600">生產週期：2017–2023</p>
+                    <p class="text-slate-600 mt-2">合作重點：與寶馬位於德國丁戈爾芬的工廠共同分擔生產任務，體現產能管理的彈性。</p>
+                </div>
+                <div id="bmw-z4" class="tab-content">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">寶馬 Z4 (G29)</h4>
+                    <p class="text-slate-600">生產週期：2018–至今</p>
+                    <p class="text-slate-600 mt-2">合作重點：持續在麥格納斯太爾生產，與豐田GR Supra共享平台並在同一工廠並線生產。</p>
+                </div>
+            </div>
+            
+            <div class="card mb-8">
+                <h3 class="text-xl font-semibold text-sky-700 mb-3">合作性質</h3>
+                <p class="text-slate-600">寶馬與麥格納的合作遠不止於車輛組裝。麥格納斯太爾深度參與了初代寶馬X3的開發與工程設計。此外，麥格納也為寶馬供應核心動力總成部件，例如2019年獲得的雙離合器變速箱和混合動力變速箱訂單，顯示了雙方深厚且多面向的合作關係。</p>
+            </div>
+
+            <div class="chart-container mx-auto h-96 max-h-[450px]">
+                <canvas id="bmwProductionChart"></canvas>
+            </div>
+            <p class="text-sm text-slate-500 text-center mt-2">圖表：麥格納斯太爾為寶馬生產的部分車型及其生產週期長度（示意）。</p>
+
+        </section>
+
+        <section id="mercedes-partnership" class="py-16 bg-slate-100 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+            <h2 class="section-title">合作夥伴：賓士 (Mercedes-Benz)</h2>
+            <p class="text-lg text-slate-700 mb-10 max-w-3xl mx-auto text-center">麥格納斯太爾與賓士的合作歷史悠久且意義非凡，其中最著名的便是長達數十年的G-Class越野車生產。近年來，合作更拓展至電動化領域。本節將深入探討這段持久的製造聯盟。</p>
+
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="card">
+                    <h3 class="text-2xl font-semibold text-sky-700 mb-4">經典的賓士 G-Class</h3>
+                    <img src="https://placehold.co/600x400/e2e8f0/334155?text=Mercedes-Benz+G-Class" alt="賓士 G-Class 示意圖" class="rounded-lg mb-4 w-full h-auto object-cover max-h-60">
+                    <p class="text-slate-600 mb-2">自1979年以來，一直由麥格納斯太爾在奧地利格拉茨工廠持續生產。</p>
+                    <p class="text-slate-600 mb-2">截至2025年2月，產量已突破 <span class="font-bold text-sky-600">50萬輛</span>。</p>
+                    <p class="text-slate-600">大部分組裝工作主要以手工完成，滿足挑剔客戶的需求。G-Class的代工合約是賓士對麥格納斯太爾專業製造能力深厚信任的終極體現。</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-2xl font-semibold text-sky-700 mb-4">其他合作項目與電動化轉型</h3>
+                    <p class="text-slate-600 mb-3">除了G-Class，麥格納斯太爾還為賓士生產：</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-600 mb-3">
+                        <li>E-Class 4Matic (開發4Matic系統並生產整車)</li>
+                        <li>M-Class (W163)</li>
+                        <li>SLS AMG (鋁合金車身)</li>
+                    </ul>
+                    <p class="text-slate-600 font-semibold mb-2">電動化新篇章：</p>
+                    <p class="text-slate-600">2024年起，麥格納開始生產 <span class="font-bold text-sky-600">eDS Duo電動驅動系統</span>，將搭載於全新電動G-Class，具備「G-Turn」等特殊功能。這標誌著雙方夥伴關係進入電動力總成解決方案的新時代。</p>
+                </div>
+            </div>
+            
+            <div class="chart-container mx-auto h-96 max-h-[450px]">
+                <canvas id="mercedesProductionChart"></canvas>
+            </div>
+            <p class="text-sm text-slate-500 text-center mt-2">圖表：麥格納斯太爾為賓士生產的部分車型/部件及其合作起始年份（示意）。</p>
+        </section>
+
+        <section id="broader-collaborations" class="py-16">
+            <h2 class="section-title">更廣泛的汽車製造商合作</h2>
+            <p class="text-lg text-slate-700 mb-10 max-w-3xl mx-auto text-center">除了與寶馬和賓士的深度合作，麥格納斯太爾還為眾多其他知名汽車製造商提供代工服務，展現其廣泛的市場覆蓋和生產彈性。本節將列舉部分重要合作案例。</p>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="card">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">捷豹 (Jaguar)</h4>
+                    <p class="text-slate-600">E-Pace (2017-2024)</p>
+                    <p class="text-slate-600">I-Pace (純電動, 2018-2024) - 與E-Pace在同一產線生產。</p>
+                </div>
+                <div class="card">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">豐田 (Toyota)</h4>
+                    <p class="text-slate-600">GR Supra (2019-至今) - 與寶馬Z4共線生產。</p>
+                </div>
+                <div class="card">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">Fisker</h4>
+                    <p class="text-slate-600">Ocean SUV (2022-2024) - 後因Fisker財務困境停產。</p>
+                </div>
+                <div class="card">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">INEOS</h4>
+                    <p class="text-slate-600">已簽約設計和製造越野電動車 (預計2026年開始)。</p>
+                </div>
+                <div class="card">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">中國電動車製造商 (潛在)</h4>
+                    <p class="text-slate-600">據報導可能為小鵬汽車、廣汽集團代工，規避關稅壁壘。</p>
+                </div>
+                <div class="card">
+                    <h4 class="text-xl font-semibold text-sky-600 mb-2">歷史合作夥伴</h4>
+                    <p class="text-slate-600 text-sm">克萊斯勒, 吉普, 薩博, 奧斯頓·馬丁, 寶獅, 奧迪, 福斯等。</p>
+                </div>
+            </div>
+            <p class="text-slate-700 mt-8 text-center max-w-2xl mx-auto">麥格納斯太爾在協助新進者進入市場以及應對地緣政治貿易問題方面，扮演著獨特的角色。其在歐洲的合約製造能力為初創企業和非歐盟公司提供了重要的市場准入途徑。</p>
+        </section>
+
+        <section id="market-insights" class="py-16 bg-slate-100 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+            <h2 class="section-title">市場洞察與未來展望</h2>
+            <p id="market-insights-intro" class="text-lg text-slate-700 mb-10 max-w-3xl mx-auto text-center">麥格納斯太爾作為全球領先的獨立合約製造商，其市場地位舉足輕重。然而，此商業模式亦伴隨風險。本節將探討其市場地位、挑戰以及麥格納整體的未來發展方向。您也可以透過下方的按鈕，利用 AI 產生更進階的市場分析。</p>
+
+            <div id="market-insights-content-original">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="card">
+                        <h3 class="text-2xl font-semibold text-sky-700 mb-4">市場領導地位與核心競爭力</h3>
+                        <ul class="list-disc list-inside space-y-2 text-slate-600">
+                            <li>全球領先的獨立合約製造商之一。</li>
+                            <li>提供整車工程設計與製造解決方案是關鍵差異化優勢。</li>
+                            <li>豐富經驗：格拉茨工廠已生產超過400萬輛汽車，涵蓋數十種車型。</li>
+                            <li>高度靈活性：處理不同車型、動力總成技術共線生產，應對不同生產批量。</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="text-2xl font-semibold text-sky-700 mb-4">商業風險與挑戰</h3>
+                        <p class="text-slate-600 mb-2">合約製造的產量和營收直接取決於客戶汽車製造商的成功與穩定性。</p>
+                        <ul class="list-disc list-inside space-y-2 text-slate-600">
+                            <li>與初創企業合作風險較高 (如Fisker案例導致營收損失和裁員)。</li>
+                            <li>需維持多元化客戶組合，並敏捷開發業務以填補產能空缺。</li>
+                            <li>在成熟巨頭與高成長/高風險新進者間尋求平衡。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card mt-8">
+                    <h3 class="text-2xl font-semibold text-sky-700 mb-4">麥格納的未來展望</h3>
+                    <p class="text-slate-600">綜合分析可見，麥格納國際不僅是全球領先的汽車零組件供應商，更是一家積極擁抱變革的行動科技公司。其在電動化、先進駕駛輔助系統等領域的持續投入，使其能夠很好地適應快速發展的汽車產業格局，並有望繼續深化與全球汽車製造商的合作夥伴關係，在全球汽車產業的變革浪潮中扮演關鍵角色。</p>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button id="generateMarketAnalysisBtn" class="gemini-button">
+                    ✨ 產生進階市場趨勢分析
+                </button>
+            </div>
+            <div id="geminiLoadingIndicator" class="hidden my-4">
+                <div class="loading-spinner"></div>
+                <p class="text-center text-sky-600">AI 分析生成中，請稍候...</p>
+            </div>
+            <div id="geminiMarketAnalysisResult" class="gemini-result-container hidden">
+                <h3 class="text-2xl font-semibold text-sky-700 mb-4">進階市場趨勢分析 (由 AI 生成)</h3>
+                <div id="geminiAnalysisText" class="text-slate-700 whitespace-pre-wrap"></div>
+            </div>
+             <div id="geminiError" class="hidden mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
+                <p>AI 分析生成失敗，請稍後再試。</p>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="bg-sky-800 text-slate-300 py-8 text-center">
+        <p>&copy; <span id="currentYear"></span> 麥格納國際互動式報告瀏覽器。基於公開資訊分析。</p>
+        <p class="text-sm">此應用程式僅供演示與資訊參考用途。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function () {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Smooth scroll for nav links & active state
+            const navLinks = document.querySelectorAll('nav a[href^="#"]');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+                            mobileMenu.classList.add('hidden');
+                        }
+                        const offset = document.querySelector('header').offsetHeight;
+                        const bodyRect = document.body.getBoundingClientRect().top;
+                        const elementRect = targetElement.getBoundingClientRect().top;
+                        const elementPosition = elementRect - bodyRect;
+                        const offsetPosition = elementPosition - offset;
+                        
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+            
+            const sections = document.querySelectorAll('section[id]');
+            const headerOffset = document.querySelector('header').offsetHeight + 20; 
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop - headerOffset;
+                    if (pageYOffset >= sectionTop) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').includes(current) && current !== '') {
+                        link.classList.add('active');
+                    } else if (current === '' && link.getAttribute('href') === '#hero') {
+                         link.classList.add('active');
+                    }
+                });
+                if (window.pageYOffset < headerOffset && navLinks.length > 0) {
+                    navLinks.forEach(link => link.classList.remove('active'));
+                    const heroLink = document.querySelector('nav a[href="#hero"]');
+                    if (heroLink) heroLink.classList.add('active');
+                }
+            });
+
+            const bmwTabsContainer = document.getElementById('bmw-tabs');
+            if (bmwTabsContainer) {
+                const tabButtonsBmw = bmwTabsContainer.querySelectorAll('.tab-button');
+                const tabContentsBmw = bmwTabsContainer.querySelectorAll('.tab-content');
+                tabButtonsBmw.forEach(button => {
+                    button.addEventListener('click', () => {
+                        tabButtonsBmw.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        const target = button.dataset.target;
+                        tabContentsBmw.forEach(content => {
+                            content.classList.toggle('active', content.id === target);
+                        });
+                    });
+                });
+            }
+            
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            const bmwProductionData = {
+                labels: ['X3 (E83)', 'MINI Countryman', 'MINI Paceman', '5 Series (G30)', 'Z4 (G29)'],
+                productionYears: [2010 - 2003, 2016 - 2010, 2016 - 2012, 2023 - 2017, new Date().getFullYear() - 2018],
+                startYears: [2003, 2010, 2012, 2017, 2018]
+            };
+
+            const bmwCtx = document.getElementById('bmwProductionChart');
+            if (bmwCtx) {
+                new Chart(bmwCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: bmwProductionData.labels.map(label => label.length > 16 ? label.substring(0, 14) + '...' : label),
+                        datasets: [{
+                            label: '生產週期長度 (年)',
+                            data: bmwProductionData.productionYears,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderColor: 'rgba(30, 64, 175, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, title: { display: true, text: '年數' } },
+                                  x: { ticks: { callback: (val, idx) => { const l = bmwProductionData.labels[idx]; return l.length > 10 ? l.substring(0,9) + '...' : l; } } } },
+                        plugins: { tooltip: { callbacks: { label: (ctx) => {
+                            let lbl = ctx.dataset.label || ''; if (lbl) lbl += ': '; if (ctx.parsed.y !== null) lbl += ctx.parsed.y + ' 年';
+                            const origLbl = bmwProductionData.labels[ctx.dataIndex]; const sY = bmwProductionData.startYears[ctx.dataIndex];
+                            const eYCalc = sY + bmwProductionData.productionYears[ctx.dataIndex]; const eY = (origLbl === 'Z4 (G29)') ? '至今' : eYCalc;
+                            return [origLbl, `生產週期: ${sY} - ${eY}`, `持續: ${ctx.parsed.y} 年`];
+                        }}}}
+                    }
+                });
+            }
+
+            const mercedesProductionData = {
+                labels: ['G-Class', 'E-Class 4Matic', 'M-Class (W163)', 'SLS AMG (車身)', 'eDS Duo (電驅)'],
+                startYears: [1979, 1996, 1999, 2009, 2024],
+                colors: ['rgba(14, 165, 233, 0.7)','rgba(8, 145, 178, 0.7)','rgba(22, 78, 99, 0.7)','rgba(100, 116, 139, 0.7)','rgba(245, 158, 11, 0.7)']
+            };
+            const mercedesBarData = mercedesProductionData.startYears.map(year => (new Date().getFullYear() - year + 5));
+
+            const mercedesCtx = document.getElementById('mercedesProductionChart');
+            if (mercedesCtx) {
+                new Chart(mercedesCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: mercedesProductionData.labels.map(label => label.length > 16 ? label.substring(0, 14) + '...' : label),
+                        datasets: [{
+                            label: '合作起始年份 (條長示意合作持續性)', data: mercedesBarData,
+                            backgroundColor: mercedesProductionData.colors,
+                            borderColor: mercedesProductionData.colors.map(c => c.replace('0.7', '1')), borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                        scales: { x: { beginAtZero: true, title: { display: true, text: '合作持續性指標 (數值越大表示越長久或重要)' } },
+                                  y: { ticks: { callback: (val, idx) => { const l = mercedesProductionData.labels[idx]; return l.length > 10 ? l.substring(0,9) + '...' : l; } } } },
+                        plugins: { tooltip: { callbacks: { label: (ctx) => {
+                            const oL = mercedesProductionData.labels[ctx.dataIndex]; const sY = mercedesProductionData.startYears[ctx.dataIndex];
+                            let eY = '至今'; if (oL === 'E-Class 4Matic') eY = '2006'; if (oL === 'M-Class (W163)') eY = '2002'; if (oL === 'SLS AMG (車身)') eY = '2014';
+                            return `${oL}: ${sY} - ${eY}`;
+                        }}}}
+                    }
+                });
+            }
+
+            // Gemini API Integration
+            const generateMarketAnalysisBtn = document.getElementById('generateMarketAnalysisBtn');
+            const geminiLoadingIndicator = document.getElementById('geminiLoadingIndicator');
+            const geminiMarketAnalysisResult = document.getElementById('geminiMarketAnalysisResult');
+            const geminiAnalysisText = document.getElementById('geminiAnalysisText');
+            const geminiError = document.getElementById('geminiError');
+
+            if (generateMarketAnalysisBtn) {
+                generateMarketAnalysisBtn.addEventListener('click', async () => {
+                    geminiLoadingIndicator.classList.remove('hidden');
+                    geminiMarketAnalysisResult.classList.add('hidden');
+                    geminiError.classList.add('hidden');
+                    generateMarketAnalysisBtn.disabled = true;
+
+                    try {
+                        const marketInsightsOriginalContent = document.getElementById('market-insights-content-original').innerText;
+                        const prompt = `作為一位頂尖的汽車產業市場分析師，請根據以下關於麥格納國際及其子公司麥格納斯太爾的市場地位、核心競爭力、商業風險與未來展望的資訊：\n\n"${marketInsightsOriginalContent}"\n\n請提供一份關於全球汽車代工產業在未來五到十年內的主要趨勢、潛在的重大機遇、以及可能出現的新興挑戰的進階分析報告。請確保分析具有前瞻性、洞察力，並條理清晰地呈現。`;
+                        
+                        let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                        const payload = { contents: chatHistory };
+                        const apiKey = ""; // API Key will be injected by the Canvas environment if required for models other than gemini-2.0-flash
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                        
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`API請求失敗，狀態碼：${response.status}`);
+                        }
+
+                        const result = await response.json();
+
+                        if (result.candidates && result.candidates.length > 0 &&
+                            result.candidates[0].content && result.candidates[0].content.parts &&
+                            result.candidates[0].content.parts.length > 0) {
+                            const text = result.candidates[0].content.parts[0].text;
+                            geminiAnalysisText.innerText = text;
+                            geminiMarketAnalysisResult.classList.remove('hidden');
+                        } else {
+                            console.error('從API收到的回應結構不符合預期:', result);
+                            throw new Error('AI分析結果格式錯誤。');
+                        }
+                    } catch (error) {
+                        console.error('生成市場分析時發生錯誤:', error);
+                        geminiError.classList.remove('hidden');
+                        geminiError.querySelector('p').innerText = `AI 分析生成失敗：${error.message} 請檢查主控台獲取更多資訊。`;
+                    } finally {
+                        geminiLoadingIndicator.classList.add('hidden');
+                        generateMarketAnalysisBtn.disabled = false;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
