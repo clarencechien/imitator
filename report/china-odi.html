@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>透視中國海外收購：戰略、動機與全球影響</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - ODI vs. M&A Trend (2023-2024): Goal: Compare/Show Change. Method: Grouped Bar Chart (Chart.js). Data: Estimated 2023 ODI/M&A vs. 2024 ODI/M&A values from report. Interaction: Tooltips. Justification: Visually highlight the diverging trend between overall ODI and M&A.
+        - M&A by Top Industries (2024): Goal: Show Proportions. Method: Donut Chart (Chart.js). Data: Adv. Mfg & Mobility + TMT (56%), Mining & Metals (e.g., 20%), Others (24%). Interaction: Tooltips. Justification: Illustrate key industry focus in M&A.
+        - Geographic Focus: Goal: Inform. Method: Interactive cards/styled list for key regions (Asia, Europe, Middle East, Africa, declining US). Interaction: Hover effects. Justification: Present geographic shifts clearly without complex maps.
+        - Motivations & Case Studies: Goal: Inform/Organize. Method: Clickable/expandable cards or sections with Unicode icons. Interaction: Click to reveal more details. Justification: Allow users to explore specific areas of interest.
+        - All charts use Chart.js on canvas. No SVG/Mermaid. Text summaries and bullet points for clarity. -->
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; } /* More common for Traditional Chinese */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px; /* Slightly smaller for better fit in some layouts */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 350px;
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s ease, border-bottom-color 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0d9488; /* teal-600 */
+            border-bottom-color: #0d9488; /* teal-600 */
+        }
+        .section-title {
+            border-bottom: 3px solid #0d9488; /* teal-600 */
+            padding-bottom: 0.75rem;
+            display: inline-block;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* shadow-lg */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); /* shadow-xl */
+        }
+        .tab-button {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .tab-button.active {
+            background-color: #0d9488; /* teal-600 */
+            color: white;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        [x-cloak] { display: none !important; }
+    </style>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-stone-100 text-stone-800 antialiased" x-data="{ activeSection: 'home' }">
+
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="#home" @click="activeSection = 'home'" class="text-2xl font-bold text-teal-600">中國海外收購透視</a>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#trends" @click="activeSection = 'trends'" :class="{ 'active': activeSection === 'trends' }" class="nav-link px-3 py-2 rounded-md text-sm font-medium">趨勢解讀</a>
+                        <a href="#motivations" @click="activeSection = 'motivations'" :class="{ 'active': activeSection === 'motivations' }" class="nav-link px-3 py-2 rounded-md text-sm font-medium">戰略動機</a>
+                        <a href="#forces" @click="activeSection = 'forces'" :class="{ 'active': activeSection === 'forces' }" class="nav-link px-3 py-2 rounded-md text-sm font-medium">幕後推手</a>
+                        <a href="#impact" @click="activeSection = 'impact'" :class="{ 'active': activeSection === 'impact' }" class="nav-link px-3 py-2 rounded-md text-sm font-medium">全球迴響</a>
+                        <a href="#cases" @click="activeSection = 'cases'" :class="{ 'active': activeSection === 'cases' }" class="nav-link px-3 py-2 rounded-md text-sm font-medium">代表案例</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button @click="document.getElementById('mobile-menu').classList.toggle('hidden')" type="button" class="bg-white inline-flex items-center justify-center p-2 rounded-md text-stone-500 hover:text-teal-600 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-teal-500" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">開啟主選單</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#trends" @click="activeSection = 'trends'; document.getElementById('mobile-menu').classList.add('hidden')" class="hover:bg-stone-100 hover:text-teal-600 block px-3 py-2 rounded-md text-base font-medium">趨勢解讀</a>
+                <a href="#motivations" @click="activeSection = 'motivations'; document.getElementById('mobile-menu').classList.add('hidden')" class="hover:bg-stone-100 hover:text-teal-600 block px-3 py-2 rounded-md text-base font-medium">戰略動機</a>
+                <a href="#forces" @click="activeSection = 'forces'; document.getElementById('mobile-menu').classList.add('hidden')" class="hover:bg-stone-100 hover:text-teal-600 block px-3 py-2 rounded-md text-base font-medium">幕後推手</a>
+                <a href="#impact" @click="activeSection = 'impact'; document.getElementById('mobile-menu').classList.add('hidden')" class="hover:bg-stone-100 hover:text-teal-600 block px-3 py-2 rounded-md text-base font-medium">全球迴響</a>
+                <a href="#cases" @click="activeSection = 'cases'; document.getElementById('mobile-menu').classList.add('hidden')" class="hover:bg-stone-100 hover:text-teal-600 block px-3 py-2 rounded-md text-base font-medium">代表案例</a>
+            </div>
+        </div>
+    </nav>
+
+    <header id="home" class="bg-gradient-to-r from-teal-600 to-sky-600 text-white py-16 sm:py-24">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight">透視中國海外收購</h1>
+            <p class="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-teal-100">深入解析規模、戰略意圖與全球影響，探索中國企業如何在複雜的國際局勢中調整策略，追求技術自主、資源安全與市場擴張。</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
+
+        <section id="trends" x-intersect:enter="activeSection = 'trends'">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 section-title">趨勢解讀：變革中的投資格局</h2>
+            <p class="text-center text-lg text-stone-700 mb-10 max-w-3xl mx-auto">中國的對外投資正經歷顯著轉變。本節將透過數據圖表和分析，揭示整體投資趨勢、併購活動的變化，以及投資在地理和行業上的新焦點，幫助您理解中國企業如何應對全球挑戰並調整其海外佈局。</p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-4 text-center">整體ODI vs. 宣布併購價值 (2023-2024)</h3>
+                    <div class="chart-container">
+                        <canvas id="odiVsMnaChart"></canvas>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-3 text-center">數據來源：報告內2024年數據及推算之2023年比較值。顯示整體對外直接投資(ODI)增長，而新宣布的併購(M&A)價值下降的趨勢。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-4 text-center">2024年併購行業焦點</h3>
+                    <div class="chart-container">
+                        <canvas id="industryFocusChart"></canvas>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-3 text-center">數據來源：報告內2024年數據。顯示先進製造、移動技術、TMT及礦業等為主要併購領域。</p>
+                </div>
+            </div>
+            <div class="mt-10 card p-6" x-data="{ activeTab: 'shifts' }">
+                <div class="border-b border-stone-200 mb-6">
+                    <nav class="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
+                        <button @click="activeTab = 'shifts'" :class="{ 'active': activeTab === 'shifts' }" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm rounded-t-md hover:bg-teal-50">投資轉向</button>
+                        <button @click="activeTab = 'geo'" :class="{ 'active': activeTab === 'geo' }" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm rounded-t-md hover:bg-teal-50">地理新焦點</button>
+                        <button @click="activeTab = 'fdi_gap'" :class="{ 'active': activeTab === 'fdi_gap' }" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm rounded-t-md hover:bg-teal-50">數據差異解析</button>
+                    </nav>
+                </div>
+                <div x-show="activeTab === 'shifts'" class="tab-content active">
+                    <h4 class="text-lg font-semibold text-teal-700 mb-2">大型併購降溫，綠地投資興起</h4>
+                    <p class="text-stone-600 leading-relaxed">報告指出，儘管整體對外直接投資(ODI)反彈，但大型併購活動價值顯著下降。取而代之的是資本密集型的綠地投資（在海外新建工廠或設施）和小型交易增加。這反映了中國企業在面臨西方國家日益嚴格的監管審查時，尋求風險較低、更易執行的投資方式，以維持海外業務並追求戰略目標。</p>
+                </div>
+                <div x-show="activeTab === 'geo'" class="tab-content">
+                    <h4 class="text-lg font-semibold text-teal-700 mb-2">重心轉向亞洲、新興市場與部分歐洲國家</h4>
+                    <ul class="list-disc list-inside space-y-1 text-stone-600">
+                        <li><span class="font-semibold">亞洲：</span>連續六年成為最受青睞的併購目的地。</li>
+                        <li><span class="font-semibold">新興市場：</span>非洲、中東（「一帶一路」最大受益者）投資增長顯著。</li>
+                        <li><span class="font-semibold">歐洲：</span>仍是高收入經濟體中的主要目的地，但投資從西歐轉向南歐和東歐（如匈牙利）。</li>
+                        <li><span class="font-semibold">北美：</span>在美併購活動降至十年低點，投資持續萎縮。</li>
+                    </ul>
+                </div>
+                 <div x-show="activeTab === 'fdi_gap'" class="tab-content">
+                    <h4 class="text-lg font-semibold text-teal-700 mb-2">官方ODI與可驗證FDI的差距</h4>
+                    <p class="text-stone-600 leading-relaxed">報告特別提到，中國商務部公佈的對外FDI統計數據與可驗證的中國企業FDI交易數據之間存在顯著且不斷擴大的差異。這可能意味著官方ODI數據中包含了「迴圈投資」、金融流動，以及部分家庭財富多元化資金，而非全部代表直接的海外生產性投資。這種差異為準確理解中國資本流動的真實性質帶來挑戰。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="motivations" x-intersect:enter="activeSection = 'motivations'">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 section-title">戰略動機：多重目標下的全球佈局</h2>
+            <p class="text-center text-lg text-stone-700 mb-10 max-w-3xl mx-auto">中國企業的海外收購並非單一目的，而是多種商業考量與國家戰略交織的結果。本節將深入剖析獲取先進技術、確保關鍵資源、拓展市場與品牌，以及深化地緣政治影響力等核心動機，揭示其背後的深層邏輯。</p>
+            <div class="grid md:grid-cols-2 gap-8" x-data="{ openMotivation: '' }">
+                <div class="card">
+                    <button @click="openMotivation = (openMotivation === 'tech' ? '' : 'tech')" class="w-full text-left p-6 focus:outline-none">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-teal-700">🎯 技術獲取與知識產權</h3>
+                            <span x-text="openMotivation === 'tech' ? '➖' : '➕'" class="text-xl text-teal-600"></span>
+                        </div>
+                    </button>
+                    <div x-show="openMotivation === 'tech'" x-cloak class="p-6 border-t border-stone-200">
+                        <p class="text-stone-600 leading-relaxed">核心驅動力之一，旨在提升產業附加值，實現2049年成為全球科技強國的目標（如「中國製造2025」）。透過收購快速獲得尖端技術、專業知識和人才，縮短研發週期。許多技術具軍民兩用潛力，引發部分國家擔憂。</p>
+                    </div>
+                </div>
+                <div class="card">
+                     <button @click="openMotivation = (openMotivation === 'resources' ? '' : 'resources')" class="w-full text-left p-6 focus:outline-none">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-teal-700">⛏️ 能源與關鍵礦產保障</h3>
+                            <span x-text="openMotivation === 'resources' ? '➖' : '➕'" class="text-xl text-teal-600"></span>
+                        </div>
+                    </button>
+                    <div x-show="openMotivation === 'resources'" x-cloak class="p-6 border-t border-stone-200">
+                        <p class="text-stone-600 leading-relaxed">確保經濟持續增長所需的能源和原材料穩定供應。國有企業在此領域扮演重要角色，積極在全球尋求能源和礦產資源，特別是在非洲和「一帶一路」沿線國家。對鋰、鈷等關鍵電池礦物的投資尤為突出。</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <button @click="openMotivation = (openMotivation === 'market' ? '' : 'market')" class="w-full text-left p-6 focus:outline-none">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-teal-700">📈 市場准入與品牌提升</h3>
+                            <span x-text="openMotivation === 'market' ? '➖' : '➕'" class="text-xl text-teal-600"></span>
+                        </div>
+                    </button>
+                    <div x-show="openMotivation === 'market'" x-cloak class="p-6 border-t border-stone-200">
+                        <p class="text-stone-600 leading-relaxed">應對國內市場競爭和飽和，透過收購成熟海外品牌迅速進入新市場，利用其聲譽和分銷網絡。同時，分散供應鏈風險，提升全球競爭力，從「世界工廠」向「全球創新強國」轉型。</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <button @click="openMotivation = (openMotivation === 'geo' ? '' : 'geo')" class="w-full text-left p-6 focus:outline-none">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-teal-700">🌍 地緣政治與「一帶一路」</h3>
+                            <span x-text="openMotivation === 'geo' ? '➖' : '➕'" class="text-xl text-teal-600"></span>
+                        </div>
+                    </button>
+                    <div x-show="openMotivation === 'geo'" x-cloak class="p-6 border-t border-stone-200">
+                        <p class="text-stone-600 leading-relaxed">「一帶一路」倡議是中國提升全球影響力、促進國際合作的關鍵戰略。透過基礎設施投資，增強與沿線國家的互聯互通和經濟夥伴關係，鞏固中國在國際事務中的戰略地位。同時也引發對債務可持續性和地緣政治影響的討論。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="forces" x-intersect:enter="activeSection = 'forces'">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 section-title">幕後推手：國家與民間資本的交織</h2>
+            <p class="text-center text-lg text-stone-700 mb-10 max-w-3xl mx-auto">中國的海外收購並非單純的市場行為，其背後是國有企業的戰略佈局與民間資本力量的崛起相互作用的結果。本節將探討這兩種力量的角色、影響以及它們之間複雜的協同與差異關係。</p>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-3">🇨🇳 國有企業 (SOEs)</h3>
+                    <p class="text-stone-600 leading-relaxed">作為執行國家戰略目標的工具，特別是在能源、資源、關鍵基礎設施等領域。擁有政府支持，具備強大財力，其決策常兼顧政策目標與商業利益。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-3">💼 民間資本力量</h3>
+                    <p class="text-stone-600 leading-relaxed">私營企業是經濟增長和創新的重要驅動力，海外投資更偏向商業利益，如獲取市場、技術和品牌。展現出高度靈活性，但也可能受國內監管和國家優先事項影響。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-3">🤝 協同與模糊界限</h3>
+                    <p class="text-stone-600 leading-relaxed">國家政策引導和支持私企海外投資，形成合力。同時，國企投資私企，大型私企與國家聯繫緊密，使得「官方」與「民間」界限日益模糊。國家支持機制可能影響市場競爭。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="impact" x-intersect:enter="activeSection = 'impact'">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 section-title">全球迴響：經濟重塑與安全考量</h2>
+            <p class="text-center text-lg text-stone-700 mb-10 max-w-3xl mx-auto">中國的海外收購活動對全球經濟格局、產業競爭以及國際關係產生了深遠影響。本節將探討其在促進產業升級、加劇全球競爭的同時，如何引發西方國家對國家安全、技術轉讓等問題的擔憂與應對。</p>
+            <div x-data="{ activeTab: 'economic' }" class="card p-6">
+                <div class="border-b border-stone-200 mb-6">
+                    <nav class="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
+                        <button @click="activeTab = 'economic'" :class="{ 'active': activeTab === 'economic' }" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm rounded-t-md hover:bg-teal-50">經濟影響</button>
+                        <button @click="activeTab = 'geopolitical'" :class="{ 'active': activeTab === 'geopolitical' }" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm rounded-t-md hover:bg-teal-50">地緣政治與安全</button>
+                    </nav>
+                </div>
+                <div x-show="activeTab === 'economic'" class="tab-content active">
+                    <h4 class="text-lg font-semibold text-teal-700 mb-2">產業升級與全球競爭加劇</h4>
+                    <p class="text-stone-600 leading-relaxed mb-3">中國透過海外併購獲取技術與品牌，加速國內產業升級，提升了在全球價值鏈中的地位。這使得中國企業在多個領域（從中低端製造到部分高科技產業如ICT、清潔技術、電動汽車）的全球競爭力顯著增強。然而，國家支持的產業政策也可能導致某些行業產能過剩，引發貿易摩擦。</p>
+                    <p class="text-stone-600 leading-relaxed">儘管在技術自主方面取得進展，但在生物醫藥、高端機床、尖端半導體等關鍵領域，中國對外國技術的依賴依然較高。</p>
+                </div>
+                <div x-show="activeTab === 'geopolitical'" class="tab-content">
+                    <h4 class="text-lg font-semibold text-teal-700 mb-2">權力轉移與國家安全擔憂升級</h4>
+                    <p class="text-stone-600 leading-relaxed mb-3">中國透過「一帶一路」等倡議擴大其地緣政治影響力，但也引發西方國家對國家安全的深切擔憂。這些擔憂主要集中在：</p>
+                    <ul class="list-disc list-inside space-y-1 text-stone-600 mb-3">
+                        <li>敏感技術（尤其是軍民兩用技術）的轉移。</li>
+                        <li>關鍵基礎設施（如港口、電信網絡）的控制。</li>
+                        <li>數據安全與潛在的間諜活動。</li>
+                        <li>知識產權盜竊與不公平貿易行為。</li>
+                    </ul>
+                    <p class="text-stone-600 leading-relaxed">這些擔憂導致美國、歐盟等加強了對中國投資的審查機制，並限制其在特定領域的投資。地緣政治緊張促使中國投資轉向監管更友好的新興市場。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="cases" x-intersect:enter="activeSection = 'cases'">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 section-title">代表案例：管窺中國的全球雄心</h2>
+            <p class="text-center text-lg text-stone-700 mb-10 max-w-3xl mx-auto">透過分析一些著名的收購案例，我們可以更具體地理解中國企業海外擴張的策略、動機以及這些交易如何影響相關產業和品牌。以下案例展示了中國在汽車、高科技製造、消費品等不同領域的佈局。</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-2">🚗 吉利 (Geely) 收購 沃爾沃 (Volvo)</h3>
+                    <p class="text-sm text-stone-500 mb-2">時間：2010年 | 金額：約18億美元</p>
+                    <p class="text-stone-600 leading-relaxed"><strong>動機：</strong>獲取沃爾沃的先進汽車製造技術、安全技術、品牌聲譽及全球銷售網絡，助力吉利品牌升級與國際化。</p>
+                    <p class="text-stone-600 mt-2 leading-relaxed"><strong>影響：</strong>沃爾沃在吉利旗下實現復甦與增長，吉利也藉此提升了自身產品的品質與國際形象。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-2">🤖 美的 (Midea) 收購 庫卡 (KUKA)</h3>
+                    <p class="text-sm text-stone-500 mb-2">時間：2016年 | 金額：約45億歐元</p>
+                    <p class="text-stone-600 leading-relaxed"><strong>動機：</strong>獲取德國庫卡的頂尖工業機器人技術和自動化解決方案，支持美的自身產業升級及中國「工業4.0」戰略。</p>
+                    <p class="text-stone-600 mt-2 leading-relaxed"><strong>影響：</strong>美的快速進入工業自動化領域，但也引發德國對核心技術外流的擔憂。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-2"> Pirelli)</h3>
+                    <p class="text-sm text-stone-500 mb-2">時間：2015年 | 金額：約80億美元</p>
+                    <p class="text-stone-600 leading-relaxed"><strong>動機：</strong>獲取高端輪胎製造技術和品牌，進入全球輪胎市場，提升中國化工在該領域的競爭力。</p>
+                    <p class="text-stone-600 mt-2 leading-relaxed"><strong>影響：</strong>增強了中國在全球輪胎產業的話語權，倍耐力則獲得了進入中國市場的更好機會。</p>
+                </div>
+                 <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-2">🛍️ 復星 (Fosun) 收購 Club Med</h3>
+                    <p class="text-sm text-stone-500 mb-2">時間：2015年完成全面收購 | 金額：約11億美元</p>
+                    <p class="text-stone-600 leading-relaxed"><strong>動機：</strong>看好中國日益增長的中產階級對休閒旅遊的需求，獲取國際知名度假村品牌及其管理經驗。</p>
+                    <p class="text-stone-600 mt-2 leading-relaxed"><strong>影響：</strong>Club Med加速在中國市場擴張，復星則拓展了其在全球旅遊和生活方式領域的佈局。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-2">🐷 雙匯 (Shuanghui) 收購 史密斯菲爾德 (Smithfield)</h3>
+                    <p class="text-sm text-stone-500 mb-2">時間：2013年 | 金額：約71億美元</p>
+                    <p class="text-stone-600 leading-relaxed"><strong>動機：</strong>獲取美國最大豬肉生產商的先進養殖、屠宰技術和食品安全管理體系，滿足中國市場對高品質豬肉的需求。</p>
+                    <p class="text-stone-600 mt-2 leading-relaxed"><strong>影響：</strong>提升了雙匯的國際競爭力，但也引發美國對食品供應鏈安全的討論。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-teal-700 mb-2">🎬 萬達 (Wanda) 收購 AMC影院</h3>
+                    <p class="text-sm text-stone-500 mb-2">時間：2012年 | 金額：約26億美元</p>
+                    <p class="text-stone-600 leading-relaxed"><strong>動機：</strong>進入全球最大的電影市場之一，擴大萬達在文化娛樂產業的全球影響力。</p>
+                    <p class="text-stone-600 mt-2 leading-relaxed"><strong>影響：</strong>使萬達一度成為全球最大的連鎖影院運營商，但後續因戰略調整有所變化。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="py-12 bg-teal-700 text-white rounded-xl shadow-2xl p-8 sm:p-12">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8">結論與展望：持續演變的全球博弈</h2>
+            <div class="max-w-3xl mx-auto space-y-6 text-lg">
+                <p>中國的海外收購活動，是其經濟發展、產業升級和全球戰略佈局的複雜體現。儘管面臨日益嚴峻的國際監管和地緣政治挑戰，中國企業並未停止其全球擴張的步伐，而是展現出更強的戰略性、針對性和適應性。</p>
+                <p>從大規模併購轉向綠地投資和小型交易，從傳統發達市場轉向新興市場和「一帶一路」沿線國家，這些轉變反映了中國在規避風險的同時，持續追求技術自主、資源安全和市場擴張的核心目標。</p>
+                <p>未來，中國的海外投資將繼續以獲取關鍵技術、保障產業鏈韌性為重點，並在人工智能、新能源、生物技術等新興領域尋求突破。這場由中國引領的全球資本流動和產業整合，無疑將持續重塑全球經濟格局、科技競爭態勢以及國際力量的平衡。國際社會需要更深入地理解其動機與影響，以制定合適的應對策略。</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 text-center py-8 mt-16">
+        <p>&copy; 2024 中國海外收購趨勢互動報告。基於公開報告分析。</p>
+        <p class="text-sm mt-1">僅供研究與信息展示，不構成任何投資建議。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('app', () => ({
+                activeSection: 'home',
+                init() {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                this.activeSection = entry.target.id;
+                            }
+                        });
+                    }, { rootMargin: "-40% 0px -60% 0px" }); // Adjust rootMargin to change when active state triggers
+
+                    document.querySelectorAll('main section').forEach((section) => {
+                        observer.observe(section);
+                    });
+                }
+            }));
+        });
+
+        // Chart Data and Configuration
+        const odiVsMnaData = {
+            labels: ['2023年 (估)', '2024年'],
+            datasets: [
+                {
+                    label: '整體對外直接投資 (ODI)',
+                    data: [148, 162.8], // 推算2023 ODI: $162.8B / 1.10 = $148B
+                    backgroundColor: 'rgba(13, 148, 136, 0.7)', // teal-600
+                    borderColor: 'rgba(13, 148, 136, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: '宣布併購價值 (M&A)',
+                    data: [44.5, 30.7], // 推算2023 M&A: $30.7B / (1-0.31) = $44.5B
+                    backgroundColor: 'rgba(56, 189, 248, 0.7)', // sky-400
+                    borderColor: 'rgba(56, 189, 248, 1)',
+                    borderWidth: 1
+                }
+            ]
+        };
+
+        const industryFocusData = {
+            labels: ['先進製造、移動技術與TMT', '礦業與金屬', '其他'],
+            datasets: [{
+                label: '2024年併購價值佔比',
+                data: [56, 20, 24], // Adv Mfg & Mobility + TMT (56%), Mining (hypothetical 20%), Others (24%)
+                backgroundColor: [
+                    'rgba(13, 148, 136, 0.8)', // teal-600
+                    'rgba(245, 158, 11, 0.8)',  // amber-500
+                    'rgba(107, 114, 128, 0.8)' // gray-500
+                ],
+                hoverOffset: 4
+            }]
+        };
+        
+        const chartOptionsBase = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#44403c', font: { size: 11 }}}, // stone-700
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleFont: { size: 13, weight: 'bold' }, bodyFont: { size: 11 }, padding: 8,
+                    callbacks: {}
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#57534e', font: {size: 10} }, grid: { display: false } }, // stone-600
+                y: { beginAtZero: true, ticks: { color: '#57534e', font: {size: 10} }, grid: { color: '#e7e5e4' }} // stone-200
+            }
+        };
+
+        // ODI vs M&A Chart
+        const odiCtx = document.getElementById('odiVsMnaChart')?.getContext('2d');
+        if (odiCtx) {
+            new Chart(odiCtx, {
+                type: 'bar',
+                data: odiVsMnaData,
+                options: { ...chartOptionsBase, 
+                    plugins: { ...chartOptionsBase.plugins, title: { display: true, text: 'ODI vs. M&A 價值 (十億美元)', color: '#374151', font: {size: 14, weight: 'bold'}},
+                        tooltip: { ...chartOptionsBase.plugins.tooltip, callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y} 十億美元` }}
+                    },
+                    scales: { ...chartOptionsBase.scales, y: {...chartOptionsBase.scales.y, title: {display: true, text: '金額 (十億美元)', color: '#44403c', font: {size:11}}}}
+                }
+            });
+        }
+
+        // Industry Focus Chart
+        const industryCtx = document.getElementById('industryFocusChart')?.getContext('2d');
+        if (industryCtx) {
+            new Chart(industryCtx, {
+                type: 'doughnut',
+                data: industryFocusData,
+                options: { ...chartOptionsBase, cutout: '60%',
+                    plugins: { ...chartOptionsBase.plugins, title: { display: true, text: '2024年併購行業價值佔比 (%)', color: '#374151', font: {size: 14, weight: 'bold'}},
+                        tooltip: { ...chartOptionsBase.plugins.tooltip, callbacks: { label: (context) => `${context.label}: ${context.parsed}%` }}
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
