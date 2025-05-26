@@ -6,7 +6,7 @@ on:
       - main # Or your default branch
     paths:
       - 'report/**.html' # Only run if HTML files in report/ change
-      - '.github/workflows/main.yml' # Or if the workflow itself changes
+      - '.github/workflows/jekyll-gh-pages.yml' # Or if this workflow itself changes
 
 jobs:
   generate_list:
@@ -24,22 +24,26 @@ jobs:
 
       - name: Generate report_list.json
         run: |
+          python -c "
           import os
           import json
 
           report_dir = 'report'
-          report_files = [f for f in os.listdir(report_dir) if f.endswith('.html')]
+          if not os.path.exists(report_dir):
+              print(f\"Directory '{report_dir}' not found. Creating an empty report_list.json.\")
+              report_files = []
+          else:
+              report_files = [f for f in os.listdir(report_dir) if f.endswith('.html')]
           
-          # Sort files for consistent ordering
           report_files.sort()
 
           with open('report_list.json', 'w') as f:
             json.dump(report_files, f, indent=2)
           
-          print("Generated report_list.json:")
+          print(\"Generated report_list.json:\")
           with open('report_list.json', 'r') as f:
             print(f.read())
-
+          "
       - name: Commit report_list.json
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -47,8 +51,8 @@ jobs:
           git add report_list.json
           # Check if there are changes to commit
           if git diff --staged --quiet; then
-            echo "No changes to report_list.json to commit."
+            echo "No changes to commit in report_list.json."
           else
-            git commit -m "docs: Auto-generate report_list.json"
+            git commit -m "Automated: Update report_list.json"
             git push
           fi
