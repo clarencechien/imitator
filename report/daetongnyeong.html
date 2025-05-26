@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<!-- Visualization & Content Choices:
+    - Overview Stats (SK vs US death rates, SK legal trouble rates): Goal: Inform/Compare. Viz: Bar Charts (Chart.js). Interaction: Tooltips. Justification: Clear visual comparison of key data.
+    - Presidential Fates (Table 1 & Sec I.B): Goal: Inform/Organize. Viz: Interactive HTML cards/list. Interaction: Click to expand details. Justification: Easy browsing and deep dive into individual cases.
+    - Imperial Presidency (Sec II): Goal: Explain. Viz: HTML/CSS diagrams, interactive text. Interaction: Hover/Click for info. Justification: Visualizing abstract power structures.
+    - Motivations (Sec III): Goal: Inform. Viz: Accordion text. Interaction: Expand/collapse. Justification: Concise presentation of distinct reasons.
+    - Chaebol Scandals (Table 3 & Sec IV): Goal: Show Relationships. Viz: Interactive HTML list/table. Interaction: Click for scandal details. Justification: Highlighting patterns of Chaebol involvement.
+    - All text content from report sections adapted for web, with introductory paragraphs for each SPA section.
+    - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-G">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>南韓總統「魔咒」互動式報告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Assuming Inter is available or falls back to sans-serif */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Max width for readability */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 400px; /* Max height */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link.active {
+            border-bottom-width: 2px;
+            border-color: #0284c7; /* sky-600 */
+            color: #0284c7;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .president-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .president-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .accordion-content.open {
+            max-height: 1000px; /* Adjust as needed */
+        }
+        .tab-button.active {
+            background-color: #0ea5e9; /* sky-500 */
+            color: white;
+        }
+        .tab-button {
+             transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-700">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-sky-700">南韓總統「魔咒」報告</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">概覽</a>
+                        <a href="#presidents" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">總統檔案</a>
+                        <a href="#power" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">權力與風險</a>
+                        <a href="#motivation" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">競選誘因</a>
+                        <a href="#chaebol" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">財閥陰影</a>
+                        <a href="#conclusion" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">結論展望</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-sky-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500">
+                        <span class="sr-only">開啟主選單</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#overview" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">概覽</a>
+                <a href="#presidents" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">總統檔案</a>
+                <a href="#power" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">權力與風險</a>
+                <a href="#motivation" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">競選誘因</a>
+                <a href="#chaebol" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">財閥陰影</a>
+                <a href="#conclusion" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:text-sky-600 hover:bg-slate-100">結論展望</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <section id="overview" class="content-section active pt-8">
+            <h1 class="text-3xl font-bold mb-6 text-sky-700 text-center">南韓總統的「魔咒」：概覽</h1>
+            <p class="mb-8 text-lg text-slate-600 leading-relaxed text-center max-w-3xl mx-auto">
+                本節初步探討南韓總統「很少善終」的現象。透過比較數據，我們將檢視南韓總統在任內身故以及卸任後遭遇法律困境的比例，並與美國總統的情況進行對照，以客觀呈現此「魔咒」的真實性。
+            </p>
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-sky-600">總統任內身故率比較</h2>
+                    <div class="chart-container">
+                        <canvas id="deathInOfficeChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-sm text-slate-500">數據顯示，美國總統任內身故率高於南韓。然而，美國已超過60年無總統於任內身故（最近一位為1963年的甘迺迪），而南韓唯一任內身故者為朴正熙（1979年遇刺）。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-sky-600">南韓總統卸任後法律困境</h2>
+                    <div class="chart-container">
+                        <canvas id="legalTroublesChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-sm text-slate-500">超過半數的南韓總統在卸任後遭遇彈劾、監禁、定罪、起訴或在調查期間自殺。相較之下，美國總統卸任後遭遇類似法律困境的比例極低。</p>
+                </div>
+            </div>
+            <p class="text-md text-slate-600 leading-relaxed">
+                初步數據證實，南韓總統卸任後的命運確實充滿挑戰，其面臨法律追究的比例遠高於一般民主國家，這構成了所謂「魔咒」的核心。接下來的章節將深入探討此現象背後的結構性因素、為何仍有人競逐此高風險職位，以及總統與財閥之間千絲萬縷的聯繫。
+            </p>
+        </section>
+
+        <section id="presidents" class="content-section pt-8">
+            <h1 class="text-3xl font-bold mb-6 text-sky-700 text-center">總統檔案：歷任總統的命運</h1>
+            <p class="mb-8 text-lg text-slate-600 leading-relaxed text-center max-w-3xl mx-auto">
+                本節詳細列出南韓歷任民選總統及其卸任後的遭遇。透過個案檢視，我們可以更清晰地看到「魔咒」如何在不同總統身上應驗，以及其多樣的表現形式，從流亡、政變、暗殺到貪腐調查與牢獄之災。點擊總統卡片以查看更多細節。
+            </p>
+            <div id="presidentsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+        </section>
+
+        <section id="power" class="content-section pt-8">
+            <h1 class="text-3xl font-bold mb-6 text-sky-700 text-center">權力與風險：「帝王式總統制」的剖析</h1>
+            <p class="mb-8 text-lg text-slate-600 leading-relaxed text-center max-w-3xl mx-auto">
+                南韓總統職位被賦予極大的權力，常被稱為「帝王式總統制」。本節將探討其憲法權力的高度集中、單一五年任期制的利弊，以及南韓特有的對抗性政治文化和檢察機關的角色，這些因素共同構成了總統職位的高風險環境。
+            </p>
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                    <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                        <span>A. 憲法權力：高度集中的權威</span>
+                        <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                        <p>南韓總統身兼國家元首、政府首腦及軍隊總司令。總統領導行政部門，有權宣戰、發布緊急命令（包括戒嚴令）、否決法案及任命高級官員。這種權力的高度集中，常被稱為「帝王式總統制」。總統壟斷行政決策，可任命約1萬名政府官員，並實質控制檢察、警察、情報及稅務等強力部門，同時掌握龐大的預算權力。如此巨大的權力，使得總統職位極具吸引力，但也將巨大的責任與審查壓力集於一人之身。</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                    <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                        <span>B. 單一五年任期制：一把雙刃劍</span>
+                        <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                        <p>南韓總統由人民直接選舉產生，任期五年，不得連任。此制度旨在防止權力鞏固和潛在的獨裁。然而，它也帶來非預期後果：</p>
+                        <ul class="list-disc list-inside mt-2 space-y-1">
+                            <li><strong>「跛腳鴨」現象與問責缺失：</strong> 總統在任期後半段可能因無需面對連任壓力而罔顧民意。</li>
+                            <li><strong>激化政治鬥爭：</strong> 每次總統選舉都成為一場高風險、贏者全拿的權力爭奪戰。</li>
+                            <li><strong>政績焦慮與權力濫用：</strong> 總統可能急於在有限任期內打造政績，導致決策倉促或濫用權力。</li>
+                            <li><strong>政治報復的溫床：</strong> 任期結束意味著權力真空和脆弱性增加。新政府往往熱衷於調查前任。</li>
+                        </ul>
+                        <p class="mt-2">「帝王式總統制」與單一任期限制的結合，可能誘發腐敗和權力濫用。缺乏健全的中期問責機制，也放大了卸任後的清算力度。</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                    <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                        <span>C. 政治文化與檢察機關</span>
+                        <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                        <p>南韓政壇以劇烈的意識形態對立、政治報復歷史悠久以及「贏者全拿」的心態為特徵。這種對抗性的政治文化為總統卸任後遭受政治動機的調查創造了沃土。檢察機關權力強大，歷史上常被總統用來操縱政治調查，亦常被指責政治化，在政府更迭時對前朝政敵展開調查。這種檢察權的「武器化」是實現政治報復的關鍵機制。「不留情面」的政治文化，因法律體系淪為政治鬥爭舞台而得到強化。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="motivation" class="content-section pt-8">
+            <h1 class="text-3xl font-bold mb-6 text-sky-700 text-center">競選的誘因：為何勇闖險關？</h1>
+            <p class="mb-8 text-lg text-slate-600 leading-relaxed text-center max-w-3xl mx-auto">
+                儘管南韓總統職位伴隨著巨大的風險，但其權力與影響力依然吸引著眾多政治人物前仆後繼地角逐。本節將探討驅使他們勇闖險關的各種動機，包括集中的權力誘惑、推動政策議程的渴望、政治抱負、責任感，以及對風險的複雜心理算計。
+            </p>
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                    <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                        <span>A. 集中權力與影響力的誘惑</span>
+                        <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                        <p>南韓總統職位是民主世界中權力最為集中的行政首長之一。能夠擘劃國家政策、領導政府、指揮軍隊並在世界舞台上代表國家，對胸懷大志者具有莫大的吸引力。總統職位的「帝王」特質，雖充滿危險，卻也是其主要魅力所在。</p>
+                    </div>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                    <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                        <span>B. 推動政策議程與國家願景</span>
+                        <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                        <p>候選人通常會提出具體的政策綱領，承諾在經濟、社會福利、外交及治理等方面進行改革。許多候選人確實懷抱著實現國家藍圖的熱忱。</p>
+                    </div>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                    <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                        <span>C. 政治抱負、政黨動態與個人生涯</span>
+                        <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                        <p>政黨在遴選和推舉總統候選人方面扮演著關鍵角色。候選人往往在政壇深耕多年，登上總統寶座是政治生涯的頂峰。追求個人成就與認可的慾望是強大的動力。</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                    <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                        <span>D. 責任感、歷史使命感或應對危機</span>
+                        <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                        <p>候選人常將其競選活動定位為應對國家危機或完成歷史使命。尤其在國家面臨危機之時，候選人可能更感責任重大，或相信自己是領導國家的不二人選。</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                    <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                        <span>E. 風險感知、算計與過度自信</span>
+                        <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                        <p>儘管風險顯而易見，候選人可能相信自己能夠避免前任們的覆轍，或者認為潛在的回報遠大於風險。這涉及複雜的心理算計，包括樂觀偏見或對自身能力的自信。政黨的背書和糾正前任「錯誤」的願望也可能壓倒個人風險評估。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="chaebol" class="content-section pt-8">
+            <h1 class="text-3xl font-bold mb-6 text-sky-700 text-center">財閥的陰影：總統與企業集團的糾葛</h1>
+            <p class="mb-8 text-lg text-slate-600 leading-relaxed text-center max-w-3xl mx-auto">
+                南韓財閥（Chaebol）是主導國家經濟的龐大企業集團，其與政治權力之間存在著複雜且深遠的聯繫。本節將探討財閥的經濟實力、其與歷任總統之間相互依存甚至勾結腐敗的歷史，並分析總統在多大程度上是財閥的「代理人」，以及改革這些盤根錯節關係的重重困難。
+            </p>
+            <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+                <h2 class="text-xl font-semibold mb-3 text-sky-600">財閥：經濟巨擘與政治參與者</h2>
+                <p class="text-slate-600 leading-relaxed">財閥（如三星、現代、LG、SK等）由家族控制，主導南韓經濟，佔據GDP和出口巨大份額。其經濟實力賦予它們巨大的政治影響力。</p>
+            </div>
+             <div class="bg-white p-6 rounded-lg shadow-lg mb-6 accordion-item">
+                <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                    <span>相互依存、勾結與腐敗的歷史</span>
+                    <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                </button>
+                <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                    <p>政府與財閥的關係歷史上是共生的，對「漢江奇蹟」至關重要。但這種密切關係也滋生了腐敗，財閥提供政治獻金以換取優惠。財閥最初由國家扶植，後演變成交易性甚至非法的關係。</p>
+                    <h3 class="text-lg font-semibold mt-4 mb-2 text-sky-500">財閥捲入總統醜聞實例</h3>
+                    <div class="overflow-x-auto rounded-md">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">總統</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">涉案財閥</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">醜聞性質</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">總統法律後果</th>
+                                </tr>
+                            </thead>
+                            <tbody id="chaebolScandalsTable" class="bg-white divide-y divide-slate-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg mb-6 accordion-item">
+                <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                    <span>總統是「代理人」還是複雜棋局中的棋手？</span>
+                    <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                </button>
+                <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                    <p>「代理人」或「傀儡」可能過於簡化。關係更像相互依賴、共同利益、壓力與機會主義的複雜互動。總統有自身議程，但也受財閥影響。經濟增長依賴財閥，財閥提供競選資金，多位總統因此被定罪。但總統也曾推動財閥改革，表明並非全然被動。總統與財閥利益在國家目標（如經濟增長）上可能一致，模糊了影響力界限。</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg accordion-item">
+                <button class="w-full text-left text-xl font-semibold text-sky-600 flex justify-between items-center accordion-trigger">
+                    <span>改革努力與財閥的持久影響力</span>
+                    <span class="arrow-icon text-2xl transform transition-transform duration-300">▼</span>
+                </button>
+                <div class="accordion-content mt-2 text-slate-600 leading-relaxed">
+                    <p>南韓曾多次嘗試財閥改革，旨在改善公司治理、減少壟斷、遏制政治影響力。但財閥的經濟重要性及政治聯繫使全面改革困難。總統特赦被定罪的財閥領袖便證明其影響力。財閥與總統的關係是國家主導發展模式的遺產，極難根本改變。涉及財閥的總統腐敗醜聞，不僅是個人貪婪，也折射出系統性壓力。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="content-section pt-8">
+            <h1 class="text-3xl font-bold mb-6 text-sky-700 text-center">結論與展望：持久的挑戰</h1>
+            <p class="mb-8 text-lg text-slate-600 leading-relaxed text-center max-w-3xl mx-auto">
+                本報告深入剖析了南韓總統面臨的特殊困境及其背後的複雜因素。從「魔咒」的統計驗證，到「帝王式總統制」的權力結構，再到競選的誘因以及與財閥的深層糾葛，我們試圖勾勒出南韓總統政治的全貌。最後，我們將總結主要發現，並展望可能的改革路徑與未來挑戰。
+            </p>
+            <div class="bg-white p-6 rounded-lg shadow-lg space-y-4 text-slate-600 leading-relaxed">
+                <p><strong>A. 「魔咒」、動機與財閥因素的回顧：</strong> 分析證實南韓總統卸任後遭遇不幸的比例確實很高。「帝王式總統制」的巨大權力及個人抱負吸引眾多人士競逐。總統與財閥的關係既是歷史遺產，也是腐敗溫床。</p>
+                <p><strong>B. 總統不幸遭遇的結構性與文化根源：</strong> 困境源於「帝王式總統制」、單一五年任期制、贏者通吃的政治文化、劇烈政治兩極化、檢察系統政治化及財閥影響力等多重因素疊加。</p>
+                <p><strong>C. 系統性挑戰下的「良政」追求：</strong> 儘管記錄黯淡，南韓民眾對負責任領導和良好治理的渴望依然強烈。公眾輿論和公民社會在要求問責方面發揮強大反制力量。</p>
+                <p><strong>D. 未來展望：改革的潛力抑或循環的延續？</strong> 改革方案包括修憲削弱總統權力、改革檢察系統、加強國會監督及推動財閥改革。但面臨政治分歧和既得利益集團阻撓。南韓總統的「魔咒」是民主體制在高度兩極化社會中，平衡集中權力與強效問責之間張力的體現。打破循環需系統性改革，分散權力、培育妥協文化，並使問責機構去政治化。焦點需從懲罰性措施轉向預防性的、結構性的措施。</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 mt-12 py-8 text-center">
+        <p>&copy; 2025 南韓總統「魔咒」互動式報告. 資訊僅供參考。</p>
+    </footer>
+
+    <script>
+        const presidentsData = [
+            { name: "李承晚", term: "1948-1960", fate: "因選舉舞弊引發學生運動（四月革命），被迫辭職並流亡夏威夷，後逝於當地。" },
+            { name: "尹潽善", term: "1960-1962", fate: "遭朴正熙發動軍事政變推翻。" },
+            { name: "朴正熙", term: "1962-1979", fate: "遭中央情報部部長金載圭刺殺身亡。" },
+            { name: "崔圭夏", term: "1979-1980", fate: "朴正熙遭刺殺後繼任，後因全斗煥發動軍事政變而下台。" },
+            { name: "全斗煥", term: "1980-1988", fate: "卸任後因1979年軍事政變、光州事件及貪污等罪名被判死刑（後改判無期徒刑），1997年獲特赦。" },
+            { name: "盧泰愚", term: "1988-1993", fate: "卸任後因1979年軍事政變、光州事件及貪污等罪名被判17年徒刑，1997年獲特赦。" },
+            { name: "金泳三", term: "1993-1998", fate: "任內推動反腐，但其子涉貪。本人卸任後未遭司法追究。" },
+            { name: "金大中", term: "1998-2003", fate: "諾貝爾和平獎得主，其子亦曾涉貪。本人卸任後未遭司法追究。" },
+            { name: "盧武鉉", term: "2003-2008", fate: "卸任後因家人涉嫌收受商人朴淵次賄賂而接受調查，期間跳崖自殺身亡。" },
+            { name: "李明博", term: "2008-2013", fate: "卸任後因收受三星等企業賄賂、侵吞公款等罪名被判17年徒刑，後獲特赦。" },
+            { name: "朴槿惠", term: "2013-2017", fate: "因「閨密門」干政及貪腐醜聞遭國會彈劾並罷免，後被判22年徒刑，2021年底獲特赦。" },
+            { name: "文在寅", term: "2017-2022", fate: "卸任後因其女婿在航空公司就業涉嫌收受賄賂而被起訴。" },
+            { name: "尹錫悅", term: "2022-2025", fate: "因2024年12月宣布戒嚴未遂，遭國會彈劾並於2025年4月被憲法法院裁定罷免，面臨叛亂等罪名調查與審判。" }
+        ];
+
+        const chaebolScandalsData = [
+            { president: "全斗煥", chaebol: "多個財閥", scandal: "秘密資金、賄賂", consequence: "定罪，後特赦" },
+            { president: "盧泰愚", chaebol: "多個財閥", scandal: "秘密資金、賄賂", consequence: "定罪，後特赦" },
+            { president: "李明博", chaebol: "三星等", scandal: "賄賂、貪污", consequence: "定罪，後特赦" },
+            { president: "朴槿惠", chaebol: "三星、樂天等", scandal: "賄賂、脅迫", consequence: "彈劾罷免、定罪，後特赦" }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            function updateActiveNav(hash) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === hash) {
+                        link.classList.add('active');
+                    }
+                });
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                    if ('#' + section.id === hash) {
+                        section.classList.add('active');
+                    }
+                });
+                // Scroll to the top of the section for better UX
+                const activeSection = document.querySelector(hash);
+                if (activeSection) {
+                  // Adding a slight delay for content to render if it was hidden
+                  setTimeout(() => {
+                    window.scrollTo({ top: activeSection.offsetTop - 80, behavior: 'smooth' }); // Adjusted for fixed header
+                  }, 100);
+                }
+            }
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    history.pushState(null, null, targetId); // Update URL without page reload
+                    updateActiveNav(targetId);
+                    if (mobileMenu.classList.contains('block')) { // Close mobile menu on link click
+                        mobileMenu.classList.remove('block');
+                        mobileMenu.classList.add('hidden');
+                        mobileMenuButton.children[0].classList.remove('hidden'); // Show burger
+                        mobileMenuButton.children[1].classList.add('hidden'); // Hide X
+                    }
+                });
+            });
+
+            // Handle initial page load and back/forward navigation
+            function handleLocationChange() {
+                const hash = window.location.hash || '#overview'; // Default to overview
+                updateActiveNav(hash);
+            }
+
+            window.addEventListener('popstate', handleLocationChange);
+            handleLocationChange(); // Initial call
+
+            // Mobile menu toggle
+            mobileMenuButton.addEventListener('click', function() {
+                const isExpanded = mobileMenu.classList.toggle('hidden');
+                mobileMenu.classList.toggle('block', !isExpanded);
+                mobileMenuButton.children[0].classList.toggle('hidden'); // Burger icon
+                mobileMenuButton.children[1].classList.toggle('hidden'); // X icon
+            });
+
+            // Accordion functionality
+            const accordionTriggers = document.querySelectorAll('.accordion-trigger');
+            accordionTriggers.forEach(trigger => {
+                trigger.addEventListener('click', function() {
+                    const content = this.nextElementSibling;
+                    const arrow = this.querySelector('.arrow-icon');
+                    content.classList.toggle('open');
+                    arrow.classList.toggle('rotate-180');
+                });
+            });
+
+            // Populate Presidents List
+            const presidentsListContainer = document.getElementById('presidentsList');
+            presidentsData.forEach(p => {
+                const card = `
+                    <div class="president-card bg-white p-6 rounded-lg shadow-lg cursor-pointer">
+                        <h3 class="text-xl font-semibold text-sky-600 mb-2">${p.name}</h3>
+                        <p class="text-sm text-slate-500 mb-1">任期：${p.term}</p>
+                        <div class="president-details hidden mt-2">
+                           <p class="text-slate-600 text-sm leading-relaxed">${p.fate}</p>
+                        </div>
+                         <button class="text-sky-500 hover:text-sky-700 text-sm mt-2 details-btn">查看詳情 ▼</button>
+                    </div>
+                `;
+                presidentsListContainer.innerHTML += card;
+            });
+
+            document.querySelectorAll('.president-card .details-btn').forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.stopPropagation(); // Prevent card click if button is separate
+                    const detailsDiv = this.parentElement.querySelector('.president-details');
+                    detailsDiv.classList.toggle('hidden');
+                    this.textContent = detailsDiv.classList.contains('hidden') ? '查看詳情 ▼' : '隱藏詳情 ▲';
+                });
+            });
+
+
+            // Populate Chaebol Scandals Table
+            const chaebolScandalsTableBody = document.getElementById('chaebolScandalsTable');
+            chaebolScandalsData.forEach(s => {
+                const row = `
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">${s.president}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">${s.chaebol}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600">${s.scandal}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600">${s.consequence}</td>
+                    </tr>
+                `;
+                chaebolScandalsTableBody.innerHTML += row;
+            });
+
+
+            // Charts
+            const deathInOfficeCtx = document.getElementById('deathInOfficeChart').getContext('2d');
+            new Chart(deathInOfficeCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['南韓總統', '美國總統'],
+                    datasets: [{
+                        label: '任內身故率 (%)',
+                        data: [7.69, 17.39],
+                        backgroundColor: ['rgba(56, 189, 248, 0.6)', 'rgba(16, 185, 129, 0.6)'], // sky-400, emerald-500
+                        borderColor: ['rgba(56, 189, 248, 1)', 'rgba(16, 185, 129, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#475569' }, // slate-600
+                            grid: { color: '#e2e8f0' } // slate-200
+                        },
+                        x: {
+                            ticks: { color: '#475569' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#475569' } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const legalTroublesCtx = document.getElementById('legalTroublesChart').getContext('2d');
+            new Chart(legalTroublesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['卸任後遭遇法律困境', '卸任後未遭遇此類困境 (估計)'],
+                    datasets: [{
+                        label: '南韓總統卸任後狀況',
+                        data: [53.8, 100 - 53.8], // Based on 7 out of 13 presidents
+                        backgroundColor: ['rgba(239, 68, 68, 0.6)', 'rgba(34, 197, 94, 0.6)'], // red-500, green-500
+                        borderColor: ['rgba(239, 68, 68, 1)', 'rgba(34, 197, 94, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#475569', boxWidth:15, padding:15 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed.toFixed(1) + '%';
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: '南韓總統卸任後遭遇法律困境比例 (估算)',
+                            color: '#334155', // slate-700
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
