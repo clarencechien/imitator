@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>哈佛大學：卓越與特權的雙重鏡像</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - 導覽 (Introduction): Text. Goal: Introduce the application and the core dichotomy. Method: HTML.
+        - 雙重鏡像 (Dual Image): Text sections for "Excellence" (華人視角) and "Privilege" (美國論述). Goal: Inform on differing perceptions. Method: HTML.
+        - 「卓越」的標準？ (Measuring "Excellence"?): Text on official standards, student profile chart (SAT, ACT, GPA from Table 1), critiques on academic rigor. Goal: Define and question "excellence". Method: HTML, Chart.js.
+        - 招生解構 (Admissions Deconstructed):
+            - Legacy Admissions: Text, Bar chart (Legacy vs. Overall acceptance from Table 2). Goal: Compare & Inform. Method: HTML, Chart.js.
+            - Donor Influence: Text, Bar chart (Dean's List vs. Overall acceptance). Goal: Compare & Inform. Method: HTML, Chart.js.
+            - DEI Policies: Text explaining SFFA, impact. Goal: Explain complex issue. Method: HTML.
+            - Feeder Schools: Text listing examples. Goal: Organize/Inform. Method: HTML.
+            - Political/International Influence: Text on allegations, funding (Table 3 data). Goal: Inform on allegations. Method: HTML.
+        - 學生與文化 (Students & Culture): Text on Niche.com reviews, Rob Henderson's "luxury beliefs". Goal: Inform on student experience/critiques. Method: HTML.
+        - 總結評論 (Concluding Remarks): Text summarizing report's neutral stance and conclusions. Goal: Conclude. Method: HTML.
+        All charts via Chart.js (Canvas), responsive, with appropriate labels. No SVG/Mermaid. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-button { transition: all 0.3s ease; }
+        .tab-button.active {
+            border-color: #4f46e5; /* indigo-600 */
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 350px;
+        }
+        @media (min-width: 640px) { /* sm */
+            .chart-container {
+                height: 320px;
+                max-height: 380px;
+            }
+        }
+        @media (min-width: 768px) { /* md */
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        h2 { font-size: 1.75rem; font-weight: 600; margin-bottom: 1rem; color: #374151; } /* text-2xl font-semibold mb-4 text-gray-700 */
+        h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #4b5563; } /* text-xl font-semibold mt-6 mb-3 text-gray-600 */
+        p { margin-bottom: 1rem; line-height: 1.75; color: #52525b; } /* text-zinc-600 */
+        ul { list-style-position: inside; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; color: #52525b; }
+        strong { color: #3f3f46; } /* text-zinc-700 */
+        .stat-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem; text-align: center; }
+        .stat-value { font-size: 1.875rem; font-weight: 700; color: #4f46e5; }
+        .stat-label { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-indigo-700">哈佛大學：卓越與特權的雙重鏡像</h1>
+            <p class="text-lg text-gray-600 mt-2">一份互動式報告，探討哈佛大學在不同文化脈絡下的形象及其招生實踐</p>
+        </header>
+
+        <nav class="mb-8">
+            <ul class="flex flex-wrap justify-center border-b border-gray-300">
+                <li class="mr-1 mb-1 sm:mr-2">
+                    <button data-tab="tab-intro" class="tab-button active inline-block py-3 px-3 sm:px-4 text-gray-600 hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500">導覽</button>
+                </li>
+                <li class="mr-1 mb-1 sm:mr-2">
+                    <button data-tab="tab-dual-image" class="tab-button inline-block py-3 px-3 sm:px-4 text-gray-600 hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500">雙重鏡像</button>
+                </li>
+                <li class="mr-1 mb-1 sm:mr-2">
+                    <button data-tab="tab-measuring-excellence" class="tab-button inline-block py-3 px-3 sm:px-4 text-gray-600 hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500">「卓越」的標準？</button>
+                </li>
+                <li class="mr-1 mb-1 sm:mr-2">
+                    <button data-tab="tab-admissions" class="tab-button inline-block py-3 px-3 sm:px-4 text-gray-600 hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500">招生解構</button>
+                </li>
+                <li class="mr-1 mb-1 sm:mr-2">
+                    <button data-tab="tab-students-culture" class="tab-button inline-block py-3 px-3 sm:px-4 text-gray-600 hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500">學生與文化</button>
+                </li>
+                <li>
+                    <button data-tab="tab-conclusion" class="tab-button inline-block py-3 px-3 sm:px-4 text-gray-600 hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500">總結評論</button>
+                </li>
+            </ul>
+        </nav>
+
+        <main>
+            <section id="tab-intro" class="content-section active bg-white p-6 rounded-lg shadow-md">
+                <h2>導覽</h2>
+                <p>哈佛大學的公眾形象在美國本土與華人世界之間呈現顯著的差異。在美國，哈佛日益與「特權」的觀念聯繫在一起；相較之下，在華人社群中，「卓越」依然是其主要的聯想符號。本互動報告旨在審慎檢視支持這些分歧觀點的證據，並對哈佛大學招生過程中所涉及的具體主張進行分析，從社會學的視角提供一個持平的探索。</p>
+                <p>這種形象上的鮮明二元性，揭示了社會文化脈絡在形塑制度聲譽過程中所扮演的強大角色。「哈佛」並非一個單一固化的實體，而是一個在不同文化價值、媒體敘事及社會關注重點下被賦予不同詮釋的符號。本報告將引導您探索這些複雜且常帶爭議性的議題。</p>
+            </section>
+
+            <section id="tab-dual-image" class="content-section bg-white p-6 rounded-lg shadow-md">
+                <h2>雙重鏡像：卓越感知與特權論述</h2>
+                <p>哈佛大學的形象呈現出鮮明的對比。一方面，它被視為學術卓越的頂峰；另一方面，它也面臨著特權堡壘的批評。這些不同的看法反映了不同社會文化背景下的價值觀與關注點。</p>
+                
+                <h3>「卓越」敘事：哈佛在華人世界及其他地區的視角</h3>
+                <p>在許多國際環境中，尤其是在華人社群內部，哈佛大學普遍與學術嚴謹、才智超群及培養傑出人才等特質緊密相連。歷史悠久的哈佛燕京學社象徵著中美高等教育交流的漫長歷史。在全球大學排名中，哈佛大學持續名列前茅，這進一步鞏固了其卓越形象。華人世界中的「卓越」敘事，可能因其與美國本土對精英大學招生細節的批判性討論保持一定距離而得到強化。其關注焦點主要集中在結果（獲得哈佛學位）上，視之為成就和全球競爭力的重要標誌。</p>
+
+                <h3>「特權」敘事：哈佛在美國的論述</h3>
+                <p>在美國，將哈佛與「特權」及「自以為是的名校屁孩」聯繫起來的觀點，在一些批判性分析中得到呼應。《哈佛克里姆森報》的評論文章曾直指哈佛招生過程「出了名的武斷和間接」，且依賴「與成就無關」的因素。哈佛被視為「富家子弟學校」的印象，因丹尼爾·戈爾登在其著作《入學的代價》中對捐贈者影響力和傳承錄取的詳細揭露而加劇。美國社會中的「特權」論述，不僅關乎個別學生的行為，更深層地交織著對社會流動性、精英制度以及精英大學在固化不平等現象中所扮演角色的廣泛憂慮。</p>
+            </section>
+
+            <section id="tab-measuring-excellence" class="content-section bg-white p-6 rounded-lg shadow-md">
+                <h2>「卓越」的標準？定義與量化</h2>
+                <p>「卓越」一詞本身是主觀的，難以精確量化。哈佛官方聲稱採用「全面審核」制度，考量學術成就、社區參與、個人品質等多方面因素。儘管如此，其錄取學生的學術數據依然亮眼。</p>
+                
+                <h3>官方招生標準與錄取學生概況</h3>
+                <p>哈佛學院官方聲稱採用「全面審核」（holistic review）制度，考量因素包括「學術成就」、「社區參與、領導能力及課外活動的卓越表現、個人品質與性格」以及「克服逆境的能力」，並無「特定公式」。儘管是全面審核，學術成就仍是基礎。哈佛大學的本科錄取率極低，這意味著存在大量高素質的申請者。</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
+                    <div class="stat-card">
+                        <div id="avgSAT" class="stat-value">1520</div>
+                        <div class="stat-label">SAT 平均分 (滿分1600)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="avgACT" class="stat-value">34</div>
+                        <div class="stat-label">ACT 平均分 (滿分36)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="percent4GPA" class="stat-value">74%</div>
+                        <div class="stat-label">2027屆錄取生中擁4.0 GPA比例</div>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 text-center">數據來源：哈佛大學官方報告 (2027屆)</p>
+
+                <div class="mt-6">
+                    <h3>本科錄取學生學術概況</h3>
+                    <div class="chart-container my-4">
+                        <canvas id="admissionProfileChart"></canvas>
+                    </div>
+                    <p class="text-sm text-gray-500 text-center">此圖表展示了哈佛大學本科錄取學生的部分學術指標平均水平。</p>
+                </div>
+                
+                <h3>對學術嚴謹性與學生素質的批評</h3>
+                <p>然而，亦有批評聲音指出，由於武斷的錄取因素和大量合格申請者的存在，哈佛學生的平均水平未必高於其他頂尖大學。《哈佛克里姆森報》的評論文章甚至認為，由於課程標準化、作弊現象及成績膨脹，哈佛的學術體驗已「不再獨特」，學術在哈佛「已不像過去那樣核心」。這些批評使得「卓越」的定義更形複雜。</p>
+            </section>
+
+            <section id="tab-admissions" class="content-section bg-white p-6 rounded-lg shadow-md">
+                <h2>招生解構：超越純粹的「功績」？</h2>
+                <p>哈佛大學的招生過程，除了對學術成就的考量外，亦受到多種「非功績」因素的影響。這些因素的確切比重和運作方式，是理解哈佛學生群體構成及其公眾形象的關鍵。</p>
+
+                <div id="admissions-legacy">
+                    <h3>傳承錄取：根深蒂固的優勢</h3>
+                    <p>傳承錄取指給予哈佛校友子女在申請過程中的優先待遇。數據顯示，此類申請者在哈佛的錄取機率遠高於普通申請者。例如，在2014至2019年間，哈佛對傳承申請者的錄取率高達33%，而同期總體錄取率僅為6%。此政策廣受批評，被指不公且不成比例地惠及富裕的白人申請者。SFFA案裁決後，傳承錄取面臨更嚴格的審視，美國教育部已就此展開民權調查。</p>
+                    <div class="chart-container my-4">
+                        <canvas id="legacyChart"></canvas>
+                    </div>
+                     <p class="text-sm text-gray-500 text-center">此圖表比較了傳承申請者與整體申請者在哈佛大學的錄取率差異。</p>
+                </div>
+
+                <div id="admissions-donor" class="mt-8">
+                    <h3>捐贈影響力與「發展性錄取」</h3>
+                    <p>「發展性錄取」指富裕家庭透過大額捐款為其子女確保入學名額。傑瑞德·庫什納的入學便是一個常被引用的案例。SFFA訴訟案中披露的數據顯示，在2014至2019年間，被列入「院長關注名單」（與頂級捐贈者相關）的申請者，錄取率高達42.2%，約為總體錄取率的九倍。此類做法被批評為腐敗、破壞精英制度。目前教育部亦對捐贈者優先問題進行調查。</p>
+                    <div class="chart-container my-4">
+                        <canvas id="donorChart"></canvas>
+                    </div>
+                    <p class="text-sm text-gray-500 text-center">此圖表比較了「院長關注名單」申請者與整體申請者在哈佛大學的錄取率差異。</p>
+                </div>
+
+                <div id="admissions-dei" class="mt-8">
+                    <h3>DEI政策：追求平權及其爭議</h3>
+                    <p>DEI（多元、平等、共融）政策旨在達成學生群體多元化。然而，在SFFA訴哈佛案中，最高法院裁定以種族為基礎的平權措施違憲。訴訟方曾主張哈佛的政策對亞裔美國申請者構成歧視。SFFA案裁決後，哈佛大學必須尋求不涉及種族的替代方案來實現多元化，例如側重於社會經濟地位、第一代大學生身份等。2028屆（SFFA案後首屆）的族裔構成數據顯示非裔和美洲原住民學生比例下降，亞裔學生比例穩定，西裔/拉丁裔學生比例上升，但計算方式的改變使直接比較困難。</p>
+                </div>
+
+                <div id="admissions-feeder" class="mt-8">
+                    <h3>「對口中學」：既有的輸送管道</h3>
+                    <p>某些高中，特別是精英私立預科學校和競爭激烈的公立重點中學，被視為哈佛的「對口中學」，向哈佛輸送了不成比例的學生數量。例如波士頓拉丁學校、菲利普斯安多福學院等。這種優勢可能源於嚴謹的學術準備、經驗豐富的大學輔導以及與大學建立的良好關係。這並不一定意味著不公，但確實指向了就讀此類高中所帶來的系統性優勢。</p>
+                </div>
+                
+                <div id="admissions-political" class="mt-8">
+                    <h3>政治關係與國際影響力</h3>
+                    <p>有主張認為「政商」關係對申請者有利，特別是中共官員子女。中國精英子女確實就讀於哈佛，中國籍學生佔哈佛國際學生總數的相當一部分（約五分之一）。哈佛從中國實體獲得大量資金，例如陳曾熙公共衛生學院的命名源於陳氏家族旗下晨興基金會的捐款。這些聯繫及地緣政治緊張局勢，為外界對不當影響和特殊待遇的擔憂提供了土壤。</p>
+                    <ul class="list-disc pl-5 mt-2">
+                        <li>2024年中國學生佔國際學生比例：約20%</li>
+                        <li>來自中國實體的資金 (2013-2020年)：逾9000萬美元</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="tab-students-culture" class="content-section bg-white p-6 rounded-lg shadow-md">
+                <h2>學生與文化：校園聲音及精英批判</h2>
+                <p>學生的實際體驗呈現多樣性。儘管哈佛的學術聲望高，但校園文化和精英現象也引發討論。</p>
+
+                <h3>學生與校友的聲音</h3>
+                <p>Niche.com網站上的評論顯示，學生對哈佛的總體評價偏向正面，讚揚其學術水平、教授、機會及人脈網絡。許多人形容其經歷為「緊張、熱情、多元且改變人生」。然而，負面評價亦包括高昂的生活成本、學業壓力，以及校園中存在「虛偽」和「自負」之人的現象。「這就是哈佛」這一描述反映出其強大的品牌形象，既可作正面亦可作負面解讀。</p>
+
+                <h3>「自以為是的名校屁孩」與「奢侈信念」</h3>
+                <p>羅伯·韓德森在其著作《困擾》中，探討了所謂「自以為是的名校屁孩現象」。他開創了「奢侈信念」這一概念，指那些為上層階級帶來地位，卻讓不幸者付出代價的觀念和意見。韓德森批判「自由派精英」和「覺醒政治」，認為這些往往是富人的矯飾，他們自身未必踐行，卻可能對弱勢群體造成傷害。「自以為是的名校屁孩」這一刻板印象，與韓德森對精英階層不顧後果或自身言行不一地宣揚「奢侈信念」的批判相吻合。這種現象可被視為精英學術環境中階級區隔的一種文化體現。</p>
+            </section>
+
+            <section id="tab-conclusion" class="content-section bg-white p-6 rounded-lg shadow-md">
+                <h2>總結評論：一個多面向的機構</h2>
+                <p>哈佛大學的公眾形象確實存在顯著的地域差異。關於其招生過程並非純粹以學術功績為唯一標準的論點，亦得到多方面證據的支持。傳承錄取、捐贈者影響力等因素，確實為特定群體的申請者提供了顯著優勢。</p>
+                <p>哈佛大學與其他精英學府一樣，長期在精英教育與學術卓越的理想、追求多元與公平的目標，以及募款、校友關係等現實考量之間，尋求一種微妙的平衡。持續的法律與政治審查預示著，哈佛大學的招生實踐及其公眾形象將繼續演變。</p>
+                <p>從社會學的宏觀視角觀之，哈佛大學猶如一個縮影，映照出更廣泛的社會在界定何為「功績」、如何分配機會，以及精英機構在民主社會中所應扮演的角色等議題上的掙扎。圍繞哈佛的政策及其相關辯論，不僅關乎一所大學的內部運作，更反映了當代社會關於社會分層與優勢代際傳承等深層次問題。</p>
+            </section>
+        </main>
+
+        <footer class="text-center mt-12 py-4 border-t border-gray-300">
+            <p class="text-sm text-gray-500">&copy; 2025 互動式報告。內容基於公開信息分析。</p>
+        </footer>
+    </div>
+
+    <script>
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const contentSections = document.querySelectorAll('.content-section');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.classList.remove('border-indigo-600', 'text-indigo-600');
+                    btn.classList.add('border-transparent', 'text-gray-600');
+                });
+                button.classList.add('active');
+                button.classList.add('border-indigo-600', 'text-indigo-600');
+                button.classList.remove('border-transparent', 'text-gray-600');
+
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(button.dataset.tab).classList.add('active');
+            });
+        });
+
+        function createChart(ctx, type, data, options) {
+            new Chart(ctx, { type, data, options });
+        }
+        
+        const commonChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y + '%';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        font: { size: 10 }
+                    },
+                    grid: {
+                        color: 'rgba(200, 200, 200, 0.2)'
+                    }
+                },
+                x: {
+                     ticks: {
+                        font: { size: 10 },
+                        callback: function(value) {
+                            let label = this.getLabelForValue(value);
+                            return label.length > 10 ? label.substring(0,10) + '...' : label;
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        };
+        
+        const admissionProfileData = {
+            labels: ['SAT 平均分 (1520/1600)', 'ACT 平均分 (34/36)', '4.0 GPA 比例 (74%)'],
+            datasets: [{
+                label: '學術表現指標 (相對滿分/比例)',
+                data: [(1520/1600)*100, (34/36)*100, 74],
+                backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 159, 64, 0.6)', 'rgba(153, 102, 255, 0.6)'],
+                borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 159, 64, 1)', 'rgba(153, 102, 255, 1)'],
+                borderWidth: 1
+            }]
+        };
+        const admissionProfileCtx = document.getElementById('admissionProfileChart').getContext('2d');
+        createChart(admissionProfileCtx, 'bar', admissionProfileData, {
+            ...commonChartOptions,
+            plugins: {
+                ...commonChartOptions.plugins,
+                tooltip: { // Override tooltip for this specific chart
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) { label += ': '; }
+                            let rawValue = 0;
+                            let originalLabel = context.chart.data.labels[context.dataIndex];
+                            if (context.dataIndex === 0) rawValue = 1520;
+                            else if (context.dataIndex === 1) rawValue = 34;
+                            else if (context.dataIndex === 2) rawValue = 74;
+
+                            if (originalLabel.includes('%')) {
+                                return `${originalLabel.split('(')[0].trim()}: ${rawValue}%`;
+                            } else if (originalLabel.includes('/')) {
+                                let parts = originalLabel.split('(')[1].replace(')','').split('/');
+                                return `${originalLabel.split('(')[0].trim()}: ${rawValue} / ${parts[1].trim()}`;
+                            }
+                            return label + context.parsed.y.toFixed(2) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                 y: {
+                    beginAtZero: true,
+                    max: 100, 
+                    ticks: {
+                        callback: function(value) { return value + '%'; },
+                        font: { size: 10 }
+                    },
+                    grid: { color: 'rgba(200, 200, 200, 0.2)' }
+                },
+                x: { ...commonChartOptions.scales.x }
+            }
+        });
+        
+
+        const legacyData = {
+            labels: ['傳承申請者', '整體申請者'],
+            datasets: [{
+                label: '錄取率 (%) (2014-2019)',
+                data: [33, 6],
+                backgroundColor: ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)'],
+                borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)'],
+                borderWidth: 1
+            }]
+        };
+        const legacyCtx = document.getElementById('legacyChart').getContext('2d');
+        createChart(legacyCtx, 'bar', legacyData, commonChartOptions);
+
+        const donorData = {
+            labels: ['院長關注名單申請者', '整體申請者'],
+            datasets: [{
+                label: '錄取率 (%) (2014-2019)',
+                data: [42.2, 6], 
+                backgroundColor: ['rgba(255, 206, 86, 0.6)', 'rgba(75, 192, 192, 0.6)'],
+                borderColor: ['rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'],
+                borderWidth: 1
+            }]
+        };
+        const donorCtx = document.getElementById('donorChart').getContext('2d');
+        createChart(donorCtx, 'bar', donorData, commonChartOptions);
+
+    </script>
+</body>
+</html>
