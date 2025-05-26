@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Reports</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #000;
+        }
+        #report-links {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #report-links ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #report-links li {
+            margin-bottom: 10px;
+        }
+        #report-links a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        #report-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Available Reports</h1>
+    <div id="report-links">
+        <!-- Links to reports will be inserted here -->
+    </div>
+
+    <script>
+        // TODO: Replace with your actual GitHub username and repository name
+        const githubUsername = 'YOUR_GITHUB_USERNAME';
+        const githubRepo = 'YOUR_REPOSITORY_NAME';
+        const apiUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/report`;
+        const reportLinksDiv = document.getElementById('report-links');
+
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    let errorMessage = `GitHub API request failed: ${response.status}.`;
+                    if (response.status === 404) {
+                        errorMessage += ' Ensure the `report` directory exists and contains HTML files, and that the GitHub username and repository name are correctly set in the script.';
+                    } else if (response.status === 403) {
+                        errorMessage += ' API rate limit exceeded or access forbidden. Check your token or wait for the rate limit to reset.';
+                    }
+                    throw new Error(errorMessage);
+                }
+                return response.json();
+            })
+            .then(files => {
+                reportLinksDiv.innerHTML = ''; // Clear previous content (e.g. "Loading..." or error messages)
+                const ul = document.createElement('ul');
+                const htmlFiles = files.filter(file => file.type === 'file' && file.name.endsWith('.html'));
+
+                if (htmlFiles.length === 0) {
+                    reportLinksDiv.textContent = 'No HTML reports found in the "report" directory. Ensure the directory is not empty and files have .html extension.';
+                    return;
+                }
+
+                htmlFiles.forEach(file => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.href = `report/${file.name}`; // Assumes reports are served from 'report/' subdirectory relative to index.html
+                    a.textContent = file.name;
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                });
+                reportLinksDiv.appendChild(ul);
+            })
+            .catch(error => {
+                console.error('Error fetching reports:', error);
+                // Display a user-friendly error message, including specific advice if possible
+                if (error.message.includes("404")) {
+                    reportLinksDiv.textContent = 'Could not load reports. Ensure the `report` directory exists and contains HTML files, and that the GitHub username and repository name are correctly set in the script.';
+                } else if (error.message.includes("NetworkError") || error.message.includes("failed to fetch")) {
+                    reportLinksDiv.textContent = 'Error loading reports: Network error. Please check your internet connection.';
+                } 
+                else {
+                    reportLinksDiv.textContent = `Error loading reports: ${error.message}. Check the console for more details.`;
+                }
+            });
+    </script>
+</body>
+</html>
