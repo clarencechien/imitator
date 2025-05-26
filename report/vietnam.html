@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>越南南部旅遊互動指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Pre-trip: Accordions for categorized info (Visa, Season etc.). Packing list as HTML checklist.
+        - Flights: Sortable HTML table for airline comparison. Bar chart (Chart.js) for starting round-trip prices (TPE-SGN). Goal: Compare flight options. Interaction: Sort table.
+        - Destinations:
+            - Overview: Clickable cards for each city leading to detailed view.
+            - Accommodation: HTML tables for price ranges. Bar chart (Chart.js) for average nightly costs per accommodation type for selected city. Goal: Compare accommodation costs.
+            - Food: Interactive HTML lists/cards.
+            - Attractions: Interactive HTML cards.
+            - Recommended Stay: Horizontal Bar chart (Chart.js) for recommended days per destination. Goal: Visualize relative time needed.
+        - Justification: Chosen methods prioritize clarity, direct comparison, and interactive exploration of the report's data. Chart.js for standard charts. HTML/CSS for lists and tables.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-link { cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.375rem; transition: background-color 0.3s, color 0.3s; }
+        .nav-link.active, .nav-link:hover { background-color: #0D9488; color: white; } /* Teal-600 */
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .destination-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .destination-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 700px; border-radius: 0.5rem; position: relative; }
+        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-button:hover, .close-button:focus { color: black; text-decoration: none; }
+        .food-item:hover { background-color: #f0f9ff; /* sky-50 */ }
+    </style>
+</head>
+<body class="bg-stone-100 text-stone-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-2xl font-bold text-teal-700">越南南部旅遊互動指南</h1>
+                <nav class="hidden md:flex space-x-1">
+                    <a class="nav-link active" data-tab="home">首頁</a>
+                    <a class="nav-link" data-tab="preparation">行前準備</a>
+                    <a class="nav-link" data-tab="flights">航班資訊</a>
+                    <a class="nav-link" data-tab="destinations">探索目的地</a>
+                </nav>
+                <button id="mobile-menu-button" class="md:hidden text-stone-600 hover:text-teal-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg">
+            <a class="block py-2 px-4 text-sm hover:bg-teal-50 nav-link" data-tab="home">首頁</a>
+            <a class="block py-2 px-4 text-sm hover:bg-teal-50 nav-link" data-tab="preparation">行前準備</a>
+            <a class="block py-2 px-4 text-sm hover:bg-teal-50 nav-link" data-tab="flights">航班資訊</a>
+            <a class="block py-2 px-4 text-sm hover:bg-teal-50 nav-link" data-tab="destinations">探索目的地</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <section id="home" class="tab-content active">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-3xl font-semibold text-teal-600 mb-4">歡迎來到越南南部！</h2>
+                <p class="mb-4 text-lg">越南南部，一片充滿生機與魅力的土地，以其獨特的熱帶風情、豐富的歷史文化遺產及令人垂涎的美食，吸引著全球旅人的目光。從東方小巴黎胡志明市的繁華喧囂，到湄公河三角洲的寧靜水鄉；從富國島的純淨沙灘，到大叻的法式山城詩意，南越的每一處都散發著與眾不同的吸引力。</p>
+                <p class="mb-4 text-lg">本互動指南旨在為計劃前往越南南部的台灣旅客，提供一份全面、深入且實用的旅遊參考。您可以透過上方導覽列探索行前準備、航班資訊以及各大熱門目的地的詳細介紹。祝您旅途愉快！</p>
+                
+                <div class="mt-8">
+                    <h3 class="text-2xl font-semibold text-teal-600 mb-4">南越熱門目的地一覽</h3>
+                    <p class="mb-4">點擊下方卡片，快速了解各個迷人城市的特色，或前往「探索目的地」分頁查看更詳細的內容。</p>
+                    <div id="homeDestinations" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        </div>
+                </div>
+
+                <div class="mt-8">
+                     <h3 class="text-2xl font-semibold text-teal-600 mb-4">各景點建議停留天數</h3>
+                     <p class="mb-4">這張圖表顯示了報告中建議的各主要旅遊目的地的停留天數，幫助您初步規劃行程長短。更詳細的行程建議，請參考「探索目的地」分頁中各城市的內容。</p>
+                     <div class="chart-container bg-white p-4 rounded-lg shadow">
+                        <canvas id="stayDurationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="preparation" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-3xl font-semibold text-teal-600 mb-6">行前準備全攻略</h2>
+                <p class="mb-6 text-lg">此部分彙整了前往越南南部旅遊前需要注意的各項事宜，包括簽證、最佳季節、貨幣、通訊、實用越南語、文化禮儀、旅遊安全及行李打包建議。點擊下方各項目以展開詳細內容。</p>
+                <div id="preparationAccordion" class="space-y-4">
+                    </div>
+            </div>
+        </section>
+
+        <section id="flights" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-3xl font-semibold text-teal-600 mb-6">從桃園機場 (TPE) 前往南越</h2>
+                <p class="mb-6 text-lg">台灣旅客前往越南南部，最主要的空中門戶是位於胡志明市的新山一國際機場 (SGN)。此部分將比較從台灣桃園國際機場 (TPE) 出發至胡志明市 (SGN) 的主要航空公司及其參考票價，並提供訂票技巧。</p>
+                
+                <div class="mb-8">
+                    <h3 class="text-2xl font-semibold text-gray-700 mb-3">桃園(TPE)至胡志明市(SGN)航空公司票價參考</h3>
+                    <p class="mb-4">下圖顯示了各航空公司直飛胡志明市的經濟艙來回機票<span class="font-bold">最低參考起價</span>（新台幣）。實際價格會因季節、預訂時間和促銷活動而有所不同。更詳細的比較請見下方的表格。</p>
+                    <div class="chart-container bg-white p-4 rounded-lg shadow">
+                        <canvas id="flightPriceChart"></canvas>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-2xl font-semibold text-gray-700 mb-3">航空公司比較表</h3>
+                     <p class="mb-4">下表詳細列出了營運桃園(TPE)至胡志明市(SGN)航線的主要航空公司資訊。您可以點擊表頭的「類型」進行篩選，或點擊「參考來回票價範圍」進行排序。</p>
+                    <div class="mb-4">
+                        <label for="airlineTypeFilter" class="mr-2 font-medium">篩選航空公司類型:</label>
+                        <select id="airlineTypeFilter" class="p-2 border rounded-md">
+                            <option value="all">全部顯示</option>
+                            <option value="LCC">低成本航空 (LCC)</option>
+                            <option value="Full-service">傳統航空 (Full-service)</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table id="flightComparisonTable" class="min-w-full bg-white border border-gray-200 rounded-lg shadow">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">航空公司</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort-key="type">類型 ⇅</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort-key="fare">參考來回票價範圍 (TWD) ⇅</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平均飛行時間</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">主要特點/備註</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+                 <div class="mt-8 bg-sky-50 p-4 rounded-lg">
+                    <h3 class="text-xl font-semibold text-sky-700 mb-2">訂票小撇步</h3>
+                    <ul id="bookingTipsList" class="list-disc pl-5 space-y-1 text-gray-700">
+                        </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="destinations" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-3xl font-semibold text-teal-600 mb-6">探索南越魅力：熱門景點深度遊</h2>
+                <p class="mb-6 text-lg">越南南部擁有多元風貌的旅遊勝地。點選下方城市卡片，即可深入了解各地的特色景點、建議行程、交通住宿及必吃美食。本部分旨在提供詳細的導覽資訊，助您規劃完美的南越之旅。</p>
+                <div id="destinationSelector" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    </div>
+                <div id="destinationDetail" class="mt-6">
+                    <p class="text-center text-gray-500 text-lg py-10">請從上方選擇一個目的地開始探索。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="foodModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('foodModal')">&times;</span>
+            <h3 id="foodModalTitle" class="text-2xl font-semibold text-teal-600 mb-4"></h3>
+            <p id="foodModalDescription" class="text-gray-700"></p>
+            <p id="foodModalLocation" class="mt-3 text-sm text-gray-500"></p>
+        </div>
+    </div>
+
+
+    <footer class="text-center py-8 text-sm text-stone-600">
+        <p>&copy; 2025 越南南部旅遊互動指南。資訊僅供參考，請以實際情況為準。</p>
+    </footer>
+
+    <script>
+        const tabLinks = document.querySelectorAll('.nav-link');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        function navigateToTab(tabId) {
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+
+            tabLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.tab === tabId) {
+                    link.classList.add('active');
+                }
+            });
+            if (mobileMenu.classList.contains('hidden') === false) {
+                mobileMenu.classList.add('hidden');
+            }
+            window.scrollTo(0, 0);
+        }
+        
+        tabLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const tabId = link.dataset.tab;
+                navigateToTab(tabId);
+            });
+        });
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Data from the report
+        const preparationData = [
+            { title: "簽證資訊 (含富國島免簽)", content: "計畫前往越南的台灣旅客，除特定情況外，均需辦理簽證。一般方式有電子簽證(E-visa)、落地簽證(VOA)及使館簽證。<strong>富國島特別優惠：</strong>台灣護照持有者若搭乘國際航班直達富國島，並持有30天內離境機票，可享免簽入境，停留最長30天。此政策大幅提升富國島對台灣旅客的吸引力。" },
+            { title: "最佳旅遊季節", content: "越南南部全年溫暖，主要分乾季(12月-4/5月)與雨季(6月-11月)。乾季陽光充足、濕度低，為多數人首選。雨季多為午後雷陣雨，影響有限。胡志明市年均溫22-34°C，最熱3月中-5月中，相對涼爽8月底-隔年1月中。大叻因海拔高，全年涼爽，冬季可能需保暖衣物。" },
+            { title: "貨幣兌換 (越南盾 VND)", content: "法定貨幣為越南盾(VND)，面額大需仔細辨識。換匯地點：銀行(安全可靠，需證件，有營業時間限制)、機場櫃台(方便但匯率稍差)、部分金飾店(匯率可能較優，需慎選信譽店家)、飯店(匯率通常不佳)。建議在台換少量美元，抵越後以美元換VND匯率較佳。避免街頭換匯，檢查鈔票狀況，分批兌換。" },
+            { title: "通訊與網路", content: "主要電信商：Viettel(覆蓋最廣，訊號穩定，推My Viettel App)、Vinaphone(大城市訊號佳)、Mobifone(月租方案具價格優勢)、Vietnamobile(預付卡便宜，覆蓋集中大城市)。SIM卡可於機場、電信門市、便利商店購買。eSIM亦為便捷選擇，Viettel、Vinaphone、Mobifone支援，需確認手機型號並於門市或線上申辦。" },
+            { title: "實用越南語", content: "你好: Xin chào (新早), 謝謝: Cảm ơn (感恩), 多少錢?: Bao nhiêu? (包妞), ...在哪裡?: ... ở đâu? (...ㄜˇ兜), 是: Có (勾), 不是/沒有: Không (空), 我不懂: Tôi không hiểu (堆空ㄏㄧㄠˊ), 買單: Tính tiền (丁ˇ典ˊ)。學習簡單詞彙有助互動，可下載翻譯App輔助。" },
+            { title: "文化禮儀與小費", content: "<strong>小費：</strong>非強制，但在觀光區及高檔場所漸成習慣。餐廳可給10-15%或湊整數；飯店行李員/房務約2-5萬VND；導遊司機可酌情給予。建議用VND支付。<br><strong>禮儀：</strong>參觀宗教場所衣著莊重(遮肩及膝)；尊重長輩；公共場合避免喧嘩；避免隨意觸摸他人頭部；勿用腳指人或佛像；物品用雙手或右手傳遞；拍照先徵得同意；筷子勿直插飯碗。" },
+            { title: "旅遊安全", content: "整體安全，但需警覺。<strong>交通：</strong>摩托車多，過馬路小心。租車需駕照並戴安全帽。<strong>財物：</strong>防扒竊，尤其在人多處。<strong>計程車/叫車：</strong>選Vinasun/Mai Linh計程車並用計費錶，或用Grab等App。<strong>飲食：</strong>飲用瓶裝水，注意路邊攤衛生。<strong>住宿：</strong>選安全區，鎖好門窗。<strong>其他：</strong>夜間避免獨行偏僻區，遠離毒品，勿拍軍事設施，保管好證件，提防詐騙，務必投保旅遊險。" },
+            { title: "行李打包清單", content: `<strong>重要文件：</strong>護照(及影本)、簽證/核准函、機票、保險、住宿證明、少量美元、國際駕照(若需)、證件照。<br>
+                                            <strong>衣物：</strong>輕便透氣夏季服裝、薄外套、合規宗教場所服裝、泳衣、內衣褲襪、睡衣。<br>
+                                            <strong>鞋襪：</strong>休閒鞋/運動鞋、涼鞋/拖鞋。<br>
+                                            <strong>個人用品：</strong>盥洗用具、防曬品、防蚊液、常備藥品(感冒/腸胃/止痛/暈車/過敏)、外用藥、(可選)保養化妝品、可重複水瓶、面紙濕紙巾。<br>
+                                            <strong>電子產品：</strong>手機、相機(及充電/記憶卡)、行動電源、萬國轉接頭(越南用A/C型, 220V)。<br>
+                                            <strong>其他：</strong>輕便雨具、小背包、塑膠袋。<br>
+                                            <strong>大叻額外準備：</strong>保暖衣物(長袖/毛衣/輕羽絨)。` }
+        ];
+
+        const flightData = {
+            chart: {
+                labels: ["越捷航空", "中華航空", "長榮航空", "星宇航空", "越南航空"],
+                data: [3500, 6800, 8000, 7000, 6500], // Using lower bound TWD for starting price
+                backgroundColor: 'rgba(13, 148, 136, 0.6)', // Teal-600
+                borderColor: 'rgba(13, 148, 136, 1)'
+            },
+            table: [
+                { airline: "越捷航空 (Vietjet Air)", type: "LCC", fareRange: "約 3,500 - 7,500", avgFlightTime: "約 3小時25分-3小時30分", notes: "票價最具競爭力，行李、餐飲多需額外付費，直飛" },
+                { airline: "中華航空 (China Airlines)", type: "Full-service", fareRange: "約 6,800起", avgFlightTime: "約 3小時25分-3小時30分", notes: "包含基本行李及餐飲，服務較完整，直飛" },
+                { airline: "長榮航空 (EVA Airways)", type: "Full-service", fareRange: "約 8,000起", avgFlightTime: "約 3小時25分-3小時30分", notes: "包含基本行李及餐飲，服務品質佳，直飛" },
+                { airline: "星宇航空 (STARLUX Airlines)", type: "Full-service", fareRange: "約 7,000起", avgFlightTime: "約 3小時25分-3小時30分", notes: "新興航空公司，強調精品服務，包含基本行李及餐飲，直飛" },
+                { airline: "越南航空 (Vietnam Airlines)", type: "Full-service", fareRange: "約 6,500起", avgFlightTime: "約 3小時25分-3小時30分", notes: "越南國家航空，包含基本行李及餐飲，直飛" },
+                { airline: "酷航 (Scoot)", type: "LCC", fareRange: "票價浮動大 (曾有USD 239來回)", avgFlightTime: "多為轉機，時間較長", notes: "需注意轉機時間及行李規定" }
+            ],
+            bookingTips: [
+                "<strong>提早規劃與預訂：</strong>一般提早預訂較易獲得優惠，可提前數月開始關注。",
+                "<strong>保持日期彈性：</strong>利用航空公司票價日曆或比價網彈性日期搜尋，週四出發、九月出行可能較便宜。",
+                "<strong>善用比價工具：</strong>Skyscanner、Expedia、Trip.com等平台可比較多家價格。",
+                "<strong>關注航空公司促銷：</strong>訂閱電子報、追蹤社群媒體獲取促銷資訊。",
+                "<strong>選擇淡季出行：</strong>避開農曆新年、暑假等旺季。",
+                "<strong>考慮分開預訂單程：</strong>有時不同航空公司的單程組合可能更便宜。",
+                "<strong>留意中轉航班：</strong>若不介意時間，中轉航班票價可能更低。"
+            ]
+        };
+        
+        const destinationsData = [
+            { 
+                id: "hcmc", name: "胡志明市 (Ho Chi Minh City)", 
+                shortDesc: "越南第一大城，法式殖民建築，歷史遺跡，現代活力，美食購物。",
+                primaryAppeal: "越南第一大城，法式殖民建築，歷史遺跡，現代活力，美食購物", recommendedStay: "2-4 天", suitableFor: "都市探索者、歷史文化愛好者、美食愛好者、初次訪越旅客",
+                overview: "胡志明市，舊稱西貢，是越南的經濟文化中心，融合法式殖民典雅與現代都市活力。對自由行旅客友善，歷史印記與現代繁華交織，展現越南發展與歷史保存並存的景象。",
+                attractions: [
+                    { name: "古芝地道", category: "歷史文化", desc: "越戰時期游擊隊地下總部，體驗戰爭艱困與智慧。可參加半日或一日遊。" },
+                    { name: "戰爭遺跡博物館", category: "歷史文化", desc: "從越南視角呈現越戰殘酷與影響，內容可能沉重但重要。" },
+                    { name: "統一宮", category: "歷史文化", desc: "前南越總統府，越戰結束象徵地，保留當時會議廳、辦公室等。" },
+                    { name: "西貢聖母大教堂 (紅教堂)", category: "歷史文化", desc: "19世紀末法式哥德建築，紅磚外牆，著名地標。" },
+                    { name: "西貢中心郵政局", category: "歷史文化", desc: "法式殖民建築，艾菲爾參與設計，仍在運營，可寄明信片。" },
+                    { name: "Bitexco金融塔", category: "現代地標", desc: "曾為最高建築，49樓觀景台提供360度市景，內有喜力世界。" },
+                    { name: "Landmark 81", category: "現代地標", desc: "現越南最高樓，集購物、飯店、餐廳、觀景台於一身。" },
+                    { name: "咖啡公寓", category: "現代地標", desc: "舊公寓改造，每戶為特色咖啡廳/小店，打卡熱點。" },
+                    { name: "阮惠街步行街", category: "現代地標", desc: "寬敞徒步區，商家林立，週末夜晚熱鬧。" },
+                    { name: "范五老街", category: "現代地標", desc: "背包客聚集地，平價旅館、酒吧、餐廳多。" },
+                    { name: "濱城市場", category: "市場購物", desc: "代表性傳統市場，售服飾、手工藝品、小吃等，可議價。" },
+                    { name: "西貢歌劇院", category: "文化表演", desc: "法式殖民建築，可欣賞AO Show等表演。" },
+                    { name: "金龍水上木偶劇院", category: "文化表演", desc: "越南國粹，演繹民間故事，饒富趣味。" }
+                ],
+                itinerary: "2-4天。1天快閃遊第一郡核心景點；2天可加古芝地道；3天可加湄公河一日遊或市區深度探索；4天可更完整遊覽周邊。",
+                transport: "機場交通：計程車(Vinasun/Mai Linh)、機場巴士(109號)、Grab、預訂接送。\n市區交通：計程車、Grab(最推薦)、公車(BusMap App)、觀光巴士、步行(第一郡)、摩托車(租或Grab)、地鐵(1號線將開通)。",
+                accommodation: {
+                    chartData: { labels: ["青年旅館", "經濟型飯店", "中階飯店", "高級飯店"], data: [500, 1125, 2250, 3000] }, // Approx TWD mid-points
+                    types: [
+                        { type: "青年旅館", range: "250 - 750 TWD (USD 8 - 25)", area: "第一郡 - 范五老街" },
+                        { type: "經濟型飯店", range: "750 - 1,500 TWD (USD 25 - 50)", area: "第一郡" },
+                        { type: "中階飯店", range: "1,500 - 3,000 TWD (USD 50 - 100)", area: "第一郡" },
+                        { type: "高級/五星級飯店", range: "3,000 TWD起 (USD 100+)", area: "第一郡 - 高級酒店區" }
+                    ]
+                },
+                food: [
+                    { name: "越南河粉 (Phở Bò / Phở Gà)", desc: "經典越式湯河粉，湯頭鮮甜，米粉Q彈。", location: "Phở Phú Vương, 各地河粉專賣店" },
+                    { name: "越南法國麵包 (Bánh Mì)", desc: "香脆法國麵包夾各式肉類、醃菜、醬料。", location: "Bánh Mì Huynh Hoa, 街頭攤販" },
+                    { name: "越南生春捲 (Gỏi Cuốn)", desc: "米紙包裹米線、蝦、肉、生菜，清爽健康。", location: "餐廳、街頭攤販" },
+                    { name: "越南碎米飯 (Cơm Tấm)", desc: "碎米搭配烤豬排、蒸蛋、豬皮等，淋魚露。", location: "街頭攤販、專賣店" },
+                    { name: "越南煎餅 (Bánh Xèo)", desc: "金黃酥脆米漿煎餅，內夾豆芽、蝦、肉。", location: "餐廳、街頭攤販" },
+                    { name: "鐵板牛肉加蛋 (Bò Né)", desc: "鐵板上滋滋作響的牛肉、蛋、肉醬等。", location: "專賣店" },
+                    { name: "番茄蟹膏米線 (Bún Riêu)", desc: "番茄湯底，含蟹膏、豆腐、豬血等。", location: "Bún Riêu Gánh Chợ Bến Thành, 專賣店" },
+                    { name: "烤肉乾拌米線 (Bún Thịt Nướng)", desc: "烤豬肉片、炸春捲、米線、生菜、花生，淋魚露。", location: "街頭攤販、專賣店" },
+                    { name: "冰奶咖啡 (Cà Phê Sữa Đá)", desc: "濃郁滴漏咖啡加煉乳與冰塊。可試蛋咖啡。", location: "各咖啡廳，Little HaNoi Egg Coffee" },
+                    { name: "各式螺類/海鮮 (Ốc)", desc: "熱炒、烤、蒸等烹調方式的螺貝類。", location: "專門的海鮮/螺肉熱炒店" }
+                ]
+            },
+            { 
+                id: "mekong", name: "湄公河三角洲 (Mekong Delta)", 
+                shortDesc: "水上市場，果園，傳統手工業，水鄉生活體驗。",
+                primaryAppeal: "水上市場，果園，傳統手工業，水鄉生活體驗", recommendedStay: "1-3 天", suitableFor: "文化體驗者、自然愛好者、攝影愛好者",
+                overview: "越南的「魚米之鄉」，河道縱橫，椰林果園遍佈。芹苴是主要城市。體驗水上市場、品嚐熱帶水果、欣賞傳統手工業，感受與胡志明市截然不同的水鄉風情。",
+                attractions: [
+                    { name: "丐冷水上市場 (芹苴)", category: "水上市場", desc: "規模最大水上市場，清晨船隻聚集交易農產水果，可乘船遊覽、品嚐船上小吃。" },
+                    { name: "風田水上市場 (芹苴)", category: "水上市場", desc: "規模較小，商業化低，更原始風貌。" },
+                    { name: "平水古屋 (芹苴)", category: "歷史建築", desc: "百年古宅，融合東西方建築特色，展現昔日富裕人家生活。" },
+                    { name: "寧僑碼頭 (芹苴)", category: "地標", desc: "芹苴市中心地標，白天搭船遊覽，夜晚熱鬧有夜市。" },
+                    { name: "永長寺 (美萩)", category: "宗教文化", desc: "規模宏大佛寺，建築融合越南、中國、歐洲風格。" },
+                    { name: "泰山島 (美萩)", category: "自然體驗", desc: "參觀果園、品嚐水果、蜂蜜茶，欣賞傳統才子樂。" },
+                    { name: "手搖船體驗 (檳椥)", category: "文化體驗", desc: "乘舢舨船穿梭水椰林水道，經典水鄉體驗。" },
+                    { name: "椰子糖工廠 (檳椥)", category: "傳統手工業", desc: "了解椰子糖製作過程，品嚐新鮮椰子糖。" }
+                ],
+                itinerary: "1-3天。一日遊可從胡志明市前往美萩、檳椥；兩天一夜可深入芹苴，體驗水上市場；三至四天可更深度探索周邊。",
+                transport: "從胡志明市：巴士(最經濟，至西部客運站搭乘，如Futa Bus)、私人包車、參加旅行團。\n三角洲內：船(主要交通工具)、巴士、摩托車/自行車(探索鄉間)。芹苴市區可用Grab。",
+                accommodation: {
+                    chartData: { labels: ["民宿/生態度假村(芹苴)", "一般飯店(芹苴)", "飯店/度假小屋(美萩)"], data: [1500, 1900, 3650] }, // Approx TWD mid-points or averages
+                     types: [
+                        { type: "民宿/生態度假村 (芹苴)", range: "500 - 2,500 TWD (USD 15 - 80)", area: "體驗在地生活，部分提供生態旅遊活動" },
+                        { type: "一般飯店 (芹苴)", range: "800 - 3,000 TWD (USD 25 - 95)", area: "市中心或寧僑碼頭附近選擇較多" },
+                        { type: "飯店/度假小屋 (美萩)", range: "800 - 6,500 TWD (USD 25 - 215)", area: "選擇相對較少，部分精品住宿價格較高" }
+                    ]
+                },
+                food: [
+                    { name: "美萩米線 (Hủ Tiếu Mỹ Tho)", desc: "美萩代表小吃，米線Q彈，湯頭鮮甜，配料豐富。", location: "美萩 (My Tho)" },
+                    { name: "炸象耳魚 (Cá Tai Tượng Chiên Xù)", desc: "整條魚炸至酥脆，搭配米紙、生菜、香草包食。", location: "湄公河三角洲各餐廳" },
+                    { name: "鹹魚火鍋 (Lẩu Mắm)", desc: "發酵魚醬湯底，配料含多種魚鮮、肉類及大量蔬菜。", location: "芹苴 (Can Tho) 及三角洲各地" },
+                    { name: "檳椥椰子糖 (Kẹo Dừa Bến Tre)", desc: "香甜濃郁的手工椰子糖。", location: "檳椥 (Ben Tre)" },
+                    { name: "炸米糕 (Bánh Cống)", desc: "杯狀油炸米糕，內餡含綠豆、絞肉、蝦。", location: "芹苴 (Can Tho)" },
+                    { name: "魚麵 (Bún Cá)", desc: "鮮魚湯底米線，清甜可口。", location: "芹苴 (Can Tho) 及三角洲各地" },
+                    { name: "各式熱帶水果", desc: "紅毛丹、山竹、龍眼、芒果等，產地品嚐格外新鮮。", location: "各地果園、市場" }
+                ]
+            },
+            { 
+                id: "phuquoc", name: "富國島 (Phu Quoc Island)", 
+                shortDesc: "免簽海島，沙灘，大型遊樂園，野生動物園，潛水。",
+                primaryAppeal: "免簽海島，沙灘，大型遊樂園，野生動物園，潛水", recommendedStay: "3-6 天", suitableFor: "海島度假客、家庭旅遊、樂園愛好者、水上活動愛好者",
+                overview: "越南最大島嶼，被譽為「珍珠島」。台灣旅客符合條件享30天免簽。島上開發「北珍珠、南太陽」格局：北部珍珠集團(樂園、動物園、大世界)；南部太陽集團(跨海纜車、日落小鎮、親吻之橋)。",
+                attractions: [
+                    { name: "太陽世界香島自然公園 (南)", category: "樂園", desc: "搭世界最長跨海纜車，島上有水陸樂園、沙灘。" },
+                    { name: "日落小鎮 (南)", category: "觀光小鎮", desc: "地中海風格建築群，仿羅馬競技場等，拍照熱點。" },
+                    { name: "親吻之橋 (南)", category: "地標", desc: "浪漫新地標，兩段橋體相向延伸，日落景色迷人。" },
+                    { name: "海洋之吻水舞秀 (南)", category: "表演", desc: "大型海上劇場，結合水幕、火焰、燈光、煙火，場面震撼。" },
+                    { name: "白沙灘 (Sao Beach) (南)", category: "沙灘", desc: "沙質潔白細膩，海水清澈，島上最美沙灘之一。" },
+                    { name: "珍珠奇幻樂園 (北)", category: "樂園", desc: "越南最大主題樂園之一，含陸地、水上設施、巨型海龜水族館。" },
+                    { name: "珍珠野生動物園 (北)", category: "動物園", desc: "半開放式野生動物園，可搭遊園車近距離觀察動物。" },
+                    { name: "富國大世界 (北)", category: "娛樂區", desc: "越南版威尼斯，24小時不夜城，有運河、歐式建築、泰迪熊博物館、水舞秀。" },
+                    { name: "富國夜市 (中)", category: "市集", desc: "位於陽東鎮，品嚐小吃、海鮮燒烤、買紀念品。" },
+                    { name: "桑奈托日落海灘 (中)", category: "沙灘", desc: "私人海灘，以獨特裝置藝術聞名，觀賞日落熱點 (需門票)。" },
+                    { name: "海星沙灘 (北)", category: "沙灘", desc: "特定季節退潮時有大量海星，景色特殊。" },
+                    { name: "出海跳島遊/浮潛 (南)", category: "水上活動", desc: "安泰群島水質清澈，適合浮潛、潛水、海釣。" }
+                ],
+                itinerary: "3-6天。3天2夜可平衡南北島重點；4-5天能更從容遊玩並安排水上活動；6天以上可深度放鬆。",
+                transport: "前往富國島：飛機(桃園/台中/高雄有直飛PQC機場，或從胡志明市轉國內線)、渡輪(從迪石市或河仙市搭乘)。\n島內交通：計程車/Grab(推薦)、摩托車租賃、免費接駁巴士(VinBus, 北部)、私人包車。",
+                accommodation: {
+                    chartData: { labels: ["青年旅館/平價民宿", "中階飯店/度假村", "高級五星級度假村"], data: [550, 1750, 6250] }, // Approx TWD mid-points
+                    types: [
+                        { type: "青年旅館/平價民宿", range: "300 - 800 TWD (USD 10 - 25)", area: "陽東鎮" },
+                        { type: "中階飯店/度假村", range: "1,000 - 2,500 TWD (USD 30 - 80)", area: "長灘, 翁蘭海灘" },
+                        { type: "高級五星級度假村", range: "2,500 - 10,000+ TWD (USD 80 - 300+)", area: "長灘, 北部珍珠灣區, 南部日落小鎮區" }
+                    ]
+                },
+                food: [
+                    { name: "新鮮海鮮 (烤海膽、烤生蠔、涵寧花蟹)", desc: "富國島必嚐，夜市、漁村、餐廳均有。", location: "富國夜市, 涵寧漁村" },
+                    { name: "鯡魚沙拉 (Gỏi Cá Trích)", desc: "代表特色菜，生鯡魚片拌椰絲香草，米紙包裹沾醬。", location: "富國夜市、各海鮮餐廳" },
+                    { name: "「攪拌」米線 (Bún Quậy)", desc: "DIY海鮮米線，自行將魚蝦漿攪入高湯煮熟，自調醬料。", location: "Bún Quậy Kiến Xây" },
+                    { name: "烤鯖魚法國麵包 (Bánh Mì Cá Thu)", desc: "以當地鯖魚為夾餡的特色法國麵包。", location: "當地攤販" },
+                    { name: "富國島魚露 (Nước Mắm Phú Quốc)", desc: "香醇濃郁的高品質魚露，必買伴手禮。", location: "各地市場、特產店 (可參觀魚露工廠)" },
+                    { name: "富國島胡椒 (Tiêu Phú Quốc)", desc: "香氣獨特的本地胡椒，尤以紅胡椒聞名。", location: "各地市場、特產店 (可參觀胡椒園)" },
+                    { name: "Sim酒 (Rượu Sim)", desc: "以當地桃金孃果釀製的水果酒，特色酒品。", location: "特產店" },
+                    { name: "越南披薩/烤米紙 (Bánh Tráng Nướng)", desc: "夜市小吃，烤米紙上加蛋、肉鬆等配料。", location: "富國夜市" },
+                    { name: "椰子冰淇淋 (Kem Dừa)", desc: "新鮮椰殼盛裝的椰子口味冰淇淋。", location: "富國夜市" }
+                ]
+            },
+            { 
+                id: "dalat", name: "大叻 (Da Lat)", 
+                shortDesc: "高原山城，氣候涼爽，法式風情，花卉，瀑布，咖啡莊園。",
+                primaryAppeal: "高原山城，氣候涼爽，法式風情，花卉，瀑布，咖啡莊園", recommendedStay: "2-4 天", suitableFor: "尋求避暑者、浪漫情侶、自然與花卉愛好者、攝影愛好者",
+                overview: "海拔1500公尺山城，「霧中之城」、「越南小巴黎」、「花都」。終年涼爽，法式別墅建築多，自然景觀豐富(湖泊、瀑布、松林、花卉)，盛產咖啡、茶、草莓等。",
+                attractions: [
+                    { name: "春香湖", category: "自然景觀", desc: "市中心人工湖，可散步、騎自行車、划船。" },
+                    { name: "大叻花園", category: "花園", desc: "種植三千多種花卉，四季皆有花開。" },
+                    { name: "達坦拉瀑布", category: "自然景觀", desc: "景色優美瀑布群，可體驗高山過山車、溪降。" },
+                    { name: "竹林禪寺", category: "宗教文化", desc: "鳳凰山上禪寺，俯瞰泉林湖，環境清幽，可搭纜車前往。" },
+                    { name: "Cầu Đất茶山", category: "自然景觀", desc: "一望無際翠綠茶園，空氣清新，攝影熱點。" },
+                    { name: "瘋狂屋 (Hằng Nga Guesthouse)", category: "特色建築", desc: "造型奇特超現實主義建築，既是景點也是旅館。" },
+                    { name: "大叻火車站", category: "歷史建築", desc: "越南最古老法式火車站之一，可搭觀光火車至靈福寺。" },
+                    { name: "保大夏宮", category: "歷史建築", desc: "末代皇帝避暑行宮，保留當年生活樣貌。" },
+                    { name: "瑪莉修道院", category: "歷史建築", desc: "粉紅色外牆，融合法式與高地建築風格。" },
+                    { name: "靈福寺 (瓷片寺)", category: "宗教文化", desc: "以碎陶瓷玻璃片鑲嵌裝飾，工藝精巧，視覺震撼。" },
+                    { name: "大叻夜市", category: "市集", desc: "品嚐街頭小吃(烤米紙、豆漿)、買紀念品農特產。" }
+                ],
+                itinerary: "2-4天。1天遊市中心景點；2天可加郊區自然景觀；3天可更深度體驗，增加咖啡莊園或採果活動。",
+                transport: "前往大叻：飛機(蓮姜機場DLI，從胡志明市/河內等國內線)、巴士(從胡志明市/美奈/芽莊等)。\n市內交通：摩托車租賃(最普遍)、計程車、Grab(部分區域)、自行車、步行(市中心)。",
+                accommodation: {
+                    chartData: { labels: ["民宿/青旅", "經濟/中階飯店", "法式別墅", "高級度假飯店"], data: [700, 2100, 3000, 3000] }, // Approx TWD mid-points
+                    types: [
+                        { type: "民宿/青年旅館", range: "200 - 1,200 TWD (USD 6 - 40)", area: "市中心周邊，特色設計民宿" },
+                        { type: "經濟型/中階飯店", range: "1,200 - 3,000 TWD (USD 40 - 95)", area: "市中心，交通便利" },
+                        { type: "法式別墅型住宿", range: "1,500 - 4,500 TWD (USD 45 - 140)", area: "山坡區域，環境清幽" },
+                        { type: "高級度假飯店", range: "3,000 TWD起 (USD 95+)", area: "泉林湖畔，市中心地標酒店" }
+                    ]
+                },
+                food: [
+                    { name: "法國麵包夾肉丸 (Bánh Mì Xíu Mại)", desc: "代表性早餐，法國麵包配豬肉丸湯汁。", location: "各早餐攤販、專賣店" },
+                    { name: "雞肉火鍋佐É葉 (Lẩu Gà Lá É)", desc: "特色香草葉(Lá É)風味雞肉火鍋，湯頭清甜。", location: "各火鍋餐廳，如 Tao Ngộ Restaurant" },
+                    { name: "大叻烤肉春捲 (Nem Nướng Đà Lạt)", desc: "烤豬肉捲搭配米紙、生菜、沾醬。", location: "Bà Hùng Restaurant, Nem Nướng Út Huệ" },
+                    { name: "越式披薩/烤米紙 (Bánh Tráng Nướng)", desc: "夜市人氣小吃，米紙上加蛋、肉鬆等烘烤。", location: "大叻夜市" },
+                    { name: "酪梨冰淇淋 (Kem Bơ)", desc: "新鮮酪梨泥配冰淇淋、椰奶，特色甜品。", location: "Thanh Thao Butter Cream, 各冰品店" },
+                    { name: "熱豆漿 (Sữa Đậu Nành Nóng)", desc: "夜市暖身飲品，可配油條或甜麵包。", location: "大叻夜市" },
+                    { name: "草莓 (Dâu Tây)", desc: "新鮮草莓及草莓製品，可體驗採摘。", location: "草莓園、大叻市場" },
+                    { name: "大叻咖啡 (Cà Phê Đà Lạt)", desc: "香醇阿拉比卡咖啡，可品嚐滴漏或手沖。", location: "Windmills Café, K'Ho Café, 各特色咖啡館" },
+                    { name: "越式小煎餅 (Bánh Căn)", desc: "米漿小煎餅，配魚露或肉丸醬。", location: "街頭攤販、專賣店" }
+                ]
+            },
+            { 
+                id: "muine", name: "美奈 (Mui Ne)", 
+                shortDesc: "沙漠沙丘（白沙丘、紅沙丘），仙女溪，漁村風情，水上活動。",
+                primaryAppeal: "沙漠沙丘（白沙丘、紅沙丘），仙女溪，漁村風情，水上活動（風箏衝浪）", recommendedStay: "1-2 天", suitableFor: "自然奇觀探索者、攝影愛好者、水上運動愛好者、短期行程旅客",
+                overview: "沿海地區，原為小漁村，以「一半海水，一半沙漠」奇景聞名。白沙丘晨曦夢幻，紅沙丘日落金黃，可滑沙。另有仙女溪、美奈漁村及風箏衝浪等。",
+                attractions: [
+                    { name: "白沙丘 (Bàu Trắng)", category: "自然奇觀", desc: "廣袤白色沙丘，可賞日出、滑沙、租沙灘車/吉普車。" },
+                    { name: "紅沙丘 (Đồi Cát Đỏ)", category: "自然奇觀", desc: "紅棕色沙丘，規模較小，觀賞日落理想地，可滑沙。" },
+                    { name: "仙女溪 (Suối Tiên)", category: "自然奇觀", desc: "淺溪流，兩岸為紅白沙岩峭壁，赤腳溯溪欣賞奇特地貌。" },
+                    { name: "美奈漁村 (Làng Chài Mũi Né)", category: "人文風情", desc: "傳統漁村風貌，清晨漁獲交易熱鬧，可購新鮮海產代客烹調。" }
+                ],
+                itinerary: "1-2天。通常參加吉普車半日遊(日出或日落團)遊覽白沙丘、紅沙丘、仙女溪、漁村。若時間充裕可多留一天享受海灘或水上活動。",
+                transport: "前往美奈：從胡志明市搭巴士(約4.5-6小時，如Phuong Trang, The Sinh Tourist, Hanh Cafe)；從大叻搭巴士(約4-5.5小時)；從芽莊搭巴士(約4-5小時)。\n區內交通：吉普車包車(遊覽主要景點最常見)、摩托車租賃、計程車/Grab(較少)。",
+                 accommodation: {
+                    chartData: { labels: ["平價旅館/民宿", "中階度假村", "高級度假村"], data: [600, 1800, 3500] }, // Approx TWD mid-points
+                    types: [
+                        { type: "平價旅館/民宿", range: "300 - 1,000 TWD (USD 10 - 30)", area: "阮廷沼街沿線" },
+                        { type: "中階度假村", range: "1,000 - 2,500 TWD (USD 30 - 80)", area: "阮廷沼街海濱，多有泳池" },
+                        { type: "高級度假村", range: "2,500 TWD起 (USD 80+)", area: "阮廷沼街海濱，設施完善，如Anantara, The Cliff" }
+                    ]
+                },
+                food: [
+                    { name: "新鮮海鮮", desc: "美奈沿海，海鮮豐富新鮮，可在漁村或餐廳品嚐。", location: "美奈漁村, Boke海鮮街 (阮廷沼街旁)" },
+                    { name: "越南法國麵包 (Bánh Mì)", desc: "街頭常見，方便美味。", location: "街頭攤販" },
+                    { name: "越南河粉 (Phở)", desc: "經典越南美食，各處可尋。", location: "當地餐館" },
+                    { name: "熱帶水果", desc: "火龍果是平順省特產，其他熱帶水果也值得品嚐。", location: "市場、路邊攤" }
+                ]
+            },
+             { 
+                id: "vungtau", name: "頭頓 (Vung Tau)", 
+                shortDesc: "海濱城市，耶穌山雕像，海鮮，距離胡志明市近。",
+                primaryAppeal: "海濱城市，耶穌山雕像，海鮮，距離胡志明市近", recommendedStay: "1-2 天", suitableFor: "短期度假客、海鮮美食愛好者、週末遊旅客（自胡志明市出發）",
+                overview: "距離胡志明市最近的海濱度假地，適合週末短途遊。以耶穌山雕像、海灘及新鮮海鮮聞名。",
+                attractions: [
+                    { name: "耶穌山雕像 (Christ of Vung Tau)", category: "地標", desc: "亞洲最大耶穌像之一，位於小山上，可登頂俯瞰海景。" },
+                    { name: "前灘 (Front Beach / Bãi Trước)", category: "海灘", desc: "市中心海灘，傍晚散步、觀賞日落佳。" },
+                    { name: "後灘 (Back Beach / Bãi Sau)", category: "海灘", desc: "較長且受歡迎的游泳和水上活動海灘。" },
+                    { name: "鯨魚廟 (Whale Temple / Lăng Cá Ông)", category: "宗教文化", desc: "供奉鯨魚骸骨的寺廟，反映漁民信仰。" },
+                    { name: "白宮 (White Palace / Bạch Dinh)", category: "歷史建築", desc: "法國殖民時期總督官邸，現為博物館。" }
+                ],
+                itinerary: "1-2天。一日遊可從胡志明市當天往返，參觀耶穌山、海灘、品嚐海鮮。兩日遊可更悠閒體驗海濱風情。",
+                transport: "前往頭頓：從胡志明市搭巴士(約2-2.5小時)或高速渡輪(約1.5-2小時，從白騰碼頭出發)。\n區內交通：計程車、Grab、摩托車租賃、步行。",
+                accommodation: {
+                    chartData: { labels: ["經濟型飯店", "中階飯店", "高級飯店/度假村"], data: [900, 1800, 3000] }, // Approx TWD mid-points
+                    types: [
+                        { type: "經濟型飯店", range: "600 - 1,200 TWD (USD 20 - 40)", area: "市區、後灘附近" },
+                        { type: "中階飯店", range: "1,200 - 2,500 TWD (USD 40 - 80)", area: "沿海路段、景觀較好處" },
+                        { type: "高級飯店/度假村", range: "2,500 TWD起 (USD 80+)", area: "如 Imperial Hotel, Pullman Vung Tau" }
+                    ]
+                },
+                food: [
+                    { name: "新鮮海鮮", desc: "頭頓是海鮮天堂，各種魚蝦蟹貝應有盡有。", location: "後灘海鮮市場, 各海鮮餐廳" },
+                    { name: "越式鹹蛋糕 (Bánh Khọt)", desc: "頭頓特色小吃，類似小煎餅，以米漿、蝦仁製成，香酥可口。", location: "Bánh Khọt Gốc Vú Sữa等專賣店" },
+                    { name: "海鮮火鍋 (Lẩu Hải Sản)", desc: "料鮮味美的海鮮火鍋。", location: "各海鮮餐廳" },
+                    { name: "Stingray Hot Pot (Lẩu Cá Đuối)", desc: "魟魚火鍋，是頭頓的特色菜之一，湯頭酸辣開胃。", location: "Hoàng Minh Stingray Hotpot等" }
+                ]
+            }
+        ];
+
+        function populatePreparationAccordion() {
+            const accordionContainer = document.getElementById('preparationAccordion');
+            accordionContainer.innerHTML = '';
+            preparationData.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.classList.add('border', 'border-gray-200', 'rounded-lg');
+                div.innerHTML = `
+                    <button class="accordion-toggle w-full flex justify-between items-center p-4 bg-sky-50 hover:bg-sky-100 rounded-t-lg focus:outline-none">
+                        <span class="text-lg font-medium text-sky-700">${item.title}</span>
+                        <svg class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content p-4 border-t border-gray-200 bg-white rounded-b-lg">
+                        <p class="text-gray-700">${item.content}</p>
+                    </div>
+                `;
+                accordionContainer.appendChild(div);
+            });
+
+            document.querySelectorAll('.accordion-toggle').forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    const icon = button.querySelector('svg');
+                    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                        content.style.maxHeight = '0px';
+                        icon.classList.remove('rotate-180');
+                    } else {
+                        // Close other open accordions
+                        document.querySelectorAll('.accordion-content').forEach(ac => {
+                            if (ac !== content) {
+                                ac.style.maxHeight = '0px';
+                                ac.previousElementSibling.querySelector('svg').classList.remove('rotate-180');
+                            }
+                        });
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.classList.add('rotate-180');
+                    }
+                });
+            });
+        }
+        
+        function renderFlightPriceChart() {
+            const ctx = document.getElementById('flightPriceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: flightData.chart.labels,
+                    datasets: [{
+                        label: '參考來回機票最低起價 (TWD)',
+                        data: flightData.chart.data,
+                        backgroundColor: flightData.chart.backgroundColor,
+                        borderColor: flightData.chart.borderColor,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '價格 (TWD)' } },
+                        x: { title: { display: true, text: '航空公司' } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${context.formattedValue} TWD`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        let currentSortKey = null;
+        let sortAscending = true;
+
+        function populateFlightTable(filterType = 'all') {
+            const tableBody = document.getElementById('flightComparisonTable').querySelector('tbody');
+            tableBody.innerHTML = '';
+            
+            let filteredData = flightData.table;
+            if (filterType !== 'all') {
+                filteredData = flightData.table.filter(item => item.type === filterType);
+            }
+
+            // Sorting logic
+            if (currentSortKey) {
+                filteredData.sort((a, b) => {
+                    let valA, valB;
+                    if (currentSortKey === 'fare') {
+                        valA = parseInt(a.fareRange.split(' ')[1].replace(',', '')) || 0;
+                        valB = parseInt(b.fareRange.split(' ')[1].replace(',', '')) || 0;
+                    } else if (currentSortKey === 'type') {
+                        valA = a.type.toLowerCase();
+                        valB = b.type.toLowerCase();
+                    } else {
+                        valA = a[currentSortKey];
+                        valB = b[currentSortKey];
+                    }
+
+                    if (valA < valB) return sortAscending ? -1 : 1;
+                    if (valA > valB) return sortAscending ? 1 : -1;
+                    return 0;
+                });
+            }
+
+
+            filteredData.forEach(item => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.airline}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.type === 'LCC' ? '低成本航空' : '傳統航空'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.fareRange}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.avgFlightTime}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${item.notes}</td>
+                `;
+            });
+        }
+        
+        document.getElementById('airlineTypeFilter').addEventListener('change', function() {
+            populateFlightTable(this.value);
+        });
+
+        document.getElementById('flightComparisonTable').querySelectorAll('th[data-sort-key]').forEach(th => {
+            th.addEventListener('click', () => {
+                const sortKey = th.dataset.sortKey;
+                if (currentSortKey === sortKey) {
+                    sortAscending = !sortAscending;
+                } else {
+                    currentSortKey = sortKey;
+                    sortAscending = true;
+                }
+                populateFlightTable(document.getElementById('airlineTypeFilter').value);
+            });
+        });
+
+
+        function populateBookingTips() {
+            const list = document.getElementById('bookingTipsList');
+            list.innerHTML = '';
+            flightData.bookingTips.forEach(tip => {
+                const li = document.createElement('li');
+                li.innerHTML = tip;
+                list.appendChild(li);
+            });
+        }
+        
+        function renderStayDurationChart() {
+            const ctx = document.getElementById('stayDurationChart').getContext('2d');
+            const labels = destinationsData.map(d => d.name);
+            const data = destinationsData.map(d => {
+                const parts = d.recommendedStay.split('-').map(s => parseInt(s));
+                return parts.length > 1 ? (parts[0] + parts[1]) / 2 : parts[0];
+            });
+
+            new Chart(ctx, {
+                type: 'bar', // Changed to 'bar' for better readability of labels if many destinations
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '建議停留天數',
+                        data: data,
+                        backgroundColor: 'rgba(251, 191, 36, 0.6)', // Amber-400
+                        borderColor: 'rgba(251, 191, 36, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Makes it a horizontal bar chart
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true, title: { display: true, text: '天數' } },
+                        y: { ticks: { autoSkip: false } }
+                    },
+                     plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${context.formattedValue} 天`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function populateDestinationSelectors() {
+            const selectorContainer = document.getElementById('destinationSelector');
+            const homeDestinationsContainer = document.getElementById('homeDestinations');
+            selectorContainer.innerHTML = '';
+            homeDestinationsContainer.innerHTML = '';
+
+            destinationsData.forEach(dest => {
+                const cardHTML = `
+                    <div class="destination-card bg-white p-6 rounded-lg shadow hover:shadow-xl cursor-pointer border border-transparent hover:border-teal-500" data-id="${dest.id}">
+                        <h3 class="text-xl font-semibold text-teal-600 mb-2">${dest.name}</h3>
+                        <p class="text-sm text-gray-600">${dest.shortDesc}</p>
+                    </div>
+                `;
+                selectorContainer.innerHTML += cardHTML;
+                if (homeDestinationsContainer) homeDestinationsContainer.innerHTML += cardHTML; // Also add to home
+            });
+
+            document.querySelectorAll('.destination-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const destId = card.dataset.id;
+                    navigateToTab('destinations'); // Ensure destinations tab is active
+                    loadDestinationDetail(destId);
+                });
+            });
+        }
+        
+        let currentAccommodationChart = null;
+
+        function loadDestinationDetail(destId) {
+            const dest = destinationsData.find(d => d.id === destId);
+            if (!dest) return;
+
+            const detailContainer = document.getElementById('destinationDetail');
+            detailContainer.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-3xl font-bold text-teal-700 mb-3">${dest.name}</h2>
+                    <p class="text-md text-gray-500 mb-1">主要特色: ${dest.primaryAppeal}</p>
+                    <p class="text-md text-gray-500 mb-1">建議停留: ${dest.recommendedStay}</p>
+                    <p class="text-md text-gray-500 mb-6">適合客群: ${dest.suitableFor}</p>
+                    
+                    <p class="text-lg text-gray-700 mb-6">${dest.overview}</p>
+
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">必訪景點</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${dest.attractions.map(attr => `
+                                <div class="bg-sky-50 p-4 rounded-lg shadow">
+                                    <h4 class="text-lg font-semibold text-sky-700">${attr.name} <span class="text-xs bg-sky-200 text-sky-800 px-2 py-0.5 rounded-full">${attr.category}</span></h4>
+                                    <p class="text-sm text-gray-600">${attr.desc}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">建議行程</h3>
+                        <p class="text-gray-700">${dest.itinerary}</p>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">交通攻略</h3>
+                        <p class="text-gray-700 whitespace-pre-line">${dest.transport}</p>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">住宿選擇</h3>
+                        <p class="mb-4">下圖為 ${dest.name} 各類型住宿的每晚<span class="font-bold">平均參考價格</span>（新台幣）。詳細價格範圍請參考下方表格。</p>
+                        <div class="chart-container bg-white p-4 rounded-lg shadow mb-6">
+                            <canvas id="accommodationChart-${dest.id}"></canvas>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">住宿類型</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">參考價格範圍/晚 (TWD)</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">推薦區域/特色</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                ${dest.accommodation.types.map(acc => `
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${acc.type}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${acc.range}</td>
+                                        <td class="px-6 py-4 text-sm text-gray-500">${acc.area}</td>
+                                    </tr>
+                                `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">不可錯過的美食</h3>
+                        <div class="space-y-3">
+                            ${dest.food.map(f => `
+                                <div class="food-item p-4 border border-gray-200 rounded-lg hover:shadow-md cursor-pointer" onclick="openFoodModal('${f.name}', '${f.desc.replace(/'/g, "\\'")}', '${f.location.replace(/'/g, "\\'")}')">
+                                    <h4 class="text-lg font-semibold text-amber-700">${f.name}</h4>
+                                    <p class="text-sm text-gray-600 truncate">${f.desc}</p>
+                                    <p class="text-xs text-gray-400 mt-1">推薦地點: ${f.location}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (currentAccommodationChart) {
+                currentAccommodationChart.destroy();
+            }
+            const ctx = document.getElementById(`accommodationChart-${dest.id}`).getContext('2d');
+            currentAccommodationChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dest.accommodation.chartData.labels,
+                    datasets: [{
+                        label: '平均參考價格 (TWD)',
+                        data: dest.accommodation.chartData.data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.6)', // Blue-500
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '價格 (TWD)' } },
+                        x: { title: { display: true, text: '住宿類型' } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${context.formattedValue} TWD`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            detailContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function openFoodModal(name, description, location) {
+            document.getElementById('foodModalTitle').textContent = name;
+            document.getElementById('foodModalDescription').textContent = description;
+            document.getElementById('foodModalLocation').textContent = `推薦品嚐地點: ${location}`;
+            document.getElementById('foodModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('foodModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+
+        // Initial population
+        populatePreparationAccordion();
+        renderFlightPriceChart();
+        populateFlightTable();
+        populateBookingTips();
+        renderStayDurationChart();
+        populateDestinationSelectors();
+        if (destinationsData.length > 0) {
+             // No default destination loaded, user needs to click.
+        }
+
+    </script>
+</body>
+</html>
