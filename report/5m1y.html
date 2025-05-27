@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小資YP理財智慧互動指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+        .nav-link {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-sky-100 hover:text-sky-700 transition-colors;
+        }
+        .nav-link.active {
+            @apply bg-sky-600 text-white hover:bg-sky-700;
+        }
+        .content-section {
+            @apply p-4 md:p-6 lg:p-8;
+        }
+        .card {
+            @apply bg-white shadow-lg rounded-xl p-6 transition-all duration-300 ease-in-out;
+        }
+        .card-title {
+            @apply text-xl font-semibold text-sky-700 mb-3;
+        }
+        .table-container {
+            @apply overflow-x-auto shadow-md rounded-lg mt-6;
+        }
+        table {
+            @apply min-w-full divide-y divide-slate-200;
+        }
+        th {
+            @apply px-8 py-3 bg-slate-50 text-left text-xs font-medium text-slate-500 uppercase tracking-wider; /* Increased px-6 to px-8 */
+        }
+        td {
+            @apply px-8 py-4 text-sm text-slate-700; /* Increased px-6 to px-8 and removed whitespace-nowrap */
+        }
+        tbody tr:nth-child(even) {
+            @apply bg-slate-50;
+        }
+        tbody tr:hover {
+            @apply bg-sky-50;
+        }
+        .interactive-area {
+            @apply mt-6 p-6 bg-sky-50 rounded-lg border border-sky-200;
+        }
+        .input-label {
+            @apply block text-sm font-medium text-slate-700 mb-1;
+        }
+        .input-field {
+            @apply mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm;
+        }
+        .btn-primary {
+            @apply mt-4 px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors;
+        }
+        .expand-button::after {
+            content: ' ▼';
+            font-size: 0.8em;
+        }
+        .expanded .expand-button::after {
+            content: ' ▲';
+        }
+        .expand-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .expanded .expand-content {
+            max-height: 1000px; /* Adjust as needed */
+            transition: max-height 0.5s ease-in;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Max width for chart readability */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 350px; /* Max height */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .sub-expand-button {
+            @apply text-sky-600 font-medium hover:text-sky-800 cursor-pointer;
+        }
+        .sub-expand-button::after {
+            content: ' (展開 ▼)';
+            font-size: 0.9em;
+        }
+        .sub-expanded .sub-expand-button::after {
+            content: ' (收合 ▲)';
+        }
+        .sub-expand-content {
+             max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            @apply mt-2 pl-4 border-l-2 border-sky-200;
+        }
+        .sub-expanded .sub-expand-content {
+            max-height: 500px; /* Adjust as needed */
+             transition: max-height 0.3s ease-in;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-sky-600">小資YP理財指南</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#home" class="nav-link active" onclick="showSection('home', this)">導覽</a>
+                        <a href="#philosophy" class="nav-link" onclick="showSection('philosophy', this)">核心哲學</a>
+                        <a href="#strategy" class="nav-link" onclick="showSection('strategy', this)">五分鐘策略</a>
+                        <a href="#triangle" class="nav-link" onclick="showSection('triangle', this)">理財鐵三角</a>
+                        <a href="#freedom" class="nav-link" onclick="showSection('freedom', this)">財務自由之路</a>
+                        <a href="#action" class="nav-link" onclick="showSection('action', this)">實踐與提醒</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button type="button" id="mobile-menu-button" class="bg-white inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-sky-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#home" class="nav-link block active" onclick="showSection('home', this); closeMobileMenu();">導覽</a>
+                <a href="#philosophy" class="nav-link block" onclick="showSection('philosophy', this); closeMobileMenu();">核心哲學</a>
+                <a href="#strategy" class="nav-link block" onclick="showSection('strategy', this); closeMobileMenu();">五分鐘策略</a>
+                <a href="#triangle" class="nav-link block" onclick="showSection('triangle', this); closeMobileMenu();">理財鐵三角</a>
+                <a href="#freedom" class="nav-link block" onclick="showSection('freedom', this); closeMobileMenu();">財務自由之路</a>
+                <a href="#action" class="nav-link block" onclick="showSection('action', this); closeMobileMenu();">實踐與提醒</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <section id="home" class="content-section">
+            <div class="card">
+                <h1 class="text-3xl font-bold text-sky-700 mb-4">歡迎來到小資YP理財智慧互動指南</h1>
+                <p class="text-lg text-slate-600 mb-4">
+                    本指南旨在提煉陳逸朴先生（小資YP）在其著作《一年投資五分鐘》及「小資YP投資理財筆記」部落格中的核心理財原則與投資建議。透過互動式的探索，您可以更深入地理解被動式指數化投資策略、風險管理方法以及財務自由的獨到見解。
+                </p>
+                <p class="text-slate-600 mb-2">
+                    小資YP從一位面臨經濟壓力的普通上班族，透過親身實踐其倡導的方法，成功積累了可觀資產並實現了財務上的更大自由。他的經驗證明，即使是資源有限的小資族，也能透過清晰、簡單且有效的方法，逐步實現財富增長。
+                </p>
+                <p class="text-slate-600">
+                    請點擊上方導航列，開始您的探索之旅。了解如何每年僅需投入極少時間，便能為自己的財務未來打下堅實基礎。
+                </p>
+            </div>
+        </section>
+
+        <section id="philosophy" class="content-section hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold text-sky-700 mb-6">小資YP的核心理財哲學</h2>
+                <p class="text-slate-600 mb-6">
+                    小資YP的理財哲學強調長期穩健與積極人生態度的結合。這不僅是財務操作的技術，更是一種宏觀的人生哲學，將個人幸福感、時間價值置於單純追求超額報酬之上。以下是其核心原則：
+                </p>
+                <div class="space-y-4">
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">長期投資、耐心與紀律</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>成功的投資並非追求短期暴利，而是透過長期持續參與市場成長來實現財富積累。強調耐心，抵制市場短期波動的非理性反應。「有錢就買、堅持持續買入才是王道！」控制行為，嚴格遵守預設投資計劃至關重要。</p>
+                        </div>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">「主動享受生活，被動指數投資」</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>財務投資應採被動管理，釋放時間精力投入生活更重要的面向，如個人成長、家庭關係。投資不應吞噬生活品質，而是提升生活品質的工具。</p>
+                        </div>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">批判主動選股與市場擇時</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>對多數投資者，試圖挑選「飆股」或預測市場時機常徒勞無功，易導致績效不彰及心理壓力。「獲取市場報酬，就能贏過85%主動投資者！」個股研究耗時費力，且變數多。</p>
+                             <p class="mt-2">YP提及主動投資的「超額報酬就是一場零和遊戲」，暗示在這場競爭中，普通小資族勝算不高。因此，選擇被動式指數投資是更理性的途徑，能有效管理期望並降低焦慮感。</p>
+                        </div>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">投資自己，是最好的投資</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>持續學習新技能、增進專業知識，提高主要收入來源，為財務投資提供更充裕資金。人力資本與金融資本同等重要。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>原則</th>
+                                <th>描述／理念</th>
+                                <th>書籍重點支持</th>
+                                <th>部落格重點支持</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200">
+                            <tr>
+                                <td>長期投資</td>
+                                <td>強調投資的成功來自於長時間參與市場成長，而非短期操作。</td>
+                                <td>獲取市場合理報酬並靠時間複利成長</td>
+                                <td>投資是「與時間談戀愛」的行為</td>
+                            </tr>
+                            <tr>
+                                <td>耐心與紀律</td>
+                                <td>面對市場波動時保持耐心，嚴格遵守既定的投資計劃，持續投入。</td>
+                                <td>「一直買，就對了！」；控制行為是致富關鍵</td>
+                                <td>應樂觀勇於在股災時買入</td>
+                            </tr>
+                            <tr>
+                                <td>主動享受生活／被動投資</td>
+                                <td>投資應採被動方式以節省時間精力，讓人們能更專注於提升生活品質、個人成長與人際關係。</td>
+                                <td>免看盤、不選股，用更多時間主動享受生活</td>
+                                <td>主動享受生活，被動指數投資</td>
+                            </tr>
+                            <tr>
+                                <td>批判主動管理</td>
+                                <td>指出主動選股與擇時進出市場對多數人而言效益不高，且耗費心力，被動獲取市場報酬反而能勝過多數主動投資者。</td>
+                                <td>集中單一個股可能落後大盤；贏過85%主動投資者</td>
+                                <td>個股研究費時費力，超額報酬是零和遊戲</td>
+                            </tr>
+                            <tr>
+                                <td>投資自己</td>
+                                <td>將提升個人技能與知識視為最重要的投資，藉此提高主動收入能力，為財務投資奠定更穩固的基礎。</td>
+                                <td>投資自己，是最好的投資</td>
+                                <td>工作才是人生首要投資（開源）</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                 <p class="text-sm text-slate-500 mt-4">表格資訊來源：整合報告 表1：小資YP核心理財哲學原則。</p>
+            </div>
+        </section>
+
+        <section id="strategy" class="content-section hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold text-sky-700 mb-6">解構「一年投資五分鐘」策略</h2>
+                 <p class="text-slate-600 mb-6">
+                    「一年投資五分鐘」的核心是被動式指數化投資，旨在提供一條清晰、高效的財富積累路徑。此策略強調簡便易行、成本效益高、有效分散風險，並有歷史績效證明其優越性。核心工具是指數股票型基金(ETF)。YP提醒，「一年投資五分鐘」更多指的是日常維護的簡易性，初期的學習與規劃仍需投入時間。
+                </p>
+
+                <div class="space-y-4 mb-6">
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">指數化投資實戰五大步驟</h3>
+                        <div class="expand-content text-slate-600 mt-2 space-y-3">
+                            <p><strong>第一步：確立投資目標</strong> - 明確個人財務目標，如退休、教育基金等。</p>
+                            <p><strong>第二步：決定投資市場</strong> - 選擇本土、全球市場或組合。</p>
+                            <div>
+                                <p><strong>第三步：資產配置與標的</strong> - 規劃股債比例（如「股票比例 = 110 - 年齡」），挑選ETF。</p>
+                                <div class="interactive-area">
+                                    <label for="ageInput" class="input-label">您的年齡：</label>
+                                    <input type="number" id="ageInput" class="input-field w-full md:w-1/2" placeholder="例如：30">
+                                    <button onclick="calculateStockAllocation()" class="btn-primary">計算建議股票配置</button>
+                                    <p id="stockAllocationResult" class="mt-2 text-sky-700 font-semibold"></p>
+                                </div>
+                                <div class="mt-4 p-3 border border-sky-100 rounded-md bg-sky-50">
+                                    <h4 class="sub-expand-button text-md" onclick="toggleSubExpand(this.parentElement)">常見ETF標的參考</h4>
+                                    <div class="sub-expand-content text-sm text-slate-600 space-y-2">
+                                        <p><strong>台灣市場股票ETF範例：</strong></p>
+                                        <ul class="list-disc list-inside ml-4">
+                                            <li><strong>0050 (元大台灣卓越50)：</strong>追蹤台灣市值最大的50家公司，是台股市值型ETF的代表。</li>
+                                            <li><strong>006208 (富邦台50)：</strong>與0050追蹤相同指數，但管理費通常略低。</li>
+                                        </ul>
+                                        <p class="mt-2"><strong>全球/美國市場股票ETF範例 (通常透過海外券商)：</strong></p>
+                                        <ul class="list-disc list-inside ml-4">
+                                            <li><strong>VT (Vanguard Total World Stock ETF)：</strong>一檔ETF投資全球股市，涵蓋已開發與新興市場。</li>
+                                            <li><strong>VTI (Vanguard Total Stock Market ETF)：</strong>投資美國整體股市。</li>
+                                            <li><strong>VXUS (Vanguard Total International Stock ETF)：</strong>投資美國以外的全球股市 (可與VTI搭配組成全球股市)。</li>
+                                            <li><strong>SPY (SPDR S&P 500 ETF Trust) / IVV (iShares CORE S&P 500 ETF) / VOO (Vanguard S&P 500 ETF)：</strong>追蹤美國S&P 500指數，代表美國大型股。</li>
+                                        </ul>
+                                        <p class="mt-2"><strong>債券ETF範例：</strong></p>
+                                        <ul class="list-disc list-inside ml-4">
+                                            <li><strong>BND (Vanguard Total Bond Market ETF)：</strong>投資美國整體債券市場。</li>
+                                            <li><strong>BNDW (Vanguard Total World Bond ETF)：</strong>投資全球債券市場。</li>
+                                            <li>台灣市場債券ETF如：00772B (中信高評級公司債)、00720B (元大投資級公司債)等，但需注意流動性與溢價差。</li>
+                                        </ul>
+                                        <p class="mt-3 text-xs text-slate-500">注意：以上僅為範例，非投資建議。選擇ETF應考量其追蹤指數、費用率、規模、追蹤誤差及自身投資目標與風險承受度。YP強調低成本、廣泛分散的市值型ETF。</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mt-3"><strong>第四步：設立購買頻率</strong> - 如每月定期定額、每季或每年投入。</p>
+                            <p><strong>第五步：一直買，就對了！</strong> - 強調長期持續且有紀律地執行。</p>
+                            <p class="mt-2">YP堅定倡導「最好的進場時機就是現在」，反駁等待市場底部的觀望，強調長期參與市場的複利效應。</p>
+                        </div>
+                    </div>
+                     <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">風險管理：分散投資與資產配置</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>資產配置是風險管理的起點。納入債券型ETF主要目的在於「降低風險」，而非追求高回報。定期「再平衡」（賣出上漲資產、買入下跌資產）對維持配置比例、管控風險至關重要。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>步驟</th>
+                                <th>中文名稱</th>
+                                <th>英文名稱</th>
+                                <th>詳細描述／行動</th>
+                                <th>主要考量／YP的理念</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200">
+                            <tr>
+                                <td class="text-center">1</td>
+                                <td>確立投資目標</td>
+                                <td>Establish Investment Goals</td>
+                                <td>明確定義個人的短期、中期與長期財務目標。</td>
+                                <td>目標是投資規劃的起點。</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center">2</td>
+                                <td>決定投資市場</td>
+                                <td>Determine Investment Market</td>
+                                <td>選擇主要的投資區域（台灣、全球或結合）。</td>
+                                <td>考量熟悉度、風險承受能力及多元化程度。</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center">3</td>
+                                <td>資產配置與標的</td>
+                                <td>Asset Allocation and Targets</td>
+                                <td>決定股、債等配置比例（可參考110-年齡法則）。挑選低成本ETF。</td>
+                                <td>資產配置是風險管理核心。債券降低波動。</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center">4</td>
+                                <td>設立購買頻率</td>
+                                <td>Establish Purchase Frequency</td>
+                                <td>建立規律的投資投入機制（月、季、年）。</td>
+                                <td>規律投入助於平均成本，培養紀律。</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center">5</td>
+                                <td>一直買，就對了！</td>
+                                <td>Keep Buying, That's Right!</td>
+                                <td>堅守長期信念，持續投入，不因市場短期漲跌改變。</td>
+                                <td>長期持有是享受複利、達成市場回報的關鍵。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-sm text-slate-500 mt-4">表格資訊來源：整合報告 表2：小資YP指數化投資實戰五步驟。</p>
+            </div>
+        </section>
+
+        <section id="triangle" class="content-section hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold text-sky-700 mb-6">構建穩健的財務基石：理財鐵三角</h2>
+                <p class="text-slate-600 mb-6">
+                    YP的「理財鐵三角」——緊急備用金、保險、投資——是個人財務規劃的基石。此框架強調在追求財富增長前，先建立穩固的財務安全網。這不僅是順序指南，更是建立投資心理韌性的工具，讓人在進入市場時心態更平和。提升儲蓄率是啟動整個理財計劃的關鍵引擎。
+                </p>
+
+                <div class="grid md:grid-cols-3 gap-6 mb-8 text-center">
+                    <div class="p-4 border border-sky-200 rounded-lg bg-sky-50 cursor-pointer hover:shadow-xl" onclick="showTriangleDetail('emergency')">
+                        <h3 class="text-lg font-semibold text-sky-700">① 緊急備用金</h3>
+                        <p class="text-sm text-slate-600 mt-1">應對突發狀況</p>
+                    </div>
+                    <div class="p-4 border border-sky-200 rounded-lg bg-sky-50 cursor-pointer hover:shadow-xl" onclick="showTriangleDetail('insurance')">
+                        <h3 class="text-lg font-semibold text-sky-700">② 保險</h3>
+                        <p class="text-sm text-slate-600 mt-1">轉嫁巨災風險</p>
+                    </div>
+                    <div class="p-4 border border-sky-200 rounded-lg bg-sky-50 cursor-pointer hover:shadow-xl" onclick="showTriangleDetail('investment')">
+                        <h3 class="text-lg font-semibold text-sky-700">③ 投資</h3>
+                        <p class="text-sm text-slate-600 mt-1">開啟複利大門</p>
+                    </div>
+                </div>
+
+                <div id="triangleDetail" class="mt-4 p-4 bg-white border border-slate-200 rounded-lg min-h-[100px]">
+                    <p class="text-slate-500">點擊上方任一支柱查看詳細說明。</p>
+                </div>
+                
+                <div class="interactive-area mt-8">
+                    <h3 class="card-title">估算您的緊急備用金目標</h3>
+                    <label for="monthlyExpenses" class="input-label">您預估的每月生活開銷 (元)：</label>
+                    <input type="number" id="monthlyExpenses" class="input-field" placeholder="例如：30000">
+                    <button onclick="calculateEmergencyFund()" class="btn-primary">計算6個月備用金</button>
+                    <p id="emergencyFundResult" class="mt-3 text-sky-700 font-semibold"></p>
+                    <div class="chart-container mt-4">
+                        <canvas id="emergencyFundChart"></canvas>
+                    </div>
+                </div>
+
+
+                <div class="table-container mt-8">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>支柱名稱 (中/英)</th>
+                                <th>目的／在財務計劃中的角色</th>
+                                <th>YP的主要建議</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200">
+                            <tr>
+                                <td>緊急備用金 / Emergency Fund</td>
+                                <td>應對突發意外支出，避免動用長期投資或舉債。</td>
+                                <td>準備6個月生活費；現金或高流動性資產；專戶管理；未備妥前不宜投資。</td>
+                            </tr>
+                            <tr>
+                                <td>保險 / Insurance</td>
+                                <td>轉嫁個人難以承受的巨災風險，保障家庭財務穩定。</td>
+                                <td>依個人需求配置，轉嫁無法承受的風險；多數人都應購買。</td>
+                            </tr>
+                            <tr>
+                                <td>投資 / Investment</td>
+                                <td>在前兩者基礎穩固後，透過長期投資參與市場成長，利用複利效應累積財富。</td>
+                                <td>採用被動式指數化投資，長期持有ETF。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-sm text-slate-500 mt-4">表格資訊來源：整合報告 表3：小資YP理財鐵三角之支柱。</p>
+            </div>
+        </section>
+
+        <section id="freedom" class="content-section hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold text-sky-700 mb-6">通往財務自由的藍圖</h2>
+                <p class="text-slate-600 mb-6">
+                    財務自由不僅是資產數字，更是一種生活狀態的實現，賦予個人更大的自主權與選擇權。其核心是擁有「選擇的自由」，而非不再工作。YP強調財務自由是高度個人化的旅程，需將財務目標與核心價值觀連結，並抱持「足夠就好」的知足心態。
+                </p>
+                <div class="space-y-4">
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">4%法則：估算財務獨立所需資產</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>此法則認為，每年從投資組合提取不超過4%作為生活費，本金有較大概率不被耗盡。這是一個參考指引。</p>
+                            <div class="interactive-area">
+                                <label for="annualExpenses" class="input-label">您預估的每年生活開銷 (元)：</label>
+                                <input type="number" id="annualExpenses" class="input-field" placeholder="例如：360000">
+                                <button onclick="calculateFreedomNumber()" class="btn-primary">計算所需資產 (4%法則)</button>
+                                <p id="freedomNumberResult" class="mt-2 text-sky-700 font-semibold"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">加速實現財務自由的FIRE原則</h3>
+                        <div class="expand-content text-slate-600 mt-2 space-y-2">
+                            <p><strong>少花錢 (Spend Less):</strong> 提高儲蓄率的根本。有效控制大額支出，可考慮地理套利。</p>
+                            <p><strong>賺更多 (Earn More):</strong> 投資人力資本，提升專業技能，增加主動收入。</p>
+                            <p><strong>投資的更好 (Invest Better):</strong> 採用低成本被動式指數基金投資，避免擇時，克服情緒化決策。</p>
+                        </div>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">其他關鍵因素</h3>
+                        <div class="expand-content text-slate-600 mt-2 space-y-2">
+                            <p><strong>報酬順序風險:</strong> 退休初期若遇市場大跌，對投資組合永續性損害嚴重，需做好準備。</p>
+                            <p><strong>儲蓄率與所得替代率:</strong> 高儲蓄率加速資產累積，合理的所得替代率決定退休生活所需資產規模。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="action" class="content-section hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold text-sky-700 mb-6">實踐應用與潛在投資者的考量</h2>
+                 <p class="text-slate-600 mb-6">
+                    將YP的哲學付諸實踐，需要理解核心原則，關注實際操作，並對挑戰有所準備。成功實施策略要求投資者具備基礎金融素養，並在初始階段積極學習。雖然方法力求簡便，但初始的接納與設定仍需個人付出。
+                </p>
+                <div class="space-y-4">
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">克服行為偏誤與市場噪音</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>「控制行為」是成功的關鍵。即使被動投資，也難免受市場新聞干擾。YP建議「閒錢投資」、避免過度投入，有助管理情緒。市場低迷時保持樂觀並勇於買入，需要情緒紀律，這與是否已建立穩固財務基礎相關。</p>
+                        </div>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">「一年投資五分鐘」的現實解讀</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>此口號指完成初始學習、開戶及規劃後，日常維護所需時間。初期學習與規劃遠超五分鐘。「五分鐘」更貼切描述系統建立後，定期再平衡或執行交易的時間。清晰認知有助建立實際期望。</p>
+                        </div>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">將YP策略適應個人化需求</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>雖有普適性指導（如6個月緊急備用金，「110-年齡」配置），但每位投資者需依自身狀況、風險承受能力、目標等個性化調整。YP的書與部落格提供框架，具體執行細節需審慎判斷或尋求專業意見。</p>
+                        </div>
+                    </div>
+                     <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <h3 class="card-title expand-button cursor-pointer" onclick="toggleExpand(this.parentElement)">開始行動與堅持不懈</h3>
+                        <div class="expand-content text-slate-600 mt-2">
+                            <p>儘早開始投資，並保持長期投入一致性（「一直買，就對了！」；「最好的進場時機就是現在」）。複利的威力對越早開始並長期堅持者效益更顯著。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 p-6 bg-sky-50 rounded-lg border border-sky-200">
+                    <h3 class="text-xl font-semibold text-sky-700 mb-3">對讀者的行動建議：</h3>
+                    <ol class="list-decimal list-inside text-slate-700 space-y-2">
+                        <li><strong>優先投入金融教育：</strong>徹底研讀YP的著作與部落格，建立理論基礎。</li>
+                        <li><strong>構築穩固的財務基礎：</strong>遵循理財鐵三角順序：緊急備用金 → 保險 → 投資。</li>
+                        <li><strong>系統實施指數化投資五步驟：</strong>按部就班建立並執行個人計劃。</li>
+                        <li><strong>培養投資紀律與行為控制：</strong>學習控制情緒，抵制市場噪音，堅守長期計劃。</li>
+                        <li><strong>策略個人化調整：</strong>將通用建議與自身情況結合，進行個性化調整。</li>
+                        <li><strong>專注於人生旅程本身：</strong>擁抱「主動享受生活，被動指數投資」哲學，讓財務服務人生。</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 text-center p-6 mt-12">
+        <p>&copy; <span id="currentYear"></span> 小資YP理財智慧互動指南。基於公開資訊整理。</p>
+        <p class="text-xs mt-1">本指南僅供參考，不構成任何投資建議。投資有風險，請謹慎評估。</p>
+    </footer>
+
+    <script>
+        let currentChart = null;
+
+        function showSection(sectionId, navLink) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            navLink.classList.add('active');
+            window.scrollTo(0, 0); 
+        }
+
+        function toggleExpand(parentElement) {
+            parentElement.classList.toggle('expanded');
+        }
+
+        function toggleSubExpand(parentElement) {
+            parentElement.classList.toggle('sub-expanded');
+        }
+
+        function calculateStockAllocation() {
+            const age = parseInt(document.getElementById('ageInput').value);
+            const resultElement = document.getElementById('stockAllocationResult');
+            if (isNaN(age) || age <= 0 || age > 110) {
+                resultElement.textContent = '請輸入有效的年齡 (1-110)。';
+                return;
+            }
+            const stockPercentage = 110 - age;
+            resultElement.textContent = `依「110 - 年齡」法則，建議您的股票配置比例約為：${stockPercentage}%。`;
+        }
+
+        const triangleDetails = {
+            emergency: {
+                title: "緊急備用金 (Emergency Fund)",
+                text: "目的是應對突發狀況，如失業、意外醫療、家庭緊急維修等，避免在危機時刻被迫中斷長期投資或陷入債務。建議準備相當於6個月生活費的金額，以現金或高流動性形式（如活期存款）存放於專用帳戶。在未足額準備前，不應進行其他投資。"
+            },
+            insurance: {
+                title: "保險 (Insurance)",
+                text: "主要功能在於轉移個人或家庭難以承受的巨災風險，如重病醫療、意外傷殘等。保險的本質是「集合眾人力量分攤風險」。對於多數人而言，配置適足的保險以防範財務崩潰至關重要。"
+            },
+            investment: {
+                title: "投資 (Investment)",
+                text: "當緊急備用金充足，且已透過保險規劃好基本風險防護網後，便可更安心地邁出投資步伐，利用複利的威力實現長期財富增長。YP推薦採用被動式指數化投資，長期持有ETF。"
+            }
+        };
+
+        function showTriangleDetail(detailKey) {
+            const detailBox = document.getElementById('triangleDetail');
+            const detail = triangleDetails[detailKey];
+            if (detail) {
+                detailBox.innerHTML = `<h4 class="text-md font-semibold text-sky-600 mb-2">${detail.title}</h4><p class="text-sm text-slate-600">${detail.text}</p>`;
+            }
+        }
+        
+        function calculateEmergencyFund() {
+            const monthlyExpensesInput = document.getElementById('monthlyExpenses');
+            const resultElement = document.getElementById('emergencyFundResult');
+            const monthlyExpenses = parseFloat(monthlyExpensesInput.value);
+
+            if (isNaN(monthlyExpenses) || monthlyExpenses <= 0) {
+                resultElement.textContent = '請輸入有效的每月生活開銷。';
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+                return;
+            }
+
+            const targetEmergencyFund = monthlyExpenses * 6;
+            resultElement.textContent = `建議的6個月緊急備用金目標為：${targetEmergencyFund.toLocaleString()} 元。`;
+            
+            const ctx = document.getElementById('emergencyFundChart').getContext('2d');
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['緊急備用金目標 (6個月)'],
+                    datasets: [{
+                        label: '金額 (元)',
+                        data: [targetEmergencyFund],
+                        backgroundColor: ['rgba(56, 189, 248, 0.6)'], 
+                        borderColor: ['rgba(56, 189, 248, 1)'], 
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' 元';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += context.parsed.x.toLocaleString() + ' 元';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function calculateFreedomNumber() {
+            const annualExpensesInput = document.getElementById('annualExpenses');
+            const resultElement = document.getElementById('freedomNumberResult');
+            const annualExpenses = parseFloat(annualExpensesInput.value);
+
+            if (isNaN(annualExpenses) || annualExpenses <= 0) {
+                resultElement.textContent = '請輸入有效的每年生活開銷。';
+                return;
+            }
+
+            const freedomNumber = annualExpenses / 0.04;
+            resultElement.textContent = `依4%法則，您可能需要的財務獨立資產規模約為：${freedomNumber.toLocaleString()} 元。`;
+        }
+        
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            const expanded = mobileMenuButton.getAttribute('aria-expanded') === 'true' || false;
+            mobileMenuButton.setAttribute('aria-expanded', !expanded);
+            mobileMenu.classList.toggle('hidden');
+            mobileMenuButton.querySelectorAll('svg').forEach(svg => svg.classList.toggle('hidden'));
+        });
+
+        function closeMobileMenu() {
+            mobileMenuButton.setAttribute('aria-expanded', 'false');
+            mobileMenu.classList.add('hidden');
+            mobileMenuButton.querySelectorAll('svg').forEach((svg, index) => {
+                if (index === 0) svg.classList.remove('hidden'); 
+                else svg.classList.add('hidden'); 
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('home', document.querySelector('.nav-link[href="#home"]'));
+            showTriangleDetail('emergency'); 
+        });
+
+    </script>
+</body>
+</html>
