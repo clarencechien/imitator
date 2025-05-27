@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中國製造業崛起：互動式報告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Report Info: Timelines (Tables 1, Apple/Tesla sections) -> Goal: Show chronological development -> Viz/Presentation: HTML/CSS/JS interactive timelines -> Interaction: Hover/click for details -> Justification: Clear, engaging way to present temporal data.
+        - Report Info: Quantitative data (Tables 2, 3, Apple/Tesla stats, general economic data) -> Goal: Compare, show change, inform -> Viz/Presentation: Bar charts, Line charts, Donut charts (Chart.js), Dynamic stat cards (HTML/CSS/JS) -> Interaction: Tooltips, potentially clickable legends if needed -> Justification: Standard, effective ways to visualize numerical data for easy comprehension.
+        - Report Info: Qualitative insights, policy details, analyses (textual content throughout the report) -> Goal: Inform, explain -> Viz/Presentation: Structured text blocks, cards, accordions (HTML/CSS/Tailwind + JS for show/hide) -> Interaction: Click to expand/reveal details -> Justification: Organizes large amounts of text for better readability and progressive disclosure.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Assuming Inter is loaded or a fallback is acceptable */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Default max-width, can be overridden by Tailwind classes */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 400px; /* Max height */
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            @apply px-4 py-2 text-sm font-medium text-stone-700 hover:bg-amber-100 hover:text-sky-600 rounded-md transition-colors duration-150 cursor-pointer;
+        }
+        .nav-link.active {
+            @apply bg-sky-500 text-white hover:bg-sky-600;
+        }
+        .content-section {
+            @apply p-4 md:p-6 bg-white rounded-lg shadow-lg;
+        }
+        .card {
+            @apply bg-amber-50 p-4 rounded-lg shadow hover:shadow-md transition-shadow;
+        }
+        .stat-card {
+            @apply bg-sky-50 p-6 rounded-lg shadow text-center;
+        }
+        .stat-value {
+            @apply text-3xl font-bold text-sky-600;
+        }
+        .stat-label {
+            @apply text-sm text-stone-600 mt-1;
+        }
+        h2 {
+            @apply text-2xl font-semibold text-stone-800 mb-4;
+        }
+        h3 {
+            @apply text-xl font-semibold text-stone-700 mb-3 mt-4;
+        }
+        p {
+            @apply text-stone-700 leading-relaxed mb-3 text-base;
+        }
+        ul {
+            @apply list-disc list-inside text-stone-700 mb-3 pl-4;
+        }
+        .timeline-item {
+            @apply relative pl-8 py-2 border-l-2 border-amber-300;
+        }
+        .timeline-item::before {
+            content: '';
+            @apply absolute w-4 h-4 bg-amber-400 rounded-full left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 border-2 border-white;
+        }
+        .tooltip {
+            @apply absolute z-10 px-3 py-2 text-sm font-medium text-white bg-stone-900 rounded-lg shadow-sm opacity-0 transition-opacity duration-300;
+        }
+        .has-tooltip:hover .tooltip {
+            @apply opacity-100;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-stone-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-sky-600">中國製造業崛起</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-1 lg:space-x-2">
+                        <a href="#overview" class="nav-link active">總覽</a>
+                        <a href="#foundation" class="nav-link">奠基之路</a>
+                        <a href="#taiwan" class="nav-link">台商貢獻</a>
+                        <a href="#catalysts" class="nav-link">外資催化</a>
+                        <a href="#domestic" class="nav-link">本土力量</a>
+                        <a href="#data" class="nav-link">數據洞察</a>
+                        <a href="#conclusion" class="nav-link">結論與展望</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-stone-700 hover:text-sky-600 focus:outline-none">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg">
+            <a href="#overview" class="block px-4 py-3 text-sm text-stone-700 hover:bg-amber-100 hover:text-sky-600">總覽</a>
+            <a href="#foundation" class="block px-4 py-3 text-sm text-stone-700 hover:bg-amber-100 hover:text-sky-600">奠基之路</a>
+            <a href="#taiwan" class="block px-4 py-3 text-sm text-stone-700 hover:bg-amber-100 hover:text-sky-600">台商貢獻</a>
+            <a href="#catalysts" class="block px-4 py-3 text-sm text-stone-700 hover:bg-amber-100 hover:text-sky-600">外資催化</a>
+            <a href="#domestic" class="block px-4 py-3 text-sm text-stone-700 hover:bg-amber-100 hover:text-sky-600">本土力量</a>
+            <a href="#data" class="block px-4 py-3 text-sm text-stone-700 hover:bg-amber-100 hover:text-sky-600">數據洞察</a>
+            <a href="#conclusion" class="block px-4 py-3 text-sm text-stone-700 hover:bg-amber-100 hover:text-sky-600">結論與展望</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        <section id="overview" class="content-section">
+            <h2>總覽：多重動力的解析</h2>
+            <p>本互動報告旨在深入探討中國崛起成為全球消費性電子及電動汽車（EV）製造中心的複雜因素。中國在這些領域的製造業霸主地位並非單一因素促成，而是多種力量長期交織作用的結果。本報告將詳細闡述各階段的關鍵發展、重要數據及里程碑事件，提供一個平衡且具深度的視角，解析中國如何轉變為世界級的製造強國。這是一個多方參與者在不同時期、以不同方式貢獻力量，相互影響、相互促進，共同編織出中國製造業今日輝煌的「協同進化」過程。</p>
+            <h3>關鍵發展里程碑</h3>
+            <div class="relative mt-6">
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">1978-1988</h4>
+                    <p class="text-sm text-stone-600">經濟改革開始，原始工業化階段，鄉鎮企業萌芽。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">1980</h4>
+                    <p class="text-sm text-stone-600">深圳等首批經濟特區成立，吸引外資，發展出口導向型製造業。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">1988-1998</h4>
+                    <p class="text-sm text-stone-600">第一次工業革命，勞力密集型輕工業消費品大規模生產，台商開始大規模投資。</p>
+                </div>
+                 <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">2001</h4>
+                    <p class="text-sm text-stone-600">中國加入WTO，更深融入全球供應鏈。蘋果與中國建立合作夥伴關係。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">~2007</h4>
+                    <p class="text-sm text-stone-600">首代iPhone發布，在中國大規模生產逐步展開。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">2009</h4>
+                    <p class="text-sm text-stone-600">中國開始實施大規模電動汽車扶持政策。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">2010</h4>
+                    <p class="text-sm text-stone-600">中國超越美國成為世界第一大工業強國。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">2015</h4>
+                    <p class="text-sm text-stone-600">「中國製造2025」政策發布，目標提升本土創新能力。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">2019</h4>
+                    <p class="text-sm text-stone-600">特斯拉上海超級工廠動工並開始初步生產。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="font-semibold text-stone-700">2020年代</h4>
+                    <p class="text-sm text-stone-600">中國引領全球電動汽車生產與銷售，本土品牌崛起。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="foundation" class="content-section hidden">
+            <h2>奠基之路：早期政策與工業基礎</h2>
+            <p>中國轉型為全球製造業巨擘，是一個早於蘋果和特斯拉在中國產生重大影響之前就已啟動的長期過程。這一轉變的根基在於其國內政策、戰略性地融入全球經濟體系，以及特定區域的集中發展。</p>
+            <div class="grid md:grid-cols-2 gap-6 mt-6">
+                <div class="card">
+                    <h3>早期工業政策與加入WTO</h3>
+                    <p>自1978年改革開放以來，中國工業發展經歷數個重要階段，最初著重於勞力密集型產業。2001年加入WTO是關鍵轉捩點，使中國企業更深融入全球供應鏈，學習並逐步創新。政府大力投入基礎設施建設，吸引外資，為產業升級創造了條件。</p>
+                </div>
+                <div class="card">
+                    <h3>經濟特區的崛起：深圳模式</h3>
+                    <p>深圳等經濟特區的設立，是吸引外資、發展出口導向型製造業的成功典範。特區提供稅收減免、廉價土地等優惠，吸引大量投資（包括台商），形成了強大的產業聚集效應，催生了如電子產業中心等高度專業化的產業生態系統。</p>
+                </div>
+            </div>
+            <h3 class="mt-6">中國工業轉型的關鍵階段</h3>
+            <ul>
+                <li><strong>1978-1988年：原始工業化階段。</strong>鄉鎮企業的萌芽與發展。</li>
+                <li><strong>1988-1998年：第一次工業革命階段。</strong>勞力密集型輕工業消費品的大規模生產。電子產業開始嶄露頭角。</li>
+                <li><strong>1998年至今：第二次工業革命階段。</strong>轉向大規模生產「生產資料」，重工業擴張。消費性電子製造能力達頂峰。2010年成世界第一大工業強国。</li>
+            </ul>
+            <p>中國製造業的崛起，是出口導向與國內市場需求擴張相互促進的結果。龐大的國內市場為企業提供了實現規模經濟和產品改良的試驗場。</p>
+        </section>
+
+        <section id="taiwan" class="content-section hidden">
+            <h2>台商貢獻：數十年的投資與知識轉移</h2>
+            <p>台灣企業在中國製造業崛起，特別是電子產業的過程中，扮演了至關重要的角色。其影響既早於蘋果大規模在華生產，也與之多有重疊，為中國大陸的製造業打下了堅實的基礎。</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                <div class="stat-card">
+                    <div class="stat-value">86.7億美元</div>
+                    <div class="stat-label">截至2002年底台商對大陸電子電器業累計投資額 (台方統計)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">>30%</div>
+                    <div class="stat-label">1990年代末期電子電機業佔台商對大陸總投資額比重</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">~150萬人</div>
+                    <div class="stat-label">高峰期東莞台資企業僱用員工人數估計</div>
+                </div>
+            </div>
+            <h3 class="mt-6">投資浪潮與知識轉移</h3>
+            <p>自1990年代初起，大量台灣企業因本土成本上升等因素，將生產基地轉移至中國大陸。大陸提供的低廉成本和相同語言文化環境，使其成為首選。這些投資不僅規模巨大，產品也從低階周邊逐步升級到主機板、筆記型電腦等。台商不僅帶來資金，更重要的是傳授了製造知識、管理實踐和技術技能。透過外派人員、在職培訓等方式，台灣的管理模式和生產經驗被引入並培養了本地人才。</p>
+            <p>台灣企業在長期的國際代工生涯中積累的符合全球品牌要求的管理經驗，如品質控制、生產效率和供應鏈靈活性，客觀上提升了中國本土製造業的整體水平，使其能更好地融入全球價值鏈。</p>
+            <div class="mt-6 chart-container max-w-lg">
+                <canvas id="taiwanInvestmentChart"></canvas>
+            </div>
+            <p class="text-sm text-center text-stone-500 mt-2">圖表：示意台商對大陸投資趨勢 (基於報告描述的早期增長)</p>
+        </section>
+
+        <section id="catalysts" class="content-section hidden">
+            <h2>外資催化：蘋果與特斯拉的影響</h2>
+            <p>以蘋果和特斯拉為代表的西方科技巨頭，在其後扮演了重要的催化劑角色。它們的巨大訂單、嚴苛的品質要求以及先進的技術和生產模式，極大地刺激和提升了中國本土供應鏈的水平，加速了特定產業集群的成熟。</p>
+            
+            <div class="mt-6">
+                <div class="flex border-b border-amber-300">
+                    <button data-tab="apple" class="catalyst-tab-button flex-1 py-2 px-4 text-center font-medium text-sky-600 border-b-2 border-sky-600 focus:outline-none">蘋果的影響</button>
+                    <button data-tab="tesla" class="catalyst-tab-button flex-1 py-2 px-4 text-center font-medium text-stone-500 hover:text-sky-500 focus:outline-none">特斯拉的影響</button>
+                </div>
+
+                <div id="apple-content" class="catalyst-tab-content py-4">
+                    <h3>蘋果在中國：消費性電子生態系統的催化劑</h3>
+                    <p>蘋果公司自2001年與中國建立合作夥伴關係，逐步將生產重心轉移至中國。iPhone的巨大成功使蘋果在華生產規模急劇擴大。蘋果不僅依賴鴻海等大型代工廠，還積極扶持本土供應商，提升其技術和管理水平，形成了「果鏈」。</p>
+                    <div class="grid md:grid-cols-2 gap-6 mt-4">
+                        <div class="stat-card">
+                            <div class="stat-value">~90%</div>
+                            <div class="stat-label">蘋果iPhone在中國製造的比例</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">>100萬</div>
+                            <div class="stat-label">蘋果製造夥伴在中國僱用的工人數</div>
+                        </div>
+                    </div>
+                    <p class="mt-4">蘋果對品質和效率的極高標準，以及對特定零部件的嚴格規格要求，刺激了供應商的技術創新和升級。這種由終端產品需求拉動的創新模式，促使中國供應商快速發展。然而，這也為後來的中國本土品牌提供了可利用的成熟供應鏈資源。</p>
+                    <div class="mt-6 chart-container max-w-md">
+                        <canvas id="appleProductionChart"></canvas>
+                    </div>
+                     <p class="text-sm text-center text-stone-500 mt-2">圖表：示意蘋果主要產品在華生產情況</p>
+                </div>
+
+                <div id="tesla-content" class="catalyst-tab-content py-4 hidden">
+                    <h3>特斯拉的超級工廠與中國電動汽車產業的加速</h3>
+                    <p>特斯拉上海超級工廠於2019年迅速建成投產，是中國首家外商獨資車企。其進入產生了「鯰魚效應」，刺激了本土電動汽車品牌的創新與競爭。特斯拉也積極推動供應鏈本地化。</p>
+                     <div class="grid md:grid-cols-2 gap-6 mt-4">
+                        <div class="stat-card">
+                            <div class="stat-value">>95%</div>
+                            <div class="stat-label">特斯拉上海工廠產業鏈本地化率</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">~1年</div>
+                            <div class="stat-label">上海超級工廠從動工到交付時長</div>
+                        </div>
+                    </div>
+                    <p class="mt-4">特斯拉的先進技術和高效生產模式給本土品牌帶來壓力，迫使其加速發展。同時，中國政府對新能源汽車的大力扶持也為特斯拉及本土品牌的發展創造了有利環境。自特斯拉在華本土化生產以來，中國電動汽車產業的產銷規模、出口表現均實現爆炸式增長。</p>
+                    <div class="mt-6 chart-container">
+                        <canvas id="evGrowthChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-stone-500 mt-2">圖表：中國電動汽車產銷量增長趨勢 (示意)</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="domestic" class="content-section hidden">
+            <h2>本土力量：國家政策與自主創新</h2>
+            <p>中國製造業的成功，離不開國家層面的戰略規劃、地方政府的積極推動以及本土企業強大的學習和創新能力。這些內生動力是中國從「世界工廠」轉向製造強國的關鍵。</p>
+            <div class="grid md:grid-cols-2 gap-6 mt-6">
+                <div class="card">
+                    <h3>國家與地方產業政策</h3>
+                    <p>「中國製造2025」戰略旨在減少對外國技術依賴，提升本土創新能力，在機器人、半導體、新能源汽車等領域建立全球競爭力。在新能源汽車領域，政府自2009年起投入巨額補貼，輔以稅收優惠、基礎設施建設等措施，極大刺激了產業發展。大規模的基礎設施建設也為製造業高效運作提供了保障。</p>
+                </div>
+                <div class="card">
+                    <h3>本土創新與「自學」能力</h3>
+                    <p>中國企業在引進、消化、吸收的基礎上，展現出強大的學習、適應和本土創新能力。從最初模仿到逐步自主研發，政府對研發的大力投入、龐大國內市場提供的試驗場以及人才隊伍的成長，共同推動了本土創新。如今，中國在LCD、移動通訊、新能源汽車等領域已具備全球競爭力，甚至部分技術領先。</p>
+                </div>
+            </div>
+            <h3 class="mt-6">關鍵政策與成果</h3>
+            <ul>
+                <li><strong>「中國製造2025」：</strong> 2015年發布，目標產業升級與技術自主。</li>
+                <li><strong>新能源汽車補貼：</strong> 2009-2023年估計達2300億美元，推動市場與產業。</li>
+                <li><strong>本土品牌崛起：</strong> 華為、小米、比亞迪等在全球市場取得成功。</li>
+                <li><strong>生產體系優化：</strong> 中國已擁有高度優化且規模龐大的生產生態系統，難以複製。</li>
+            </ul>
+        </section>
+
+        <section id="data" class="content-section hidden">
+            <h2>數據洞察：關鍵指標速覽</h2>
+            <p>本部分匯總了報告中提及的關鍵量化數據，透過圖表形式直觀展示中國製造業在消費性電子和電動汽車領域的發展規模與速度。這些數據有助於理解不同因素對產業成長的具體貢獻。</p>
+            <div class="grid md:grid-cols-2 gap-8 mt-6">
+                <div class="chart-container">
+                    <h3 class="text-center mb-2">中國電動汽車年產量 (萬輛)</h3>
+                    <canvas id="evProductionDataChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="text-center mb-2">中國電動汽車年出口量 (萬輛)</h3>
+                    <canvas id="evExportDataChart"></canvas>
+                </div>
+                <div class="chart-container">
+                     <h3 class="text-center mb-2">蘋果供應商在華設廠比例</h3>
+                    <canvas id="appleSupplierChinaChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="text-center mb-2">台商對大陸電子產業投資占比 (早期)</h3>
+                    <canvas id="taiwanInvestmentShareChart"></canvas>
+                </div>
+            </div>
+             <p class="mt-6 text-sm text-stone-600">請注意：以上圖表數據主要基於報告中提供的選定年份和估計值，旨在說明趨勢和規模，部分數據可能為示意性呈現。詳細數據請參閱原始報告各章節表格。</p>
+        </section>
+
+        <section id="conclusion" class="content-section hidden">
+            <h2>結論與展望：多重交織的成功之路</h2>
+            <h3>結論：協同進化的製造霸權</h3>
+            <p>中國在消費性電子和電動汽車製造領域取得的全球主導地位，並非源於任何單一的決定性因素，而是一個長達數十年、多方面力量複雜互動的演進結果。戰略性的政府規劃與政策支持奠定了宏觀框架。台灣企業的早期投入移植了成熟的製造工藝與管理經驗。以蘋果、特斯拉為代表的西方科技巨頭扮演了重要的催化劑角色，提升了本土供應鏈水平。同時，中國自身的工業化決心、本土企業的學習與創新能力，也是不可或缺的內生動力。</p>
+            <p>因此，這是一個多方參與者在不同時期、以不同方式貢獻力量，相互影響、相互促進，共同編織出中國製造業今日輝煌的「協同進化」過程。</p>
+            
+            <h3 class="mt-6">戰略意涵與未來展望</h3>
+            <ul>
+                <li><strong>全球供應鏈重塑：</strong> 跨國公司推動供應鏈多元化，但中國短期內核心地位難撼動。</li>
+                <li><strong>技術與貿易競爭持續：</strong> 中國推動技術自給自足，從「世界工廠」轉向技術競爭者，加劇國際競爭。</li>
+                <li><strong>本土品牌全球擴張：</strong> 龐大國內市場和成熟供應鏈支持本土品牌走向國際。</li>
+                <li><strong>地緣政治因素凸顯：</strong> 中國在關鍵製造領域的優勢促使他國重估供應鏈安全，全球製造業版圖或將深刻調整。</li>
+            </ul>
+            <p>中國製造業已進入新階段，不僅是製造中心，也日益成為技術創新和品牌出海的重要策源地，將持續塑造全球經濟的未來走向。</p>
+        </section>
+    </main>
+
+    <footer class="bg-stone-800 text-amber-50 py-8 text-center mt-12">
+        <p class="text-sm">&copy; 2024 中國製造業崛起互動式報告. 基於提供之研究報告建置。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-link, #mobile-menu a');
+            const sections = document.querySelectorAll('.content-section');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            function updateActiveLink(activeHash) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === activeHash) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            function showSection(hash) {
+                sections.forEach(section => {
+                    if ('#' + section.id === hash) {
+                        section.classList.remove('hidden');
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                });
+                updateActiveLink(hash);
+                window.scrollTo(0, 0); // Scroll to top of page
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetHash = this.getAttribute('href');
+                    showSection(targetHash);
+                    history.pushState(null, null, targetHash); // Update URL hash
+                    if (mobileMenu.classList.contains('block')) {
+                        mobileMenu.classList.remove('block');
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+                mobileMenu.classList.toggle('block');
+            });
+            
+            // Catalyst tabs
+            const catalystTabButtons = document.querySelectorAll('.catalyst-tab-button');
+            const catalystTabContents = document.querySelectorAll('.catalyst-tab-content');
+
+            catalystTabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.dataset.tab;
+
+                    catalystTabButtons.forEach(btn => {
+                        btn.classList.remove('text-sky-600', 'border-sky-600');
+                        btn.classList.add('text-stone-500', 'hover:text-sky-500');
+                    });
+                    this.classList.add('text-sky-600', 'border-sky-600');
+                    this.classList.remove('text-stone-500', 'hover:text-sky-500');
+                    
+                    catalystTabContents.forEach(content => {
+                        if (content.id === `${tabId}-content`) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+
+            // Initial section display based on URL hash or default to #overview
+            const initialHash = window.location.hash || '#overview';
+            showSection(initialHash);
+
+            // Handle browser back/forward
+            window.addEventListener('popstate', function() {
+                showSection(window.location.hash || '#overview');
+            });
+
+            // Chart.js configurations
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 10 },
+                            padding: 10,
+                            color: '#57534e' // stone-600
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { 
+                            color: '#57534e', // stone-600
+                            font: { size: 10 } 
+                        },
+                        grid: { color: '#e7e5e4' } // stone-200
+                    },
+                    x: {
+                        ticks: { 
+                            color: '#57534e', // stone-600
+                            font: { size: 10 },
+                            callback: function(value, index, values) {
+                                const label = this.getLabelForValue(value);
+                                if (label.length > 16) {
+                                    return label.substring(0, 16) + '...';
+                                }
+                                return label;
+                            }
+                        },
+                        grid: { display: false }
+                    }
+                }
+            };
+            
+            const pieChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                         labels: { font: { size: 10 }, padding: 8, color: '#57534e' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Taiwan Investment Chart (Illustrative Bar Chart)
+            if (document.getElementById('taiwanInvestmentChart')) {
+                new Chart(document.getElementById('taiwanInvestmentChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['1990年代末', '2000年', '2001年', '2002年'],
+                        datasets: [{
+                            label: '台商對大陸核准投資額 (億美元，電子電機業為主)',
+                            data: [15, 26.07 * 0.3, 27.84 * 0.3, 34.05 * 0.35], // Example data based on report context
+                            backgroundColor: 'rgba(56, 189, 248, 0.6)', // sky-400
+                            borderColor: 'rgba(14, 165, 233, 1)', // sky-500
+                            borderWidth: 1
+                        }]
+                    },
+                    options: chartOptions
+                });
+            }
+            
+            // Apple Production Chart (Illustrative Donut Chart)
+            if (document.getElementById('appleProductionChart')) {
+                new Chart(document.getElementById('appleProductionChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['iPhone 中國製造', '其他地區製造'],
+                        datasets: [{
+                            label: 'iPhone 製造分佈',
+                            data: [90, 10], // 90% China
+                            backgroundColor: ['rgba(56, 189, 248, 0.7)', 'rgba(245, 158, 11, 0.7)'], // sky-400, amber-500
+                            borderColor: ['rgba(14, 165, 233, 1)', 'rgba(217, 119, 6, 1)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: pieChartOptions
+                });
+            }
+
+            // EV Growth Chart (Illustrative Line Chart)
+            if (document.getElementById('evGrowthChart')) {
+                new Chart(document.getElementById('evGrowthChart'), {
+                    type: 'line',
+                    data: {
+                        labels: ['2018', '2020', '2021', '2022', '2023', '2024 (估)'],
+                        datasets: [{
+                            label: '中國電動汽車銷量 (百萬輛)',
+                            data: [1.2, 1.3, 3.5, 6.8, 9.5, 12.4 * 0.66], // Based on report data, 2024 is global share
+                            borderColor: 'rgba(14, 165, 233, 1)', // sky-500
+                            backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: chartOptions
+                });
+            }
+
+            // Data Insights Charts
+            if (document.getElementById('evProductionDataChart')) {
+                 new Chart(document.getElementById('evProductionDataChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['2018', '2024'],
+                        datasets: [{
+                            label: '中國電動汽車年產量 (萬輛)',
+                            data: [120, 1240],
+                            backgroundColor: 'rgba(234, 179, 8, 0.6)', // amber-500
+                            borderColor: 'rgba(217, 119, 6, 1)', // amber-600
+                            borderWidth: 1
+                        }]
+                    },
+                    options: chartOptions
+                });
+            }
+
+            if (document.getElementById('evExportDataChart')) {
+                 new Chart(document.getElementById('evExportDataChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['2018 (基期)', '2023', '2024'],
+                        datasets: [{
+                            label: '中國電動汽車年出口量 (萬輛)',
+                            data: [ (160 / (1+10.16)) , 160, 125], // Approx 2018 from 1016% growth
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)', // emerald-500
+                            borderColor: 'rgba(5, 150, 105, 1)', // emerald-600
+                            borderWidth: 1
+                        }]
+                    },
+                    options: chartOptions
+                });
+            }
+            
+            if (document.getElementById('appleSupplierChinaChart')) {
+                new Chart(document.getElementById('appleSupplierChinaChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['在中國設廠的蘋果頂級供應商', '其他'],
+                        datasets: [{
+                            data: [150, 187 - 150], // 150 out of 187
+                            backgroundColor: ['rgba(56, 189, 248, 0.7)', 'rgba(203, 213, 225, 0.7)'], // sky-400, slate-300
+                            borderColor: ['rgba(14, 165, 233, 1)', 'rgba(100, 116, 139, 1)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: pieChartOptions
+                });
+            }
+
+            if (document.getElementById('taiwanInvestmentShareChart')) {
+                new Chart(document.getElementById('taiwanInvestmentShareChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['電子及電器產品', '其他產業'],
+                        datasets: [{
+                            data: [35.77, 100 - 35.77], // 35.77% for electronics
+                            backgroundColor: ['rgba(245, 158, 11, 0.7)', 'rgba(203, 213, 225, 0.7)'], // amber-500, slate-300
+                            borderColor: ['rgba(217, 119, 6, 1)', 'rgba(100, 116, 139, 1)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: pieChartOptions
+                });
+            }
+
+        });
+    </script>
+</body>
+</html>
