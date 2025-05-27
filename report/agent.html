@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>`ed-donner/agents` 專案互動導讀</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Visualization & Content Choices:
+        - Report Info: Table 1 (6-week course overview), Table 2 (API Key Checklist), Table 3 (CrewAI Components).
+        - Goal: Inform, Organize.
+        - Viz/Presentation Method: Styled HTML tables for clarity and direct representation.
+        - Interaction: None for tables themselves, but they are part of navigable sections.
+        - Justification: Tables are the most direct way to present this structured data from the report. No complex data suitable for Chart.js is present.
+        - Library/Method: HTML + Tailwind CSS.
+
+        - Report Info: Foundational concepts (e.g., AI Agent features, Python basics).
+        - Goal: Assess understanding, Reinforce learning.
+        - Viz/Presentation Method: Multiple-choice quizzes.
+        - Interaction: User selects answers, JS provides feedback.
+        - Justification: Interactive quizzes enhance engagement and self-assessment for beginner concepts.
+        - Library/Method: HTML + Vanilla JS.
+
+        - Report Info: Textual explanations, code snippets from the report.
+        - Goal: Inform, Guide.
+        - Viz/Presentation Method: Clearly formatted text, `<pre><code>` for code.
+        - Interaction: Navigation, expand/collapse for dense sections (e.g., weekly details).
+        - Justification: Standard web presentation for readability and structured learning.
+        - Library/Method: HTML + Tailwind CSS + Vanilla JS for accordions.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Tailwind default is often Inter via sans-serif */
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .nav-link {
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #0284c7; /* sky-600 */
+            color: white;
+        }
+        .nav-link.sub-link {
+            padding-left: 32px;
+            font-size: 0.9em;
+        }
+        .nav-link.sub-link:hover, .nav-link.sub-link.active {
+            background-color: #38bdf8; /* sky-400 */
+        }
+        .accordion-button {
+            background-color: #f1f5f9; /* slate-100 */
+            color: #1e293b; /* slate-800 */
+            cursor: pointer;
+            padding: 12px 18px;
+            width: 100%;
+            text-align: left;
+            border: none;
+            outline: none;
+            transition: background-color 0.3s;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        .accordion-button:hover, .accordion-button.active {
+            background-color: #e2e8f0; /* slate-200 */
+        }
+        .accordion-content {
+            padding: 0 18px;
+            background-color: white;
+            display: none;
+            overflow: hidden;
+            border: 1px solid #e2e8f0; /* slate-200 */
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #cbd5e1; /* slate-300 */
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f5f9; /* slate-100 */
+            font-weight: 600;
+        }
+        pre {
+            background-color: #f8fafc; /* slate-50 */
+            border: 1px solid #e2e8f0; /* slate-200 */
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+        .quiz-option {
+            margin-bottom: 0.5rem;
+        }
+        .quiz-feedback {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .quiz-feedback.correct {
+            background-color: #d1fae5; /* green-100 */
+            color: #065f46; /* green-800 */
+        }
+        .quiz-feedback.incorrect {
+            background-color: #fee2e2; /* red-100 */
+            color: #991b1b; /* red-800 */
+        }
+        /* Responsive sidebar for mobile */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -280px; /* Hidden by default */
+                width: 280px;
+                height: 100%;
+                background-color: #f8fafc; /* slate-50 */
+                padding-top: 4rem; /* Space for hamburger */
+                transition: left 0.3s ease-in-out;
+                z-index: 40; /* Ensure it's above content but below hamburger toggle */
+                overflow-y: auto;
+            }
+            .sidebar.open {
+                left: 0;
+            }
+            .main-content-area {
+                margin-left: 0;
+                width: 100%;
+            }
+            .hamburger-menu {
+                display: block;
+            }
+        }
+        @media (min-width: 769px) {
+            .sidebar {
+                display: block !important; /* Ensure it's always visible on larger screens */
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <button id="hamburger-toggle" class="hamburger-menu md:hidden fixed top-4 left-4 z-50 p-2 bg-sky-600 text-white rounded-md">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+        </button>
+
+        <aside id="sidebar" class="sidebar w-full md:w-72 bg-slate-100 p-6 space-y-2 border-r border-slate-200 shadow-lg md:block">
+            <h1 class="text-2xl font-bold text-sky-700 mb-6">學習導覽</h1>
+            <nav id="main-nav" class="space-y-1">
+                <a class="nav-link block" data-target="welcome">🚀 歡迎</a>
+                
+                <div>
+                    <a class="nav-link block font-semibold" data-target="section1">I. 總體架構</a>
+                </div>
+                <div>
+                    <a class="nav-link block font-semibold" data-target="section2">II. 基礎知識</a>
+                    <div class="ml-4 mt-1 space-y-1">
+                        <a class="nav-link sub-link block" data-target="section2a">A. AI 代理核心</a>
+                        <a class="nav-link sub-link block" data-target="section2b">B. Python 入門</a>
+                        <a class="nav-link sub-link block" data-target="section2c">C. Jupyter 指南</a>
+                        <a class="nav-link sub-link block" data-target="section2d">D. API 金鑰設定</a>
+                        <a class="nav-link sub-link block" data-target="section2e">E. Git & GitHub</a>
+                        <a class="nav-link sub-link block" data-target="section2f">F. uv 套件工具</a>
+                    </div>
+                </div>
+                <div>
+                    <a class="nav-link block font-semibold" data-target="section3">III. 每週導讀</a>
+                     <div class="ml-4 mt-1 space-y-1">
+                        <a class="nav-link sub-link block" data-target="section3a">A. 第一週：基礎</a>
+                        <a class="nav-link sub-link block" data-target="section3b">B. 第二週：OpenAI</a>
+                        <a class="nav-link sub-link block" data-target="section3c">C. 第三週：CrewAI</a>
+                        <a class="nav-link sub-link block" data-target="section3d">D. 第四週：LangGraph</a>
+                        <a class="nav-link sub-link block" data-target="section3e">E. 第五週：AutoGen</a>
+                        <a class="nav-link sub-link block" data-target="section3f">F. 第六週：MCP</a>
+                        <a class="nav-link sub-link block" data-target="section3g">G. guides & setup</a>
+                    </div>
+                </div>
+                <div>
+                    <a class="nav-link block font-semibold" data-target="section4">IV. 框架專題</a>
+                    <div class="ml-4 mt-1 space-y-1">
+                        <a class="nav-link sub-link block" data-target="section4a">A. OpenAI SDK</a>
+                        <a class="nav-link sub-link block" data-target="section4b">B. CrewAI 建構</a>
+                        <a class="nav-link sub-link block" data-target="section4c">C. LangGraph 工作流</a>
+                        <a class="nav-link sub-link block" data-target="section4d">D. AutoGen 對話</a>
+                        <a class="nav-link sub-link block" data-target="section4e">E. MCP 應用</a>
+                    </div>
+                </div>
+                 <div>
+                    <a class="nav-link block font-semibold" data-target="conclusion">VII. 結論與資源</a>
+                </div>
+            </nav>
+        </aside>
+
+        <main id="main-content" class="main-content-area flex-1 p-6 md:p-10 bg-white overflow-y-auto">
+            <section id="welcome" class="content-section">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">歡迎來到 `ed-donner/agents` 專案互動導讀！</h2>
+                <p class="text-lg mb-4">本導覽旨在為 AI 代理工程的初學者提供一個清晰、友善的學習起點，幫助您快速掌握 <a href="https://github.com/ed-donner/agents" target="_blank" class="text-sky-600 hover:underline">`ed-donner/agents` GitHub 專案</a> 的核心內容，並順利開啟自主 AI 代理的學習與實作旅程。</p>
+                <div class="bg-sky-50 p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold text-sky-700 mb-3">🚀 為什麼選擇本導讀？</h3>
+                    <p class="mb-2">AI 代理工程是一個充滿潛力的新興領域，但其廣泛的知識和快速發展的技術也可能讓初學者感到不知所措。`ed-donner/agents` 專案提供了一個為期六週的完整學習課程，本導讀將作為您的學習夥伴，引導您：</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><strong>理解核心概念</strong>：快速掌握 AI 代理的基礎知識與關鍵術語。</li>
+                        <li><strong>熟悉專案結構</strong>：了解 `ed-donner/agents` GitHub 專案的組織方式與學習路徑。</li>
+                        <li><strong>掌握必備工具</strong>：認識課程中將使用的主要程式語言、框架與工具。</li>
+                        <li><strong>啟動學習旅程</strong>：為您接下來的六週學習奠定堅實的基礎。</li>
+                    </ul>
+                </div>
+                 <div class="mt-6 bg-amber-50 p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold text-amber-700 mb-3">🛠️ 開始之前：您的裝備檢查</h3>
+                    <p class="mb-2">在深入 `ed-donner/agents` 的精彩內容之前，建議您先具備或熟悉以下基礎：</p>
+                    <ol class="list-decimal list-inside space-y-1 text-slate-700">
+                        <li>AI 代理核心概念</li>
+                        <li>Python 程式設計入門</li>
+                        <li>Jupyter Notebook 操作指南</li>
+                        <li>API 金鑰與環境設定</li>
+                        <li>Git 與 GitHub 專案協作基礎</li>
+                        <li><code>uv</code> 套件管理工具介紹</li>
+                    </ol>
+                    <p class="mt-3 text-sm text-slate-600">本導讀網站的「基礎知識」部分將對這些主題有更詳細的說明，建議初學者先行熟悉。</p>
+                </div>
+            </section>
+
+            <section id="section1" class="content-section">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">I. 導讀網站整體架構與學習路徑</h2>
+                <p class="mb-4">一個成功的教學網站始於清晰的架構和引人入勝的學習路徑。對於初學者而言，直觀的導航和明確的指引是建立學習信心的關鍵第一步。本節將概述本互動導讀的設計理念以及建議的學習流程，以幫助您有效地利用 `ed-donner/agents` 專案資源。</p>
+                
+                <h3 class="text-2xl font-semibold text-sky-600 mt-6 mb-3">A. 網站導航與使用者介面設計</h3>
+                <p class="mb-4">本導讀網站採用側邊欄導航，讓您可以輕鬆在不同章節間切換。內容設計力求簡潔易懂，並採用響應式設計，確保在各種裝置上都有良好的閱讀體驗。我們的目標是降低您的認知負荷，讓您能專注於 AI 代理的專業知識學習。</p>
+
+                <h3 class="text-2xl font-semibold text-sky-600 mt-6 mb-3">B. 針對初學者的引導式學習流程</h3>
+                <p class="mb-4">AI 代理工程領域知識廣博，`ed-donner/agents` 專案涵蓋了六週的學習材料。本導讀建議您遵循以下學習流程：</p>
+                <ol class="list-decimal list-inside space-y-2 bg-sky-50 p-4 rounded-lg">
+                    <li>首先瀏覽「基礎知識教學模組」，穩固基本觀念。</li>
+                    <li>接著依照「每週課程導讀」的順序（從第一週到第六週）循序漸進學習。</li>
+                    <li>在學習過程中，積極參考「AI Agent 框架專題教學」以加深對特定框架的理解。</li>
+                    <li>利用本網站提供的互動練習（例如小測驗）來檢驗學習成效。</li>
+                </ol>
+                <p class="mt-4">網站會盡可能標示各模組的先備知識要求，並提供內部連結，確保學習的連貫性。</p>
+
+                <h3 class="text-2xl font-semibold text-sky-600 mt-6 mb-3">C. 整合 `ed-donner/agents` 的六週課程結構</h3>
+                <p class="mb-4">本導讀網站的核心內容完全圍繞 `ed-donner/agents` GitHub 專案的六週課程結構展開。每一週的導讀內容都會清楚標示其對應的 GitHub 資料夾，並概述該週的學習目標。</p>
+                <h4 class="text-xl font-semibold text-slate-700 my-4">表 1：`ed-donner/agents` 課程概覽</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>週次</th>
+                                <th>主題</th>
+                                <th>核心學習框架/工具</th>
+                                <th>主要學習目標</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>基礎 (Foundations)</td>
+                                <td>Python, Jupyter, Prompt Engineering</td>
+                                <td>建立開發環境，理解 AI 代理基礎概念與提示工程原理</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>OpenAI Agents</td>
+                                <td>OpenAI Agents SDK</td>
+                                <td>學習使用 OpenAI API 及 SDK 建構基本 AI 代理</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>CrewAI</td>
+                                <td>CrewAI</td>
+                                <td>掌握使用 CrewAI 建構協作型多代理系統</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>LangGraph</td>
+                                <td>LangGraph</td>
+                                <td>學習使用 LangGraph 設計與實作複雜、有狀態的代理工作流程</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>AutoGen</td>
+                                <td>AutoGen</td>
+                                <td>探索如何利用 AutoGen 自動化多代理之間的對話與協作</td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td>MCP (Model Context Protocol)</td>
+                                <td>MCP, <code>mcp-agent</code> (可能)</td>
+                                <td>理解模型上下文協議的原理及其在 AI 代理與外部工具/數據互動中的應用</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="mt-4 text-sm text-slate-600">此表格如同課程的藍圖，幫助您在深入細節之前建立整體概念。</p>
+            </section>
+
+            <section id="section2" class="content-section">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">II. 基礎知識教學模組</h2>
+                <p class="mb-4">在正式進入 `ed-donner/agents` 專案的每週課程之前，掌握一系列基礎知識至關重要。本節將針對這些先備技能提供專門的教學內容，確保您擁有穩固的起點。點擊左側導覽列中的子項目以查看詳細內容。</p>
+            </section>
+
+            <section id="section2a" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">A. AI 代理人核心概念</h3>
+                <p class="mb-2">理解「什麼是 AI 代理人」以及「為何它們如此重要」是學習 AI 代理工程的起點。</p>
+                <p class="mb-2">AI 代理人（AI Agent）是一種能夠在少量（甚至無需）人類干預下，自主完成任務、做出決策並與環境互動的智慧程式。其核心特徵包括：</p>
+                <ul class="list-disc list-inside space-y-1 my-3 bg-sky-50 p-4 rounded-lg">
+                    <li><strong>自主性 (Autonomy)</strong>：能夠獨立運作。</li>
+                    <li><strong>感知能力 (Perception)</strong>：能感知環境變化。</li>
+                    <li><strong>決策能力 (Decision-making)</strong>：能根據目標和感知到的信息做出判斷。</li>
+                    <li><strong>行動能力 (Action)</strong>：能執行任務。</li>
+                    <li>通常具備<strong>學習能力 (Learning)</strong>和<strong>推理能力 (Reasoning)</strong>。</li>
+                </ul>
+                <p class="mb-2">可以將 AI 代理人想像成一位能夠「觀察、思考、行動」的數位助理。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">AI 代理人的類型（舉例）：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3">
+                    <li><strong>專家型 AI (Expert Agents)</strong>：專注於解決特定領域問題。</li>
+                    <li><strong>互動型 AI (Interactive Agents)</strong>：強調與使用者進行自然語言互動。</li>
+                    <li><strong>學習型 AI (Learning Agents)</strong>：能夠從經驗或數據中不斷學習。</li>
+                </ul>
+                <h4 class="text-lg font-semibold mt-4 mb-2">應用場景：</h4>
+                <p class="mb-3">從個人助理、企業客服到專業領域的醫療 AI 等，應用極為廣泛。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">面臨的挑戰：</h4>
+                <p class="mb-3">處理複雜工作流程的穩定性、運算資源需求、AI 的「幻覺」(hallucination) 現象等。</p>
+                
+                <div class="mt-6 p-4 border border-amber-300 rounded-lg bg-amber-50">
+                    <h4 class="text-lg font-semibold text-amber-700 mb-3">小測驗：AI 代理核心特徵</h4>
+                    <p class="mb-2">判斷下列哪些是 AI 代理人的核心特徵？ (可複選)</p>
+                    <form id="quiz-agent-features">
+                        <div class="quiz-option"><label><input type="checkbox" name="q1" value="autonomy"> 自主性 (Autonomy)</label></div>
+                        <div class="quiz-option"><label><input type="checkbox" name="q1" value="perception"> 感知能力 (Perception)</label></div>
+                        <div class="quiz-option"><label><input type="checkbox" name="q1" value="fixed_script"> 固定的腳本 (Fixed Script)</label></div>
+                        <div class="quiz-option"><label><input type="checkbox" name="q1" value="decision_making"> 決策能力 (Decision-making)</label></div>
+                        <button type="submit" class="mt-3 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600">提交答案</button>
+                    </form>
+                    <div id="feedback-agent-features" class="quiz-feedback mt-3" style="display:none;"></div>
+                </div>
+            </section>
+
+            <section id="section2b" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">B. Python 程式設計入門</h3>
+                <p class="mb-2">Python 因其簡潔的語法和豐富的函式庫，已成為 AI 開發領域的通用語言。`ed-donner/agents` 專案及其使用的框架均以 Python 為基礎。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">Python 核心特性：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3">
+                    <li>動態型別系統 (Dynamic Typing)</li>
+                    <li>「一切皆物件」(Everything is an object)</li>
+                </ul>
+                <h4 class="text-lg font-semibold mt-4 mb-2">基本語法：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li><strong>註釋 (Comments)</strong>：使用 <code>#</code> 標記。</li>
+                    <li><strong>語句結束 (Statement Termination)</strong>：通常以換行符結束。</li>
+                    <li><strong>縮排 (Indentation)</strong>：用以定義程式碼區塊，非常重要。</li>
+                    <li><strong>變數 (Variables)</strong>：指向物件的參考。</li>
+                    <li><strong>運算子 (Operators)</strong>：算術、比較、邏輯運算子等。</li>
+                </ul>
+                <h4 class="text-lg font-semibold mt-4 mb-2">執行 Python 程式碼的方式：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3">
+                    <li>Python 直譯器 (Python Interpreter)</li>
+                    <li>IPython 直譯器 (IPython Interpreter)</li>
+                    <li>Python 腳本 (Python Scripts, <code>.py</code> 檔案)</li>
+                    <li>Jupyter Notebook (課程主要使用)</li>
+                </ul>
+                <p class="mb-2">針對 AI 代理開發，需特別熟悉 Python 的資料結構 (如列表 <code>list</code>、字典 <code>dict</code>)、控制流程 (<code>if/else</code>, <code>for</code>, <code>while</code>) 及函數定義與呼叫。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">範例程式碼：</h4>
+<pre><code class="language-python">
+# 這是一個 Python 註釋
+name = "AI 學習者"  # 這是一個變數賦值
+age = 18
+
+if age >= 18:
+    print(f"你好, {name}! 你已成年。")
+else:
+    print(f"你好, {name}! 你還未成年。")
+
+# 一個簡單的函數
+def greet(person_name):
+    return f"歡迎, {person_name}!"
+
+print(greet("訪客"))
+</code></pre>
+                <p class="mt-2 text-sm text-slate-600">您可以將以上程式碼複製到您的 Python 環境中執行看看。</p>
+            </section>
+            
+            <section id="section2c" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">C. Jupyter Notebook 操作指南</h3>
+                <p class="mb-2">`ed-donner/agents` 專案大量使用 Jupyter Notebook (約 92.8% 的內容)。熟悉其操作是學習本課程的必要前提。</p>
+                <p class="mb-2">Jupyter Notebook 是一個互動式計算環境，整合程式碼、文本、數學公式、視覺化圖表於一體（<code>.ipynb</code> 檔案）。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">主要介面元件：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li><strong>筆記本名稱 (Notebook Name)</strong>：顯示在頂部，可修改。</li>
+                    <li><strong>選單列 (Menu Bar)</strong>：檔案、編輯、檢視、插入、核心等功能。</li>
+                    <li><strong>工具列 (Toolbar)</strong>：常用操作的快捷圖示。</li>
+                    <li><strong>單元格 (Cell)</strong>：基本內容單位，主要類型有：
+                        <ul class="list-circle list-inside ml-6 space-y-1 mt-1">
+                            <li><strong>程式碼單元格 (Code Cell)</strong>：編寫和執行程式碼。</li>
+                            <li><strong>Markdown 單元格 (Markdown Cell)</strong>：編寫格式化文本、插入圖片、連結、LaTeX 公式。</li>
+                            <li><strong>原始單元格 (Raw NBConvert Cell)</strong>：內容在轉換時保持原樣。</li>
+                        </ul>
+                    </li>
+                </ul>
+                <h4 class="text-lg font-semibold mt-4 mb-2">常用操作與快捷鍵：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3">
+                    <li>執行單元格：<code>Shift + Enter</code> (執行並選取/建立下一個) 或 <code>Ctrl + Enter</code> (執行目前單元格)。</li>
+                    <li>Markdown 語法：用於格式化文本，如 <code># 標題</code>, <code>**粗體**</code>, <code>*斜體*</code>, <code>- 列表</code>。</li>
+                    <li>LaTeX 數學公式：行內公式用 <code>$...$</code>，獨立公式塊用 <code>$$...$$</code>。</li>
+                    <li><code>Esc</code>：進入命令模式 (Command Mode) - 可移動、複製、刪除單元格。
+                        <ul class="list-circle list-inside ml-6 space-y-1 mt-1">
+                            <li><code>A</code>：在上方插入單元格。</li>
+                            <li><code>B</code>：在下方插入單元格。</li>
+                            <li><code>DD</code> (按兩次D)：刪除目前單元格。</li>
+                            <li><code>M</code>：將目前單元格轉換為 Markdown 單元格。</li>
+                            <li><code>Y</code>：將目前單元格轉換為程式碼單元格。</li>
+                        </ul>
+                    </li>
+                    <li><code>Enter</code>：進入編輯模式 (Edit Mode) - 可編輯目前單元格內容。</li>
+                </ul>
+                <p class="mt-2 text-sm text-slate-600">建議您開啟 Jupyter Notebook，實際操作以上指令以加深理解。</p>
+            </section>
+
+            <section id="section2d" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">D. API 金鑰與環境設定詳解</h3>
+                <p class="mb-2">現代 AI 模型（尤其是 LLM）通常需要透過 API 存取。API 金鑰 (API Key) 是使用這些服務的「鑰匙」，涉及費用和安全問題，初學者需特別注意。`ed-donner/agents` 課程大量使用 OpenAI 模型。</p>
+                
+                <h4 class="text-lg font-semibold mt-4 mb-2">什麼是 API 與 API 金鑰？</h4>
+                <p class="mb-2">API (Application Programming Interface) 是軟體模組間通訊的機制。API 金鑰是一串用於控制 API 存取的字串，主要用於識別和驗證發出請求的應用程式或專案。</p>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2">如何取得 OpenAI API 金鑰？</h4>
+                <ol class="list-decimal list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li>前往 OpenAI 官方網站註冊帳戶。</li>
+                    <li>設定付款方式（API 使用通常收費）。</li>
+                    <li>在其帳戶的 API Keys 管理頁面創建新的私鑰 (secret key)。</li>
+                    <li><strong>妥善保管此金鑰，切勿洩漏。</strong></li>
+                </ol>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2">API Token 的概念與計費：</h4>
+                <p class="mb-2">OpenAI API 以「Token」數量計費。Token 可理解為文字片段，輸入的提示 (Prompt) 和模型生成的回答都會消耗 Token。內容越長，Token 越多，費用越高。</p>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2">環境變數與安全管理：</h4>
+                <p class="mb-2 text-red-600 font-semibold">絕對不能將 API 金鑰直接寫在程式碼中或提交到公開的程式碼倉庫 (如 GitHub)。</p>
+                <p class="mb-3">最佳實踐是將 API 金鑰儲存在環境變數中。具體設定方法請參考 `ed-donner/agents` 專案 `setup` 資料夾中針對您作業系統的指南。</p>
+
+                <h4 class="text-xl font-semibold text-slate-700 my-4">表 2：API 金鑰使用最佳實踐檢查表</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>檢查項目</th>
+                                <th>是/否 (自我檢查)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>我是否已將 API 金鑰儲存在環境變數中，而非直接寫在程式碼裡？</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>我是否了解此 API 的計費方式與 Token 消耗規則？</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>我是否已在 OpenAI 平台設定了適當的用量限制或預算提醒（如果適用）？</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>我是否已將包含 API 金鑰的設定檔（如 <code>.env</code>）加入到 <code>.gitignore</code> 檔案中？</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>我是否會定期檢視 API 金鑰的使用情況並在不再需要時將其停用或刪除？</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="mt-4 text-sm text-slate-600">負責任地管理 API 金鑰是進行 AI 開發的基礎。</p>
+            </section>
+
+            <section id="section2e" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">E. Git 與 GitHub 專案協作基礎</h3>
+                <p class="mb-2">`ed-donner/agents` 課程圍繞 GitHub 倉庫展開，因此學習者需具備基本的 Git 和 GitHub 操作知識，以便獲取課程程式碼、理解專案結構、追蹤更新。</p>
+                
+                <h4 class="text-lg font-semibold mt-4 mb-2">版本控制系統 (VCS) 簡介：</h4>
+                <p class="mb-3">VCS 記錄檔案變更歷史，可回溯特定版本，對軟體開發至關重要，支援多人協作、追蹤錯誤、管理版本。</p>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2">Git 的基本概念：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li><strong>儲存庫 (Repository, Repo)</strong>：專案容器，含所有檔案及修訂歷史。</li>
+                    <li><strong>提交 (Commit)</strong>：將檔案變更儲存到 Git 歷史的快照，有唯一 ID 和描述。</li>
+                    <li><strong>分支 (Branch)</strong>：獨立的開發線路，可在不影響主線 (通常是 <code>main</code> 或 <code>master</code>) 的情況下進行實驗。</li>
+                    <li><strong>合併 (Merge)</strong>：將一個分支的變更整合到另一分支。</li>
+                </ul>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2">GitHub 的基本概念：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3">
+                    <li><strong>遠端儲存庫 (Remote Repository)</strong>：儲存在網路伺服器 (如 GitHub) 上的儲存庫，允許多人共享同步。</li>
+                    <li><strong>派生 (Fork)</strong>：在 GitHub 上複製他人儲存庫到自己帳戶下，以便自由修改。</li>
+                    <li><strong>拉取請求 (Pull Request, PR)</strong>：希望將修改貢獻回原始專案時，向維護者發起的審查與合併請求。</li>
+                </ul>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2">對本課程重要的操作：</h4>
+                <p class="mb-2">最重要的是能夠將 `ed-donner/agents` 專案從 GitHub 複製 (<code>git clone</code>) 到本地電腦。例如：</p>
+                <pre><code class="language-bash">
+git clone https://github.com/ed-donner/agents.git
+                </code></pre>
+                <p class="mb-3">學會查看提交歷史 (<code>git log</code>) 也有助於了解專案演進。</p>
+                <p class="mt-2 text-sm text-slate-600">雖然初學者可能不會立即進行複雜的分支管理，但基本理解有助於更好地利用 GitHub 資源。</p>
+            </section>
+
+            <section id="section2f" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">F. `uv` 套件管理工具介紹</h3>
+                <p class="mb-2">`ed-donner/agents` 專案 README 提及使用 <code>uv</code> 安裝套件 (如 CrewAI)，表明 <code>uv</code> 是課程推薦或必需的環境設定工具之一。</p>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2">什麼是 `uv`？</h4>
+                <p class="mb-3"><code>uv</code> 是一個用 Rust 語言編寫的高性能 Python 套件安裝器和解析器。目標是作為傳統工具 (如 <code>pip</code>, <code>pip-tools</code>, <code>virtualenv</code>) 的直接替代品，提供更快速度和更簡潔體驗。</p>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2"><code>uv</code> 如何取代傳統工具？</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li>取代 <code>pip</code> 和 <code>pip-tools</code>：
+                        <ul class="list-circle list-inside ml-6 space-y-1 mt-1">
+                            <li><code>uv pip install</code>：類似 <code>pip install</code>。</li>
+                            <li><code>uv pip compile</code>：類似 <code>pip-compile</code>，生成鎖定的 <code>requirements.txt</code>。</li>
+                            <li><code>uv pip sync</code>：類似 <code>pip-sync</code>，根據 <code>requirements.txt</code> 同步虛擬環境。</li>
+                        </ul>
+                    </li>
+                    <li>取代 <code>virtualenv</code>：
+                        <ul class="list-circle list-inside ml-6 space-y-1 mt-1">
+                             <li><code>uv venv</code>：創建 Python 虛擬環境，速度更快。</li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <h4 class="text-lg font-semibold mt-4 mb-2"><code>uv</code> 的主要功能與優勢：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3">
+                    <li><strong>高性能</strong>：通常比 <code>pip</code> 快得多。</li>
+                    <li><strong>簡化的工具鏈</strong>：單一靜態二進制檔案，整合多功能。</li>
+                    <li><strong>廣泛的支援</strong>：支援可編輯安裝、Git/URL/本地依賴等。</li>
+                    <li><strong>易於採用</strong>：<code>uv pip</code> 介面與 <code>pip</code> 相似。</li>
+                </ul>
+                <p class="mb-2">在 `ed-donner/agents` 專案中，您可能會遇到如 <code>uv tool install crewai</code> 的指令。專案中也可能包含 <code>uv.lock</code> 檔案 (用於鎖定依賴版本)。</p>
+                <p class="mt-2 text-sm text-slate-600">本模組將提供 <code>uv</code> 的安裝指南，並解釋其在課程環境設定中的作用和基本命令。其速度和易用性是推薦它的主要原因。</p>
+            </section>
+
+            <section id="section3" class="content-section">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">III. `ed-donner/agents` 專案每週內容深度導讀</h2>
+                <p class="mb-4">本章節是教學網站的核心，將逐週深入剖析 `ed-donner/agents` GitHub 專案的課程內容。每一週的導讀都將遵循一致的結構，旨在幫助初學者理解該週的學習目標、核心概念、關鍵程式碼，並提供實作練習和問題排解。點擊左側導覽列中的子項目以查看詳細內容。</p>
+                <p class="mb-4">每週導讀通用結構包含：本週學習目標與重點、核心概念解析、關鍵程式碼範例導讀、動手實作與練習、常見問題與解決方案、學習資源與延伸閱讀。</p>
+            </section>
+
+            <section id="section3a" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">A. 第一週：基礎 (Week 1: Foundations)</h3>
+                <p class="mb-4">第一週的學習至關重要，為整個課程打下堅實基礎。本週導讀將格外清晰、耐心且詳盡。</p>
+                <div class="accordion">
+                    <button class="accordion-button">本週學習目標與重點</button>
+                    <div class="accordion-content">
+                        <p class="py-3">核心目標是為後續 AI 代理工程學習打下基礎。重點：理解 AI 代理基本構成、掌握提示工程 (Prompt Engineering) 核心技巧、成功搭建並熟悉課程開發環境。對應 GitHub 資料夾：<a href="https://github.com/ed-donner/agents/tree/main/1_foundations" target="_blank" class="text-sky-600 hover:underline"><code>1_foundations</code></a>。</p>
+                    </div>
+
+                    <button class="accordion-button">核心概念解析</button>
+                    <div class="accordion-content">
+                        <ul class="list-disc list-inside space-y-2 py-3">
+                            <li><strong>AI 代理基礎回顧</strong>：定義、組成要素（感知、決策、行動）、基本運作模式。</li>
+                            <li><strong>提示工程入門</strong>：與 LLM 有效溝通的藝術與科學。
+                                <ul class="list-circle list-inside ml-6 space-y-1 mt-1">
+                                    <li>提示詞要素：指令、上下文、輸入資料、輸出指示器。</li>
+                                    <li>基本提示技巧：零樣本提示、少樣本提示。</li>
+                                    <li>設計提示通用技巧：清晰、明確、避免歧義。</li>
+                                </ul>
+                            </li>
+                            <li><strong>開發環境設定</strong>：安裝 Python, Jupyter Notebook, <code>uv</code>, 設定 API 金鑰。參考專案 <code>setup</code> 資料夾。</li>
+                        </ul>
+                    </div>
+                    <button class="accordion-button">關鍵程式碼範例導讀</button>
+                    <div class="accordion-content">
+                        <p class="py-3">預期 <code>1_foundations</code> 資料夾包含演示基本 Python 腳本、Jupyter Notebook 操作及簡單提示工程的範例。導讀將側重這些範例如何體現核心概念。</p>
+                    </div>
+                     <button class="accordion-button">動手實作與練習</button>
+                    <div class="accordion-content">
+                        <ol class="list-decimal list-inside space-y-2 py-3">
+                            <li>設定 OpenAI API 金鑰為環境變數，編寫 Python 腳本驗證讀取。</li>
+                            <li>設計零樣本提示，要求 LLM 扮演特定角色回答問題。</li>
+                            <li>修改少樣本提示範例，改變範例引導 LLM 產生不同風格輸出。</li>
+                        </ol>
+                    </div>
+                    <button class="accordion-button">常見問題與解決方案</button>
+                    <div class="accordion-content">
+                        <ul class="list-disc list-inside space-y-1 py-3">
+                            <li>Python 或 <code>uv</code> 安裝路徑問題。</li>
+                            <li>環境變數設定不生效。</li>
+                            <li>API 金鑰無效或額度問題。</li>
+                        </ul>
+                    </div>
+                    <button class="accordion-button">學習資源與延伸閱讀</button>
+                    <div class="accordion-content">
+                        <ul class="list-disc list-inside space-y-1 py-3">
+                            <li>Prompt Engineering Guide</li>
+                            <li>Python 官方教學文件</li>
+                            <li>Jupyter Notebook 官方文件</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="section3b" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">B. 第二週：OpenAI Agents</h3>
+                <p class="mb-4">本週學習將基礎知識與具體 AI 代理建構實踐相連接，開始透過程式碼將 API 呼叫轉化為代理行為。</p>
+                 <div class="accordion">
+                    <button class="accordion-button">本週學習目標與重點</button>
+                    <div class="accordion-content">
+                        <p class="py-3">掌握使用 OpenAI 官方 Agents SDK 建構基本 AI 代理。重點：API 請求與回應結構、訊息格式、設計簡單代理迴圈。對應 GitHub 資料夾：<a href="https://github.com/ed-donner/agents/tree/main/2_openai" target="_blank" class="text-sky-600 hover:underline"><code>2_openai</code></a>。</p>
+                    </div>
+                    <button class="accordion-button">核心概念解析</button>
+                    <div class="accordion-content">
+                        <ul class="list-disc list-inside space-y-2 py-3">
+                            <li><strong>OpenAI API 回顧</strong>：API 金鑰、Token 計費。</li>
+                            <li><strong>Chat Completion API</strong>：主要對話模型介面。參數如 <code>model</code>, <code>messages</code>, <code>max_tokens</code>, <code>temperature</code>。</li>
+                            <li><strong>訊息角色 (Message Roles)</strong>：<code>system</code> (AI 整體行為), <code>user</code> (使用者輸入), <code>assistant</code> (AI 回應)。</li>
+                            <li><strong>函數呼叫 (Function Calling) / 工具使用 (Tool Use)</strong>：允許 LLM 請求呼叫外部函數/工具。</li>
+                            <li><strong>基本代理迴圈 (Basic Agent Loop)</strong>：接收輸入 -> 建構提示 -> 呼叫 LLM -> 解析回應 -> (可選)工具呼叫 -> 生成最終回應。</li>
+                        </ul>
+                    </div>
+                     <button class="accordion-button">動手實作與練習</button>
+                    <div class="accordion-content">
+                        <ol class="list-decimal list-inside space-y-2 py-3">
+                            <li>用 OpenAI API 建構簡單問答機器人。</li>
+                            <li>讓 AI 代理扮演「程式碼解釋器」。</li>
+                            <li>(進階) 定義新工具並讓代理呼叫。</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section3c" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">C. 第三週：CrewAI</h3>
+                <p class="mb-4">本週從單一代理擴展到多代理協作系統，學習使用 CrewAI 框架設計和建構由多個專職 AI 代理組成的團隊。</p>
+                <div class="accordion">
+                    <button class="accordion-button">本週學習目標與重點</button>
+                    <div class="accordion-content">
+                        <p class="py-3">學習使用 CrewAI 框架設計和建構多代理團隊。重點：理解 CrewAI 核心組件 (Agent, Task, Tool, Crew) 的定義與互動。對應 GitHub 資料夾：<a href="https://github.com/ed-donner/agents/tree/main/3_crewAI" target="_blank" class="text-sky-600 hover:underline"><code>3_crewAI</code></a> (注意：原報告為3_crew，GitHub實際為3_crewAI)。</p>
+                    </div>
+                     <button class="accordion-button">核心概念解析</button>
+                    <div class="accordion-content">
+                        <p class="py-3">CrewAI 將複雜問題分解，指派給具特定專長和目標的自主代理人，組成「團隊」解決問題。</p>
+                        <h4 class="text-lg font-semibold text-slate-700 my-3">表 3：CrewAI 核心組件</h4>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>組件 (Component)</th>
+                                        <th>描述 (Description)</th>
+                                        <th>重要參數 (Key Parameters)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>代理 (Agent)</td>
+                                        <td>具有特定角色和目標的自主執行單元</td>
+                                        <td><code>role</code>, <code>goal</code>, <code>backstory</code>, <code>tools</code>, <code>llm</code>, <code>allow_delegation</code>, <code>verbose</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>任務 (Task)</td>
+                                        <td>需要完成的具體工作描述與預期輸出</td>
+                                        <td><code>description</code>, <code>expected_output</code>, <code>agent</code>, <code>context</code>, <code>tools</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>工具 (Tool)</td>
+                                        <td>代理執行任務時可使用的外部功能或資源</td>
+                                        <td>(取決於具體工具的定義)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>團隊 (Crew)</td>
+                                        <td>由代理和任務組成的協作單元，負責協調執行</td>
+                                        <td><code>agents</code>, <code>tasks</code>, <code>process</code>, <code>manager_llm</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="py-3"><strong>流程 (Process)</strong>：支援順序流程 (Sequential) 和層級流程 (Hierarchical)。</p>
+                    </div>
+                    <button class="accordion-button">動手實作與練習</button>
+                    <div class="accordion-content">
+                        <ol class="list-decimal list-inside space-y-2 py-3">
+                            <li>修改 CrewAI 範例，增加新 Agent 角色和 Task。</li>
+                            <li>為 Agent 添加新工具並修改 Task 以利用它。</li>
+                            <li>嘗試將順序執行 Crew 改為層級流程。</li>
+                        </ol>
+                    </div>
+                     <button class="accordion-button">常見問題與解決方案</button>
+                    <div class="accordion-content">
+                        <ul class="list-disc list-inside space-y-1 py-3">
+                           <li>Windows 環境下的 Unicode 編碼錯誤。</li>
+                           <li>工具未能正確載入或執行。</li>
+                           <li><code>uv tool install crewai</code> 或 <code>uv tool upgrade crewai</code> 命令執行問題。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="section3d" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">D. 第四週：LangGraph</h3>
+                <p class="mb-4">LangGraph 將複雜代理工作流程視覺化並建構成圖 (Graph)，適用於表示包含循環、條件分支和持久化狀態的代理行為。</p>
+                 <div class="accordion">
+                    <button class="accordion-button">本週學習目標與重點</button>
+                    <div class="accordion-content">
+                        <p class="py-3">掌握使用 LangGraph 建構有狀態、多步驟的 AI 代理應用。重點：理解核心概念 (State, Node, Edge)、圖的編譯與執行。對應 GitHub 資料夾：<a href="https://github.com/ed-donner/agents/tree/main/4_langgraph" target="_blank" class="text-sky-600 hover:underline"><code>4_langgraph</code></a>。</p>
+                    </div>
+                    <button class="accordion-button">核心概念解析</button>
+                    <div class="accordion-content">
+                         <ul class="list-disc list-inside space-y-2 py-3">
+                            <li><strong>狀態 (State)</strong>：Python <code>TypedDict</code>，追蹤圖執行過程中的數據。</li>
+                            <li><strong>節點 (Node)</strong>：圖中的工作單元 (Python 函數/可呼叫物件)，接收狀態、返回狀態更新。</li>
+                            <li><strong>邊 (Edge)</strong>：連接節點，定義控制流。分常規邊和條件邊。</li>
+                            <li><strong>圖的編譯 (Graph Compilation)</strong>：<code>compile()</code> 方法將 <code>StateGraph</code> 編譯成可執行的 <code>CompiledGraph</code>。</li>
+                            <li><strong>檢查點 (Checkpoints) 與記憶 (Memory)</strong>：持久化儲存圖的狀態，實現跨會話記憶。</li>
+                            <li><strong>人機互動 (Human-in-the-Loop)</strong>：支援在流程中引入人工干預。</li>
+                            <li><strong>工具節點 (ToolNode)</strong>：方便整合 LangChain 工具。</li>
+                        </ul>
+                    </div>
+                     <button class="accordion-button">動手實作與練習</button>
+                    <div class="accordion-content">
+                        <ol class="list-decimal list-inside space-y-2 py-3">
+                            <li>修改 LangGraph 聊天機器人範例，增加 <code>user_name</code> 狀態並互動。</li>
+                            <li>為 LangGraph 代理添加新工具並修改條件邊邏輯。</li>
+                            <li>檢視帶記憶功能範例的歷史狀態快照。</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section3e" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">E. 第五週：AutoGen</h3>
+                <p class="mb-4">AutoGen 強調透過自動化的多代理對話來解決複雜問題，模擬不同角色代理間的自然語言互動與協作。</p>
+                 <div class="accordion">
+                    <button class="accordion-button">本週學習目標與重點</button>
+                    <div class="accordion-content">
+                        <p class="py-3">了解並使用 Microsoft AutoGen 框架建立和協調多個 AI 代理。重點：理解不同類型代理 (<code>UserProxyAgent</code>, <code>AssistantAgent</code>)、配置行為、發起和管理對話。對應 GitHub 資料夾：<a href="https://github.com/ed-donner/agents/tree/main/5_autogen" target="_blank" class="text-sky-600 hover:underline"><code>5_autogen</code></a>。</p>
+                    </div>
+                     <button class="accordion-button">核心概念解析</button>
+                    <div class="accordion-content">
+                        <ul class="list-disc list-inside space-y-2 py-3">
+                            <li><strong>可對話代理 (Conversable Agents)</strong>：能發送接收訊息，根據對話歷史和配置行動。</li>
+                            <li><strong><code>AssistantAgent</code></strong>：LLM 驅動的 AI 代理，可配置系統訊息定義角色、能力。</li>
+                            <li><strong><code>UserProxyAgent</code></strong>：代表使用者或其他代理互動，可獲取使用者輸入、執行程式碼、請求人類輸入。</li>
+                            <li><strong>群組聊天 (Group Chat)</strong>：支援多代理參與，可設 <code>GroupChatManager</code> 管理流程。</li>
+                            <li><strong>工具使用/函數呼叫</strong>：代理可使用外部工具或函數。</li>
+                            <li><strong>程式碼執行</strong>：代理 (尤其 <code>UserProxyAgent</code>) 可直接執行 LLM 生成的程式碼。</li>
+                        </ul>
+                    </div>
+                    <button class="accordion-button">動手實作與練習</button>
+                    <div class="accordion-content">
+                        <ol class="list-decimal list-inside space-y-2 py-3">
+                            <li>修改 AutoGen 範例，改變 <code>AssistantAgent</code> 系統訊息扮演新角色。</li>
+                            <li>讓 <code>UserProxyAgent</code> 在方案提供後請求人類確認。</li>
+                            <li>讓代理生成解決數學問題的 Python 程式碼並執行。</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section3f" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">F. 第六週：MCP (Model Context Protocol)</h3>
+                <p class="mb-4">本週轉向基礎且具前瞻性的主題：模型上下文協議 (MCP)，了解 AI 代理與外部世界互動方式的標準化趨勢。</p>
+                <div class="accordion">
+                    <button class="accordion-button">本週學習目標與重點</button>
+                    <div class="accordion-content">
+                        <p class="py-3">理解 MCP 核心概念、設計目標及其如何為 AI 代理提供標準化方式存取外部工具與數據。若使用 <code>mcp-agent</code> 框架，學習其用法。對應 GitHub 資料夾：<a href="https://github.com/ed-donner/agents/tree/main/6_mcp" target="_blank" class="text-sky-600 hover:underline"><code>6_mcp</code></a>。</p>
+                    </div>
+                    <button class="accordion-button">核心概念解析</button>
+                    <div class="accordion-content">
+                        <ul class="list-disc list-inside space-y-2 py-3">
+                            <li><strong>什麼是 MCP？</strong>：由 Anthropic 等倡導的開源協議，為 AI 系統與外部軟體、工具、內容儲存庫提供標準化互動介面。</li>
+                            <li><strong>MCP 的動機</strong>：解決工具整合複雜度和維護成本問題。</li>
+                            <li><strong>MCP 的運作方式</strong>：代理向 MCP 伺服器發請求，伺服器作中介與實際工具互動。</li>
+                            <li><strong>MCP 的優勢</strong>：標準化介面、改進的工具存取、可擴展性、社群驅動、身份驗證。</li>
+                            <li><strong><code>mcp-agent</code> 框架</strong>：基於 MCP 的 Python 框架，簡化 MCP 代理建構，實現多種有效代理模式 (<code>AugmentedLLM</code>, <code>Router</code>, <code>Orchestrator-Workers</code> 等)。</li>
+                        </ul>
+                    </div>
+                     <button class="accordion-button">動手實作與練習</button>
+                    <div class="accordion-content">
+                        <ol class="list-decimal list-inside space-y-2 py-3">
+                            <li>(若用 <code>mcp-agent</code>) 修改範例，讓代理通過 MCP 連接新工具。</li>
+                            <li>研究 <code>mcp-agent</code> 的 <code>Router</code> 模式範例，嘗試添加新路由規則。</li>
+                            <li>思考 MCP 如何標準化先前學習的代理應用中的工具存取。</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section3g" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">G. `guides` 與 `setup` 資料夾內容說明</h3>
+                <p class="mb-2">`ed-donner/agents` 專案根目錄下包含 <code>guides</code> 和 <code>setup</code> 兩個重要的輔助資料夾。本教學網站引導您有效利用這些專案自帶資源。</p>
+                
+                <h4 class="text-lg font-semibold mt-4 mb-2"><code>setup</code> 資料夾內容解析：</h4>
+                <p class="mb-3">存放針對不同作業系統 (Windows, Mac, Linux) 的詳細環境建置指南。這些指南對初學者順利開始課程至關重要。本網站「基礎知識教學模組」中關於環境設定的部分會緊密參考並連結到這些官方設定文件。請務必遵循官方指南。</p>
+
+                <h4 class="text-lg font-semibold mt-4 mb-2"><code>guides</code> 資料夾內容解析：</h4>
+                <p class="mb-3">此資料夾據稱「存放重要的指南文件」。可能包含更深入的技術技巧、專案架構說明、常見問題解答、API 使用最佳實踐等。本教學網站會對這些指南（一旦內容可知）提供導讀，包括內容摘要、適用情境和關鍵 takeaways，幫助您在需要時快速找到並理解相關官方輔助材料。</p>
+                <p class="mt-2 text-sm text-slate-600">培養查閱和利用專案文件的習慣對獨立學習和解決問題非常有價值。</p>
+            </section>
+            
+            <section id="section4" class="content-section">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">IV. AI Agent 框架專題教學</h2>
+                <p class="mb-4">在完成了對 `ed-donner/agents` 專案每週內容的導讀後，本章節將對課程中涉及的幾個核心 AI Agent 框架進行更集中的專題教學。這有助於您鞏固對各框架特性的理解，進行橫向比較，並探索更進階的應用。點擊左側導覽列中的子項目以查看詳細內容。</p>
+            </section>
+
+            <section id="section4a" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">A. OpenAI Agents SDK 實戰</h3>
+                <p class="mb-2">即使後續主要使用高階框架，深入理解 OpenAI API 及其 SDK 的直接操作，有助於洞察高階框架的內部運作並更容易調試。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">核心內容：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li>初始化 OpenAI 客戶端。</li>
+                    <li>建構包含 <code>system</code>, <code>user</code>, <code>assistant</code> 角色的 <code>messages</code> 列表。</li>
+                    <li>發送請求並處理回應 (文本、錯誤)。</li>
+                    <li><strong>提示設計</strong>：針對 OpenAI 模型特性設計有效提示詞。</li>
+                    <li><strong>函數呼叫/工具使用</strong>：定義工具 JSON schema，聲明工具，處理工具呼叫請求及回傳結果。</li>
+                    <li>從頭建構簡單 OpenAI Agent 範例 (例如：部落格標題生成器)。</li>
+                </ul>
+                <p class="mt-2 text-sm text-slate-600">考慮提供互動式提示詞實驗區，讓使用者觀察模型回應變化。</p>
+            </section>
+
+            <section id="section4b" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">B. CrewAI：協作型 AI 代理建構</h3>
+                <p class="mb-2">CrewAI 以其清晰的「團隊協作」隱喻，為建構多代理系統提供直觀框架。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">核心內容：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li><strong>最佳實踐</strong>：如何有效定義 Agent 的 <code>role</code>, <code>goal</code>, <code>backstory</code>；如何設計 Task 的 <code>description</code>, <code>expected_output</code>。</li>
+                    <li><strong>工具整合</strong>：為 CrewAI Agent 集成 LangChain 工具或自定義工具的範例與注意事項。</li>
+                    <li><strong>流程控制</strong>：深入比較順序流程 (Sequential) 和層級流程 (Hierarchical) 的適用場景與配置。</li>
+                    <li><strong>案例分析</strong>：分析更複雜的 CrewAI 應用案例。</li>
+                </ul>
+                <p class="mt-2 text-sm text-slate-600">考慮設計「CrewAI 團隊規劃器」互動工具，允許使用者選擇角色和任務類型，系統生成初步 Crew 結構程式碼框架。</p>
+            </section>
+
+            <section id="section4c" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">C. LangGraph：打造複雜代理工作流</h3>
+                <p class="mb-2">LangGraph 以其圖形化的狀態機模型，為處理複雜邏輯、循環和狀態依賴的代理任務提供強大支援。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">核心內容：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li><strong>狀態管理</strong>：設計和管理複雜狀態 (State)，更新機制，節點共享與修改狀態。</li>
+                    <li><strong>條件邏輯與循環</strong>：使用條件邊 (Conditional Edges) 實現複雜分支邏輯和循環。</li>
+                    <li><strong>人機互動模式</strong>：中斷 (interrupt) 和恢復 (resume) 機制的應用 (如人工審批)。</li>
+                    <li><strong>與 LangChain 整合</strong>：與 LangChain 其他組件 (LLM, 工具, 記憶模組) 無縫協作。</li>
+                    <li><strong>適用場景分析</strong>：何時選擇 LangGraph (精細控制流程、長期記憶、自反思循環等)。</li>
+                </ul>
+                <p class="mt-2 text-sm text-slate-600">對於 LangGraph 範例，提供清晰的圖結構視覺化表示，幫助理解數據流和控制流。</p>
+            </section>
+
+            <section id="section4d" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">D. AutoGen：自動化多代理對話</h3>
+                <p class="mb-2">AutoGen 在實現自主對話和協作的多 AI 代理方面表現出色，適用於模擬角色間溝通以達成目標的場景。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">核心內容：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li><strong>代理人設 (Agent Personas)</strong>：配置 <code>AssistantAgent</code> 的系統訊息塑造其能力、個性；<code>UserProxyAgent</code> 在模擬使用者、執行程式碼、請求人類協助的多重角色。</li>
+                    <li><strong>多輪對話管理</strong>：設計和管理多代理間多輪對話，觸發、終止條件，從對話歷史提取資訊。</li>
+                    <li><strong>群組聊天架構</strong>：<code>GroupChat</code> 和 <code>GroupChatManager</code> 的使用，設計不同模式群組對話流程。</li>
+                    <li><strong>程式碼執行與安全性</strong>：AutoGen 代理執行 LLM 生成程式碼的能力及安全考量。</li>
+                </ul>
+                <p class="mt-2 text-sm text-slate-600">提供「虛擬辯論團隊」或「協同寫作小組」的 AutoGen 範例。</p>
+            </section>
+
+            <section id="section4e" class="content-section">
+                <h3 class="text-2xl font-semibold text-sky-600 mb-4">E. MCP：模型上下文協議與應用</h3>
+                <p class="mb-2">MCP 作為新興行業標準，試圖解決 AI 代理與外部世界互動的互操作性和標準化問題。理解 MCP 有助於把握 AI 代理技術未來發展方向。</p>
+                <h4 class="text-lg font-semibold mt-4 mb-2">核心內容：</h4>
+                <ul class="list-disc list-inside space-y-1 mb-3 bg-sky-50 p-4 rounded-lg">
+                    <li><strong>MCP 設計哲學與目標</strong>：提供標準化接口，讓任何軟體都能通過 MCP 伺服器被 AI 代理存取。</li>
+                    <li><strong>MCP 核心優勢</strong>：清晰架構、改進工具存取、社群驅動、內建身份驗證、易擴展、行業標準。</li>
+                    <li><strong><code>mcp-agent</code> 框架詳解</strong> (若課程使用)：核心組件 (<code>MCPApp</code>, <code>Agent</code>, <code>AugmentedLLM</code>) 和關鍵工作流模式 (<code>Router</code>, <code>Orchestrator-Workers</code>, <code>Evaluator-Optimizer</code> 等)。</li>
+                    <li><strong>未來展望</strong>：MCP 普及對 AI 代理生態系統的潛在影響。</li>
+                </ul>
+                <p class="mt-2 text-sm text-slate-600">引導思考 MCP 如何簡化 AI 代理開發。</p>
+            </section>
+
+            <section id="conclusion" class="content-section">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">VII. 結論與學習資源</h2>
+                <p class="text-lg mb-4">恭喜您瀏覽完 `ed-donner/agents` 專案的互動導讀！我們希望這個平台能幫助您建立堅實的 AI 代理工程基礎，並激發您進一步探索的熱情。</p>
+                
+                <div class="bg-sky-50 p-6 rounded-lg shadow mb-6">
+                    <h3 class="text-xl font-semibold text-sky-700 mb-3">核心學習要點回顧：</h3>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li>初學者導向的學習方法至關重要。</li>
+                        <li>結構化與引導式學習是成功的關鍵。</li>
+                        <li>互動性（如本網站嘗試提供的）能提升參與和理解。</li>
+                        <li>紮實的基礎知識是後續學習的基石。</li>
+                        <li>本導讀緊密圍繞 <a href="https://github.com/ed-donner/agents" target="_blank" class="text-sky-600 hover:underline">`ed-donner/agents` 專案</a>。</li>
+                        <li>良好的內容呈現與使用者體驗同樣重要。</li>
+                    </ul>
+                </div>
+
+                <div class="bg-amber-50 p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold text-amber-700 mb-3">🚀 您的下一步：</h3>
+                     <ol class="list-decimal list-inside space-y-2 text-slate-700">
+                        <li>**前往 <a href="https://github.com/ed-donner/agents" target="_blank" class="text-sky-600 hover:underline">`ed-donner/agents` GitHub 專案</a>**：這是所有學習材料的源頭。</li>
+                        <li>**詳細閱讀 `README.md`**：了解專案的最新資訊、設定指南和重要提醒。</li>
+                        <li>**依照 `setup` 資料夾的指引配置您的開發環境**。</li>
+                        <li>**從第一週 (`1_foundations`) 的內容開始您的學習之旅！**</li>
+                    </ol>
+                    <p class="mt-4">祝您在 AI 代理工程的學習道路上一切順利，探索無限可能！</p>
+                </div>
+                 <footer class="mt-10 pt-6 border-t border-slate-200 text-center text-sm text-slate-500">
+                    <p>本互動導讀網站基於 `ed-donner/agents` 專案報告建構。</p>
+                    <p>旨在提供學習輔助，所有課程內容請以官方 GitHub 專案為準。</p>
+                </footer>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('#main-nav .nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mainContent = document.getElementById('main-content');
+            const sidebar = document.getElementById('sidebar');
+            const hamburgerToggle = document.getElementById('hamburger-toggle');
+
+            function setActiveSection(targetId) {
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                    }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.target === targetId) {
+                        link.classList.add('active');
+                    }
+                });
+                mainContent.scrollTop = 0; // Scroll to top of content area
+                if (sidebar.classList.contains('open')) { // Close sidebar on mobile after navigation
+                    sidebar.classList.remove('open');
+                }
+            }
+            
+            // Initial active section (welcome)
+            setActiveSection('welcome');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.dataset.target;
+                    setActiveSection(targetId);
+                });
+            });
+
+            // Accordion functionality
+            const accordionButtons = document.querySelectorAll('.accordion-button');
+            accordionButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    this.classList.toggle('active');
+                    const content = this.nextElementSibling;
+                    if (content.style.display === "block") {
+                        content.style.display = "none";
+                    } else {
+                        content.style.display = "block";
+                    }
+                });
+            });
+
+            // Quiz: Agent Features
+            const quizAgentFeatures = document.getElementById('quiz-agent-features');
+            if (quizAgentFeatures) {
+                quizAgentFeatures.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const selectedOptions = Array.from(quizAgentFeatures.querySelectorAll('input[name="q1"]:checked')).map(el => el.value);
+                    const correctOptions = ['autonomy', 'perception', 'decision_making'];
+                    const feedbackEl = document.getElementById('feedback-agent-features');
+                    
+                    let isCorrect = selectedOptions.length === correctOptions.length && selectedOptions.every(option => correctOptions.includes(option));
+                    
+                    if (isCorrect) {
+                        feedbackEl.textContent = '答對了！AI 代理人確實具備自主性、感知能力和決策能力。';
+                        feedbackEl.className = 'quiz-feedback correct';
+                    } else {
+                        feedbackEl.textContent = '回答不完全正確。AI 代理的核心特徵是自主性、感知能力和決策能力。固定的腳本通常不是其核心特徵。';
+                        feedbackEl.className = 'quiz-feedback incorrect';
+                    }
+                    feedbackEl.style.display = 'block';
+                });
+            }
+
+            // Hamburger menu toggle
+            if (hamburgerToggle && sidebar) {
+                hamburgerToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                });
+            }
+            // Close sidebar if clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && !hamburgerToggle.contains(event.target)) {
+                    sidebar.classList.remove('open');
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
