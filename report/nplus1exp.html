@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP 銷售訂單 DDD 設計範例 (N+1 防呆)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f9fafb; /* Light gray background */
+            color: #374151; /* Dark gray text */
+        }
+        .tab-button {
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        .tab-button.active {
+            border-color: #6d28d9; /* Violet */
+            background-color: #6d28d9;
+            color: #ffffff;
+        }
+        .tab-button:not(.active):hover {
+            background-color: #ede9fe; /* Light violet on hover */
+        }
+        .content-section {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb; /* Gray border */
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+        }
+        h2 {
+            color: #4f46e5; /* Indigo */
+        }
+        h3 {
+            color: #5b21b6; /* Violet */
+        }
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #f3f4f6; /* Lighter gray for code blocks */
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            color: #1f2937; /* Darker text for code */
+        }
+        pre > code {
+            display: block;
+            padding: 1rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            border: 1px solid #d1d5db; /* Medium gray border for table cells */
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+        .sequence-diagram-placeholder {
+            background-color: #eef2ff; /* Light indigo for placeholder */
+            border: 2px dashed #a5b4fc; /* Dashed indigo border */
+            padding: 2rem;
+            text-align: center;
+            border-radius: 0.5rem;
+            color: #4338ca; /* Darker indigo text */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="container mx-auto max-w-5xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-purple-700">ERP「銷售訂單」子域：DDD 設計範例 (含 N+1 問題防呆)</h1>
+            <p class="mt-2 text-lg text-gray-600">本範例以銷售訂單 (Sales Order) 為核心，示範如何在 Domain-Driven Design 中，透過聚合切割、Repository API、CQRS / 投影與 Fail-Fast 機制，系統性杜絕 N+1 問題。</p>
+        </header>
+
+        <div id="dddTabs" class="mb-6 flex flex-wrap justify-center border-b border-gray-300">
+            <button data-tab="context" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent active">業務背景</button>
+            <button data-tab="aggregate" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent">聚合設計</button>
+            <button data-tab="repository" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent">Repository</button>
+            <button data-tab="application" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent">應用服務</button>
+            <button data-tab="query" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent">查詢/讀模型</button>
+            <button data-tab="infra" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent">基礎設施</button>
+            <button data-tab="flow" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent">流程示意</button>
+            <button data-tab="summary" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent">守則摘要</button>
+            <button data-tab="reading" class="tab-button text-sm md:text-base font-medium py-3 px-4 border-b-2 border-transparent">延伸閱讀</button>
+        </div>
+
+        <div class="tab-content">
+            <div id="context-content" class="content-section">
+                <h2 class="text-2xl font-semibold mb-4">1. 業務背景與上下文 (Context Map)</h2>
+                <p class="mb-4">本文件聚焦於「銷售 (Sales)」這個限界上下文 (Bounded Context, BC)。</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bounded Context</th>
+                            <th>說明</th>
+                            <th>上下游關係</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Sales (銷售)</strong></td>
+                            <td>處理客戶訂單流程、對帳、出貨</td>
+                            <td>
+                                <strong>上游：</strong>Customer 服務 (客戶資料)、Product 服務 (產品資訊)<br>
+                                <strong>下游：</strong>Inventory (庫存管理)、Billing (帳務開票)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Inventory (庫存)</td>
+                            <td>管理庫存與倉儲位置</td>
+                            <td>與 Sales 透過 Domain Event (如 SalesOrderPlaced) 同步庫存異動</td>
+                        </tr>
+                        <tr>
+                            <td>Billing (帳務)</td>
+                            <td>應收帳款與發票開立</td>
+                            <td>訂單完成後 (如 SalesOrderShipped 事件觸發)，產生對應發票</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="aggregate-content" class="content-section hidden">
+                <h2 class="text-2xl font-semibold mb-4">2. 聚合 (Aggregate) 設計</h2>
+                <p class="mb-4">聚合的設計是避免 N+1 問題的第一道防線。核心思想是保持聚合小巧，並明確邊界。</p>
+                
+                <h3 class="text-xl font-medium mt-6 mb-2">聚合根 (Aggregate Root): SalesOrder</h3>
+                <ul class="list-disc list-inside mb-4 pl-4 space-y-1">
+                    <li><code>List&lt;SalesOrderLine&gt;</code> (訂單明細 - Entity)</li>
+                    <li><code>CustomerId</code> (客戶 ID - Value Object)</li>
+                    <li><code>BillingAddress</code> (帳單地址 - Value Object)</li>
+                </ul>
+
+                <h3 class="text-xl font-medium mt-6 mb-2">實體 (Entity) 於 SalesOrder 內: SalesOrderLine</h3>
+                 <ul class="list-disc list-inside mb-4 pl-4 space-y-1">
+                    <li><code>ProductId</code> (產品 ID - Value Object)</li>
+                    <li><code>quantity</code> (數量)</li>
+                    <li><code>price</code> (價格)</li>
+                </ul>
+
+                <h3 class="text-xl font-medium mt-6 mb-2">設計要點 (N+1 防範):</h3>
+                <ul class="list-disc list-inside space-y-2 text-gray-700">
+                    <li><strong>小聚合原則：</strong><code>SalesOrder</code> 聚合內不直接載入 <code>Product</code> 的詳細資訊 (如產品名稱、描述等)，僅保存 <code>ProductId</code>。若需顯示產品名稱，應由「讀取模型 (Read Model)」或應用服務層去組合，這可以避免在查詢大量訂單時，連帶載入大量不必要的產品資訊，從而引發 N+1。</li>
+                    <li><strong>禁止跨聚合的即時巡覽 (Lazy Loading)：</strong>客戶 (Customer) 和產品 (Product) 的詳細資訊，應由應用服務層 (Application Service) 透過其各自的 Repository 進行顯式查詢，而不是在 <code>SalesOrder</code> 的領域模型內部透過延遲載入 (lazy loading) 取得。例如，不應出現 <code>order.getProduct().getName()</code> 這種觸發額外查詢的寫法。</li>
+                    <li><strong>領域事件 (Domain Events)：</strong>使用如 <code>SalesOrderPlaced</code> (訂單已成立)、<code>SalesOrderShipped</code> (訂單已出貨) 等領域事件來通知其他限界上下文 (如 Inventory) 更新庫存。這種非同步機制避免了在單一交易中進行同步的跨服務查詢，減少了資料庫的往返次數 (DB round-trips)。</li>
+                </ul>
+            </div>
+
+            <div id="repository-content" class="content-section hidden">
+                <h2 class="text-2xl font-semibold mb-4">3. Repository 介面</h2>
+                <p class="mb-4">Repository 的 API 設計需支援批次操作與明確的資料抓取策略，以防止在迴圈中呼叫單筆查詢。</p>
+                <pre><code>public interface SalesOrderRepository {
+    /**
+     * 單筆查詢訂單。
+     * 建議實作時，若有必要，可預先抓取 (JOIN FETCH) SalesOrderLines，
+     * 避免後續存取 order.getOrderLines() 時發生 N+1。
+     */
+    Optional&lt;SalesOrder&gt; findById(SalesOrderId id);
+
+    /**
+     * 批次查詢多筆訂單。
+     * 透過 FetchPolicy Enum 來明確指定資料抓取策略，
+     * 防止在應用服務層的迴圈中對每筆訂單單獨呼叫 findById，從而導致 N+1。
+     *
+     * @param ids 要查詢的訂單 ID 列表
+     * @param policy 資料抓取策略
+     * @return 符合條件的訂單列表
+     */
+    List&lt;SalesOrder&gt; findByIds(List&lt;SalesOrderId&gt; ids, FetchPolicy policy);
+}
+
+public enum FetchPolicy {
+    /**
+     * 僅抓取聚合根 (SalesOrder)。
+     * 訂單明細 (SalesOrderLines) 可之後透過專屬的批次 API 載入，
+     * 例如：List&lt;SalesOrderLine&gt; findOrderLinesByOrderIds(List&lt;SalesOrderId&gt; orderIds)。
+     * 適用於只需訂單頭資訊，或希望更細緻控制載入時機的場景。
+     */
+    LAZY_ROOT,
+
+    /**
+     * 一次性抓取聚合根及其關聯的訂單明細 (SalesOrderLines)。
+     * 通常透過資料庫的 JOIN FETCH (JPA) 或類似機制實現。
+     * 適用於大部分需要同時顯示訂單頭與明細的場景，可有效避免 N+1。
+     */
+    JOIN_ORDER_LINES
+}</code></pre>
+                <p class="mt-4"><strong>實作提示：</strong>在 Spring Data JPA 中，<code>JOIN_ORDER_LINES</code> 策略可以透過 <code>@EntityGraph(attributePaths = "orderLines")</code> 註解在 Repository 方法上，或使用 Querydsl 的 <code>fetchJoin()</code> 方法來實現。</p>
+            </div>
+
+            <div id="application-content" class="content-section hidden">
+                <h2 class="text-2xl font-semibold mb-4">4. Application Service（命令端）</h2>
+                <p class="mb-4">命令端的應用服務專注於執行業務操作和確保聚合的一致性，不應涉及複雜的查詢邏輯或觸發 N+1 問題。</p>
+                <pre><code>@Service
+@RequiredArgsConstructor // Lombok annotation for constructor injection
+public class PlaceOrderService {
+
+    private final SalesOrderRepository salesOrderRepository;
+    private final DomainEventPublisher domainEventPublisher; // 假設的領域事件發布器
+
+    /**
+     * 處理下訂單的命令。
+     * @param command 包含創建訂單所需資訊的命令物件
+     * @return 新創建的訂單 ID
+     */
+    @Transactional // 確保操作的原子性
+    public SalesOrderId placeOrder(PlaceOrderCommand command) {
+        // 1. 創建 SalesOrder 聚合實例
+        // SalesOrder.create() 是一個靜態工廠方法，封裝了訂單創建的業務邏輯
+        var order = SalesOrder.create(command);
+
+        // 2. 持久化聚合
+        // Repository 只負責儲存，不應包含業務邏輯
+        salesOrderRepository.save(order);
+
+        // 3. 發布領域事件 (例如：SalesOrderPlaced)
+        // 通知其他關心的模組或限界上下文 (如庫存服務)
+        domainEventPublisher.publish(new SalesOrderPlaced(order.getId(), order.getOrderLines()));
+
+        // 4. 返回訂單 ID
+        return order.getId();
+    }
+}
+
+// 假設的 PlaceOrderCommand
+// public record PlaceOrderCommand(CustomerId customerId, List<OrderLineDto> items, BillingAddress address) {}</code></pre>
+                <p class="mt-4"><strong>設計說明：</strong>命令端的服務僅操作 <code>SalesOrder</code> 聚合本身。它不會去查詢 <code>Product</code> 的詳細資訊或 <code>Customer</code> 的資料。所有必要的資訊都應該由呼叫方 (例如 Controller) 預先準備好，並透過 <code>PlaceOrderCommand</code> 傳遞進來。這樣可以確保命令的執行效率，並從根本上避免了在交易過程中因查詢關聯資料而引發 N+1 的風險。</p>
+            </div>
+
+            <div id="query-content" class="content-section hidden">
+                <h2 class="text-2xl font-semibold mb-4">5. Query / Read Model（查詢端）</h2>
+                <p class="mb-4">查詢端透過 CQRS (Command Query Responsibility Segregation) 的思想，將讀寫操作分離。讀取模型專為查詢優化，可以有效避免 N+1。</p>
+
+                <h3 class="text-xl font-medium mt-6 mb-3">5.1 CQRS 讀取模型 (Read Model) - 使用物化視圖</h3>
+                <p class="mb-2">對於複雜的列表展示或報表需求，可以創建一個預先計算好的「物化視圖 (Materialized View)」或一般的「視圖 (View)」，將所有需要的欄位（包括來自不同聚合的資訊）JOIN 起來。應用程式的 API 直接查詢這個視圖即可，單一查詢完成所有資料獲取，不存在 N+1 問題。</p>
+                <pre><code>-- 範例：創建一個銷售訂單摘要的物化視圖
+CREATE MATERIALIZED VIEW sales_order_summary_view AS
+SELECT
+    o.id AS order_id,                -- 訂單ID
+    o.order_date,                    -- 訂單日期
+    o.status AS order_status,        -- 訂單狀態
+    o.total_amount,                  -- 訂單總金額
+    c.id AS customer_id,             -- 客戶ID (來自 Customer 服務的冗餘資料)
+    c.customer_name,                 -- 客戶名稱 (冗餘)
+    c.grade AS customer_grade,       -- 客戶等級 (VIP/Normal) (冗餘)
+    (SELECT STRING_AGG(p.product_name, ', ')
+     FROM sales_order_line ol_detail
+     JOIN product p ON p.id = ol_detail.product_id
+     WHERE ol_detail.order_id = o.id
+    ) AS product_names,             -- 訂單內商品名稱列表 (冗餘)
+    SUM(ol.quantity) AS total_items  -- 訂單總品項數
+FROM
+    sales_order o
+LEFT JOIN
+    customer c ON c.id = o.customer_id -- 假設 Customer 資料已同步或可直接 JOIN
+LEFT JOIN
+    sales_order_line ol ON ol.order_id = o.id
+GROUP BY
+    o.id, o.order_date, o.status, o.total_amount, c.id, c.customer_name, c.grade;
+
+-- API 端直接查詢此視圖:
+-- SELECT * FROM sales_order_summary_view WHERE customer_id = ? ORDER BY order_date DESC;</code></pre>
+                <p class="mt-2"><strong>優點：</strong>查詢效能極高，因為所有 JOIN 和計算都已預先完成（對於物化視圖）或在資料庫層面優化。API 邏輯簡單，只需單一查詢。
+                <br><strong>注意：</strong>物化視圖需要定期刷新以保持資料最新，或透過事件驅動機制更新。普通視圖則每次查詢時動態計算。</p>
+
+                <h3 class="text-xl font-medium mt-6 mb-3">5.2 GraphQL DataLoader 範例 (批次載入)</h3>
+                <p class="mb-2">在 GraphQL 中，DataLoader 是一個常用的解決 N+1 問題的模式。它會收集同一次請求中所有對特定類型資源的 ID，然後一次性批次傳給後端 Repository 進行查詢。</p>
+                <pre><code>// Kotlin 範例
+@Component
+class SalesOrderDataLoader(private val salesOrderRepository: SalesOrderRepository) :
+        BatchLoader&lt;SalesOrderId, SalesOrder&gt; { // DataLoader 介面，輸入 ID 列表，輸出對應的物件列表
+
+    override fun load(ids: List&lt;SalesOrderId&gt;): CompletionStage&lt;List&lt;SalesOrder&gt;&gt; {
+        // 使用 CompletableFuture 以非同步方式執行批次載入
+        return CompletableFuture.supplyAsync {
+            // 呼叫 Repository 的批次查詢方法，並明確使用 JOIN_ORDER_LINES 策略
+            // 以確保一次性載入訂單及其明細
+            val orders = salesOrderRepository.findByIds(ids, FetchPolicy.JOIN_ORDER_LINES)
+            
+            // 重要：確保返回的訂單列表與輸入的 ID 列表順序一致
+            // DataLoader 規範要求如此，以便能正確匹配回原始請求
+            val ordersById = orders.associateBy { it.id }
+            ids.mapNotNull { id -> ordersById[id] }
+        }
+    }
+}
+
+// 在 GraphQL Resolver 中的使用概念：
+// class OrderResolver {
+//     fun lines(order: SalesOrder, dfe: DataFetchingEnvironment): CompletableFuture<List<SalesOrderLine>> {
+//         // 假設有 OrderLineDataLoader，這裡只是示意
+//         // return dfe.getDataLoader<SalesOrderLineId, SalesOrderLine>("OrderLineDataLoader").loadMany(order.lineIds)
+//         // 如果 SalesOrder 已透過 JOIN_ORDER_LINES 載入，則直接返回
+//         return CompletableFuture.completedFuture(order.getOrderLines())
+//     }
+// }</code></pre>
+                <p class="mt-2"><strong>運作方式：</strong>
+                <ol class="list-decimal list-inside space-y-1">
+                    <li>GraphQL Resolver 接收到多個需要查詢 <code>SalesOrder</code> 的請求時，它不會立即查詢資料庫。</li>
+                    <li>而是將所有 <code>SalesOrderId</code> 收集起來，然後一次性呼叫 <code>SalesOrderDataLoader</code> 的 <code>load</code> 方法。</li>
+                    <li><code>SalesOrderDataLoader</code> 內部呼叫 <code>SalesOrderRepository</code> 的 <code>findByIds</code> 方法，並指定 <code>FetchPolicy.JOIN_ORDER_LINES</code> 策略。</li>
+                    <li>Repository 執行單一 SQL 查詢 (例如 <code>SELECT ... FROM sales_order o JOIN sales_order_line ol ON ... WHERE o.id IN (?, ?, ...)</code>)，一次取回所有相關訂單及其明細。</li>
+                    <li>DataLoader 將結果返回給 GraphQL Resolver，Resolver 再組裝成最終的 JSON 回應。</li>
+                </ol>
+                這樣就有效避免了為每個訂單單獨查詢其明細所導致的 N+1 問題。
+                </p>
+            </div>
+
+            <div id="infra-content" class="content-section hidden">
+                <h2 class="text-2xl font-semibold mb-4">6. 基礎設施層安全網 (Fail-Fast)</h2>
+                <p class="mb-4">建立自動化的檢測機制，在開發和測試階段就捕捉到潛在的 N+1 問題，防止其流入生產環境。</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>工具/機制</th>
+                            <th>用途</th>
+                            <th>範例設定/用法</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Hibernate Statistics</strong></td>
+                            <td>在開發或測試環境中，於主控台或日誌中列印出 Hibernate Session 執行期間的查詢次數、Session 開啟關閉次數等統計數據。</td>
+                            <td>在 Spring Boot 的 <code>application.properties</code> 中設定：<br><code>spring.jpa.properties.hibernate.generate_statistics=true</code><br><code>logging.level.org.hibernate.stat=DEBUG</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Test Guard / Assertion Libraries</strong></td>
+                            <td>在自動化測試 (單元測試、整合測試) 中，加入斷言來驗證特定操作沒有觸發預期之外的資料庫查詢次數。</td>
+                            <td>
+                                範例 (使用類似 <a href="https://github.com/SHIFT-Left-Utility/query-counter" target="_blank" class="text-blue-600 hover:underline">QueryCounter</a> 或自訂 AOP 的概念)：
+                                <pre><code>// 概念性 Kotlin 測試
+@Test
+fun `findById_should_not_cause_n_plus_1_when_accessing_lines`() {
+    // queryCounter.start();
+    val order = salesOrderRepository.findById(testOrderId, FetchPolicy.JOIN_ORDER_LINES).orElseThrow();
+    order.getOrderLines().forEach { it.getProductId() }; // 存取關聯
+    // assertThat(queryCounter.getCount()).isEqualTo(1); // 或小於某個閾值
+}</code></pre>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>APM (Application Performance Monitoring) Alerting</strong></td>
+                            <td>在生產或預生產環境中，配置 APM 工具 (如 Datadog, New Relic, Dynatrace, SkyWalking) 監控應用程式的效能指標。針對「單一請求（Trace）中的 SQL 查詢次數」設定警報閾值。</td>
+                            <td>例如，在 Datadog 中可以設定一個監控器，如果某個服務的 Trace 中 <code>db.query_count</code> (或類似指標) 在一段時間內持續超過 50 次（根據業務調整），則觸發警報。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Code Analysis Tools / Linters</strong></td>
+                            <td>某些靜態程式碼分析工具或特定框架的 linter 可能能夠識別出潛在的 N+1 模式 (雖然比較困難，因為 N+1 通常是運行時行為)。</td>
+                            <td>例如，針對特定 ORM 的擴展 linter 規則。</td>
+                        </tr>
+                    </tbody>
+                </table>
+                 <p class="mt-4"><strong>核心思想：</strong>盡早發現、盡早修復。不要等到使用者回報系統緩慢時才去排查 N+1。透過這些「安全網」，可以在開發流程中就建立起防線。</p>
+            </div>
+
+            <div id="flow-content" class="content-section hidden">
+                <h2 class="text-2xl font-semibold mb-4">7. 完整流程示意（避免 N+1 的 GraphQL 查詢）</h2>
+                <p class="mb-4">以下序列圖展示了一個使用 GraphQL 和 DataLoader 模式如何有效避免 N+1 問題的查詢流程。核心在於 DataLoader 將多個子請求聚合成對 Repository 的單一批次調用。</p>
+                <div class="sequence-diagram-placeholder">
+                    <p class="font-semibold text-lg mb-2">序列圖 (Sequence Diagram) 示意</p>
+                    <ol class="list-decimal list-inside text-left mx-auto max-w-md space-y-1">
+                        <li><strong>UI (使用者介面)</strong> 發送 GraphQL 查詢請求，要求獲取 ID 為 [1,2,3] 的訂單及其訂單明細。
+                            <br><code>query { orders(ids:[1,2,3]) { id, lines { qty } } }</code></li>
+                        <li><strong>GraphQL API (GQL)</strong> 解析查詢。當解析到 <code>orders</code> 欄位時，它會收集所有請求的 <code>ids</code> ([1,2,3])。</li>
+                        <li><strong>GQL</strong> 調用 <code>SalesOrderDataLoader</code> (DL) 的 <code>loadMany</code> 或類似方法，傳入 <code>ids</code> 列表。</li>
+                        <li><strong>DataLoader (DL)</strong> 內部調用 <code>SalesOrderRepository</code> (Repo) 的 <code>findByIds</code> 方法，並傳入 <code>ids</code> 列表以及 <code>FetchPolicy.JOIN_ORDER_LINES</code> 策略。</li>
+                        <li><strong>SalesOrderRepository (Repo)</strong> 向資料庫 (DB) 發送一個 SQL 查詢。由於採用了 JOIN FETCH 策略，這個 SQL 會類似：
+                            <br><code>SELECT ... FROM sales_order o JOIN sales_order_line ol ON o.id = ol.order_id WHERE o.id IN (1,2,3);</code></li>
+                        <li><strong>資料庫 (DB)</strong> 執行這個 **單一查詢**，並返回包含所有訂單及其明細的結果集給 Repository。</li>
+                        <li><strong>Repo</strong> 將結果集映射成 <code>List&lt;SalesOrder&gt;</code> 對象（每個 SalesOrder 包含其 SalesOrderLines），並返回給 DataLoader。</li>
+                        <li><strong>DL</strong> 根據 GraphQL 的要求，將 <code>List&lt;SalesOrder&gt;</code> 組織好並返回給 GQL 引擎。</li>
+                        <li><strong>GQL</strong> 最終將資料組裝成 JSON 格式，回應給 UI。</li>
+                    </ol>
+                    <p class="mt-4 font-medium">關鍵點：整個過程中，無論請求多少個訂單，對資料庫的查詢都只有一次（或固定次數，如果 DataLoader 有更複雜的批次策略）。</p>
+                </div>
+            </div>
+
+            <div id="summary-content" class="content-section hidden">
+                <h2 class="text-2xl font-semibold mb-4">8. 關鍵守則摘要</h2>
+                <p class="mb-4">遵循以下設計原則，可以從多個層面系統性地預防和解決 N+1 問題：</p>
+                <ul class="list-disc list-inside space-y-3 text-gray-700">
+                    <li>
+                        <strong>小聚合 (Small Aggregates) + ID 參照：</strong>
+                        這是 DDD 中防止 N+1 的基石。保持聚合的邊界清晰且內部物件數量可控。對於跨聚合的關聯，僅保存對方聚合根的 ID (Value Object)，而不是直接持有對方聚合的實例。這樣，在載入一個聚合時，就不會意外地透過延遲載入 (lazy loading) 連鎖載入大量其他不直接相關的聚合實例，從而從領域模型設計層面根絕「一條龍」式的惡性延遲載入。
+                        <em>例如：<code>SalesOrder</code> 聚合中只存 <code>ProductId</code>，而不是完整的 <code>Product</code> 物件。</em>
+                    </li>
+                    <li>
+                        <strong>Repository 提供批次 API + 明確的抓取策略 (FetchPolicy)：</strong>
+                        Repository 介面應設計支援批次操作的方法 (如 <code>findByIds</code>, <code>saveAll</code>)。對於查詢操作，應提供機制（如傳入 <code>FetchPolicy</code> Enum）讓呼叫方明確指定需要載入的資料範圍（例如，是只載入聚合根，還是連同其內部集合一起 JOIN FETCH）。這使得應用服務層能夠一次性獲取所有需要的資料，避免在迴圈中反覆呼叫 Repository 的單筆查詢方法。
+                        <em>例如：<code>salesOrderRepository.findByIds(ids, FetchPolicy.JOIN_ORDER_LINES)</code>。</em>
+                    </li>
+                    <li>
+                        <strong>CQRS (Command Query Responsibility Segregation) / 讀取模型 (Read Model)：</strong>
+                        將系統的命令（寫操作）和查詢（讀操作）的職責分離。對於複雜的查詢需求，尤其是 UI 列表頁或報表，應創建專用的「讀取模型」。這個讀取模型可以直接是一個優化的 SQL 查詢、一個資料庫視圖、甚至是一個獨立的、反正規化的資料存儲（如 Elasticsearch 或物化視圖）。查詢端直接與這個讀取模型交互，繞過了領域模型中的聚合，因此天然不會觸發聚合內部的延遲載入，也就不存在 N+1 問題。
+                        <em>例如：UI 的訂單列表頁直接查詢 <code>sales_order_summary_view</code>。</em>
+                    </li>
+                    <li>
+                        <strong>Fail-Fast 檢測工具與機制：</strong>
+                        在開發和持續整合 (CI) 流程中，引入能夠自動檢測 N+1 問題的工具或測試策略。這可以包括 ORM 框架提供的查詢統計功能 (如 Hibernate Statistics)、在測試中斷言查詢次數、或使用 APM 工具在預生產環境中監控異常查詢行為。目標是在問題演變成效能瓶頸之前，儘早發現並修復它們，避免將潛在的「地雷」帶到線上生產環境。
+                        <em>例如：在單元測試中驗證某個服務方法執行的 SQL 查詢不超過預期次數。</em>
+                    </li>
+                </ul>
+            </div>
+            
+            <div id="reading-content" class="content-section hidden">
+                <h2 class="text-2xl font-semibold mb-4">9. 延伸閱讀</h2>
+                <p class="mb-2">要更深入地理解本範例中涉及的 DDD 概念、持久化最佳實務以及 CQRS，推薦以下資源：</p>
+                <ul class="list-disc list-inside space-y-2">
+                    <li>
+                        <strong>Vernon, Vaughn. <em>Implementing Domain-Driven Design</em>. Addison-Wesley Professional, 2013.</strong>
+                        <br>特別關注其中關於「Aggregates」和「Repositories」的章節。這本書詳細闡述了如何設計有效的聚合邊界以及 Repository 如何支持這些聚合的生命週期管理，這些都是避免 N+1 的基礎。
+                    </li>
+                    <li>
+                        <strong>Greg Young - CQRS and Event Sourcing (Various Talks and Articles).</strong>
+                        <br>Greg Young 是 CQRS 和事件溯源模式的主要倡導者。搜尋他在網路上關於這些主題的演講影片和文章，可以幫助理解為什麼以及如何將命令和查詢分離，從而為讀取操作創建優化的路徑。
+                    </li>
+                    <li>
+                        <strong>Mihalcea, Vlad. <em>High-Performance Java Persistence</em>. Self-published.</strong>
+                        <br>特別推薦閱讀該書中關於「Fetching Best Practices」（通常在第 6 章或相關章節）的內容。Vlad Mihalcea 深入探討了 JPA 和 Hibernate 中的各種資料抓取策略 (EAGER vs. LAZY, JOIN FETCH, Entity Graphs, Batch Fetching 等)，以及它們對效能的影響，對於理解如何在實作層面避免 N+1 非常有幫助。
+                    </li>
+                     <li>
+                        <strong>Martin Fowler - <a href="https://martinfowler.com/bliki/CQRS.html" target="_blank" class="text-blue-600 hover:underline">CQRS</a> and <a href="https://martinfowler.com/eaaDev/EventSourcing.html" target="_blank" class="text-blue-600 hover:underline">EventSourcing</a>.</strong>
+                        <br>Fowler 的網站上有對這些模式簡潔明瞭的解釋，是快速入門的好起點。
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.content-section');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.dataset.tab;
+
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            button.classList.add('active');
+            button.setAttribute('aria-selected', 'true');
+
+            tabContents.forEach(content => {
+                if (content.id === `${tabId}-content`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    // Activate the first tab by default
+    if (tabButtons.length > 0) {
+        tabButtons[0].click();
+    }
+});
+</script>
+
+</body>
+</html>
