@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：麥肯錫的AI風暴</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Visualization & Content Choices: 
+        1. McKinsey's Pressures: Report Info -> Multiple factors causing layoffs (market, legal, AI). Goal -> Compare/Inform. Viz -> Interactive Cards. Interaction -> User clicks a card to reveal detailed text. Justification -> More engaging than a static list, allows self-directed learning. Library -> HTML/CSS/JS.
+        2. Layoff Timeline: Report Info -> Chronology of McKinsey's staff reductions. Goal -> Show Change. Viz -> Horizontal Timeline. Interaction -> Clicking an event shows details. Justification -> Clearly visualizes the multi-stage nature of the crisis. Library -> HTML/CSS/JS.
+        3. AI's Impact on Roles: Report Info -> Table 2 data on how AI changes consultant tasks. Goal -> Organize/Compare. Viz -> Custom "Consulting Pyramid" diagram. Interaction -> Clicking a pyramid level updates a description box. Justification -> Visually compelling way to show structural workforce shifts. Library -> HTML/CSS/JS.
+        4. Competitor Comparison: Report Info -> Table 3 data on competitor actions. Goal -> Compare. Viz -> Bar Chart for quantitative data (e.g., investment, growth) & Interactive Cards for qualitative strategies. Interaction -> Click cards to see details. Justification -> Dual approach effectively presents both numerical and strategic information for easy comparison. Library -> Chart.js (Canvas) & HTML/CSS/JS.
+    -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fdfcf9;
+            color: #333;
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-button.active, .nav-button:hover {
+            color: #0d9488; /* teal-600 */
+            border-bottom-color: #0d9488;
+        }
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .pyramid-level {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .pyramid-level.active {
+            background-color: #ccfbf1 !important; /* teal-100 */
+            border-left-color: #0d9488 !important; /* teal-600 */
+        }
+        .competitor-card.active {
+            border-color: #0d9488;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#F8F7F4] text-gray-800">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4">
+            <nav class="flex items-center justify-between h-20">
+                <h1 class="text-xl md:text-2xl font-bold text-teal-700">顧問業的AI風暴</h1>
+                <div class="hidden md:flex space-x-8">
+                    <button class="nav-button active" data-target="intro">總覽</button>
+                    <button class="nav-button" data-target="mckinsey">麥肯錫的困境</button>
+                    <button class="nav-button" data-target="ai-impact">AI的衝擊</button>
+                    <button class="nav-button" data-target="competitors">行業的應對</button>
+                </div>
+                 <div class="md:hidden">
+                    <select id="mobile-nav" class="bg-white border border-gray-300 rounded-md py-2 px-3 text-gray-700">
+                        <option value="intro">總覽</option>
+                        <option value="mckinsey">麥肯錫的困境</option>
+                        <option value="ai-impact">AI的衝擊</option>
+                        <option value="competitors">行業的應對</option>
+                    </select>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="intro" class="content-section active">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">解構麥肯錫裁員：一場「完美風暴」</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">麥肯錫近期的裁員不僅僅是市場放緩的結果，而是由客戶需求轉變、沉重的法律與聲譽壓力，以及AI技術顛覆共同交織而成的複雜局面。本互動報告將帶您深入剖析這場風暴的核心。</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div class="card bg-white p-6 rounded-lg shadow">
+                    <div class="text-4xl mb-3">🌪️</div>
+                    <h3 class="text-xl font-semibold mb-2">多重壓力</h3>
+                    <p class="text-gray-600">探索市場、法律、聲譽等多重因素如何共同將麥肯錫推向百年來最大規模的裁員潮。</p>
+                </div>
+                <div class="card bg-white p-6 rounded-lg shadow">
+                    <div class="text-4xl mb-3">🤖</div>
+                    <h3 class="text-xl font-semibold mb-2">AI的角色</h3>
+                    <p class="text-gray-600">AI是直接取代者，還是改變遊戲規則的催化劑？分析AI對顧問業職位與技能需求的深遠影響。</p>
+                </div>
+                <div class="card bg-white p-6 rounded-lg shadow">
+                    <div class="text-4xl mb-3">🏆</div>
+                    <h3 class="text-xl font-semibold mb-2">行業競賽</h3>
+                    <p class="text-gray-600">當麥肯錫面臨挑戰時，BCG、德勤等競爭對手如何佈局AI，在這場變革中尋找新機遇。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="mckinsey" class="content-section">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">麥肯錫的困境：不僅是裁員</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">從2023到2025年，麥肯錫的人力調整是一連串事件的結果。官方解釋的背後，隱藏著更深層的財務與信任危機。點擊下方的壓力源，查看詳細分析。</p>
+            </div>
+            <div id="pressure-cards" class="grid md:grid-cols-3 gap-6 mb-12">
+                <div class="card bg-white p-6 rounded-lg shadow cursor-pointer" data-content="pressure-market">
+                    <h3 class="text-xl font-semibold text-blue-600 mb-2">市場放緩與過度擴張</h3>
+                    <p>後疫情時代需求回落，疊加員工流動率降低，導致結構性人員過剩。</p>
+                </div>
+                <div class="card bg-white p-6 rounded-lg shadow cursor-pointer" data-content="pressure-legal">
+                    <h3 class="text-xl font-semibold text-red-600 mb-2">法律和解與聲譽重創</h3>
+                    <p>因鴉片類藥物等爭議，面臨超過16億美元的和解費用與客戶信任流失。</p>
+                </div>
+                <div class="card bg-white p-6 rounded-lg shadow cursor-pointer" data-content="pressure-ai">
+                    <h3 class="text-xl font-semibold text-teal-600 mb-2">AI興起與需求轉變</h3>
+                    <p>客戶端採用AI，減少了對傳統大規模顧問服務的需求，迫使麥肯錫轉型。</p>
+                </div>
+            </div>
+            <div id="pressure-details" class="bg-white p-8 rounded-lg shadow-inner min-h-[150px]">
+                <div id="pressure-market-content" class="pressure-content-item">
+                    <h4 class="text-xl font-bold mb-2">後疫情時代的重新平衡</h4>
+                    <p class="text-gray-700">在疫情期間，麥肯錫為滿足激增的數位轉型需求，員工規模大幅增加了近三分之二。然而，隨著市場需求正常化，這種擴張被證明是不可持續的。同時，「大辭職潮」後員工自然流失率降至低點，公司不得不採取更直接的裁員手段來「重新平衡」人力規模，這也暴露了其在繁榮時期可能存在的過度招聘和需求預測失誤問題。</p>
+                </div>
+                 <div id="pressure-legal-content" class="pressure-content-item hidden">
+                    <h4 class="text-xl font-bold mb-2">信任的代價</h4>
+                    <p class="text-gray-700">麥肯錫的處境因一系列「自傷」而雪上加霜。其因在美國鴉片類藥物危機中扮演的角色而支付了超過16億美元的巨額和解金。此外，與部分國家政府的爭議性合約也引發了政治壓力和批評，損害了公司聲譽。這些法律和財務上的麻煩不僅耗盡了資金，更侵蝕了客戶的信任，成為推動大規模成本削減的直接動因。</p>
+                </div>
+                 <div id="pressure-ai-content" class="pressure-content-item hidden">
+                    <h4 class="text-xl font-bold mb-2">客戶需求被AI重塑</h4>
+                    <p class="text-gray-700">AI對麥肯錫的影響是雙重的。一方面，隨著客戶企業越來越多地採用自己的AI工具來解決內部問題，對傳統數據分析和流程優化等顧問服務的需求確實減少了。但另一方面，AI也催生了對AI策略制定、實施和治理等新興服務的龐大需求。麥肯錫面臨的挑戰，是如何在抓住新機遇的同時，應對傳統收入來源的萎縮，而裁員正是這一痛苦轉型的一部分。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="ai-impact" class="content-section">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">AI的衝擊：顧問金字塔的重塑</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">AI正在自動化傳統的初階顧問工作，從根本上改變顧問公司的人才結構和技能需求。點擊下方的金字塔模型，了解不同層級顧問角色的演變。</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div id="pyramid-model" class="flex flex-col-reverse">
+                    <div class="pyramid-level border-l-4 border-gray-200 p-4 bg-gray-50" data-role="entry">
+                        <h4 class="font-bold">入門級分析師</h4>
+                    </div>
+                    <div class="pyramid-level border-l-4 border-gray-200 p-4 bg-gray-50" data-role="mid">
+                        <h4 class="font-bold">中階顧問</h4>
+                    </div>
+                    <div class="pyramid-level border-l-4 border-gray-200 p-4 bg-gray-50" data-role="senior">
+                        <h4 class="font-bold">資深顧問 / 合夥人</h4>
+                    </div>
+                </div>
+                <div id="role-details" class="bg-white p-8 rounded-lg shadow-inner min-h-[300px]">
+                    <div id="role-entry-content" class="role-content-item hidden">
+                        <h4 class="text-xl font-bold mb-2">入門級分析師：從執行者到AI協作者</h4>
+                        <p class="font-semibold text-red-500 mb-2">傳統任務：數據收集、市場研究、製作簡報</p>
+                        <p class="font-semibold text-green-600 mb-4">AI時代新角色：需求量大幅減少。工作重心轉向監督和驗證AI產出的結果，利用AI工具進行初步洞察生成，並協助更高階的顧問進行更複雜的分析。必須具備AI流暢度(AI Fluency)。</p>
+                    </div>
+                    <div id="role-mid-content" class="role-content-item hidden">
+                        <h4 class="text-xl font-bold mb-2">中階顧問：從管理者到洞察解讀者</h4>
+                        <p class="font-semibold text-red-500 mb-2">傳統任務：專案管理、指導初階顧問</p>
+                        <p class="font-semibold text-green-600 mb-4">AI時代新角色：團隊規模可能縮小。重心轉向解讀AI生成的複雜洞察，專注於客戶溝通和關係管理，並利用AI輔助進行更深度的策略制定。批判性思維和變革管理能力變得更為重要。</p>
+                    </div>
+                    <div id="role-senior-content" class="role-content-item hidden">
+                        <h4 class="text-xl font-bold mb-2">資深顧問 / 合夥人：從決策者到智慧領航者</h4>
+                        <p class="font-semibold text-red-500 mb-2">傳統任務：高階客戶關係、最終決策</p>
+                        <p class="font-semibold text-green-600 mb-4">AI時代新角色：人類的判斷、策略遠見和信任建立變得無可取代。核心價值在於挑戰、質疑和昇華AI提供的洞察，進行複雜的倫理判斷，並設計創新的商業模式。AI治理與風險管理成為新的關鍵職責。</p>
+                    </div>
+                    <div id="role-default-content" class="role-content-item">
+                        <p class="text-gray-500">請點擊左側金字塔的不同層級，查看AI對該角色帶來的具體影響。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="competitors" class="content-section">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">行業的應對：一場AI軍備競賽</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">面對AI浪潮，所有頂級顧問公司都在積極佈局。它們的策略各有側重，從內部效率提升到開發全新的AI服務。點擊公司Logo查看其AI策略，並透過圖表比較其投資規模。</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 text-center" id="competitor-logos">
+                <div class="competitor-card p-4 bg-white rounded-lg shadow-md cursor-pointer border-2 border-transparent" data-competitor="bcg">
+                    <img src="https://img.icons8.com/color/48/000000/b.png" class="mx-auto h-12" alt="BCG Logo">
+                    <p class="mt-2 font-semibold">BCG</p>
+                </div>
+                <div class="competitor-card p-4 bg-white rounded-lg shadow-md cursor-pointer border-2 border-transparent" data-competitor="bain">
+                    <img src="https://img.icons8.com/color/48/000000/b.png" class="mx-auto h-12" alt="Bain Logo">
+                    <p class="mt-2 font-semibold">Bain</p>
+                </div>
+                <div class="competitor-card p-4 bg-white rounded-lg shadow-md cursor-pointer border-2 border-transparent" data-competitor="deloitte">
+                    <img src="https://img.icons8.com/color/48/000000/d.png" class="mx-auto h-12" alt="Deloitte Logo">
+                    <p class="mt-2 font-semibold">Deloitte</p>
+                </div>
+                <div class="competitor-card p-4 bg-white rounded-lg shadow-md cursor-pointer border-2 border-transparent" data-competitor="accenture">
+                    <img src="https://img.icons8.com/color/48/000000/a.png" class="mx-auto h-12 alt="Accenture Logo">
+                    <p class="mt-2 font-semibold">Accenture</p>
+                </div>
+                 <div class="competitor-card p-4 bg-white rounded-lg shadow-md cursor-pointer border-2 border-transparent" data-competitor="mckinsey">
+                    <img src="https://img.icons8.com/color/48/000000/m.png" class="mx-auto h-12" alt="McKinsey Logo">
+                    <p class="mt-2 font-semibold">McKinsey</p>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <div id="competitor-details" class="bg-white p-8 rounded-lg shadow-inner min-h-[350px]">
+                    <div id="competitor-default-content" class="competitor-content-item">
+                        <p class="text-gray-500">點擊上方公司Logo，查看其具體的AI戰略和行動。</p>
+                    </div>
+                    <div id="competitor-mckinsey-content" class="competitor-content-item hidden">
+                        <h4 class="text-xl font-bold mb-2">麥肯錫：雙軌戰略</h4>
+                        <p class="text-gray-700">在削減傳統職位的同時，大力投資招聘生成式AI等高增長領域的人才。策略核心是「資源重分配」和「能力重建」，試圖在削減成本和投資未來之間尋找平衡。挑戰在於如何管理轉型期間的知識流失和員工士氣。</p>
+                    </div>
+                    <div id="competitor-bcg-content" class="competitor-content-item hidden">
+                        <h4 class="text-xl font-bold mb-2">BCG：主動整合</h4>
+                        <p class="text-gray-700">相較之下，BCG的轉型更為平穩，近期實現了收入和員工人數的增長。其開發了名為「Casey」的AI聊天機器人用於招聘篩選，展現了在內部運營中主動利用AI的姿態。BCG強調AI應專注於可衡量的成果，並大力投資於人才和流程轉型。</p>
+                    </div>
+                    <div id="competitor-bain-content" class="competitor-content-item hidden">
+                        <h4 class="text-xl font-bold mb-2">貝恩：價值實現</h4>
+                        <p class="text-gray-700">貝恩強調AI帶來的實際生產力提升，其研究顯示GenAI能為企業帶來平均15%的效率增長。他們的核心策略是協助客戶系統化地部署AI，以實現可量化的商業價值，並強調獲取高層支持和全員培訓的重要性。</p>
+                    </div>
+                    <div id="competitor-deloitte-content" class="competitor-content-item hidden">
+                        <h4 class="text-xl font-bold mb-2">德勤：能力普及</h4>
+                        <p class="text-gray-700">德勤採取大規模內部赋能的策略，投資超過20億美元，並透過「AI學院」培訓了超過12萬名專業人士。他們旨在將AI能力普及到公司的每一個角落，並為特定行業（如財務CFO）提供量身定制的AI解決方案，建立企業級的AI應用能力。</p>
+                    </div>
+                    <div id="competitor-accenture-content" class="competitor-content-item hidden">
+                        <h4 class="text-xl font-bold mb-2">埃森哲：全面重塑</h4>
+                        <p class="text-gray-700">埃森哲認為AI將從根本上重塑企業，而不僅僅是優化工具。他們已執行超過2000個GenAI客戶專案，倡導「人機協作」，為員工配備「數位助手」。其策略重點是建立支持AI的安全數位核心，並推動負責任的AI框架，引領企業進行全面變革。</p>
+                    </div>
+                </div>
+                <div class="chart-container bg-white p-4 rounded-lg shadow-md">
+                     <canvas id="investmentChart"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const sections = document.querySelectorAll('.content-section');
+    const navButtons = document.querySelectorAll('.nav-button');
+    const mobileNav = document.getElementById('mobile-nav');
+
+    function showSection(targetId) {
+        sections.forEach(section => {
+            section.classList.toggle('active', section.id === targetId);
+        });
+        navButtons.forEach(button => {
+            button.classList.toggle('active', button.dataset.target === targetId);
+        });
+        if (mobileNav.value !== targetId) {
+            mobileNav.value = targetId;
+        }
+    }
+
+    navButtons.forEach(button => {
+        button.addEventListener('click', () => showSection(button.dataset.target));
+    });
+
+    mobileNav.addEventListener('change', () => {
+        showSection(mobileNav.value);
+    });
+
+    const pressureCards = document.querySelectorAll('#pressure-cards .card');
+    const pressureContents = document.querySelectorAll('.pressure-content-item');
+    pressureCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const contentId = card.dataset.content + '-content';
+            pressureContents.forEach(content => {
+                content.classList.toggle('hidden', content.id !== contentId);
+            });
+            pressureCards.forEach(c => c.classList.remove('ring-2', 'ring-teal-500'));
+            card.classList.add('ring-2', 'ring-teal-500');
+        });
+    });
+
+    const pyramidLevels = document.querySelectorAll('.pyramid-level');
+    const roleContents = document.querySelectorAll('.role-content-item');
+    const defaultRoleContent = document.getElementById('role-default-content');
+    
+    pyramidLevels.forEach(level => {
+        level.addEventListener('click', () => {
+            const roleId = 'role-' + level.dataset.role + '-content';
+            
+            pyramidLevels.forEach(l => l.classList.remove('active'));
+            level.classList.add('active');
+
+            roleContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            const targetContent = document.getElementById(roleId);
+            if(targetContent) {
+                targetContent.classList.remove('hidden');
+            }
+        });
+    });
+    
+    const competitorCards = document.querySelectorAll('.competitor-card');
+    const competitorContents = document.querySelectorAll('.competitor-content-item');
+    
+    competitorCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const competitorId = 'competitor-' + card.dataset.competitor + '-content';
+
+            competitorCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            
+            competitorContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            const targetContent = document.getElementById(competitorId);
+            if (targetContent) {
+                targetContent.classList.remove('hidden');
+            }
+        });
+    });
+
+    function initializePyramid() {
+        pyramidLevels[2].click();
+    }
+    initializePyramid();
+    
+    function initializeCompetitorView() {
+        const firstCompetitor = document.querySelector('#competitor-logos .competitor-card');
+        if (firstCompetitor) {
+            firstCompetitor.click();
+        }
+    }
+    initializeCompetitorView();
+
+    function initializePressureView() {
+        const firstPressureCard = document.querySelector('#pressure-cards .card');
+        if(firstPressureCard) {
+            firstPressureCard.click();
+        }
+    }
+    initializePressureView();
+
+    const chartData = {
+        labels: ['德勤 (技術學習)', '麥肯錫 (法律和解)', '埃森哲 (GenAI專案)', 'BCG (招聘AI)'],
+        datasets: [{
+            label: '相關投入/影響指標 (概念比較)',
+            data: [20, 16, 20, 10], 
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(153, 102, 255, 0.6)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const chartConfig = {
+        type: 'bar',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '主要顧問公司AI相關投入概念比較',
+                    font: { size: 16 }
+                },
+                subtitle: {
+                    display: true,
+                    text: '德勤單位:億美元; 麥肯錫單位:億美元; 埃森哲單位:百個專案',
+                    padding: { bottom: 10 }
+                },
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            let value = context.parsed.y;
+                            if (context.label === '德勤 (技術學習)') {
+                                label = `投資 > ${value} 億美元`;
+                            } else if (context.label === '麥肯錫 (法律和解)') {
+                                label = `和解金 > ${value} 億美元`;
+                            } else if (context.label === '埃森哲 (GenAI專案)') {
+                                label = `已執行 > ${value/10}千 個專案`;
+                            } else if (context.label === 'BCG (招聘AI)') {
+                                label = `採用AI工具優化流程`;
+                                return label;
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '指標數值 (僅供概念參考)'
+                    }
+                }
+            }
+        }
+    };
+    
+    const investmentChartCtx = document.getElementById('investmentChart').getContext('2d');
+    new Chart(investmentChartCtx, chartConfig);
+});
+</script>
+</body>
+</html>
