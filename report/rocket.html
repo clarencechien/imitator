@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宇宙競速：可回收火箭大比拼</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for space-tech theme */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark space background */
+            color: #e0e6ed; /* Light text */
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+        }
+
+        .header-gradient {
+            background: linear-gradient(180deg, #1a202c 0%, #0d1117 100%);
+        }
+
+        .rocket-card {
+            background-color: #161b22; /* Slightly lighter dark background for cards */
+            border: 1px solid #2f363d; /* Subtle border */
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.1), 0 0 30px rgba(0, 128, 255, 0.05); /* Cyan/blue glow */
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+            overflow: hidden; /* Hide overflowing content initially */
+            max-height: 300px; /* Initial height for cards */
+        }
+
+        .rocket-card.expanded {
+            max-height: 1000px; /* Expanded height (adjust as needed for content) */
+            box-shadow: 0 6px 25px rgba(0, 255, 255, 0.2), 0 0 40px rgba(0, 128, 255, 0.1); /* Stronger glow on expand */
+        }
+
+        .rocket-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.15), 0 0 35px rgba(0, 128, 255, 0.08);
+        }
+
+        .section-title {
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, #00f2fe, #4facfe); /* Blue-cyan gradient underline */
+            border-radius: 2px;
+        }
+
+        .data-visualization {
+            background-color: #161b22;
+            border: 1px solid #2f363d;
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.1), 0 0 30px rgba(0, 128, 255, 0.05);
+        }
+
+        /* --- Bar Chart Specific Styles --- */
+        .bar-item {
+            display: flex;
+            flex-direction: column; /* Stack label/value and bar on small screens */
+            margin-bottom: 1rem;
+        }
+
+        .bar-label-value {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem; /* Space between text and bar */
+        }
+
+        .bar-container {
+            width: 100%;
+            background-color: #2f363d; /* Background for the bar track */
+            border-radius: 4px;
+            height: 20px; /* Height of the bar */
+            overflow: hidden;
+        }
+
+        .bar {
+            background: linear-gradient(90deg, #4facfe, #00f2fe); /* Blue-cyan gradient for bars */
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.8s ease-out;
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (min-width: 640px) { /* Small screens and up */
+            .bar-item {
+                flex-direction: column; /* Still stack on sm, if labels get too long */
+            }
+        }
+
+        @media (min-width: 768px) { /* Medium screens and up */
+            .rocket-card {
+                max-height: 300px; /* Restore initial height for cards */
+            }
+            .rocket-card.expanded {
+                max-height: 1000px; /* Restore expanded height for cards */
+            }
+            .grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)); /* Two columns on md */
+            }
+            .bar-item {
+                flex-direction: row; /* Align label/value and bar side-by-side on md */
+                align-items: center;
+            }
+            .bar-label-value {
+                width: 30%; /* Allocate space for label/value */
+                margin-right: 1rem;
+                margin-bottom: 0;
+            }
+            .bar-container {
+                flex-grow: 1; /* Bar takes remaining space */
+            }
+        }
+
+        @media (min-width: 1024px) { /* Large screens and up */
+            .grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr)); /* Three columns on lg */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+    <header class="header-gradient text-center py-16">
+        <h1 class="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600 mb-4 animate-pulse">
+            宇宙競速：可回收火箭大比拼
+        </h1>
+        <p class="text-lg md:text-xl max-w-3xl mx-auto px-4">
+            深入探索全球領先的可回收火箭技術，比較它們的尺寸、能力與回收挑戰，見證太空探索的新紀元。
+        </p>
+    </header>
+
+    <main class="container mx-auto py-12 px-4">
+        <h2 class="section-title text-4xl font-bold text-center mb-12">
+            火箭艦隊概覽
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <div class="rocket-card rounded-xl p-6 relative" onclick="toggleCard(this)">
+                <h3 class="text-2xl font-semibold mb-4 text-blue-300">中國 箭元科技 元行者一號</h3>
+                <img src="https://placehold.co/400x250/000000/FFFFFF?text=Yuanxingzhe-1" alt="元行者一號火箭圖片" class="w-full h-48 object-cover rounded-md mb-4">
+                <p class="text-gray-300 mb-2"><strong>尺寸 (驗證型):</strong> 直徑3.35米 (未來完整火箭尺寸更大)</p>
+                <p class="text-gray-300 mb-2"><strong>主要用途:</strong> 中大型運載火箭</p>
+                <p class="text-gray-300 mb-2"><strong>可回收部分:</strong> 一級火箭</p>
+                <p class="text-gray-300 mb-2"><strong>回收方式:</strong> 海上軟著陸 (濺落回收)</p>
+                <div class="detailed-info mt-4 text-gray-400 hidden">
+                    <p class="mb-2"><strong>回收難度:</strong> 驗證中，技術突破 (液氧甲烷+不鏽鋼)，目標是實現軌道級回收。</p>
+                    <p class="mb-2"><strong>現況:</strong> 2025年5月成功進行首次海上軟著陸驗證試驗。</p>
+                    <p class="mb-2"><strong>技術亮點:</strong> 中國首個採用「液氧甲烷+不鏽鋼」方案的民營可回收火箭。</p>
+                </div>
+                <div class="absolute bottom-4 right-4 text-blue-400 text-sm">點擊查看更多</div>
+            </div>
+
+            <div class="rocket-card rounded-xl p-6 relative" onclick="toggleCard(this)">
+                <h3 class="text-2xl font-semibold mb-4 text-purple-300">美國 SpaceX Falcon 9</h3>
+                <img src="https://placehold.co/400x250/000000/FFFFFF?text=Falcon+9" alt="獵鷹9號火箭圖片" class="w-full h-48 object-cover rounded-md mb-4">
+                <p class="text-gray-300 mb-2"><strong>尺寸:</strong> 高約70米 / 直徑3.7米</p>
+                <p class="text-gray-300 mb-2"><strong>主要用途:</strong> 中型運載火箭 (衛星發射、載人飛行)</p>
+                <p class="text-gray-300 mb-2"><strong>可回收部分:</strong> 一級火箭</p>
+                <p class="text-gray-300 mb-2"><strong>回收方式:</strong> 垂直動力著陸 (陸地或海上駁船)</p>
+                <div class="detailed-info mt-4 text-gray-400 hidden">
+                    <p class="mb-2"><strong>回收難度:</strong> 高，目前最成熟且可靠的軌道級回收技術。</p>
+                    <p class="mb-2"><strong>運載能力 (LEO):</strong> 約 22.8 噸 (一次性) / 15.6 噸 (回收)</p>
+                    <p class="mb-2"><strong>回收成功率:</strong> 超過 85%</p>
+                    <p class="mb-2"><strong>技術亮點:</strong> 首次實現軌道級垂直著陸回收，頻繁重複使用降低發射成本。</p>
+                </div>
+                <div class="absolute bottom-4 right-4 text-purple-400 text-sm">點擊查看更多</div>
+            </div>
+
+            <div class="rocket-card rounded-xl p-6 relative" onclick="toggleCard(this)">
+                <h3 class="text-2xl font-semibold mb-4 text-green-300">美國 SpaceX Starship</h3>
+                <img src="https://placehold.co/400x250/000000/FFFFFF?text=Starship" alt="星艦火箭圖片" class="w-full h-48 object-cover rounded-md mb-4">
+                <p class="text-gray-300 mb-2"><strong>尺寸:</strong> 總高約120米 / 直徑約9米 (超重型助推器+星艦飛船)</p>
+                <p class="text-gray-300 mb-2"><strong>主要用途:</strong> 超重型運載火箭 (載人登月/火星、大規模衛星發射)</p>
+                <p class="text-gray-300 mb-2"><strong>可回收部分:</strong> 一級助推器 (Super Heavy) 和 二級飛船 (Starship)</p>
+                <p class="text-gray-300 mb-2"><strong>回收方式:</strong> 垂直動力著陸 (一級可能嘗試「筷子」捕獲)</p>
+                <div class="detailed-info mt-4 text-gray-400 hidden">
+                    <p class="mb-2"><strong>回收難度:</strong> 極高，最具挑戰性。尺寸巨大，回收方式複雜。</p>
+                    <p class="mb-2"><strong>運載能力 (LEO):</strong> 超過 100 噸 (完全重複使用目標)</p>
+                    <p class="mb-2"><strong>現況:</strong> 仍在測試階段，尚未實現全箭軌道級回收。</p>
+                    <p class="mb-2"><strong>技術亮點:</strong> 旨在實現完全重複使用，不鏽鋼箭體，猛禽發動機。</p>
+                </div>
+                <div class="absolute bottom-4 right-4 text-green-400 text-sm">點擊查看更多</div>
+            </div>
+
+            <div class="rocket-card rounded-xl p-6 relative" onclick="toggleCard(this)">
+                <h3 class="text-2xl font-semibold mb-4 text-yellow-300">美國 Blue Origin New Shepard</h3>
+                <img src="https://placehold.co/400x250/000000/FFFFFF?text=New+Shepard" alt="新謝潑德號火箭圖片" class="w-full h-48 object-cover rounded-md mb-4">
+                <p class="text-gray-300 mb-2"><strong>尺寸:</strong> 高約18米 / 直徑3米</p>
+                <p class="text-gray-300 mb-2"><strong>主要用途:</strong> 次軌道太空旅遊和科學研究</p>
+                <p class="text-gray-300 mb-2"><strong>可回收部分:</strong> 推進器和乘員艙</p>
+                <p class="text-gray-300 mb-2"><strong>回收方式:</strong> 垂直動力著陸</p>
+                <div class="detailed-info mt-4 text-gray-400 hidden">
+                    <p class="mb-2"><strong>回收難度:</strong> 相對較低。次軌道飛行，速度和高度遠低於軌道級火箭。</p>
+                    <p class="mb-2"><strong>成就:</strong> 成功實現多次推進器和乘員艙的垂直著陸和重複使用。</p>
+                    <p class="mb-2"><strong>技術亮點:</strong> 專為太空旅遊設計，提供零重力體驗。</p>
+                </div>
+                <div class="absolute bottom-4 right-4 text-yellow-400 text-sm">點擊查看更多</div>
+            </div>
+
+            <div class="rocket-card rounded-xl p-6 relative" onclick="toggleCard(this)">
+                <h3 class="text-2xl font-semibold mb-4 text-red-300">美國 Blue Origin New Glenn</h3>
+                <img src="https://placehold.co/400x250/000000/FFFFFF?text=New+Glenn" alt="新格倫號火箭圖片" class="w-full h-48 object-cover rounded-md mb-4">
+                <p class="text-gray-300 mb-2"><strong>尺寸:</strong> 高約98米 / 直徑7米</p>
+                <p class="text-gray-300 mb-2"><strong>主要用途:</b> 重型運載火箭 (衛星發射)</p>
+                <p class="text-gray-300 mb-2"><strong>可回收部分:</strong> 一級火箭</p>
+                <p class="text-gray-300 mb-2"><strong>回收方式:</strong> 海上平台垂直著陸 (駁船「Jacklyn」)</p>
+                <div class="detailed-info mt-4 text-gray-400 hidden">
+                    <p class="mb-2"><strong>回收難度:</strong> 高。類似 Falcon 9 的回收方式，但尺寸更大，控制難度更高。</p>
+                    <p class="mb-2"><strong>運載能力 (LEO):</strong> 約 45 噸 (回收)</p>
+                    <p class="mb-2"><strong>現況:</strong> 2025年1月首次發射，一級火箭未能成功回收，仍在驗證中。</p>
+                    <p class="mb-2"><strong>技術亮點:</strong> 採用 BE-4 甲烷發動機，旨在提供高運載能力。</p>
+                </div>
+                <div class="absolute bottom-4 right-4 text-red-400 text-sm">點擊查看更多</div>
+            </div>
+
+            <div class="rocket-card rounded-xl p-6 relative" onclick="toggleCard(this)">
+                <h3 class="text-2xl font-semibold mb-4 text-cyan-300">美國 Rocket Lab Electron</h3>
+                <img src="https://placehold.co/400x250/000000/FFFFFF?text=Electron" alt="電子號火箭圖片" class="w-full h-48 object-cover rounded-md mb-4">
+                <p class="text-gray-300 mb-2"><strong>尺寸:</strong> 高約18米 / 直徑1.2米</p>
+                <p class="text-gray-300 mb-2"><strong>主要用途:</strong> 小型衛星運載</p>
+                <p class="text-gray-300 mb-2"><strong>可回收部分:</strong> 一級火箭</p>
+                <p class="text-gray-300 mb-2"><strong>回收方式:</strong> 空中直升機捕獲 / 海上濺落</p>
+                <div class="detailed-info mt-4 text-gray-400 hidden">
+                    <p class="mb-2"><strong>回收難度:</strong> 獨特且挑戰性高。需精準控制傘降和直升機捕獲。</p>
+                    <p class="mb-2"><strong>運載能力 (LEO):</strong> 約 300 公斤 (回收)</p>
+                    <p class="mb-2"><strong>現況:</strong> 已多次嘗試回收，但高頻率重複使用仍有挑戰。</p>
+                    <p class="mb-2"><strong>技術亮點:</strong> 專注於小型衛星市場，創新的空中回收嘗試。</p>
+                </div>
+                <div class="absolute bottom-4 right-4 text-cyan-400 text-sm">點擊查看更多</div>
+            </div>
+
+            <div class="rocket-card rounded-xl p-6 relative" onclick="toggleCard(this)">
+                <h3 class="text-2xl font-semibold mb-4 text-indigo-300">美國 Rocket Lab Neutron</h3>
+                <img src="https://placehold.co/400x250/000000/FFFFFF?text=Neutron" alt="中子號火箭圖片" class="w-full h-48 object-cover rounded-md mb-4">
+                <p class="text-gray-300 mb-2"><strong>尺寸:</strong> (開發中，目標與獵鷹9號競爭)</p>
+                <p class="text-gray-300 mb-2"><strong>主要用途:</strong> 中型運載火箭</p>
+                <p class="text-gray-300 mb-2"><strong>可回收部分:</strong> 一級火箭</p>
+                <p class="text-gray-300 mb-2"><strong>回收方式:</strong> 垂直動力著陸</p>
+                <div class="detailed-info mt-4 text-gray-400 hidden">
+                    <p class="mb-2"><strong>回收難度:</strong> 高，作為新進入中型火箭領域的挑戰者，需克服技術難關。</p>
+                    <p class="mb-2"><strong>現況:</strong> 仍在開發中，預計2025年底進行首次發射。</p>
+                    <p class="mb-2"><strong>技術亮點:</strong> 可重複使用的碳纖維複合材料結構，旨在提供高頻率發射服務。</p>
+                </div>
+                <div class="absolute bottom-4 right-4 text-indigo-400 text-sm">點擊查看更多</div>
+            </div>
+
+        </div>
+
+        <section class="data-visualization rounded-xl p-8 mt-20">
+            <h2 class="section-title text-4xl font-bold text-center mb-12">
+                關鍵數據對比
+            </h2>
+
+            <div class="bar-chart-container">
+                <h3 class="text-2xl font-semibold mb-4 text-gray-200">火箭高度對比 (約略值)</h3>
+
+                <div class="bar-item">
+                    <div class="bar-label-value">
+                        <span class="text-sm sm:text-base font-medium text-gray-300">SpaceX Starship:</span>
+                        <span class="text-sm sm:text-base font-bold text-white">120m</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 100%;" data-value="120"></div>
+                    </div>
+                </div>
+
+                <div class="bar-item">
+                    <div class="bar-label-value">
+                        <span class="text-sm sm:text-base font-medium text-gray-300">Blue Origin New Glenn:</span>
+                        <span class="text-sm sm:text-base font-bold text-white">98m</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 81.67%;" data-value="98"></div>
+                    </div>
+                </div>
+
+                <div class="bar-item">
+                    <div class="bar-label-value">
+                        <span class="text-sm sm:text-base font-medium text-gray-300">SpaceX Falcon 9:</span>
+                        <span class="text-sm sm:text-base font-bold text-white">70m</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 58.33%;" data-value="70"></div>
+                    </div>
+                </div>
+
+                <div class="bar-item">
+                    <div class="bar-label-value">
+                        <span class="text-sm sm:text-base font-medium text-gray-300">Blue Origin New Shepard:</span>
+                        <span class="text-sm sm:text-base font-bold text-white">18m</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 15%;" data-value="18"></div>
+                    </div>
+                </div>
+
+                <div class="bar-item">
+                    <div class="bar-label-value">
+                        <span class="text-sm sm:text-base font-medium text-gray-300">Rocket Lab Electron:</span>
+                        <span class="text-sm sm:text-base font-bold text-white">18m</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 15%;" data-value="18"></div>
+                    </div>
+                </div>
+
+                <div class="bar-item">
+                    <div class="bar-label-value">
+                        <span class="text-sm sm:text-base font-medium text-gray-300">元行者一號 (驗證型):</span>
+                        <span class="text-sm sm:text-base font-bold text-white">3.35m</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 2.79%;" data-value="3.35"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <p class="text-gray-400 text-sm mt-8">
+                * 注意：元行者一號的高度為驗證型火箭直徑，完整火箭高度尚未公布。Neutron 為開發中，高度未列入圖表。
+            </p>
+        </section>
+
+    </main>
+
+    <footer class="footer-gradient text-center py-8 mt-16">
+        <h2 class="section-title text-3xl font-bold text-center mb-8">
+            太空探索的未來
+        </h2>
+        <p class="text-md md:text-lg max-w-3xl mx-auto px-4 text-gray-300">
+            可回收火箭技術正徹底改變太空產業，大幅降低發射成本，使太空探索和利用變得更加常態化。從載人登月到大規模衛星部署，這些創新將引領人類走向更廣闊的星辰大海。
+        </p>
+        <p class="text-sm text-gray-500 mt-8">&copy; 2025 宇宙競速。所有權利保留。</p>
+    </footer>
+
+    <script>
+        function toggleCard(cardElement) {
+            const detailedInfo = cardElement.querySelector('.detailed-info');
+            const toggleText = cardElement.querySelector('.absolute.bottom-4.right-4');
+
+            if (detailedInfo.classList.contains('hidden')) {
+                detailedInfo.classList.remove('hidden');
+                cardElement.classList.add('expanded');
+                toggleText.textContent = '點擊收起';
+            } else {
+                detailedInfo.classList.add('hidden');
+                cardElement.classList.remove('expanded');
+                toggleText.textContent = '點擊查看更多';
+            }
+        }
+
+        // Animate bars on load
+        window.onload = function() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                const width = bar.style.width; // Get the initial width set in HTML
+                bar.style.width = '0%'; // Reset to 0 for animation
+                setTimeout(() => {
+                    bar.style.width = width; // Animate to original width
+                }, 100); // Small delay to ensure CSS transition applies
+            });
+        };
+    </script>
+</body>
+</html>
+
