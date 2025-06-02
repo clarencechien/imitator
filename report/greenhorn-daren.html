@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧投資儀表板 | 大人學 x 綠角 (增強版)</title>
+    <!-- Visualization & Content Choices: 
+        1. Inflation Impact: Goal: Inform. Method: Simple HTML content. Justification: Direct textual explanation.
+        2. Active vs. Passive Investing: Goal: Compare. Method: Two-column layout with info cards, toggle button. Interaction: Toggle for detailed arguments. Justification: Direct comparison.
+        3. Active Fund Performance: Goal: Compare. Method: Bar Chart (Chart.js/Canvas). Justification: Visual comparison of performance data.
+        4. Asset Allocation (Stocks/Bonds/Rebalancing): Goal: Inform/Organize. Method: Info cards. Justification: Metaphors and clear explanations for core concepts.
+        5. Retirement Planning (Allocation/Total Return Withdrawal): Goal: Inform. Method: Info cards. Justification: Specific, actionable advice for retirement.
+        6. Investment Mindset (Biases/Discipline/Wealth Philosophy): Goal: Inform. Method: Quote cards, key takeaway lists. Justification: Distills philosophical points.
+        7. Further Learning: Goal: Action. Method: Text and button. Justification: Guides users to more resources.
+        CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All visuals are created with Chart.js, HTML, and Tailwind CSS.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #FDFCFB; /* Slightly warmer off-white */ }
+        .chart-container { position: relative; width: 100%; max-width: 700px; margin-left: auto; margin-right: auto; height: 350px; max-height: 50vh; }
+        @media (max-width: 768px) { .chart-container { height: 300px; max-height: 60vh; } }
+        .nav-link { padding: 8px 16px; border-radius: 9999px; transition: all 0.3s ease; color: #4A5568; }
+        .nav-link.active { background-color: #3182CE; color: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav-link:hover:not(.active) { background-color: #E2E8F0; color: #2D3748; }
+        .content-card { background-color: #FFFFFF; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .content-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .btn-toggle { transition: background-color 0.3s ease, color 0.3s ease; border: 1px solid transparent;}
+        .btn-toggle-active { background-color: #3182CE; color: white; border-color: #3182CE;}
+        .btn-primary { background-color: #3182CE; color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 500; transition: background-color 0.3s ease; }
+        .btn-primary:hover { background-color: #2B6CB0; }
+        .section-title { color: #2D3748; }
+        .section-subtitle { color: #4A5568; }
+        .highlight-text { color: #2B6CB0; font-weight: 600; }
+    </style>
+</head>
+<body class="text-gray-700">
+
+    <header class="bg-white/90 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center">
+                    <span class="text-3xl text-blue-600">💡</span>
+                    <h1 class="ml-3 text-xl font-bold text-gray-800">智慧投資儀表板</h1>
+                </div>
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                    <a href="#intro" class="nav-link text-sm lg:text-base">緣起</a>
+                    <a href="#philosophy" class="nav-link text-sm lg:text-base">投資哲學</a>
+                    <a href="#allocation" class="nav-link text-sm lg:text-base">資產配置</a>
+                    <a href="#retirement" class="nav-link text-sm lg:text-base">退休規劃</a>
+                    <a href="#mindset" class="nav-link text-sm lg:text-base">心態修煉</a>
+                    <a href="#learning" class="nav-link text-sm lg:text-base">延伸學習</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-6">
+
+        <section id="intro" class="text-center py-10 md:py-14">
+            <h2 class="text-3xl md:text-4xl font-bold section-title mb-4">為何我們需要談投資？</h2>
+            <p class="max-w-3xl mx-auto text-lg section-subtitle mb-8">
+                這份儀表板提煉自<span class="highlight-text">《大人的 Small Talk》</span>對談<span class="font-semibold text-green-700">綠角老師</span>的精彩內容。核心問題很簡單：在一個購買力會被通膨侵蝕的世界，我們該如何保護、並增長自己的辛苦勞動成果？這裡沒有暴富的捷徑，只有一套穩健、理性的思維框架。
+            </p>
+            <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 p-6 rounded-r-lg max-w-2xl mx-auto text-left shadow-md">
+                <h4 class="font-bold text-lg mb-2">通膨的無形侵蝕</h4>
+                <p>「通貨膨脹代表著我們用同樣一筆錢，所能換取到的購買力大幅下降... 你的辛苦勞動終將被通膨慢慢吃掉。」</p>
+                <p class="mt-2 text-sm">例如：五年前 70 元的雞腿便當，現在可能只夠買一支雞腿。</p>
+            </div>
+        </section>
+
+        <section id="philosophy" class="py-10 md:py-14">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold section-title mb-3">核心投資哲學：主動 vs 被動</h2>
+                <p class="max-w-2xl mx-auto section-subtitle">投資世界主要有兩種方法論。理解它們的差異是做出明智選擇的第一步。您可以點擊下方按鈕，探索兩種方法的觀點。</p>
+            </div>
+
+            <div class="flex justify-center mb-8">
+                <div class="flex rounded-full bg-gray-200 p-1 shadow-inner">
+                    <button id="show-passive" class="btn-toggle px-4 py-2 sm:px-6 sm:py-2 rounded-full text-sm sm:text-base">指數化投資 (被動)</button>
+                    <button id="show-active" class="btn-toggle px-4 py-2 sm:px-6 sm:py-2 rounded-full text-sm sm:text-base">選股投資 (主動)</button>
+                </div>
+            </div>
+
+            <div id="philosophy-content" class="grid md:grid-cols-2 gap-6 md:gap-8">
+            </div>
+
+            <div class="mt-12 md:mt-16">
+                <h3 class="text-2xl font-bold text-center mb-4 section-title">現實數據：主動型基金的挑戰</h3>
+                 <p class="text-center max-w-2xl mx-auto section-subtitle mb-8">綠角老師提到，專業基金經理人要長期穩定地戰勝市場（即指數）是極其困難的。以下圖表顯示了在不同時間維度下，有多少比例的美國大型股主動型基金，其績效落後於 S&P 500 指數。</p>
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="activeVsPassiveChart"></canvas>
+                    </div>
+                </div>
+                 <p class="text-center text-xs text-gray-500 mt-3">資料來源：SPIVA U.S. Scorecard (年末 2023)。僅為說明概念，非投資建議。</p>
+            </div>
+        </section>
+
+        <section id="allocation" class="py-10 md:py-14 bg-sky-50/70 rounded-2xl">
+            <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl font-bold section-title mb-3">策略核心：資產配置</h2>
+                <p class="max-w-2xl mx-auto section-subtitle">若不主動選股，該如何投資？答案是透過「資產配置」，建立一個能抵禦風浪的投資組合。最常見的核心是股票與債券的搭配，並透過再平衡維持策略。</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 items-stretch px-4">
+                <div class="content-card">
+                    <h4 class="text-2xl font-bold mb-3 text-blue-700">股票 (成長引擎) 🚀</h4>
+                    <p class="text-gray-600">「利用股票的成長性帶你去達成目標。」</p>
+                    <p class="mt-2 text-gray-600">目標是參與整體市場的長期增長，獲取人類經濟與科技進步帶來的報酬。</p>
+                </div>
+                <div class="content-card">
+                    <h4 class="text-2xl font-bold mb-3 text-green-700">債券 (穩定器 / 壓艙石) ⚓</h4>
+                    <p class="text-gray-600">「利用債券的安全性讓你度過高風險資產大跌的時候。」</p>
+                    <p class="mt-2 text-gray-600">在股市恐慌性大跌時，高品質的公債能發揮穩定效果，幫助投資人保持理性，避免賣在低點。它像是船的壓艙石，讓你在風浪中不會輕易翻船。</p>
+                </div>
+                <div class="content-card lg:col-span-1 md:col-span-2">
+                    <h4 class="text-2xl font-bold mb-3 text-teal-600">再平衡 (Rebalancing) ⚖️</h4>
+                    <p class="text-gray-600">隨著市場波動，投資組合中各資產的比例會偏離初始設定。再平衡是指導賣出表現較好（比例過高）的資產，買入表現較差（比例過低）的資產，使其回到目標比例。</p>
+                    <p class="mt-2 text-gray-600"><span class="font-semibold">目的：</span>控制風險，確保投資組合符合您的長期策略，而非追逐短期市場表現。</p>
+                </div>
+            </div>
+             <div class="text-center mt-12 px-4">
+                 <h4 class="text-xl font-bold mb-3 section-title">少跌，就是賺</h4>
+                 <p class="max-w-2xl mx-auto section-subtitle">一個重要的數學觀念：資產下跌 50%，需要上漲 100% 才能回本。因此，控制下跌風險（抗跌性）比追求極致上漲更為關鍵。資產配置中的債券與再平衡策略，主要扮演的就是這個「緩衝」與「紀律」的角色。</p>
+             </div>
+        </section>
+
+        <section id="retirement" class="py-10 md:py-14">
+            <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl font-bold section-title mb-3">退休規劃考量</h2>
+                <p class="max-w-2xl mx-auto section-subtitle">進入退休階段，資產配置與提領策略需要特別規劃，以確保財務安全與生活品質。</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-6 md:gap-8 px-4">
+                <div class="content-card">
+                    <h4 class="text-xl font-bold mb-3 text-indigo-700">退休時的資產配置 🛡️</h4>
+                    <p class="text-gray-600">「進入退休階段可以稍微比較保守一點，比如說你用股債比例50比50。」</p>
+                    <p class="mt-2 text-gray-600">隨著年齡增長，風險承受能力通常會下降。增加債券等較低風險資產的比例，有助於保護已積累的財富，減少市場波動對退休生活的衝擊。</p>
+                </div>
+                <div class="content-card">
+                    <h4 class="text-xl font-bold mb-3 text-purple-700">總報酬提領策略 💰</h4>
+                    <p class="text-gray-600">「比較好的做法是利用總報酬來自於你退休現金流...你會同時用配息跟資本力的形成你的現金流。」</p>
+                    <p class="mt-2 text-gray-600">不應僅依賴股息或債息作為退休收入。應著眼於投資組合的整體增長（總報酬），在需要現金時，有計畫地賣出部分資產（實現資本利得），結合自然的配息，來支應生活開銷。這種方式更具彈性與持續性。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="mindset" class="py-10 md:py-14 bg-rose-50/70 rounded-2xl">
+            <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl font-bold section-title mb-3">終極課題：心態修煉與財富哲學</h2>
+                <p class="max-w-2xl mx-auto section-subtitle">投資不僅是技術，更是哲學。釐清投資目的與克服人性弱點，是通往財務平靜的必經之路。</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-4">
+                <div class="content-card">
+                    <h4 class="text-xl font-bold text-gray-800 mb-4">陷阱一：近期偏誤</h4>
+                    <p class="text-gray-600">將近期市場狀況直接延伸至未來。市場大漲時追高，大跌時殺低。應對：堅持資產配置。</p>
+                </div>
+                <div class="content-card">
+                    <h4 class="text-xl font-bold text-gray-800 mb-4">陷阱二：行動偏誤</h4>
+                    <p class="text-gray-600">總覺得「做點什麼」比較好。事實上，耐心持有、減少交易，往往成果更佳。</p>
+                </div>
+                <div class="content-card">
+                    <h4 class="text-xl font-bold text-gray-800 mb-4">紀律與耐心：投資的馬拉松 🏃</h4>
+                    <p class="text-gray-600">「慢慢來比較快。」投資是一場長期賽事，不應追求短期暴利。堅持既定策略，耐心等待複利效果發酵，是成功的關鍵。</p>
+                </div>
+                <div class="content-card md:col-span-2 lg:col-span-3">
+                    <h4 class="text-xl font-bold text-gray-800 mb-4">重新定義「財富自由」🕊️</h4>
+                    <p class="text-gray-600 mb-2">財富自由並非一個具體的數字，而是一種「感到自在的心態」。</p>
+                    <div class="bg-gray-100 p-4 rounded-lg text-center">
+                        <p class="text-lg font-semibold">你擁有的金融資產 = 你對資產的期待</p>
+                    </div>
+                    <p class="mt-4 text-gray-600">當等式兩邊達到平衡，就不再有被金錢逼迫的感覺。與其無止盡地追逐移動的財富目標，不如學習控制自己的期待，這才是心態管理的核心。</p>
+                </div>
+                 <div class="bg-green-50 border-l-4 border-green-600 text-green-800 p-6 rounded-r-lg md:col-span-2 lg:col-span-3 shadow-md">
+                    <h4 class="font-bold text-lg mb-2">給年輕上班族的建議 🌱</h4>
+                    <p>「慢慢來比較快。」與其冒高風險試圖一步登天，不如專注於兩件事：</p>
+                     <ul class="list-disc list-inside mt-2 space-y-1">
+                        <li><span class="font-semibold">投資自己：</span>提升工作與職場能力，帶來的所得增長，其潛力遠超早期的小額金融投資。</li>
+                        <li><span class="font-semibold">及早開始：</span>無論金額多寡，都應及早開始投資，讓時間複利發揮作用。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="learning" class="py-10 md:py-14 text-center">
+            <h2 class="text-3xl font-bold section-title mb-4">延伸學習與資源</h2>
+            <p class="max-w-xl mx-auto section-subtitle mb-8">
+                若您希望更深入地了解指數化投資、資產配置與財經知識，綠角老師的部落格與課程是絕佳的起點。
+            </p>
+            <a href="https://greenhornfinancefootnote.blogspot.com/" target="_blank" rel="noopener noreferrer" class="btn-primary inline-flex items-center">
+                <span class="mr-2">📚</span> 前往綠角財經筆記
+            </a>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-6 py-10 text-center">
+            <p class="mb-3 text-lg">「投資最重要就是參與市場得到報酬。」 - <span class="font-semibold">綠角</span></p>
+            <p class="text-sm text-gray-400">&copy; <span id="currentYear"></span> 智慧投資儀表板。基於《大人的 Small Talk》內容製作，僅供教育說明用途。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            const philosophyContent = document.getElementById('philosophy-content');
+            const showPassiveBtn = document.getElementById('show-passive');
+            const showActiveBtn = document.getElementById('show-active');
+
+            const contentData = {
+                passive: {
+                    main: {
+                        title: "指數化投資 (被動)",
+                        color: "text-blue-700",
+                        description: "核心理念是不做預測、不擇時、不選股。買入並持有涵蓋整個市場的指數型基金(ETF)，目標是取得市場的「平均報酬」。",
+                        points: [
+                            "<span class='font-semibold'>優勢：</span>成本低廉、極度分散、節省心力。",
+                            "<span class='font-semibold'>哲學：</span>承認自己無法持續戰勝市場，因此選擇聰明地跟隨市場。",
+                            "<span class='font-semibold'>代表人物：</span>約翰・伯格 (John Bogle)。"
+                        ]
+                    },
+                    quote: {
+                        title: "為何選擇被動？",
+                        text: "「主動投資是個競爭環境，你若不能勝過至少一半的人，績效可能比市場平均還差... 長期下來，你會勝過大部分的主動投資者。」",
+                        author: "- 綠角",
+                        authorColor: "text-green-700"
+                    }
+                },
+                active: {
+                     main: {
+                        title: "選股投資 (主動)",
+                        color: "text-red-600",
+                        description: "透過研究分析，試圖找出未來表現將超越市場平均的「好公司」或「好股票」，並納入投資組合，希望創造比市場更好的報酬。",
+                        points: [
+                            "<span class='font-semibold'>挑戰：</span>需投入大量時間研究、交易成本較高、且需面對人性貪婪與恐懼的考驗。",
+                            "<span class='font-semibold'>現實：</span>「績效會很明顯的輪動。今年前十名的基金，下一年可能就跑到百名之外。」",
+                            "<span class='font-semibold'>代表人物：</span>華倫・巴菲特 (Warren Buffett)。"
+                        ]
+                    },
+                    quote: {
+                        title: "巴菲特的建議",
+                        text: "「巴菲特也建議大眾做指數化投資。因為他知道自己是特例，他的經驗對多數人而言難以複製。給大眾的建議，必須是多數人去做都能得到正面成效的。」",
+                        author: "- 綠角",
+                        authorColor: "text-green-700"
+                    }
+                }
+            };
+
+            function renderPhilosophyContent(type) {
+                const data = contentData[type];
+                philosophyContent.innerHTML = `
+                    <div class="content-card">
+                        <h4 class="text-2xl font-bold mb-3 ${data.main.color}">${data.main.title}</h4>
+                        <p class="text-gray-600 mb-4">${data.main.description}</p>
+                        <ul class="space-y-2 text-sm text-gray-600 list-disc list-inside">
+                            ${data.main.points.map(point => `<li>${point}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="bg-gray-50 p-6 md:p-8 rounded-xl border border-gray-200 border-dashed">
+                       <h4 class="text-xl font-semibold mb-3 section-title">${data.quote.title}</h4>
+                       <p class="text-gray-600"><em>${data.quote.text}</em></p>
+                       <p class="text-right text-sm mt-4 ${data.quote.authorColor} font-semibold">${data.quote.author}</p>
+                    </div>
+                `;
+            }
+
+            function showContent(type) {
+                renderPhilosophyContent(type);
+                showPassiveBtn.classList.toggle('btn-toggle-active', type === 'passive');
+                showActiveBtn.classList.toggle('btn-toggle-active', type === 'active');
+                showPassiveBtn.classList.toggle('bg-white', type !== 'passive');
+                showActiveBtn.classList.toggle('bg-white', type !== 'active');
+            }
+
+            showPassiveBtn.addEventListener('click', () => showContent('passive'));
+            showActiveBtn.addEventListener('click', () => showContent('active'));
+
+            showContent('passive'); 
+
+            const ctx = document.getElementById('activeVsPassiveChart').getContext('2d');
+            const activeVsPassiveChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1年', '3年', '5年', '10年', '20年'],
+                    datasets: [{
+                        label: '績效落後指數的主動型基金比例 (%)',
+                        data: [64.88, 86.82, 91.31, 94.75, 94.79], // SPIVA US Scorecard Year-End 2023, US Large Cap
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        hoverBackgroundColor: 'rgba(59, 130, 246, 0.9)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%'
+                                },
+                                color: '#4A5568'
+                            },
+                            grid: {
+                                color: '#E2E8F0'
+                            }
+                        },
+                        x: {
+                             ticks: {
+                                color: '#4A5568'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#2D3748',
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#FFFFFF',
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 800,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('main section');
+
+            const observerOptions = {
+                root: null, 
+                rootMargin: "-40% 0px -60% 0px", // Adjust to trigger when section is more centered
+                threshold: 0.1 
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                let activeSectionId = null;
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        if (!activeSectionId) { // Prioritize the first intersecting section from top
+                           activeSectionId = entry.target.id;
+                        }
+                    }
+                });
+
+                if (activeSectionId) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href').substring(1) === activeSectionId) {
+                            link.classList.add('active');
+                        }
+                    });
+                } else {
+                     // If no section is "active" by the stricter criteria, fallback or clear all
+                     // For now, let's keep the last active one if nothing new is strongly intersecting
+                }
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
+
