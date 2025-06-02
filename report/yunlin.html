@@ -1,492 +1,1051 @@
 
 <!DOCTYPE html>
-<html lang="zh-Hant" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雲林五日遊互動式行程規劃</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
-    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
-    <link href="[https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap](https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap)" rel="stylesheet">
-    <!-- Visualization & Content Choices: 
-        - Budget: (Goal: Inform/Compare) - A responsive Doughnut chart from Chart.js visualizes cost distribution. (Interaction: Hover for details). This is more intuitive than a numeric list.
-        - Itinerary: (Goal: Organize) - A vertical timeline built with HTML/Tailwind CSS. (Interaction: Clickable tabs for each day). This presents the schedule chronologically and cleanly.
-        - Transport/Lodging: (Goal: Compare) - Styled HTML tables. (Interaction: Subtle hover effects). This allows for clear, direct comparison of features and prices.
-        - Food/Attractions: (Goal: Inform/Organize) - Card-based layouts using HTML/Tailwind. This organizes disparate items into a visually appealing and scannable format.
-        - All diagrams and icons are built using HTML/CSS and Unicode characters. -->
-    <style>
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #FDFBF8; /* Warm Neutral Background */
-            color: #4A4A4A; /* Dark Gray for text for readability */
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 450px; /* Max width for readability on large screens */
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px; /* Base height */
-            max-height: 400px; /* Max height to prevent overflow */
-        }
-        @media (min-width: 768px) { /* md breakpoint */
-            .chart-container {
-                height: 350px; /* Slightly larger on medium screens */
-            }
-        }
-        .nav-link {
-            transition: color 0.3s, border-color 0.3s;
-        }
-        .nav-link:hover, .nav-link.active {
-            color: #C89F6A; /* Accent color for hover/active */
-            border-bottom-color: #C89F6A; /* Accent color for underline */
-        }
-        .tab-button {
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .tab-button.active {
-            background-color: #C89F6A; /* Accent color for active tab */
-            color: #FFFFFF; /* White text on active tab */
-        }
-        .card-hover {
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        .card-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        }
-        /* Ensure Tailwind base styles are applied */
-        @tailwind base;
-        @tailwind components;
-        @tailwind utilities;
-    </style>
-</head>
-<body class="antialiased">
-
-    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
-        <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <h1 class="text-xl md:text-2xl font-bold text-[#A77A51]">雲林漫遊</h1>
-            <div class="hidden md:flex space-x-6">
-                <a href="#overview" class="nav-link font-medium border-b-2 border-transparent pb-1">旅程總覽</a>
-                <a href="#itinerary" class="nav-link font-medium border-b-2 border-transparent pb-1">每日行程</a>
-                <a href="#info" class="nav-link font-medium border-b-2 border-transparent pb-1">實用資訊</a>
-                <a href="#food" class="nav-link font-medium border-b-2 border-transparent pb-1">美食地圖</a>
-            </div>
-            <div class="md:hidden">
-                <select id="mobile-nav" class="bg-white border border-gray-300 rounded-md py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#C89F6A] focus:border-transparent">
-                    <option value="#overview">旅程總覽</option>
-                    <option value="#itinerary">每日行程</option>
-                    <option value="#info">實用資訊</option>
-                    <option value="#food">美食地圖</option>
-                </select>
-            </div>
-        </nav>
-    </header>
-
-    <main class="container mx-auto px-4 py-8 md:py-12">
-        
-        <section id="overview" class="mb-16 scroll-mt-20">
-            <h2 class="text-3xl font-bold text-center mb-4 text-[#A77A51]">旅程總覽</h2>
-            <p class="text-center max-w-3xl mx-auto text-gray-600 mb-12">
-                歡迎來到雲林！這趟五天四夜的旅程將帶您深入探索這片土地的文化底蘊、工藝傳承與自然風光。此互動式儀表板旨在幫助您快速掌握行程精華，從預算規劃到每日看點，一切盡在掌握。
-            </p>
-            <div class="grid md:grid-cols-2 gap-8 items-center">
-                <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
-                    <h3 class="text-2xl font-semibold mb-4 text-center text-[#A77A51]">預算分佈一覽</h3>
-                    <p class="text-center text-sm text-gray-500 mb-4">此為單人預算估算，實際花費可能因個人選擇而異。將滑鼠懸停在圖表上可查看各項目的費用區間。</p>
-                    <div class="chart-container">
-                        <canvas id="budgetChart"></canvas>
-                    </div>
-                </div>
-                <div class="space-y-6">
-                    <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
-                        <h3 class="text-xl font-semibold mb-2 text-[#A77A51]">行程亮點 ✨</h3>
-                        <ul class="list-none space-y-2 text-gray-700">
-                            <li><span class="text-[#C89F6A] mr-2">🎭</span> 探索虎尾布袋戲文化與糖廠歷史</li>
-                            <li><span class="text-[#C89F6A] mr-2">🏞️</span> 漫步古坑綠色隧道與品嚐在地咖啡</li>
-                            <li><span class="text-[#C89F6A] mr-2">🛍️</span> 遊覽斗六太平老街與雲中街文創聚落</li>
-                            <li><span class="text-[#C89F6A] mr-2">🌃</span> 體驗斗六週六夜市的熱鬧與美食</li>
-                        </ul>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
-                        <h3 class="text-xl font-semibold mb-2 text-[#A77A51]">行囊建議 (六月) 🎒</h3>
-                        <p class="text-gray-700">輕便透氣夏季服裝、薄外套、舒適便鞋、防曬用品及雨具是必備品。也別忘了攜帶有效的重型機車駕照！</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="itinerary" class="mb-16 scroll-mt-20">
-            <h2 class="text-3xl font-bold text-center mb-4 text-[#A77A51]">每日行程</h2>
-             <p class="text-center max-w-3xl mx-auto text-gray-600 mb-8">
-                點擊下方按鈕，切換查看每一天的詳細行程安排。每個活動卡片都包含了時間、地點與簡介，讓您的旅程規劃一目了然。
-            </p>
-            <div class="flex justify-center flex-wrap gap-2 mb-8">
-                <button data-day="1" class="tab-button active py-2 px-4 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-full font-semibold">第一天</button>
-                <button data-day="2" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-full font-semibold">第二天</button>
-                <button data-day="3" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-full font-semibold">第三天</button>
-                <button data-day="4" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-full font-semibold">第四天</button>
-                <button data-day="5" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-full font-semibold">第五天</button>
-            </div>
-            <div id="itinerary-content" class="relative"></div>
-        </section>
-        
-        <section id="info" class="mb-16 scroll-mt-20">
-            <h2 class="text-3xl font-bold text-center mb-4 text-[#A77A51]">實用資訊</h2>
-            <p class="text-center max-w-3xl mx-auto text-gray-600 mb-12">
-                此區塊彙整了旅程中最重要的交通與住宿資訊。從高鐵、機車租賃到計程車費用，以及虎尾和斗六的推薦住宿，我們為您提供了詳細的比較與建議，助您做出最佳選擇。
-            </p>
-            <div class="grid lg:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
-                    <h3 class="text-2xl font-semibold mb-4 text-center text-[#A77A51]">交通攻略 🚗</h3>
-                    <div class="space-y-6">
-                        <div>
-                            <h4 class="font-bold text-lg mb-2 text-gray-800">🛵 虎尾機車租賃 (高鐵站附近)</h4>
-                            <div class="overflow-x-auto rounded-lg border border-gray-200">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-amber-100 text-amber-800">
-                                        <tr><th class="p-3 font-semibold">公司</th><th class="p-3 font-semibold">車型</th><th class="p-3 font-semibold">預估日租金</th></tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                        <tr class="hover:bg-amber-50"><td class="p-3">ZOCHA</td><td class="p-3">Gogoro</td><td class="p-3">NT$680</td></tr>
-                                        <tr class="hover:bg-amber-50"><td class="p-3">和運租車</td><td class="p-3">125cc 燃油車</td><td class="p-3">NT$300起</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-lg mb-2 text-gray-800">🚕 計程車預估費用 (日間)</h4>
-                             <div class="overflow-x-auto rounded-lg border border-gray-200">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-amber-100 text-amber-800">
-                                        <tr><th class="p-3 font-semibold">路線</th><th class="p-3 font-semibold">預估費用</th></tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                        <tr class="hover:bg-amber-50"><td class="p-3">虎尾 → 斗六</td><td class="p-3">NT$250 - 400</td></tr>
-                                        <tr class="hover:bg-amber-50"><td class="p-3">斗六 → 高鐵站</td><td class="p-3">NT$350 - 450</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                 <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
-                    <h3 class="text-2xl font-semibold mb-4 text-center text-[#A77A51]">住宿精選 🏨</h3>
-                    <div class="space-y-6">
-                        <div>
-                            <h4 class="font-bold text-lg mb-2 text-gray-800">虎尾 (第一、二晚)</h4>
-                             <div class="overflow-x-auto rounded-lg border border-gray-200">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-amber-100 text-amber-800">
-                                        <tr><th class="p-3 font-semibold">住宿</th><th class="p-3 font-semibold">特色</th><th class="p-3 font-semibold">價格起</th></tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                        <tr class="hover:bg-amber-50"><td class="p-3">虎尾春秋</td><td class="p-3">布袋戲主題</td><td class="p-3">NT$2,190</td></tr>
-                                        <tr class="hover:bg-amber-50"><td class="p-3">會呼吸的房</td><td class="p-3">現代設計感</td><td class="p-3">NT$2,340</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-lg mb-2 text-gray-800">斗六 (第三、四晚)</h4>
-                             <div class="overflow-x-auto rounded-lg border border-gray-200">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-amber-100 text-amber-800">
-                                        <tr><th class="p-3 font-semibold">住宿</th><th class="p-3 font-semibold">特色</th><th class="p-3 font-semibold">價格起</th></tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                        <tr class="hover:bg-amber-50"><td class="p-3 font-bold text-[#C89F6A]">斗宅旅店 (首選)</td><td class="p-3">文青風格</td><td class="p-3">NT$2,680</td></tr>
-                                        <tr class="hover:bg-amber-50"><td class="p-3">緻麗伯爵</td><td class="p-3">近老街</td><td class="p-3">洽詢</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="food" class="scroll-mt-20">
-            <h2 class="text-3xl font-bold text-center mb-4 text-[#A77A51]">美食地圖</h2>
-            <p class="text-center max-w-3xl mx-auto text-gray-600 mb-12">
-                品嚐在地美食是旅行不可或缺的一環。雲林的小吃不僅價格親民，更蘊含了代代相傳的好滋味。這裡為您分區整理了必吃美食清單，跟隨地圖，開啟您的舌尖之旅吧！
-            </p>
-            <div id="food-content" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-        </section>
-
-    </main>
-
-    <footer class="bg-gray-800 text-white mt-16">
-        <div class="container mx-auto px-4 py-6 text-center text-sm">
-            <p>此互動式行程規劃由 AI 生成，資訊僅供參考。</p>
-            <p>&copy; 2025 雲林漫遊</p>
-        </div>
-    </footer>
-
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>雲林漫遊：五日深度探索之旅 (SPA)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const itineraryData = {
-                1: {
-                    title: '抵達虎尾，感受歷史脈動',
-                    events: [
-                        { time: '上午', icon: '🚄', title: '高鐵啟程 & 租賃機車', desc: '從台北搭乘高鐵至雲林站，隨後於站前租借機車，前往虎尾住宿處辦理入住。' },
-                        { time: '下午', icon: '🏛️', title: '虎尾市區文化巡禮', desc: '參觀「黃金三角」：雲林布袋戲館、虎尾合同廳舍（誠品/星巴克）及雲林故事館。' },
-                        { time: '傍晚', icon: '🏭', title: '虎尾糖廠漫步', desc: '走訪仍在運作的糖廠，感受糖業歷史，幸運的話還能看見五分車行駛。' },
-                        { time: '晚餐', icon: '🍜', title: '虎尾在地美食', desc: '在虎尾鎮上尋找特色小炒或火鍋，品嚐道地風味。' }
-                    ]
-                },
-                2: {
-                    title: '虎尾郊區風光與工藝之美',
-                    events: [
-                        { time: '上午', icon: '🏭', title: '毛巾故鄉的溫柔', desc: '騎車前往「興隆毛巾觀光工廠」，了解毛巾製程，還可參加DIY體驗。' },
-                        { time: '下午', icon: '🌳', title: '沉靜森林禪意', desc: '探訪「澄霖沉香味道森林館」，在日式禪風庭園中享受寧靜，欣賞落羽松。' },
-                        { time: '晚餐', icon: '🍲', title: '探索虎尾小吃', desc: '再次品嚐虎尾的特色餐飲，或發掘前一日未曾嘗試的在地小吃。' },
-                        { time: '提醒', icon: '🛵', title: '歸還機車', desc: '根據租約，可於今日傍晚或明日上午歸還機車。' }
-                    ]
-                },
-                3: {
-                    title: '斗六古城韻味與古坑咖啡香',
-                    events: [
-                        { time: '上午', icon: '🚕', title: '移師斗六', desc: '搭乘計程車從虎尾前往斗六民宿，寄放行李後，開始探索斗六市區。' },
-                        { time: '上午稍晚', icon: '🏘️', title: '斗六老城漫步', desc: '遊覽太平老街的巴洛克建築與雲中街文創聚落的日式宿舍群。' },
-                        { time: '午餐', icon: '🍚', title: '老街古早味', desc: '品嚐老街碗粿的招牌碗粿與蛋飯，或在凹凸咖啡館享用輕食。' },
-                        { time: '下午', icon: '🌳', title: '前進古坑綠意', desc: '搭乘台灣好行或計程車，前往古坑綠色隧道及蜜蜂故事館。' },
-                        { time: '傍晚', icon: '☕', title: '華山咖啡時光', desc: '若時間允許，可前往華山咖啡街，在山景中品嚐一杯道地的古坑咖啡。' }
-                    ]
-                },
-                4: {
-                    title: '斗六深度漫遊與週六夜市',
-                    events: [
-                        { time: '上午', icon: '🏛️', title: '斗六在地文化探索', desc: '參觀行啟記念館，或深入西市場、東市場，品嚐在地小吃如東市羊肉。' },
-                        { time: '下午', icon: '🛍️', title: '悠閒時光與伴手禮', desc: '在市區選購四代目麥芽酥、品豐肉乾等伴手禮，或到膨鼠森林公園散步。' },
-                        { time: '晚間', icon: '🌃', title: '斗六觀光夜市 (重頭戲)', desc: '搭計程車前往雲林規模最大的夜市，盡情享受各式小吃與熱鬧氛圍。' },
-                        { time: '美食推薦', icon: '🍗', title: '夜市必吃', desc: '大岡山豆乳雞翅、黃記肉夾饃、玄櫻拉絲玉米等，都是不容錯過的好滋味。' }
-                    ]
-                },
-                5: {
-                    title: '告別雲林，滿載回憶返北',
-                    events: [
-                        { time: '上午', icon: '🛍️', title: '最後巡禮', desc: '享用悠閒早餐，並進行最後的伴手禮採購。' },
-                        { time: '中午', icon: '🚕', title: '前往高鐵站', desc: '從斗六民宿搭乘計程車或高鐵快捷公車前往高鐵雲林站。' },
-                        { time: '下午', icon: '🚄', title: '踏上歸途', desc: '搭乘預訂好的高鐵列車，從雲林返回台北，結束愉快的旅程。' }
-                    ]
-                }
-            };
-
-            const foodData = [
-                { region: '虎尾', name: '在地小吃', desc: '鎮上街巷間隱藏著許多傳統麵飯店家，值得細細品味。' },
-                { region: '斗六', name: '老街碗粿', desc: '遵循古法製作，米香濃郁，口感紮實，蛋飯也是一絕。' },
-                { region: '斗六', name: '東市羊肉', desc: '四十餘年老店，羊肉料理新鮮無腥臊，羊肉米糕是招牌。' },
-                { region: '斗六', name: '長興圓仔冰', desc: '純糯米製作的湯圓與麻糬，口感Q彈不黏牙，冷熱皆宜。' },
-                { region: '古坑', name: '古坑咖啡', desc: '在華山咖啡街的莊園裡，品一杯現烘的道地台灣咖啡。' },
-                { region: '古坑', name: '蜜蜂故事館冰淇淋', desc: '位於綠色隧道口，其招牌蜂蜜冰淇淋香甜清爽。' },
-                { region: '夜市', name: '斗六夜市小吃', desc: '匯集全台經典美食，如豆乳雞、肉夾饃、地瓜球等。' },
-            ];
-
-            const itineraryContent = document.getElementById('itinerary-content');
-            const tabButtons = document.querySelectorAll('.tab-button');
-
-            function renderItinerary(day) {
-                const data = itineraryData[day];
-                if (!data) {
-                    itineraryContent.innerHTML = '<p class="text-center text-gray-500">暫無此日行程資料。</p>';
-                    return;
-                }
-                let eventsHtml = data.events.map(event => `
-                    <div class="flex items-start card-hover">
-                        <div class="flex flex-col items-center mr-4">
-                            <div>
-                                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-[#C89F6A] text-white text-xl shadow-md">${event.icon}</div>
-                            </div>
-                            <div class="w-px h-full bg-gray-300"></div>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex-1 border border-gray-200">
-                            <p class="font-semibold text-[#A77A51] mb-1">${event.time}</p>
-                            <h4 class="text-lg font-bold text-gray-800 mb-2">${event.title}</h4>
-                            <p class="text-gray-600 text-sm">${event.desc}</p>
-                        </div>
-                    </div>
-                `).join('');
-                
-                const lastEventIndex = data.events.length - 1;
-                if (lastEventIndex >= 0) {
-                     const lastEventSelector = `.card-hover:nth-child(${lastEventIndex + 1}) .w-px`;
-                     eventsHtml = eventsHtml.replace(new RegExp(lastEventSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), (match) => {
-                        return match.replace('h-full', 'h-0'); // Hide the line for the last item
-                     });
-                }
-
-
-                itineraryContent.innerHTML = `
-                    <div class="p-4 md:p-6 bg-amber-50 rounded-lg shadow-inner border border-amber-200">
-                        <h3 class="text-xl md:text-2xl font-bold mb-6 text-center text-[#A77A51]">${data.title}</h3>
-                        <div class="relative">
-                             ${eventsHtml}
-                        </div>
-                    </div>
-                `;
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Noto Sans TC', 'sans-serif'],
+            },
+            colors: {
+              emerald: {
+                50: '#ecfdf5',
+                100: '#d1fae5',
+                200: '#a7f3d0',
+                300: '#6ee7b7',
+                400: '#34d399',
+                500: '#10b981',
+                600: '#059669',
+                700: '#047857',
+                800: '#065f46',
+                900: '#064e3b',
+                950: '#022c22',
+              },
+              amber: {
+                50: '#fffbeb',
+                100: '#fef3c7',
+              }
             }
-
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    tabButtons.forEach(btn => {
-                        btn.classList.remove('active', 'bg-[#C89F6A]', 'text-white');
-                        btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-                    });
-                    button.classList.add('active', 'bg-[#C89F6A]', 'text-white');
-                    button.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-                    renderItinerary(button.dataset.day);
-                });
-            });
-
-            renderItinerary(1); 
-            
-            const foodContent = document.getElementById('food-content');
-            if (foodContent) {
-                foodContent.innerHTML = foodData.map(food => `
-                    <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover border border-gray-200">
-                        <div class="p-6">
-                            <div class="flex justify-between items-baseline mb-2">
-                                <h4 class="text-xl font-bold text-[#A77A51]">${food.name}</h4>
-                                <span class="text-xs font-semibold bg-amber-200 text-amber-800 px-2 py-1 rounded-full">${food.region}</span>
-                            </div>
-                            <p class="text-gray-600 text-sm">${food.desc}</p>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            const budgetCtx = document.getElementById('budgetChart').getContext('2d');
-            new Chart(budgetCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['住宿 (4晚)', '高鐵來回', '在地交通', '餐飲 (5日)', '雜支'],
-                    datasets: [{
-                        label: '預算分佈',
-                        data: [9700, 1800, 1500, 3250, 500],
-                        backgroundColor: [
-                            '#A77A51', 
-                            '#C89F6A', 
-                            '#E8D3B7', 
-                            '#B99B6B', 
-                            '#D2B48C'  
-                        ],
-                        borderColor: '#FDFBF8',
-                        borderWidth: 3,
-                        hoverOffset: 8,
-                        hoverBorderColor: '#FDFBF8',
-                        hoverBorderWidth: 4,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 15,
-                                font: {
-                                    size: 12,
-                                    family: "'Noto Sans TC', sans-serif"
-                                },
-                                color: '#4A4A4A'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.7)',
-                            titleFont: {
-                                size: 14,
-                                family: "'Noto Sans TC', sans-serif"
-                            },
-                            bodyFont: {
-                                size: 12,
-                                family: "'Noto Sans TC', sans-serif"
-                            },
-                            padding: 10,
-                            cornerRadius: 4,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    const value = context.raw;
-                                    const ranges = {
-                                        '住宿 (4晚)': 'NT$7,400 - 12,000',
-                                        '高鐵來回': '約 NT$1,800',
-                                        '在地交通': 'NT$1,850 - 2,450',
-                                        '餐飲 (5日)': 'NT$2,500 - 4,000',
-                                        '雜支': '約 NT$500'
-                                    };
-                                    label += ranges[context.label] || `NT$${value.toLocaleString()}`;
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    cutout: '60%'
-                }
-            });
-
-            const mobileNav = document.getElementById('mobile-nav');
-            if (mobileNav) {
-                mobileNav.addEventListener('change', (e) => {
-                    const targetId = e.target.value;
-                    const targetElement = document.querySelector(targetId);
-                    if (targetElement) {
-                        targetElement.scrollIntoView({ behavior: 'smooth' });
-                    }
-                });
-            }
-
-
-            const navLinks = document.querySelectorAll('.nav-link');
-            const sections = document.querySelectorAll('main section');
-            
-            function updateActiveNavLink() {
-                let current = '';
-                sections.forEach(section => {
-                    const sectionTop = section.offsetTop;
-                    if (pageYOffset >= sectionTop - 80) { // Adjusted offset for sticky header
-                        current = section.getAttribute('id');
-                    }
-                });
-
-                navLinks.forEach(link => {
-                    link.classList.remove('active', 'text-[#C89F6A]', 'border-[#C89F6A]');
-                    link.classList.add('text-gray-600', 'border-transparent');
-                    if (link.getAttribute('href').substring(1) === current) {
-                        link.classList.add('active', 'text-[#C89F6A]', 'border-[#C89F6A]');
-                        link.classList.remove('text-gray-600', 'border-transparent');
-                    }
-                });
-
-                if (mobileNav && current) {
-                    mobileNav.value = `#${current}`;
-                }
-            }
-            
-            window.addEventListener('scroll', updateActiveNavLink);
-            updateActiveNavLink(); // Initial call to set active link on page load
-
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    const targetElement = document.querySelector(targetId);
-                    if (targetElement) {
-                         window.scrollTo({
-                            top: targetElement.offsetTop - 70, // Adjusted for sticky header
-                            behavior: 'smooth'
-                        });
-                    }
-                });
-            });
-
-        });
+          }
+        }
+      }
     </script>
-</body>
+    <!-- React and ReactDOM -->
+    <script src="https://unpkg.com/react@19.1.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@19.1.0/umd/react-dom.development.js"></script>
+    <!-- Babel Standalone for in-browser JSX/TSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone@7.x/babel.min.js"></script>
+  </head>
+  <body class="bg-slate-50">
+    <div id="root"></div>
+    <script type="text/babel" data-presets="react,typescript">
+      // All React application code will be inlined here
+
+      // --- From types.ts ---
+      // No exports, types are globally available within this script block
+
+      // Icon prop type
+      // interface IconProps extends React.SVGProps<SVGSVGElement> {
+      // // any additional props specific to icons if needed
+      // }
+      // Note: React.SVGProps is globally available if React is global. Let's define IconProps directly if needed.
+      // For simplicity, components will use React.SVGProps<SVGSVGElement> directly.
+
+      interface NavItem {
+        id: string;
+        label: string;
+        isSubsection?: boolean;
+      }
+
+      interface ContentSection {
+        id: string;
+        title: string;
+        renderContent: React.ReactNode | (() => React.ReactNode);
+      }
+
+      interface TableData {
+        headers: string[];
+        rows: (string | React.ReactNode)[][];
+        caption?: string;
+      }
+
+      interface Accommodation {
+        name: string;
+        price?: string;
+        features: string[];
+        locationNote?: string;
+        image?: string; 
+        suitableFor?: string;
+      }
+
+      interface ItineraryDetail {
+        title: string;
+        description: React.ReactNode;
+        icon?: React.ElementType;
+      }
+
+      interface ItineraryDay {
+        day: string;
+        title: string;
+        timeline: {
+          period: string;
+          activities: ItineraryDetail[];
+        }[];
+        notes?: React.ReactNode;
+        image?: string;
+      }
+
+      interface FoodItem {
+        name: string;
+        description: React.ReactNode;
+        category: string;
+        image?: string;
+        tags?: string[];
+      }
+
+      interface BudgetItem {
+        item: string;
+        estimate: string;
+        details?: string;
+      }
+
+      interface PackingItem {
+        category: string;
+        items: string[];
+        icon?: React.ElementType;
+      }
+
+      interface Reference {
+        id: string;
+        text: string;
+        url: string;
+      }
+      
+      // --- From components/icons/ ---
+      const Bars3Icon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      );
+
+      const XMarkIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      );
+
+      const ArrowUpCircleIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 11.25l-3-3m0 0l-3 3m3-3v7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+
+      const MapPinIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+        </svg>
+      );
+
+      const CalendarDaysIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-3.75h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
+        </svg>
+      );
+
+      const BuildingStorefrontIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5A.75.75 0 0114.25 12h4.5A.75.75 0 0119.5 12.75V21M4.5 3h15M4.5 3v18M4.5 3h15M4.5 3H3m1.5 0v18m1.5-18h12m-12 0v18m12-18v18M4.5 21H3m1.5 0h15M4.5 21h15m-15 0H3m13.5 0v-9M18 12H6v9h12V12zM6 12H4.5v9H6v-9z" />
+        </svg>
+      );
+
+      const BanknotesIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+      </svg>
+      );
+
+      const SparklesIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L1.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.25 12L17 13.75l-1.25-1.75L14.25 12l1.5-1.75L17 8.5l1.25 1.75L19.75 12l-1.5 1.75z" />
+      </svg>
+      );
+
+      const BriefcaseIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.073a2.25 2.25 0 01-2.25 2.25h-12a2.25 2.25 0 01-2.25-2.25V14.15M15.75 18.25v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a3.375 3.375 0 00-3.375 3.375V18.25M15.75 18.25H8.25M15 13.875V7.5a3.75 3.75 0 00-7.5 0v6.375M12 3V2.25A2.25 2.25 0 009.75 0H4.5A2.25 2.25 0 002.25 2.25V4.5A2.25 2.25 0 004.5 6.75h5.25A2.25 2.25 0 0012 4.5v-.75z" />
+      </svg>
+      );
+
+      const InformationCircleIcon = (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+      </svg>
+      );
+
+      // --- From components/Table.tsx ---
+      const Table = ({ data, className }) => {
+        return (
+          <div className={`overflow-x-auto shadow-md sm:rounded-lg ${className}`}>
+            <table className="w-full text-sm text-left text-slate-600">
+              {data.caption && (
+                <caption className="p-5 text-lg font-semibold text-left text-slate-900 bg-white">
+                  {data.caption}
+                </caption>
+              )}
+              <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                <tr>
+                  {data.headers.map((header, index) => (
+                    <th key={index} scope="col" className="px-6 py-3">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.rows.map((row, rowIndex) => (
+                  <tr key={rowIndex} className="bg-white border-b hover:bg-slate-50">
+                    {row.map((cell, cellIndex) => (
+                      <td key={cellIndex} className="px-6 py-4 whitespace-pre-wrap">
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      };
+
+      // --- From components/Card.tsx ---
+      const Card = ({ title, titleClassName, description, imageUrl, imageAlt, footer, children, className, onClick, titleIcon: TitleIcon }) => {
+        const cardContent = (
+          <React.Fragment>
+            {imageUrl && (
+              <img className="w-full h-48 object-cover rounded-t-lg" src={imageUrl} alt={imageAlt || title || 'Card image'} />
+            )}
+            <div className="p-5 flex-grow flex flex-col">
+              {title && (
+                <h5 className={`mb-2 text-2xl font-bold tracking-tight text-emerald-700 ${titleClassName} flex items-center`}>
+                  {TitleIcon && <TitleIcon className="w-6 h-6 mr-2 text-emerald-600" />}
+                  {title}
+                </h5>
+              )}
+              {description && <div className="mb-3 font-normal text-slate-600 text-base">{description}</div>}
+              {children}
+            </div>
+            {footer && <div className="p-5 border-t border-slate-200">{footer}</div>}
+          </React.Fragment>
+        );
+        
+        const baseClasses = "bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden";
+
+        if (onClick) {
+          return (
+            <button onClick={onClick} className={`${baseClasses} text-left ${className}`}>
+              {cardContent}
+            </button>
+          );
+        }
+
+        return (
+          <div className={`${baseClasses} ${className}`}>
+            {cardContent}
+          </div>
+        );
+      };
+      
+      // --- From components/SectionWrapper.tsx ---
+      const SectionWrapper = ({ id, title, children, className, isFirstSection = false, refCallback }) => {
+        return (
+          <section 
+            id={id} 
+            ref={refCallback} 
+            className={`py-10 md:py-16 ${isFirstSection ? 'pt-0 md:pt-0' : ''} ${className}`}
+          >
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              {!isFirstSection && (
+                <h2 className="text-3xl md:text-4xl font-bold text-emerald-700 mb-8 md:mb-12 text-center">
+                  {title}
+                </h2>
+              )}
+              {isFirstSection && (
+                  <div className="text-center pt-8 pb-12 md:pt-12 md:pb-16 bg-gradient-to-r from-emerald-600 to-green-500 rounded-lg shadow-xl mb-12">
+                      <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight">
+                      {title}
+                      </h1>
+                  </div>
+              )}
+              <div className={isFirstSection ? '' : 'bg-white p-6 md:p-8 rounded-xl shadow-xl'}>
+                {children}
+              </div>
+            </div>
+          </section>
+        );
+      };
+
+      // --- From components/Navbar.tsx ---
+      const Navbar = ({ navItems, activeSection, onNavItemClick, appTitle }) => {
+        const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+        const handleMobileMenuToggle = () => {
+          setIsMobileMenuOpen(!isMobileMenuOpen);
+        };
+
+        const handleItemClick = (id) => {
+          onNavItemClick(id);
+          if (isMobileMenuOpen) {
+            setIsMobileMenuOpen(false);
+          }
+        };
+
+        return (
+          <nav className="bg-white shadow-lg fixed top-0 left-0 right-0 z-50">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16 md:h-20">
+                <div className="flex-shrink-0">
+                  <span 
+                    className="text-xl md:text-2xl font-bold text-emerald-700 cursor-pointer"
+                    onClick={() => handleItemClick(navItems[0]?.id || '')}
+                  >
+                    {appTitle}
+                  </span>
+                </div>
+                <div className="hidden md:block">
+                  <div className="ml-10 flex items-baseline space-x-4">
+                    {navItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleItemClick(item.id)}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150
+                          ${activeSection === item.id 
+                            ? 'bg-emerald-600 text-white' 
+                            : 'text-slate-600 hover:bg-emerald-500 hover:text-white'
+                          }
+                          ${item.isSubsection ? 'ml-4 text-xs' : ''}`}
+                        aria-current={activeSection === item.id ? 'page' : undefined}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="md:hidden flex items-center">
+                  <button
+                    onClick={handleMobileMenuToggle}
+                    type="button"
+                    className="inline-flex items-center justify-center p-2 rounded-md text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500"
+                    aria-controls="mobile-menu"
+                    aria-expanded={isMobileMenuOpen}
+                  >
+                    <span className="sr-only">開啟主選單</span>
+                    {isMobileMenuOpen ? (
+                      <XMarkIcon className="block h-6 w-6" />
+                    ) : (
+                      <Bars3Icon className="block h-6 w-6" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {isMobileMenuOpen && (
+              <div className="md:hidden absolute top-16 inset-x-0 z-40" id="mobile-menu">
+                <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto">
+                  {navItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleItemClick(item.id)}
+                      className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-150
+                        ${activeSection === item.id 
+                          ? 'bg-emerald-600 text-white' 
+                          : 'text-slate-600 hover:bg-emerald-500 hover:text-white'
+                        }
+                        ${item.isSubsection ? 'pl-6 text-sm' : ''}`}
+                      aria-current={activeSection === item.id ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </nav>
+        );
+      };
+
+      // --- From constants.tsx ---
+      // Helper components used in constants are defined first
+      const Strong = ({ children }) => (
+        <span className="font-semibold text-emerald-700">{children}</span>
+      );
+
+      const LinkExt = ({ href, children }) => (
+        <a href={href} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-800 underline hover:font-semibold transition-colors">
+          {children}
+        </a>
+      );
+
+      const Highlight = ({ children }) => (
+        <span className="bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded">{children}</span>
+      );
+
+      const P = ({ children, className }) => {
+        const baseClasses = "mb-4 leading-relaxed text-slate-700";
+        const combinedClasses = className ? `${baseClasses} ${className}` : baseClasses;
+        return <p className={combinedClasses}>{children}</p>;
+      };
+      
+      const UL = ({ children, className }) => {
+        const baseClasses = "list-disc list-inside mb-4 pl-4 space-y-1 text-slate-700";
+        const combinedClasses = className ? `${baseClasses} ${className}` : baseClasses;
+        return <ul className={combinedClasses}>{children}</ul>;
+      };
+
+      const LI = ({ children, className }) => <li className={className}>{children}</li>;
+
+      const APP_TITLE = "雲林漫遊";
+
+      const hsrTableData = {
+        headers: ["路線", "預估車程時間", "預估標準艙票價 (NTD)", "備註"],
+        rows: [
+          ["台北 - 雲林", "約 1小時10分 - 1小時50分", "約 900", "請於出發前約28天至高鐵官網查詢2025年6月確切時刻及早鳥優惠。"],
+          ["雲林 - 台北", "約 1小時10分 - 1小時50分", "約 900", "同上，請確認符合下午抵達台北的班次。"],
+        ],
+        caption: "高鐵乘車資訊摘要 (台北 <=> 雲林)"
+      };
+
+      const motorcycleRentalTableData = {
+        headers: ["租賃公司", "地點", "主要車型", "預估日租金 (NTD)", "里程/油料政策", "預訂備註"],
+        rows: [
+          ["ZOCHA", "高鐵站旁停車場", "Gogoro 電動車", "680 (24小時計)", "含60公里免費，超額另計", "需App/LINE預約，無人化取還"],
+          ["和運租車", "高鐵站前", "125cc 燃油車", "300起 (平日)", "滿油取還", "可現場或預約，留意高鐵套裝優惠"],
+        ],
+        caption: "虎尾機車租賃比較 (高鐵雲林站附近)"
+      };
+      
+      const references = [ // Defined early as it's used in taxiFeeTableData, etc.
+          {id:"1", text:"普通/ 優待/ 團體票種說明– 台灣高鐵", url:"https://www.thsrc.com.tw/ArticleContent/743c51ac-124d-4b1a-a57b-1fd820848032"},
+          {id:"2", text:"雲林站往台北站台灣高鐵車票 - Klook", url:"https://www.klook.com/zh-TW/rails-24/1014-taiwan/route-1250/yunlin-to-taipei-trains/"},
+          {id:"3", text:"時刻表与票價查詢– 台灣高鐵", url:"https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c"},
+          {id:"4", text:"和運租車", url:"https://www.easyrent.com.tw/"},
+          {id:"5", text:"【高鐵旅遊】雲林機車自駕自由行一日", url:"https://www.colatour.com.tw/C10G_DomTour/C10G14_TourItinerary.aspx?TourNo=11628"},
+          {id:"6", text:"雲林必去景點｜網友熱門推薦雲林景點租車自駕遊攻略 - KKday", url:"https://www.kkday.com/zh-tw/tour/954"},
+          {id:"7", text:"通过高铁云林站从斗六市到巴士, 火车, 出租车, 轿车 - Rome2Rio", url:"https://www.rome2rio.com/zh/s/%E9%AB%98%E9%93%81%E4%BA%91%E6%9E%97%E7%AB%99/%E6%96%97%E5%85%AD%E5%B8%82"},
+          {id:"8", text:"高鐵雲林站資訊 - 台灣高鐵", url:"https://www.thsrc.com.tw/ArticleContent/5f4c7bb0-c676-4e39-8d3c-f12fc188ee5f"},
+          {id:"9", text:"斗六古坑線-巴士資訊&時刻表", url:"https://www.yunlinshuttlebus.com.tw/douliou_businfo"},
+          {id:"10", text:"我要叫車︱台灣大車隊計程車，小黃、多元，55688 APP搭車金優惠", url:"https://www.55688taxi.com/55688apptaxi.html"},
+          {id:"12", text:"【2025虎尾住宿】5間超夯虎尾飯店民宿！交通方便＆便宜高CP值推薦 - 波比看世界", url:"https://bobbyworld.tw/huwei-hotels/"},
+          {id:"13", text:"斗宅旅店", url:"https://www.belly-inn.com/"},
+          {id:"14", text:"【懶人包】雲林虎尾鎮吃喝懶人包（持續更新中） - 阿咕的試說心語", url:"https://hsimufei.pixnet.net/blog/post/48565732"},
+          {id:"16", text:"雲林虎尾景點|澄霖沉香味道森林館|台版兼六園|愛心湖畔落羽松森林秘境– 桃桃's旅人手札", url:"https://momoblog.tw/chenglin/"},
+          {id:"17", text:"雲林景點 澄霖沉香味道森林館 IG打卡夯點！！免費景點，猶如雲林版兼六園...", url:"https://i17fun.tw/agarwoodtw/"},
+          {id:"18", text:"雲林虎尾景點觀光工廠|iicake雲林蛋糕毛巾咖啡館 - 王子與公主的窩", url:"https://twobaby.tw/iicake/"},
+          {id:"20", text:"【雲林親子景點】金鵬巾緻親子館～親子遊好去處！...", url:"https://yoyoman822.pixnet.net/blog/post/66533298"},
+          {id:"24", text:"雲林斗六兩天一夜旅行提案｜從百年老街到青創聚落，新舊交融的小鎮風景 - 微笑台灣", url:"https://smiletaiwan.cw.com.tw/article/4454"},
+          {id:"25", text:"2025雲林斗六美食推薦》12家必吃隱藏版在地平價小吃... - 風傳媒", url:"https://www.storm.mg/lifestyle/4753272"},
+          {id:"26", text:"雲林凹凸咖啡 日式老屋咖啡廳，可愛貓咪，順遊斗六最美老屋聚落", url:"https://myjourney.tw/ottocoffe/"},
+          {id:"28", text:"30個斗六一日遊景點/美食推薦》玩出不一樣的斗六小旅行 - 許傑,旅行圖中", url:"https://journey.tw/go-douliu/"},
+          {id:"29", text:"古坑景點推薦｜從古坑老街、在地美食到舒適住宿，一網打盡！ - 華山觀止", url:"https://www.bugtwo.com.tw/gukeng-attractions.html"},
+          {id:"30", text:"古坑咖啡廳｜雲林古坑必訪8 間特色咖啡店...", url:"https://www.welcometw.com/%E5%8F%A4%E5%9D%91%E5%92%96%E5%95%A1%E5%BB%B3/"},
+          {id:"32", text:"2021雲林斗六在地人私推8家傳統小吃...", url:"https://today.line.me/tw/v2/article/VLZaeR"},
+          {id:"33", text:"【鬥六美食2025】探索雲林鬥六的12家必吃餐廳！... - Trip.com", url:"https://tw.trip.com/blog/douliu-delicacies/"},
+          {id:"36", text:"斗六伴手禮／在地人推薦!不可錯過的6大斗六名產...", url:"https://www.jelly.com.tw/knowledge/knowledge/Yunlin-Douliu-souvenirs.htm"},
+          {id:"38", text:"人文公園夜市- 維基百科", url:"https://zh.wikipedia.org/zh-tw/%E4%BA%BA%E6%96%87%E5%85%AC%E5%9C%92%E5%A4%9C%E5%B8%82"},
+          {id:"39", text:"『雲林斗六』超大場便宜好逛美食多的-斗六人文觀光夜市 - Mika出走美食日誌", url:"https://mikatogo.tw/post-171399729/"},
+          {id:"40", text:"３大斗六夜市懶人包！在地人推薦必吃美食、斗六夜市時間表公開 - 食尚玩家", url:"https://supertaste.tvbs.com.tw/food/350807"},
+          {id:"41", text:"週二、週六限定的「斗六觀光夜市」，到雲林不能錯過的夜市小吃| 聯合新聞網", url:"https://udn.com/news/story/7208/7945923"},
+          {id:"45", text:"LINE GO 24 小時斗六計程車服務", url:"https://www.linego.me/news/304"},
+          {id:"46", text:"古坑景點美食推薦【2025】古坑一日遊必讀!附交通攻略 - MH旅遊部落格", url:"https://markandhazyl.com/must-visit-places-in-gukeng/"},
+          {id:"48", text:"ZOCHA租機車-雲林虎尾高鐵店 - ZOCHA 租車", url:"https://www.zocha.com.tw/zocha/huwei/highspeedrail"},
+          {id:"51", text:"臺灣虎尾鎮10 間最佳住宿 - Booking.com (for Yun He B&B context)", url:"https://www.booking.com/accommodation/city/tw/huwei.zh-tw.html"},
+          {id:"55", text:"斗六市飯店& 住宿 (for Mu Cheng context)", url:"https://www.agoda.com/zh-tw/douliu-township/maps/yunlin-tw.html"},
+          {id:"56", text:"雲林親子住宿推薦｜家長安心首選的親子民宿... - 華山觀止", url:"https://www.bugtwo.com.tw/yunlin-family-friendly-accommodation.html"},
+          {id:"58", text:"虎尾鎮> 小鎮漫遊> 交通部觀光署", url:"https://www.taiwan.net.tw/m1.aspx?sNo=0042291&uid=64"},
+          {id:"59", text:"雲林 虎尾｜布袋戲的故鄉｜臺灣368 鄉鎮計畫16 - 方格子", url:"https://vocus.cc/article/66f173a4fd8978000165f05a"},
+          {id:"60", text:"興隆毛巾觀光工廠雲林景點玩全台灣旅遊網", url:"https://okgo.tw/mobile/butyview/3337"},
+          {id:"64", text:"雲林虎尾)奶奶的熊毛巾故事館/双星毛巾觀光工廠...", url:"https://luckyday296.pixnet.net/blog/post/405416791"},
+      ];
+      
+      const taxiFeeTableData = {
+        headers: ["路線", "預估距離 (公里)", "預估日間車資 (NTD)", "備註"],
+        rows: [
+          ["虎尾市中心 - 斗六市中心", "10 - 15", "250 - 400", ""],
+          ["斗六市中心 - 高鐵雲林站", "約 15", "350 - 450", <React.Fragment>可考慮搭乘<Strong>高鐵快捷公車</Strong>作為替代方案。<LinkExt href={references.find(r=>r.id==='8')?.url || '#'}>[8]</LinkExt></React.Fragment>],
+          ["斗六市區 - 古坑綠色隧道", "約 10-12", "250 - 350", <React.Fragment>建議優先考慮<Strong>台灣好行巴士</Strong>。<LinkExt href={references.find(r=>r.id==='9')?.url || '#'}>[9]</LinkExt></React.Fragment>],
+        ],
+        caption: "預估計程車費用參考"
+      };
+
+      const huweiAccommodations = [
+        { name: "虎尾春秋文創設計旅店", price: "2,190起", features: ["布袋戲主題", "文創設計", "近布袋戲館"], locationNote: "虎尾市中心", image: "https://picsum.photos/400/300?random=1", suitableFor: "對布袋戲文化有濃厚興趣，追求獨特住宿體驗的旅人。" },
+        { name: "會呼吸的房-採自助式入住-有電梯", price: "2,340起", features: ["自助入住", "現代設計", "近圓環", "有電梯"], locationNote: "虎尾市中心", image: "https://picsum.photos/400/300?random=2", suitableFor: "喜愛現代設計感、便利自助服務的旅人。" },
+        { name: "Aliyah阿利亞", price: "1,150起", features: ["經濟實惠", "自助入住", "近家樂福"], locationNote: "虎尾市區", image: "https://picsum.photos/400/300?random=3", suitableFor: "預算有限，追求高CP值的旅人。" },
+        { name: "風華渡假旅館", price: "1,570起", features: ["汽車旅館", "主題房型", "空間寬敞"], locationNote: "離市中心稍有距離", image: "https://picsum.photos/400/300?random=4", suitableFor: "偏好寬敞空間與特色主題房型的旅人。" },
+        { name: "澐河民宿", price: "價格洽詢", features: ["民宿新穎", "乾淨", "有電梯"], locationNote: "離主要景點約3公里", image: "https://picsum.photos/400/300?random=5", suitableFor: "喜愛全新住宿環境的旅人。" },
+      ];
+
+      const douliuAccommodations = [
+        { name: "斗宅旅店", price: "2,680起", features: ["文青風格", "自助入住", "設計感佳", "附咖啡廳"], locationNote: "雲科大生活圈", image: "https://picsum.photos/400/300?random=6", suitableFor: "喜愛設計感、追求獨特住宿體驗、偏好自助便利的「文青」旅人。" },
+        { name: "慕橙", price: "價格洽詢", features: ["房間寬敞", "評價極佳", "近生活百貨"], locationNote: "斗六市區", image: "https://picsum.photos/400/300?random=7", suitableFor: "尋求精品民宿體驗的旅客。" },
+        { name: "緻麗伯爵酒店", price: "價格洽詢", features: ["近圓環及老街", "高空酒吧"], locationNote: "斗六市中心", image: "https://picsum.photos/400/300?random=8", suitableFor: "偏好飯店設施與便利交通的旅客。" },
+        { name: "華安大飯店", price: "價格洽詢", features: ["近火車站", "經濟實惠"], locationNote: "斗六火車站對面", image: "https://picsum.photos/400/300?random=9", suitableFor: "追求CP值與交通便利性的旅客。" },
+        { name: "華山觀止虫二行館", price: "價格洽詢", features: ["環境優美", "設施佳", "位於古坑華山"], locationNote: "古坑山區 (非斗六市區)", image: "https://picsum.photos/400/300?random=10", suitableFor: "希望更親近山林，享受度假氛圍的旅客。" },
+      ];
+
+      const itineraryDays = [
+        {
+          day: "第一日", title: "抵達虎尾，感受歷史脈動",
+          image: "https://picsum.photos/800/400?random=11",
+          timeline: [
+            { period: "上午 (台北至虎尾)", activities: [
+              { title: "高鐵啟程", description: <React.Fragment>從台北高鐵站搭乘高鐵前往雲林站。建議選擇能於上午稍晚或中午前後抵達的班次（務必於行前查詢<LinkExt href="https://www.thsrc.com.tw/">官網</LinkExt>）。</React.Fragment> },
+              { title: "機車租賃", description: "抵達高鐵雲林站後，前往預訂的機車租賃點取車。" },
+              { title: "飯店入住", description: "騎乘機車或搭乘短程計程車前往虎尾下榻處，辦理入住並稍作安頓。" },
+            ]},
+            { period: "午餐", activities: [{ title: "虎尾在地小吃", description: "於虎尾鎮上尋覓在地小吃。可參考當地麵店、飯館，品嚐道地的虎尾滋味。" }] },
+            { period: "下午 (虎尾市區「黃金三角」文化巡禮)", activities: [
+              { title: "雲林布袋戲館", description: <React.Fragment>首站來到雲林文化的瑰寶——雲林布袋戲館。深入了解這項傳統藝術的魅力。（留意開放時間，通常週一、二休館）。<LinkExt href={references.find(r=>r.id==='58')?.url || '#'}>[58]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+              { title: "虎尾合同廳舍", description: <React.Fragment>緊鄰布袋戲館的是充滿歷史風情的虎尾合同廳舍。如今為誠品書店與星巴克咖啡。在此小憩，感受新舊文化交融。 <LinkExt href={references.find(r=>r.id==='58')?.url || '#'}>[58]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+              { title: "雲林故事館", description: <React.Fragment>同樣位於此文化核心區的雲林故事館，是一棟保存完好的日式木造官舍。聆聽在地聲音、感受地方記憶。（留意開放時間，通常週一、二休館）。 <LinkExt href={references.find(r=>r.id==='58')?.url || '#'}>[58]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+            ]},
+            { period: "傍晚", activities: [
+              { title: "虎尾糖廠", description: <React.Fragment>步行或短程騎車前往台灣仍在運作的少數糖廠之一——虎尾糖廠。感受糖業的歷史印記。若於12月至隔年3月的製糖期間來訪，更有機會親睹「五分車」行駛。 <LinkExt href={references.find(r=>r.id==='58')?.url || '#'}>[58]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+            ]},
+            { period: "晚餐", activities: [{ title: "虎尾風味餐", description: "虎尾鎮上餐廳選擇豐富，可嘗試在地推薦的火鍋、特色小炒，或下榻的「虎尾春秋文創設計旅店」本身亦附設餐廳。" }] },
+            { period: "晚間", activities: [{ title: "自由活動", description: "在市區悠閒散步，或返回住宿處休息。" }] },
+          ],
+          notes: "第一天的行程緊湊而充實，以虎尾最具代表性的布袋戲文化與糖業歷史為主軸，讓旅人迅速沉浸在雲林的濃厚人文氣息之中。"
+        },
+        {
+          day: "第二日", title: "虎尾郊區風光與工藝之美 (機車日)",
+          image: "https://picsum.photos/800/400?random=12",
+          timeline: [
+              { period: "上午 (毛巾故鄉的溫柔觸感)", activities: [
+                  { title: "興隆毛巾觀光工廠", description: <React.Fragment>來到虎尾不可錯過的亮點。免費參觀，可一窺毛巾製作過程，欣賞毛巾創作，參與DIY。地址：雲林縣虎尾鎮埒內里84-1號。 <LinkExt href={references.find(r=>r.id==='60')?.url || '#'}>[60]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+                  { title: "奶奶的熊毛巾故事館 (選擇性)", description: <React.Fragment>若時間充裕，可順道拜訪。免費參觀，設有咖啡廳。地址：雲林縣虎尾鎮埒內里84號。 <LinkExt href={references.find(r=>r.id==='64')?.url || '#'}>[64]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+              ]},
+              { period: "午餐", activities: [{ title: "簡易午餐", description: "可在毛巾工廠附近簡單用餐，或返回虎尾鎮上。" }] },
+              { period: "下午 (沉靜森林與季節限定美景)", activities: [
+                  { title: "澄霖沉香味道森林館", description: <React.Fragment>充滿日式禪風的庭園，有落羽松、生態池、沉香主題展覽。感受寧靜氛圍。門票資訊抵達時確認。地址：雲林縣虎尾鎮惠來里惠來75-6號。 <LinkExt href={references.find(r=>r.id==='16')?.url || '#'}>[16]</LinkExt></React.Fragment>, icon: MapPinIcon },
+                  { title: "青埔落羽松秘境 (季節限定)", description: <React.Fragment>若於秋冬之交（約11月至1月）來訪，此處有金黃色夢幻景致。非此季節可略過。地點：雲林縣虎尾鎮青埔2之29號。 <LinkExt href={references.find(r=>r.id==='59')?.url || '#'}>[59]</LinkExt></React.Fragment>, icon: MapPinIcon },
+              ]},
+              { period: "傍晚", activities: [{ title: "歸還機車 (視合約)", description: "若租用48小時，可於今日傍晚或明日上午前往斗六前歸還機車。" }] },
+              { period: "晚餐", activities: [{ title: "虎尾特色餐飲", description: "再次品嚐虎尾的特色餐飲。" }] },
+          ],
+          notes: <React.Fragment>原計畫中的 iicake 雲林蛋糕毛巾咖啡館已歇業<LinkExt href={references.find(r=>r.id==='18')?.url || '#'}>[18]</LinkExt>。金鵬巾緻親子館平日主要接待團體預約，散客建議假日前往<LinkExt href={references.find(r=>r.id==='20')?.url || '#'}>[20]</LinkExt>。第二日的行程結合傳統產業創新與自然生態之美。</React.Fragment>
+        },
+        {
+          day: "第三日", title: "斗六古城韻味與古坑咖啡山香",
+          image: "https://picsum.photos/800/400?random=13",
+          timeline: [
+              { period: "上午 (虎尾道別，斗六相迎)", activities: [
+                  { title: "早餐與退房", description: "於虎尾享用早餐。若機車尚未歸還，請先辦理還車手續。" },
+                  { title: "前往斗六", description: "搭乘計程車從虎尾前往斗六的下榻民宿（如斗宅旅店）。車程約10-15公里，日間車資約新台幣250-400元。" },
+                  { title: "民宿入住", description: "抵達斗六民宿後，辦理入住並寄放行李。" },
+              ]},
+              { period: "上午稍晚 (斗六市區漫步)", activities: [
+                  { title: "太平老街", description: <React.Fragment>探索斗六的百年風華。保存許多巴洛克風格歷史建築，林立各式傳統店鋪、小吃攤与文創小店。<LinkExt href={references.find(r=>r.id==='28')?.url || '#'}>[28]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+                  { title: "雲中街文創聚落", description: <React.Fragment>日治時期警察宿舍改建的文創天地。咖啡館（如「凹凸咖啡館」）、手作坊與藝廊。品味悠閒与在地創意。<LinkExt href={references.find(r=>r.id==='26')?.url || '#'}>[26]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+              ]},
+              { period: "午餐", activities: [
+                  { title: "老街或文創聚落美食", description: <React.Fragment>可在太平老街或雲中街文創聚落內用餐。推薦「老街碗粿」<LinkExt href={references.find(r=>r.id==='24')?.url || '#'}>[24]</LinkExt>或「凹凸咖啡館」。<LinkExt href={references.find(r=>r.id==='26')?.url || '#'}>[26]</LinkExt></React.Fragment> },
+              ]},
+              { period: "下午 (前進古坑，綠意盎然)", activities: [
+                  { title: "前往古坑", description: <React.Fragment>選項一 (計程車)：較具彈性，費用較高。選項二 (台灣好行Y01斗六古坑線)<LinkExt href={references.find(r=>r.id==='9')?.url || '#'}>[9]</LinkExt>：經濟實惠，一日券約新台幣100元。建議行前查詢時刻表。</React.Fragment> },
+                  { title: "古坑綠色隧道", description: <React.Fragment>濃密芒果樹形成的綠色長廊。悠閒散步或租借自行車。週末常有農特產市集。<LinkExt href={references.find(r=>r.id==='28')?.url || '#'}>[28]</LinkExt></React.Fragment>, icon: MapPinIcon },
+                  { title: "蜜蜂故事館", description: <React.Fragment>位於綠色隧道入口處，以蜜蜂與蜂蜜為主題。品嚐蜂蜜產品，招牌蜂蜜冰淇淋不容錯過。<LinkExt href={references.find(r=>r.id==='46')?.url || '#'}>[46]</LinkExt></React.Fragment>, icon: BuildingStorefrontIcon },
+              ]},
+              { period: "傍晚 (咖啡飄香，時間許可下)", activities: [
+                  { title: "華山咖啡休閒農業區", description: <React.Fragment>可搭計程車或確認台灣好行Y01路線是否延伸至華山咖啡街<LinkExt href={references.find(r=>r.id==='9')?.url || '#'}>[9]</LinkExt>。台灣咖啡原鄉，品一杯道地古坑咖啡，遠眺山景。</React.Fragment> },
+              ]},
+              { period: "晚餐", activities: [
+                  { title: "古坑或斗六晚餐", description: <React.Fragment>若在華山，許多咖啡館亦提供簡餐<LinkExt href={references.find(r=>r.id==='30')?.url || '#'}>[30]</LinkExt>。若返回斗六，可選擇「同廚」或「烹小鮮」等特色店家<LinkExt href={references.find(r=>r.id==='24')?.url || '#'}>[24]</LinkExt>。</React.Fragment> },
+              ]},
+              { period: "晚間", activities: [{ title: "返回民宿", description: "返回斗六民宿休息。" }] },
+          ],
+          notes: "古坑地區景點較為分散，交通規劃是本日的關鍵。台灣好行Y01斗六古坑線為預算有限的旅客提供了極佳的公共運輸選擇。"
+        },
+        {
+          day: "第四日", title: "斗六深度漫遊與週六夜市的璀璨",
+          image: "https://picsum.photos/800/400?random=14",
+          timeline: [
+              { period: "上午 (斗六在地生活與文化探索)", activities: [
+                  { title: "選項一：斗六市區深度遊", description: <React.Fragment>參觀<Highlight>行啟記念館</Highlight><LinkExt href={references.find(r=>r.id==='28')?.url || '#'}>[28]</LinkExt> (藝文展演空間)。探訪<Highlight>斗六傳統市場</Highlight> (西市場/東市場)<LinkExt href={references.find(r=>r.id==='25')?.url || '#'}>[25]</LinkExt>，品嚐在地美食如「西市豬血湯」<LinkExt href={references.find(r=>r.id==='32')?.url || '#'}>[32]</LinkExt>、「東市羊肉」<LinkExt href={references.find(r=>r.id==='33')?.url || '#'}>[33]</LinkExt>、「長興圓仔冰」<LinkExt href={references.find(r=>r.id==='33')?.url || '#'}>[33]</LinkExt>。</React.Fragment> },
+                  { title: "選項二：再訪古坑或華山咖啡街", description: "若前一日意猶未盡，可再次前往深度體驗。" },
+                  { title: "選項三：斗六悠閒時光与伴手禮採購", description: <React.Fragment>悠閒享用早餐。選購伴手禮：「四代目麥芽酥」<LinkExt href={references.find(r=>r.id==='36')?.url || '#'}>[36]</LinkExt>、「品豐肉乾」<LinkExt href={references.find(r=>r.id==='36')?.url || '#'}>[36]</LinkExt>、「塔吉特Touched千層蛋糕」<LinkExt href={references.find(r=>r.id==='28')?.url || '#'}>[28]</LinkExt>。</React.Fragment> },
+              ]},
+              { period: "午餐", activities: [{ title: "在地餐飲", description: "依上午活動地點，選擇斗六市區或古坑的在地餐飲。" }] },
+              { period: "下午", activities: [
+                  { title: "休憩或公園散步", description: <React.Fragment>稍作休息，或前往<Highlight>膨鼠森林公園</Highlight> (斗六環保運動公園)<LinkExt href={references.find(r=>r.id==='28')?.url || '#'}>[28]</LinkExt>散步。</React.Fragment> },
+              ]},
+              { period: "晚間 (重頭戲：斗六週六夜市)", activities: [
+                  { title: "斗六觀光夜市", description: <React.Fragment>雲林縣規模最大的夜市之一（又稱斗六人文夜市）。地點：雲林縣斗六市鎮南路一帶<LinkExt href={references.find(r=>r.id==='38')?.url || '#'}>[38]</LinkExt>。營業時間：每週六（及週二、部分週日）17:00/18:00至23:30/午夜<LinkExt href={references.find(r=>r.id==='40')?.url || '#'}>[40]</LinkExt>。特色：攤位繁多，匯集各地小吃、服飾、百貨、遊戲。推薦美食：大岡山豆乳雞翅、黃記老潼關肉夾饃、玄櫻拉絲流瀑玉米等<LinkExt href={references.find(r=>r.id==='41')?.url || '#'}>[41]</LinkExt>。從民宿搭計程車前往。</React.Fragment>, icon: SparklesIcon },
+              ]},
+          ],
+          notes: "斗六觀光夜市是體驗台灣夜市文化的好去處，不僅是品嚐美食的殿堂，更是感受在地活力與庶民文化的最佳場所。"
+        },
+        {
+          day: "第五日", title: "告別雲林，滿載回憶返北",
+          image: "https://picsum.photos/800/400?random=15",
+          timeline: [
+              { period: "上午", activities: [
+                  { title: "悠閒早餐", description: "在斗六的民宿或喜愛的早餐店悠閒享用此行的最後一頓早餐。" },
+                  { title: "伴手禮採買 (最後機會)", description: "若有尚未購足的伴手禮，可利用上午時光進行最後採買。" },
+                  { title: "民宿退房", description: "辦理民宿退房手續。" },
+              ]},
+              { period: "前往高鐵雲林站", activities: [
+                  { title: "交通選擇", description: <React.Fragment>選項一 (計程車)：從斗六民宿直達高鐵雲林站。車程約30-40分鐘，車資約新台幣350-450元<LinkExt href={references.find(r=>r.id==='7')?.url || '#'}>[7]</LinkExt>。選項二 (高鐵快捷公車)：若民宿鄰近快捷公車站點，車程約45分鐘，票價較經濟<LinkExt href={references.find(r=>r.id==='8')?.url || '#'}>[8]</LinkExt>。</React.Fragment> },
+              ]},
+              { period: "午餐 (彈性安排)", activities: [
+                  { title: "簡易午餐", description: "若時間充裕，可在高鐵雲林站附近簡單用餐，或於高鐵站內購買餐點於列車上享用。" },
+              ]},
+              { period: "下午 (雲林至台北)", activities: [
+                  { title: "搭乘高鐵返北", description: <React.Fragment>搭乘預訂好的高鐵列車，從雲林站返回台北。建議選擇能於下午順利抵達台北的班次（務必於行前查詢<LinkExt href="https://www.thsrc.com.tw/">官網</LinkExt>）。</React.Fragment> },
+                  { title: "抵達台北", description: "結束愉快的雲林之旅。" },
+              ]},
+          ],
+          notes: "旅程的最後一日，以輕鬆的步調為主，確保有充裕的時間前往高鐵站。回顧這五日的雲林點滴，相信已在心中留下深刻而美好的印記。"
+        }
+      ];
+
+      const foodItems = [
+        { name: "虎尾鎮小吃", description: "鎮上街巷間隱藏著許多傳統小吃與麵飯店家，值得細細品味。若想品嚐排餐，可考慮「王牪牛排」或「孫東寶台式牛排」；各式火鍋店也是好選擇。", category: "虎尾尋味", image: "https://picsum.photos/300/200?random=20", tags:["傳統小吃", "麵飯", "牛排", "火鍋"]},
+        { name: "老街碗粿 (斗六)", description: "遵循古法製作的碗粿，米香濃郁，口感紮實；其「蛋飯」更是許多在地人與遊客的心頭好。", category: "斗六饗宴 - 太平老街 & 西市場", image: "https://picsum.photos/300/200?random=21", tags:["古早味", "碗粿", "蛋飯"]},
+        { name: "魷魚羹/魷魚嘴羹 (斗六)", description: "雲林極具代表性的小吃，新鮮的魷魚或Q彈的魷魚嘴，搭配鮮甜的羹湯，風味獨特。推薦店家：魷魚興魷魚嘴羮、阿國獅魷魚羹。", category: "斗六饗宴 - 太平老街 & 西市場", image: "https://picsum.photos/300/200?random=22", tags:["代表性小吃", "魷魚", "羹湯"]},
+        { name: "吳記肉圓 (斗六)", description: "藏身西市場巷弄內的七十年老店，肉圓外皮Q彈，內餡飽滿，是內行人才知道的美味。", category: "斗六饗宴 - 太平老街 & 西市場", image: "https://picsum.photos/300/200?random=23", tags:["老店", "肉圓", "巷弄美食"]},
+        { name: "東市羊肉 (斗六)", description: "四十餘年老店，以新鮮無腥臊的羊肉料理著稱，羊肉湯、炒羊肉、当歸羊肉，以及獨特的羊肉米糕，都是招牌。", category: "斗六饗宴 - 東市場周邊", image: "https://picsum.photos/300/200?random=24", tags:["老店", "羊肉料理", "羊肉米糕"]},
+        { name: "長興圓仔冰 (斗六)", description: "純糯米製作的湯圓與麻糬，口感Q彈不黏牙，無論是冰品還是熱呼呼的燒麻糬（綜合口味有花生與芝麻），都深受喜愛。", category: "斗六饗宴 - 東市場周邊", image: "https://picsum.photos/300/200?random=25", tags:["甜品", "湯圓", "麻糬", "冰品"]},
+        { name: "凹凸咖啡館 (斗六)", description: "在日式老屋中品嚐咖啡、甜點（如特色「可拿滋」Cronut）及輕食，享受悠閒氛圍。", category: "斗六饗宴 - 雲中街文創聚落", image: "https://picsum.photos/300/200?random=26", tags:["咖啡", "甜點", "輕食", "日式老屋"]},
+        { name: "古坑咖啡 (古坑)", description: "沿途有多家攤商販售現煮的古坑咖啡。華山咖啡休閒農業區更有眾多咖啡莊園與店家提供自家烘焙的古坑咖啡。", category: "古坑風情", image: "https://picsum.photos/300/200?random=27", tags:["咖啡", "在地特產"]},
+        { name: "蜜蜂故事館蜂蜜冰淇淋 (古坑)", description: "香甜清爽的蜂蜜冰淇淋，位於古坑綠色隧道口。", category: "古坑風情", image: "https://picsum.photos/300/200?random=28", tags:["冰品", "蜂蜜"]},
+        { name: "古坑在地小吃", description: "如「榮記古早味大腸香腸」、「三代祖傳麵店」、「古坑芝麻炸雞」等，都是品嚐古坑庶民美食的好選擇。", category: "古坑風情", image: "https://picsum.photos/300/200?random=29", tags:["大腸香腸", "麵店", "炸雞"]},
+        { name: "斗六觀光夜市美食", description: "多樣必吃小吃，如「大岡山豆乳雞翅」、「黃記老潼關肉夾饃」、「玄櫻拉絲流瀑玉米」等，是體驗台灣小吃精華的最佳場所。", category: "斗六觀光夜市", image: "https://picsum.photos/300/200?random=30", tags:["夜市小吃", "豆乳雞", "肉夾饃", "玉米"]},
+      ];
+
+      const budgetItems = [
+        { item: "高鐵來回 (台北-雲林)", estimate: "約 NT$1,800" },
+        { item: "住宿 (4晚)", estimate: "約 NT$7,400 - NT$12,000", details: "虎尾 NT$2,400-5,000 (2晚), 斗六 NT$5,000-7,000 (2晚)" },
+        { item: "機車租賃 (2日)", estimate: "約 NT$600 - NT$1,400" },
+        { item: "計程車", estimate: "約 NT$1,250 - NT$1,750+", details: "虎尾-斗六 NT$350, 斗六-高鐵 NT$400, 古坑地區 NT$500-1000+" },
+        { item: "餐飲 (5日)", estimate: "約 NT$2,500 - NT$4,000" },
+        { item: "景點門票/雜支", estimate: "約 NT$500", details:"多數景點免費, 澄霖沉香味道森林館約NT$100-250, DIY另計" },
+        { item: "總計預估 (不含購物)", estimate: "約 NT$14,050 - NT$20,650" }
+      ];
+
+      const packingList = [
+        { category: "衣物", items: ["輕便、透氣、排汗的夏季服裝", "薄外套 (洋蔥式穿搭)",], icon: BriefcaseIcon },
+        { category: "鞋履", items: ["舒適好走的運動鞋或休閒鞋"], icon: BriefcaseIcon },
+        { category: "雨具", items: ["折疊傘或輕便雨衣"], icon: BriefcaseIcon },
+        { category: "防曬用品", items: ["帽子", "太陽眼鏡", "防曬乳"], icon: BriefcaseIcon },
+        { category: "個人用品", items: ["慣用藥品", "盥洗用品 (部分民宿可能不提供)", "可重複使用的水壺"], icon: BriefcaseIcon },
+        { category: "證件", items: ["身分證", "健保卡", "有效重型機車駕照"], icon: BriefcaseIcon },
+        { category: "電子產品", items: ["手機", "相機", "行動電源及充電器"], icon: BriefcaseIcon },
+        { category: "其他", items: ["小背包", "少量現金"], icon: BriefcaseIcon },
+      ];
+
+      const NAV_ITEMS = [
+        { id: "introduction", label: "旅程總覽" },
+        { id: "preparation", label: "行前準備" },
+        { id: "accommodation", label: "宿之選" },
+        { id: "itinerary", label: "五日行程" },
+        { id: "cuisine", label: "雲林之味" },
+        { id: "practical-info", label: "實用資訊" },
+        { id: "conclusion", label: "珍藏時光" },
+        { id: "references", label: "參考資料" },
+      ];
+
+      const ALL_SECTIONS_DATA = [
+        {
+          id: "introduction",
+          title: "雲林漫遊：五日深度探索之旅",
+          renderContent: () => (
+            <React.Fragment>
+              <P>雲林，這片坐落於台灣心臟地帶的沃土，常被視為農業重鎮，然而，其魅力遠不止於此。這是一片交織著濃厚文化底蘊、精湛工藝傳承、靜謐自然風光與鮮活在地日常的土地。從掌中戲的傳奇、糖業的輝煌，到毛巾工廠的巧思、古坑咖啡山城的詩意，每一隅都散發著獨特的芬芳。</P>
+              <P>這趟五天四夜的旅程，將引領旅人深入雲林的精髓，以悠然的步伐，透過高鐵、機車與計程車的靈活搭配，體驗一場難忘的沉浸式探索。</P>
+              <img src="https://picsum.photos/1200/400?random=100" alt="雲林風光" className="rounded-lg shadow-md my-8 w-full h-auto object-cover" />
+            </React.Fragment>
+          ),
+        },
+        {
+          id: "preparation",
+          title: "行前準備：暢遊雲林的交通與住宿攻略",
+          renderContent: () => (
+            <React.Fragment>
+              <div id="hsr" className="mb-12">
+                <h3 className="text-2xl font-semibold text-emerald-600 mb-4 flex items-center"><MapPinIcon className="w-6 h-6 mr-2 text-emerald-500" />甲、高鐵馳騁：連接台北與雲林的便捷動脈</h3>
+                <P>台灣高鐵 (THSR) 是連結各大城市，實現快速移動的理想選擇，從台北前往雲林尤其便捷。高鐵雲林站將是此行的起點與終點。</P>
+                <P>根據資料，從台北至雲林的高鐵標準車廂成人票價約為新台幣900元。<LinkExt href={references.find(r=>r.id==='1')?.url || '#'}>[1]</LinkExt> 一般而言，車程時間依列車停靠站多寡而異，大約在1小時10分鐘至1小時50分鐘之間。<LinkExt href={references.find(r=>r.id==='2')?.url || '#'}>[2]</LinkExt></P>
+                <P>值得注意的是，高鐵的確切時刻表，特別是針對2025年6月的班次，通常會在乘車日期前28至29天於台灣高鐵官方網站公布。因此，為了確保行程順暢，務必在接近出發日期時，至官方網站（<LinkExt href="https://www.thsrc.com.tw/">https://www.thsrc.com.tw/</LinkExt>）查詢最新的列車時刻，特別是第一天上午抵達雲林及第五天下午抵達台北的班次。<LinkExt href={references.find(r=>r.id==='3')?.url || '#'}>[3]</LinkExt> 及早預訂車票，還有機會享有早鳥優惠。官方網站亦提供時刻表下載服務，例如「2025/7/1起適用時刻表」可作為初步參考。<LinkExt href={references.find(r=>r.id==='3')?.url || '#'}>[3]</LinkExt></P>
+                <Table data={hsrTableData} className="mt-6" />
+              </div>
+
+              <div id="motorcycle-rental" className="mb-12">
+                <h3 className="text-2xl font-semibold text-emerald-600 mb-4 flex items-center"><MapPinIcon className="w-6 h-6 mr-2 text-emerald-500" />乙、虎尾馳騁：機車租賃指南</h3>
+                <P>抵達高鐵雲林站後，租賃機車是探索虎尾鎮區及周邊郊區最靈活便捷的方式，完全符合旅程的規劃。</P>
+                <P>高鐵雲林站附近有多家機車租賃選擇：</P>
+                <UL>
+                  <LI><Strong>ZOCHA 租車</Strong> <LinkExt href={references.find(r=>r.id==='48')?.url || '#'}>[48]</LinkExt>:
+                    <UL className="!list-circle ml-4">
+                      <LI>地點：高鐵雲林站旁（安里停車場）。</LI>
+                      <LI>車型：主要提供 Gogoro 電動機車。</LI>
+                      <LI>價格：每小時約新台幣110元，24小時最高收費約新台幣680元。包含60公里免費里程，超出後每公里加收3.5元。</LI>
+                      <LI>租賃方式：需加入會員，透過其系統及LINE帳號 (@zocha) 預約，採24小時無人化取還車。</LI>
+                      <LI>配備：提供手機架、安全帽等。</LI>
+                      <LI>特色：電動環保，科技化租賃流程，適合偏好新穎體驗的旅人。</LI>
+                    </UL>
+                  </LI>
+                  <LI><Strong>和運租車</Strong> <LinkExt href={references.find(r=>r.id==='4')?.url || '#'}>[4]</LinkExt>:
+                    <UL className="!list-circle ml-4">
+                      <LI>地點：高鐵雲林站前（站前東路301號）。</LI>
+                      <LI>車型：主要提供125cc燃油機車。</LI>
+                      <LI>價格：平日每日租金約新台幣300元起。<LinkExt href={references.find(r=>r.id==='4')?.url || '#'}>[4]</LinkExt> 和運租車亦常與高鐵合作推出套裝行程，例如包含高鐵來回票與24小時機車租賃的方案，價格約新台幣699元起（此為浮動價格，需視當期活動而定）。<LinkExt href={references.find(r=>r.id==='5')?.url || '#'}>[5]</LinkExt></LI>
+                      <LI>租賃條件：需年滿18歲（部分優惠方案可能要求20歲以上或持駕照滿一年），並出示有效的中華民國重型機車駕照及身份證件。</LI>
+                      <LI>油料：通常採滿油出車、滿油還車政策。</LI>
+                      <LI>特色：傳統租賃模式，部分方案可能結合高鐵票券，具備價格競爭力。</LI>
+                    </UL>
+                  </LI>
+                  <LI><Strong>其他市區車行</Strong>: 若未在高鐵站立即租車，虎尾市區亦有機車行，如位於林森路二段203號的「中華機車出租行」。<LinkExt href={references.find(r=>r.id==='6')?.url || '#'}>[6]</LinkExt> 但考量行程第一天即需用車，於高鐵站取車更為便捷。</LI>
+                </UL>
+                <div className="mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 text-amber-700">
+                  <h4 className="font-semibold mb-2 flex items-center"><InformationCircleIcon className="w-5 h-5 mr-2"/>租車小叮嚀：</h4>
+                  <UL className="!text-amber-700">
+                    <LI>務必攜帶有效的重型機車駕照及身份證明文件。</LI>
+                    <LI>取車時仔細檢查車況，建議拍照存證。</LI>
+                    <LI>詳細了解租賃合約中的保險範圍、里程限制及油料規定。</LI>
+                    <LI>若行程遇假日或連續假期，建議提早預訂。</LI>
+                  </UL>
+                </div>
+                <P className="mt-4">電動機車的環保与寧靜，以及燃油機車的續航与普遍性，各有其優勢。ZOCHA的無人化服務雖便捷，但需事先熟悉其APP及LINE操作；和運租車則提供傳統服務，其高鐵套裝方案或有價格誘因。旅人可依自身偏好与需求，選擇最適合的代步夥伴。</P>
+                <Table data={motorcycleRentalTableData} className="mt-6" />
+              </div>
+
+              <div id="taxi" className="mb-12">
+                <h3 className="text-2xl font-semibold text-emerald-600 mb-4 flex items-center"><MapPinIcon className="w-6 h-6 mr-2 text-emerald-500" />丙、計程車漫遊：連接城鄉的舒適選擇</h3>
+                <P>在雲林的旅程中，計程車將扮演連接不同鄉鎮（如虎尾至斗六）以及前往特定景點（如從斗六市區前往古坑部分景點，若不搭乘觀光巴士）的舒適角色。</P>
+                <P>雲林縣計程車費率參考 <LinkExt href={references.find(r=>r.id==='45')?.url || '#'}>[45]</LinkExt>:</P>
+                <UL>
+                  <LI>日間起程價：新台幣100元 (含1.25公里)。</LI>
+                  <LI>續程：每220公尺加收新台幣5元。</LI>
+                  <LI>夜間加成 (22:00 - 06:00)：起程價新台幣120元 (含1.25公里)，續程同日間。</LI>
+                  <LI>延滯計時：車速每小時5公里以下，累計每100秒加收新台幣5元。</LI>
+                </UL>
+                <P className="mt-4">預估車程與費用：</P>
+                <Table data={taxiFeeTableData} className="mt-6" />
+                <P className="mt-4">叫車方式：</P>
+                <UL>
+                  <LI>可透過「台灣大車隊55688」APP或電話 (手機直撥55688) 預約。<LinkExt href={references.find(r=>r.id==='10')?.url || '#'}>[10]</LinkExt></LI>
+                  <LI>住宿的飯店或民宿通常也能協助代叫計程車。</LI>
+                </UL>
+                <P className="mt-2">雖然計程車提供點對點的便利性，但長途或多點移動的費用相對較高。建議將計程車用於如第三天從虎尾至斗六的單程接駁，而在斗六前往高鐵站或遊覽古坑時，可評估高鐵快捷公車或台灣好行觀光巴士的經濟效益與便利性，彈性搭配運用。</P>
+              </div>
+            </React.Fragment>
+          ),
+        },
+        {
+          id: "accommodation",
+          title: "宿之選：雲林住宿精選",
+          renderContent: () => (
+            <React.Fragment>
+              <div id="huwei-accommodation" className="mb-12">
+                <h3 className="text-2xl font-semibold text-emerald-600 mb-6 flex items-center"><BuildingStorefrontIcon className="w-6 h-6 mr-2 text-emerald-500" />甲、虎尾驛站：融合文化與舒適的歇腳處 (第一、二晚)</h3>
+                <P>虎尾的住宿選擇多元，從充滿文創氣息的設計旅店到溫馨實惠的民宿，能滿足不同旅人的需求。</P>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                  {huweiAccommodations.map(acc => (
+                    <Card key={acc.name} title={acc.name} imageUrl={acc.image} imageAlt={acc.name} className="h-full">
+                      <UL className="text-sm">
+                        {acc.price && <LI><Strong>價格：</Strong>NT${acc.price}</LI>}
+                        {acc.features.map(f => <LI key={f}><Highlight>{f}</Highlight></LI>)}
+                        {acc.locationNote && <LI><Strong>地點：</Strong>{acc.locationNote}</LI>}
+                        {acc.suitableFor && <LI className="mt-2 text-xs text-slate-500 italic">{acc.suitableFor}</LI>}
+                      </UL>
+                    </Card>
+                  ))}
+                </div>
+                 <P className="mt-6">選擇虎尾的住宿時，可以考量個人對文化主題、現代便利性、預算或空間大小的偏好。「虎尾春秋」能讓旅人沉浸在布袋戲的氛圍中；「會呼吸的房」則提供時尚便捷的體驗；「Aliyah阿利亞」是精打細算的好選擇。多數住宿點位於虎尾鎮中心，從高鐵站前往需一小段計程車或公車（若有機車則更為方便），停車的便利性也可一併納入考量。</P>
+              </div>
+
+              <div id="douliu-accommodation" className="mb-12">
+                <h3 className="text-2xl font-semibold text-emerald-600 mb-6 flex items-center"><BuildingStorefrontIcon className="w-6 h-6 mr-2 text-emerald-500" />乙、斗六雅居：特色民宿體驗在地風情 (第三、四晚)</h3>
+                <P>根據行程規劃，在斗六將入住特色民宿，體驗不同於制式飯店的溫馨與個性。</P>
+                <P><Strong>首選推薦民宿：斗宅旅店 (Dou Zhai Inn / Belly Inn)</Strong> <LinkExt href={references.find(r=>r.id==='13')?.url || '#'}>[13]</LinkExt></P>
+                <UL>
+                      <LI><Strong>特色：</Strong>深受好評的文青風格旅店，外觀簡約時尚，內部設計充滿巧思。採自助式入住，一樓設有頗具風格的咖啡廳（晚間轉為住客公共空間）。客房設備齊全，部分房型提供Netflix、免治馬桶等。</LI>
+                      <LI><Strong>地點：</Strong>位於雲林科技大學生活圈。</LI>
+                      <LI><Strong>價格：</Strong>雙人房定價約新台幣2,680至2,980元，官網預訂或有平日折扣。<LinkExt href={references.find(r=>r.id==='13')?.url || '#'}>[13]</LinkExt></LI>
+                      <LI><Strong>適合：</Strong>喜愛設計感、追求獨特住宿體驗、偏好自助便利的「文青」旅人。其風格與生活雜誌所推崇的品味旅行不謀而合。</LI>
+                </UL>
+                <P className="mt-4">其他潛力民宿/小型旅店選項：慕橙 <LinkExt href={references.find(r=>r.id==='55')?.url || '#'}>[55]</LinkExt></P>
+                <P>飯店備選方案 (若民宿額滿或偏好改變)：緻麗伯爵酒店 <LinkExt href={references.find(r=>r.id==='41')?.url || '#'}>[41]</LinkExt>、華安大飯店 <LinkExt href={references.find(r=>r.id==='41')?.url || '#'}>[41]</LinkExt></P>
+                <P>古坑住宿考量 (若希望更親近山林)：華山觀止虫二行館 <LinkExt href={references.find(r=>r.id==='56')?.url || '#'}>[56]</LinkExt></P>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                  {douliuAccommodations.map(acc => (
+                    <Card key={acc.name} title={acc.name} imageUrl={acc.image} imageAlt={acc.name} className="h-full">
+                       <UL className="text-sm">
+                        {acc.price && <LI><Strong>價格：</Strong>NT${acc.price}</LI>}
+                        {acc.features.map(f => <LI key={f}><Highlight>{f}</Highlight></LI>)}
+                        {acc.locationNote && <LI><Strong>地點：</Strong>{acc.locationNote}</LI>}
+                        {acc.suitableFor && <LI className="mt-2 text-xs text-slate-500 italic">{acc.suitableFor}</LI>}
+                      </UL>
+                    </Card>
+                  ))}
+                </div>
+                <P className="mt-6">選擇斗六的住宿時，「斗宅旅店」以其獨特的風格和細緻的服務，成為追求質感旅行的優選。考量到行程中包含斗六市區及古坑的遊覽，住宿點的交通便利性（鄰近火車站以便轉乘台灣好行，或方便計程車叫車）是重要因素。</P>
+              </div>
+            </React.Fragment>
+          )
+        },
+        {
+          id: "itinerary",
+          title: "雲林五日行程詳解",
+          renderContent: () => (
+            <div className="space-y-12">
+              {itineraryDays.map(day => (
+                <Card key={day.day} title={`${day.day}：${day.title}`} titleIcon={CalendarDaysIcon} imageUrl={day.image} imageAlt={day.title} className="shadow-xl">
+                  <div className="space-y-6">
+                    {day.timeline.map(periodEvent => (
+                      <div key={periodEvent.period}>
+                        <h4 className="text-lg font-semibold text-emerald-600 mb-2 border-b-2 border-emerald-200 pb-1">{periodEvent.period}</h4>
+                        <UL className="space-y-3">
+                          {periodEvent.activities.map(activity => (
+                            <LI key={activity.title}>
+                              <div className="flex">
+                                {activity.icon && <activity.icon className="w-5 h-5 mr-2 mt-1 text-emerald-500 flex-shrink-0" />}
+                                <div>
+                                  <Strong>{activity.title}: </Strong>
+                                  <span>{activity.description}</span>
+                                </div>
+                              </div>
+                            </LI>
+                          ))}
+                        </UL>
+                      </div>
+                    ))}
+                    {day.notes && <P className="mt-4 p-3 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 text-sm italic">{day.notes}</P>}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )
+        },
+        {
+          id: "cuisine",
+          title: "雲林之味：舌尖上的記憶",
+          renderContent: () => (
+            <React.Fragment>
+              <P>雲林的飲食文化樸實而豐饒，充滿濃厚的在地特色與人情味。此行途經之處，皆有不容錯過的道地美食。</P>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                {foodItems.map(food => (
+                  <Card key={food.name} title={food.name} titleIcon={SparklesIcon} imageUrl={food.image} imageAlt={food.name} className="h-full">
+                    <P className="text-sm">{food.description}</P>
+                    <div className="mt-auto pt-2">
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">{food.category}</span>
+                      {food.tags && food.tags.map(tag => (
+                          <span key={tag} className="ml-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">{tag}</span>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+              <P className="mt-8">品嚐在地美食是旅行中不可或缺的一環。雲林的小吃不僅價格親民，更蘊含了代代相傳的烹飪智慧與濃厚的人情味。例如，魷魚嘴羹這樣獨特的部位料理，充分展現了地方飲食的創意與惜物精神。走一趟傳統市場，更能深刻感受在地的飲食脈動。</P>
+            </React.Fragment>
+          )
+        },
+        {
+          id: "practical-info",
+          title: "雲林行旅實用資訊",
+          renderContent: () => (
+            <React.Fragment>
+              <div id="budget" className="mb-12">
+                <h3 className="text-2xl font-semibold text-emerald-600 mb-4 flex items-center"><BanknotesIcon className="w-6 h-6 mr-2 text-emerald-500" />甲、預算初估 (僅供參考)</h3>
+                <P>此預算為單人估計，實際花費將依個人消費習慣、住宿與交通選擇、以及餐飲等級而有所不同。</P>
+                <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
+                  {budgetItems.map(item => (
+                    <div key={item.item} className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+                      <Strong>{item.item}: </Strong>
+                      <span>{item.estimate}</span>
+                      {item.details && <P className="text-xs text-slate-500 mt-1">{item.details}</P>}
+                    </div>
+                  ))}
+                </div>
+                <P className="mt-6">提供這份預算概覽，是希望旅人能對此行的潛在花費有一個初步概念，從而更好地規劃個人財務。雲林的旅遊消費相對親民，尤其在小吃與部分景點門票方面，能讓旅人以合理的預算享受豐富的體驗。</P>
+              </div>
+
+              <div id="packing-list" className="mb-12">
+                <h3 className="text-2xl font-semibold text-emerald-600 mb-4 flex items-center"><BriefcaseIcon className="w-6 h-6 mr-2 text-emerald-500" />乙、行囊建議</h3>
+                <P>六月份的雲林天氣普遍炎熱潮濕，偶有午後雷陣雨，也逐漸進入颱風季節的影響範圍。</P>
+                <div className="space-y-4">
+                  {packingList.map(categoryItem => (
+                    <div key={categoryItem.category}>
+                      <h4 className="text-lg font-semibold text-emerald-700 mb-1 flex items-center">
+                        {categoryItem.icon && <categoryItem.icon className="w-5 h-5 mr-2 text-emerald-600"/>}
+                        {categoryItem.category}
+                      </h4>
+                      <UL className="!pl-8">
+                        {categoryItem.items.map(item => <LI key={item}>{item}</LI>)}
+                      </UL>
+                    </div>
+                  ))}
+                </div>
+                <P className="mt-6">充分的行前準備，能讓旅途更加從容自在。特別是針對六月份的氣候特性，準備合適的衣物与防雨防曬用品，將有助於應對各種天氣狀況，確保旅程的舒適度。</P>
+              </div>
+            </React.Fragment>
+          )
+        },
+        {
+          id: "conclusion",
+          title: "珍藏雲林時光",
+          renderContent: () => (
+            <React.Fragment>
+              <P>五天的雲林之旅，彷彿一場穿越時光與風土的行腳。從虎尾糖廠的蔗香、布袋戲的鑼鼓喧天，到澄霖森林的沉靜、古坑山間的咖啡餘韻，再到斗六老街的懷舊、夜市的活色生香，每一幕都將成為獨特的記憶片段。</P>
+              <P>雲林，這片土地或許不如都會繁華，卻以其深厚的文化底蘊、樸實的人情味與令人驚豔的在地創意，等待著旅人細細品味。願此行程能助您開啟一段美好的雲林探索之旅，滿載而歸的，不僅是行囊中的紀念品，更是心中溫暖而豐盈的感動。</P>
+              <img src="https://picsum.photos/1200/300?random=101" alt="雲林回憶" className="rounded-lg shadow-md my-8 w-full h-auto object-cover" />
+            </React.Fragment>
+          )
+        },
+        {
+          id: "references",
+          title: "參考資料 (Works Cited)",
+          renderContent: () => (
+              <div className="text-sm">
+                  <P>以下為本文案所參考之資料來源 (原始文檔提供)：</P>
+                  <UL className="space-y-1 columns-1 md:columns-2 lg:columns-3">
+                      {references.map(ref => (
+                          <LI key={ref.id}>
+                              <LinkExt href={ref.url}>{`[${ref.id}] ${ref.text}`}</LinkExt>
+                          </LI>
+                      ))}
+                  </UL>
+              </div>
+          )
+        }
+      ];
+
+      // --- From App.tsx ---
+      // Ensure React.useState, React.useRef, React.useEffect are available globally or via React.
+      const { useState, useRef, useEffect } = React;
+
+      const Footer = () => (
+        <footer className="bg-emerald-800 text-emerald-100 text-center p-6 mt-16">
+          <p>&copy; {new Date().getFullYear()} 雲林漫遊・行程規劃。僅供範例參考。</p>
+        </footer>
+      );
+
+      const App = () => {
+        const [activeSection, setActiveSection] = useState(NAV_ITEMS[0]?.id || '');
+        const [showScrollTop, setShowScrollTop] = useState(false);
+        const sectionRefs = useRef({});
+
+        const handleNavItemClick = (id) => {
+          setActiveSection(id);
+          const targetElement = sectionRefs.current[id] || document.getElementById(id);
+          if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        };
+
+        const scrollToTop = () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        useEffect(() => {
+          const checkScrollTop = () => {
+            if (!showScrollTop && window.pageYOffset > 400) {
+              setShowScrollTop(true);
+            } else if (showScrollTop && window.pageYOffset <= 400) {
+              setShowScrollTop(false);
+            }
+          };
+          window.addEventListener('scroll', checkScrollTop);
+          return () => window.removeEventListener('scroll', checkScrollTop);
+        }, [showScrollTop]);
+
+        useEffect(() => {
+          const observerCallback = (entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                const isValidSectionId = NAV_ITEMS.some(item => item.id === entry.target.id);
+                if (isValidSectionId) {
+                  setActiveSection(entry.target.id);
+                }
+              }
+            });
+          };
+        
+          const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -80% 0px',
+            threshold: 0,
+          };
+        
+          const observer = new IntersectionObserver(observerCallback, observerOptions);
+        
+          const currentRefs = sectionRefs.current;
+          Object.values(currentRefs).forEach(ref => {
+            if (ref) observer.observe(ref);
+          });
+        
+          return () => {
+            Object.values(currentRefs).forEach(ref => {
+              if (ref) observer.unobserve(ref);
+            });
+          };
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [NAV_ITEMS]);
+
+        return (
+          <div className="bg-slate-50 min-h-screen text-slate-800 font-sans">
+            <Navbar navItems={NAV_ITEMS} activeSection={activeSection} onNavItemClick={handleNavItemClick} appTitle={APP_TITLE} />
+            <main className="pt-20 md:pt-24">
+              {ALL_SECTIONS_DATA.map((section, index) => (
+                <SectionWrapper
+                  key={section.id}
+                  id={section.id}
+                  title={section.title}
+                  isFirstSection={index === 0}
+                  refCallback={(el) => sectionRefs.current[section.id] = el}
+                >
+                  {typeof section.renderContent === 'function' ? section.renderContent() : section.renderContent}
+                </SectionWrapper>
+              ))}
+            </main>
+            <Footer />
+            {showScrollTop && (
+              <button
+                onClick={scrollToTop}
+                className="fixed bottom-8 right-8 bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-full shadow-lg transition-opacity duration-300"
+                aria-label="回到頂部"
+              >
+                <ArrowUpCircleIcon className="w-8 h-8" />
+              </button>
+            )}
+          </div>
+        );
+      };
+
+      // --- From index.tsx (Mounting logic) ---
+      const rootElement = document.getElementById('root');
+      if (!rootElement) {
+        throw new Error("Could not find root element to mount to");
+      }
+
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+
+    </script>
+  </body>
 </html>
