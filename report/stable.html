@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：穩定幣戰爭與金融的未來</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Visualization & Content Choices: 
+    - Goal: Compare USDT vs USDC. Method: Side-by-side comparison cards and a Donut Chart (Chart.js) visualizing their market dominance. Interaction: Hovering over the chart reveals data. Justification: This immediately clarifies the two main players and their scale.
+    - Goal: Explain US dollar hegemony cycle. Method: A simplified flow diagram using HTML/CSS (divs and borders). Interaction: A button to toggle between the slow/expensive SWIFT system and the fast/cheap Stablecoin system. Justification: Visually contrasts the old and new financial rails, making the efficiency argument tangible.
+    - Goal: Show the need for a TWD stablecoin. Method: A "problem vs. solution" layout comparing costs and steps for a large corporation like Foxconn. Interaction: Simple, static display for clarity. Justification: Grounds the abstract concept in a real-world, high-impact business case.
+    - Goal: Demystify RWA. Method: An interactive flipping card. Front shows a traditional fund (slow), back shows a tokenized RWA (fast, efficient). Interaction: Card flip on click. Justification: A "wow" element that uses interaction to reveal the core benefit of RWA in a memorable way.
+    - Goal: Explore future finance. Method: A comparison table (CBDC vs. Private Stablecoins) and quote callouts. Interaction: Simple, clear text. Justification: Concludes the report by focusing on the direct impact on users.
+    - All visualizations use Canvas or HTML/CSS, no SVG or Mermaid. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF7;
+            color: #3D405B;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 300px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #81B29A;
+            border-bottom-color: #81B29A;
+        }
+        .card {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card-face {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+        .is-flipped {
+            transform: rotateY(180deg);
+        }
+        .stat-card {
+            background-color: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(10px);
+        }
+        .icon-bg {
+            background-color: #E0E0E0;
+        }
+        .text-usdt { color: #50AF95; }
+        .bg-usdt { background-color: #50AF95; }
+        .border-usdt { border-color: #50AF95; }
+        .text-usdc { color: #2775C9; }
+        .bg-usdc { background-color: #2775C9; }
+        .border-usdc { border-color: #2775C9; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="navbar" class="bg-[#FDFBF7]/80 backdrop-blur-sm sticky top-0 z-50 transition-all duration-300 shadow-sm">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-2xl font-bold text-[#3D405B]">穩定幣戰爭</div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#hero" class="nav-link pb-1">首頁</a>
+                    <a href="#players" class="nav-link pb-1">兩大玩家</a>
+                    <a href="#geopolitics" class="nav-link pb-1">中美對決</a>
+                    <a href="#taiwan" class="nav-link pb-1">台灣的角色</a>
+                    <a href="#rwa" class="nav-link pb-1">RWA 新紀元</a>
+                    <a href="#future" class="nav-link pb-1">金融的未來</a>
+                </div>
+                <div class="md:hidden">
+                    <button id="menu-btn" class="text-3xl">☰</button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden mt-4 flex flex-col space-y-2">
+                <a href="#hero" class="nav-link text-center py-2">首頁</a>
+                <a href="#players" class="nav-link text-center py-2">兩大玩家</a>
+                <a href="#geopolitics" class="nav-link text-center py-2">中美對決</a>
+                <a href="#taiwan" class="nav-link text-center py-2">台灣的角色</a>
+                <a href="#rwa" class="nav-link text-center py-2">RWA 新紀元</a>
+                <a href="#future" class="nav-link text-center py-2">金融的未來</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="min-h-screen flex items-center bg-[#F8F3EB]">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-6xl font-bold mb-4 leading-tight">穩定幣戰爭：下一場全球金融變革</h1>
+                <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+                    這不只關乎加密貨幣，這是一場關於美元霸權、地緣政治與未來金融體系基礎建設的戰爭。穩定幣法案的重要性，甚至超越關稅，它將決定未來數十年全球資金的流動方式。
+                </p>
+                <div class="mt-8 text-sm text-gray-500">
+                    <p>資料來源：Sidechat Podcast 訪談 ft. 金融派大星 Jeff</p>
+                </div>
+                 <div class="absolute bottom-10 left-1/2 -translate-x-1/2">
+                    <a href="#players" class="animate-bounce">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">
+                            <path d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="players" class="py-20 bg-[#FDFBF7]">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold">兩大玩家：草鞋與皮鞋的對決</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-gray-600">美元穩定幣市場由兩大巨頭主宰，佔據超過95%的市佔率。他們一個是草根起家、服務灰色產業的「草鞋幫」Tether (USDT)；另一個是西裝筆挺、合規至上的「皮鞋幫」Circle (USDC)。這個有趣的對比，也反映了加密世界從野蠻生長到擁抱監管的過程。</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div class="space-y-8">
+                        <div class="p-6 rounded-xl shadow-lg bg-white border border-usdt">
+                            <h3 class="text-2xl font-bold text-usdt mb-3">Tether (USDT) - 草鞋幫</h3>
+                            <p class="text-gray-600">從台灣板橋的辦公室發跡，早期與博弈等灰色產業緊密相連，透過「監管套利」創造驚人利潤。雖備受爭議，卻成功將美元滲透到世界的每個角落。</p>
+                            <ul class="mt-4 space-y-2 text-sm">
+                                <li><span class="font-bold text-usdt">特性：</span>草根、靈活、高利潤</li>
+                                <li><span class="font-bold text-usdt">2023淨利：</span>超過 130 億美元</li>
+                                <li><span class="font-bold text-usdt">形象：</span>綠色Logo，如同民進黨的草根發展路線</li>
+                            </ul>
+                        </div>
+                        <div class="p-6 rounded-xl shadow-lg bg-white border border-usdc">
+                            <h3 class="text-2xl font-bold text-usdc mb-3">Circle (USDC) - 皮鞋幫</h3>
+                            <p class="text-gray-600">由美國團隊主導，從一開始就強調合規、透明，與監管機構密切合作，積極打入主流金融市場，目標是在納斯達克上市。</p>
+                            <ul class="mt-4 space-y-2 text-sm">
+                                <li><span class="font-bold text-usdc">特性：</span>合規、透明、高成本</li>
+                                <li><span class="font-bold text-usdc">2023淨利：</span>虧損（高額人事及營運開銷）</li>
+                                <li><span class="font-bold text-usdc">形象：</span>藍色Logo，如同國民黨的高大上形象</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="chart-container mx-auto">
+                            <canvas id="marketShareChart"></canvas>
+                        </div>
+                        <p class="text-center mt-4 text-gray-500 text-sm">美元穩定幣市場佔有率</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="geopolitics" class="py-20 bg-[#F8F3EB]">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold">中美對決：一場沒有硝煙的貨幣戰爭</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-gray-600">穩定幣的崛起，本質上是美元霸權在數位世界的延伸。美國透過默許USDT/USDC等穩定幣的發展，免費讓它們為美元攻城掠地。與此同時，中國的數位人民幣(DCEP)也積極佈局，試圖挑戰美元地位。這是一場決定未來全球金融秩序的戰爭。</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-center mb-6">全球資金流轉：傳統 vs. 未來</h3>
+                    <div id="flow-container" class="space-y-4">
+                        </div>
+                    <div class="text-center mt-6">
+                        <button id="toggle-flow-btn" class="bg-[#81B29A] text-white px-6 py-2 rounded-full hover:bg-[#6a947d] transition-colors">切換至穩定幣模式</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="taiwan" class="py-20 bg-[#FDFBF7]">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold">台灣的角色：為何我們需要台幣穩定幣？</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-gray-600">台灣在全球科技供應鏈中扮演關鍵角色，但我們的金融基礎設施正面臨挑戰。當鴻海等巨頭收到來自巴西客戶的5000萬美元穩定幣(U)貨款時，台灣的銀行卻無法有效處理。發展台幣穩定幣，是為了降低企業成本，更是為了鞏固台灣在全球貿易中的地位。</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="p-8 rounded-xl bg-red-50 border border-red-200">
+                        <h3 class="text-2xl font-bold text-red-700 mb-4">目前的困境：高昂的摩擦成本</h3>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                            <li>鴻海收到 5,000 萬美元 USDT。</li>
+                            <li>需透過交易所將 USDT 換成美元法幣（Off-Ramp）。</li>
+                            <li>再將美元法幣換成台幣以支付薪水、費用。</li>
+                            <li><span class="font-bold text-red-800">成本：</span>每一步都有 0.5% ~ 1% 的手續費與價差損失，總成本高達數十萬美元。</li>
+                             <li><span class="font-bold text-red-800">風險：</span>價格波動、交易對手風險。</li>
+                        </ol>
+                    </div>
+                    <div class="p-8 rounded-xl bg-green-50 border border-green-200">
+                        <h3 class="text-2xl font-bold text-green-700 mb-4">未來的解方：無縫的鏈上結算</h3>
+                         <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                            <li>鴻海收到 5,000 萬美元 USDC。</li>
+                            <li>在鏈上直接兌換成台幣穩定幣 (TWDC)。</li>
+                            <li>直接用 TWDC 支付員工薪水、供應商貨款。</li>
+                            <li><span class="font-bold text-green-800">成本：</span>交易手續費極低（近乎 0），無匯兌損失。</li>
+                            <li><span class="font-bold text-green-800">效率：</span>交易即時完成，資金零時差。</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="rwa" class="py-20 bg-[#F8F3EB]">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold">RWA 新紀元：真實世界資產上鏈</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-gray-600">穩定幣打通了Web2與Web3的金融橋樑，而真實世界資產(RWA)代幣化，則是這座橋上奔馳的高速列車。從美國國庫券到私人銀行的保單，任何有價值的資產都能被代幣化，帶來前所未有的流動性與金融效率。</p>
+                </div>
+
+                <div class="flex justify-center">
+                    <div id="rwa-card" class="w-full max-w-md h-80 perspective-1000 cursor-pointer">
+                        <div class="card w-full h-full">
+                            <div class="card-face absolute w-full h-full p-8 rounded-2xl shadow-xl bg-gradient-to-br from-gray-700 to-gray-900 text-white flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <h4 class="text-xl font-bold">傳統貨幣市場基金</h4>
+                                        <span class="text-xs font-mono bg-gray-600 px-2 py-1 rounded">WEB 2.0</span>
+                                    </div>
+                                    <p class="text-sm mt-2 text-gray-300">申購/贖回需透過銀行或券商，流程繁瑣。</p>
+                                </div>
+                                <div>
+                                    <p class="text-2xl font-semibold">T + 3~7 天</p>
+                                    <p class="text-sm text-gray-400">資金結算時間</p>
+                                </div>
+                                <div class="text-center text-xs text-gray-500">點擊卡片查看 Web3 版本</div>
+                            </div>
+                            <div class="card-back absolute w-full h-full p-8 rounded-2xl shadow-xl bg-gradient-to-br from-[#81B29A] to-[#3D405B] text-white flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <h4 class="text-xl font-bold">RWA 代幣化基金 (如 BUIDL)</h4>
+                                        <span class="text-xs font-mono bg-green-800 px-2 py-1 rounded">WEB 3.0</span>
+                                    </div>
+                                    <p class="text-sm mt-2 text-green-200">在區塊鏈上自由交易，7x24小時不間斷。</p>
+                                </div>
+                                <div>
+                                    <p class="text-2xl font-semibold">T + 0 秒</p>
+                                    <p class="text-sm text-green-300">資金即時結算</p>
+                                </div>
+                                <div class="text-center text-xs text-green-200">還可作為跨平台抵押品，實現資產互通</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="future" class="py-20 bg-[#FDFBF7]">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold">金融的未來：靈魂錢包與去中介化</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-gray-600">未來，你的金融身份將不再由銀行定義，而是由你的「靈魂綁定錢包」所記錄的鏈上行為決定。資產可以跨平台自由流動，但這也帶來了新的監管挑戰和隱私議題。我們正處於一個選擇的十字路口。</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
+                     <blockquote class="text-center italic text-gray-700 border-l-4 border-[#81B29A] pl-4">
+                        "Web2 讓資訊傳遞無國界、即時、免費。穩定幣讓價值傳遞無國界、即時、幾乎免費。這就是 WhatsApp 時刻。"
+                        <cite class="block not-italic mt-2 text-sm text-gray-500">- Chris Dixon (a16z)</cite>
+                    </blockquote>
+                </div>
+
+                <div class="mt-12 grid md:grid-cols-2 gap-8">
+                    <div class="p-6 rounded-xl bg-white shadow-lg">
+                        <h3 class="text-xl font-bold mb-4">央行數位貨幣 (CBDC)</h3>
+                        <p class="text-gray-600 text-sm mb-4">由中央銀行發行和控制，所有交易紀錄透明可查，如同公股銀行的服務。</p>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex items-start"><span class="text-red-500 mr-2">▲</span><span>高度中心化，隱私風險高，有錢人最怕被查稅。</span></li>
+                            <li class="flex items-start"><span class="text-red-500 mr-2">▲</span><span>創新受限，發展可能較僵化。</span></li>
+                            <li class="flex items-start"><span class="text-green-500 mr-2">▼</span><span>政府背書，信用最高。</span></li>
+                        </ul>
+                    </div>
+                     <div class="p-6 rounded-xl bg-white shadow-lg">
+                        <h3 class="text-xl font-bold mb-4">私人發行穩定幣 (USDT/USDC)</h3>
+                        <p class="text-gray-600 text-sm mb-4">由私人企業發行，受政府監管，市場競爭驅動創新，如同民營銀行的服務。</p>
+                        <ul class="space-y-2 text-sm">
+                             <li class="flex items-start"><span class="text-green-500 mr-2">▼</span><span>用戶保有一定隱私，符合人性。</span></li>
+                            <li class="flex items-start"><span class="text-green-500 mr-2">▼</span><span>競爭驅動創新，產品體驗更佳。</span></li>
+                            <li class="flex items-start"><span class="text-red-500 mr-2">▲</span><span>需仰賴發行商的資產儲備，有脫鉤風險（雖已極小）。</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                 <div class="mt-12 text-center text-gray-600">
+                    <p class="font-bold">川普的反對，或許已為這場競賽定調：在西方世界，私人穩定幣將是主流。</p>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-[#F8F3EB] py-8">
+        <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
+            <p>&copy; 2025 互動式報告。基於 Sidechat Podcast 內容製作。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const marketData = {
+                labels: ['USDT & USDC', '其他穩定幣'],
+                datasets: [{
+                    data: [95, 5],
+                    backgroundColor: ['#4A7EBB', '#E0E0E0'],
+                    borderColor: ['#FDFBF7'],
+                    borderWidth: 4,
+                    hoverOffset: 4
+                }]
+            };
+
+            const marketShareCtx = document.getElementById('marketShareChart').getContext('2d');
+            new Chart(marketShareCtx, {
+                type: 'doughnut',
+                data: marketData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const rwaCard = document.getElementById('rwa-card');
+            rwaCard.addEventListener('click', () => {
+                rwaCard.querySelector('.card').classList.toggle('is-flipped');
+            });
+            
+            const flowContainer = document.getElementById('flow-container');
+            const toggleFlowBtn = document.getElementById('toggle-flow-btn');
+            let isSwiftMode = true;
+
+            const swiftFlow = `
+                <div class="text-center">
+                    <h4 class="font-bold">傳統 SWIFT 系統</h4>
+                    <div class="flex flex-col md:flex-row justify-center items-center gap-2 mt-4 text-sm">
+                        <div class="p-3 bg-red-100 rounded-lg">發起匯款</div>
+                        <div class="text-red-400 font-bold text-2xl transform md:rotate-0 rotate-90">&rarr;</div>
+                        <div class="p-3 bg-red-100 rounded-lg">中轉行 1</div>
+                        <div class="text-red-400 font-bold text-2xl transform md:rotate-0 rotate-90">&rarr;</div>
+                        <div class="p-3 bg-red-100 rounded-lg">中轉行 2</div>
+                        <div class="text-red-400 font-bold text-2xl transform md:rotate-0 rotate-90">&rarr;</div>
+                        <div class="p-3 bg-red-100 rounded-lg">收款行</div>
+                    </div>
+                    <div class="mt-4 grid grid-cols-2 gap-4 text-center">
+                        <div><p class="font-bold text-2xl text-red-600">3-12 天</p><p class="text-xs text-gray-500">到帳時間</p></div>
+                        <div><p class="font-bold text-2xl text-red-600">~6%</p><p class="text-xs text-gray-500">平均成本</p></div>
+                    </div>
+                </div>
+            `;
+            
+            const stablecoinFlow = `
+                <div class="text-center">
+                    <h4 class="font-bold">穩定幣系統</h4>
+                    <div class="flex flex-col md:flex-row justify-center items-center gap-2 mt-4 text-sm">
+                        <div class="p-3 bg-green-100 rounded-lg">發送方錢包</div>
+                        <div class="text-green-400 font-bold text-2xl transform md:rotate-0 rotate-90">&rarr;</div>
+                        <div class="p-3 bg-green-100 rounded-lg">區塊鏈網絡</div>
+                        <div class="text-green-400 font-bold text-2xl transform md:rotate-0 rotate-90">&rarr;</div>
+                        <div class="p-3 bg-green-100 rounded-lg">接收方錢包</div>
+                    </div>
+                     <div class="mt-4 grid grid-cols-2 gap-4 text-center">
+                        <div><p class="font-bold text-2xl text-green-600">< 1 分鐘</p><p class="text-xs text-gray-500">到帳時間</p></div>
+                        <div><p class="font-bold text-2xl text-green-600">< 0.01%</p><p class="text-xs text-gray-500">平均成本</p></div>
+                    </div>
+                </div>
+            `;
+
+            function updateFlow() {
+                if (isSwiftMode) {
+                    flowContainer.innerHTML = swiftFlow;
+                    toggleFlowBtn.textContent = '切換至穩定幣模式';
+                    toggleFlowBtn.classList.remove('bg-[#d35d5d]');
+                    toggleFlowBtn.classList.add('bg-[#81B29A]');
+                } else {
+                    flowContainer.innerHTML = stablecoinFlow;
+                    toggleFlowBtn.textContent = '切換回傳統模式';
+                    toggleFlowBtn.classList.remove('bg-[#81B29A]');
+                    toggleFlowBtn.classList.add('bg-[#d35d5d]');
+                }
+            }
+
+            toggleFlowBtn.addEventListener('click', () => {
+                isSwiftMode = !isSwiftMode;
+                updateFlow();
+            });
+
+            updateFlow();
+
+            const menuBtn = document.getElementById('menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            menuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section, header');
+
+            function changeLinkState() {
+                let index = sections.length;
+
+                while(--index && window.scrollY + 100 < sections[index].offsetTop) {}
+                
+                navLinks.forEach((link) => link.classList.remove('active'));
+                
+                const activeLink = document.querySelector(`.nav-link[href="#${sections[index].id}"]`);
+                if(activeLink) {
+                    activeLink.classList.add('active');
+                }
+            }
+
+            changeLinkState();
+            window.addEventListener('scroll', changeLinkState);
+            
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                    if (mobileMenu.classList.contains('hidden') === false) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
