@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Copilot 互動式指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Visualization & Content Choices: 
+        - Plan Comparison (Goal: Compare): An interactive bar chart (Chart.js) to visualize 'Advanced Request' limits, paired with a dynamic table. Interaction: Toggle buttons to switch between Personal/Business plans. Justification: This provides a clear quantitative and qualitative comparison.
+        - Model Universe (Goal: Organize/Inform): Tabbed interface with visual cards for different model providers. Interaction: Clicking tabs reveals relevant model groups. Justification: More engaging and organized than a simple list, facilitating quick understanding of the multi-model strategy.
+        - Agent Capabilities (Goal: Explain Process): A flowchart created with HTML/Tailwind. Interaction: Static visual aid. Justification: Clearly illustrates the agent's workflow without complex graphics (NO SVG/Mermaid).
+        - Tool Showdown (Goal: Compare): A dynamic comparison table updated by a dropdown selector. Interaction: Selecting a competitor from the dropdown. Justification: Allows for direct, one-to-one comparisons in a structured format.
+    -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .nav-link.active {
+            color: #0284c7; /* sky-600 */
+            border-bottom-color: #0284c7; /* sky-600 */
+        }
+        .tab-btn.active {
+            background-color: #0369a1; /* sky-700 */
+            color: white;
+        }
+        .card-enter {
+            animation: card-enter 0.5s ease-out;
+        }
+        @keyframes card-enter {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-slate-800">GitHub Copilot 指南</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#plans" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 border-b-2 border-transparent">方案比較</a>
+                        <a href="#models" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 border-b-2 border-transparent">模型宇宙</a>
+                        <a href="#agent" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 border-b-2 border-transparent">代理能力</a>
+                        <a href="#modes" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 border-b-2 border-transparent">開發模式</a>
+                        <a href="#showdown" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-sky-600 border-b-2 border-transparent">工具對決</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight sm:text-5xl">探索 AI 輔助開發的未來</h2>
+            <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-600">本指南將 GitHub Copilot 的複雜報告轉化為一個互動式體驗，幫助您快速理解其功能、方案、底層技術以及在開發工具生態系中的定位。</p>
+        </div>
+
+        <section id="plans" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-slate-800 mb-2 text-center">方案比較</h3>
+            <p class="text-center text-slate-600 mb-8 max-w-3xl mx-auto">GitHub Copilot 提供多樣化的方案以滿足不同用戶的需求。此區塊讓您能夠清晰地比較個人與企業方案的價格、核心功能及「進階請求」配額，幫助您選擇最適合的方案。</p>
+            <div class="flex justify-center mb-6">
+                <div class="bg-slate-200 p-1 rounded-lg flex space-x-1">
+                    <button id="personal-btn" class="plan-toggle-btn px-4 py-2 text-sm font-medium rounded-md transition">個人方案</button>
+                    <button id="business-btn" class="plan-toggle-btn px-4 py-2 text-sm font-medium rounded-md transition">企業方案</button>
+                </div>
+            </div>
+            <div id="plan-table-container" class="bg-white p-6 rounded-xl shadow-lg mb-8 overflow-x-auto"></div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                 <h4 class="text-xl font-bold text-slate-800 mb-4 text-center">每月「進階請求」配額比較</h4>
+                 <div class="chart-container">
+                    <canvas id="plansChart"></canvas>
+                 </div>
+            </div>
+        </section>
+
+        <section id="models" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-slate-800 mb-2 text-center">模型宇宙</h3>
+            <p class="text-center text-slate-600 mb-8 max-w-3xl mx-auto">Copilot 的強大能力源於其多模型策略。本節將揭示不同功能（如程式碼補全、聊天）所使用的核心大型語言模型(LLM)，並展示用戶在特定情境下擁有的模型選擇彈性。</p>
+            <div class="flex justify-center mb-8 border-b border-slate-200">
+                <button data-tab="completion" class="tab-btn px-4 py-2 font-medium text-slate-600 border-b-2 border-transparent hover:text-sky-600 hover:border-sky-600 transition">程式碼補全</button>
+                <button data-tab="chat" class="tab-btn px-4 py-2 font-medium text-slate-600 border-b-2 border-transparent hover:text-sky-600 hover:border-sky-600 transition active">Copilot Chat</button>
+                <button data-tab="agent-model" class="tab-btn px-4 py-2 font-medium text-slate-600 border-b-2 border-transparent hover:text-sky-600 hover:border-sky-600 transition">編碼代理</button>
+            </div>
+            <div id="model-content-container"></div>
+        </section>
+
+        <section id="agent" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-slate-800 mb-2 text-center">代理能力</h3>
+            <p class="text-center text-slate-600 mb-8 max-w-3xl mx-auto">Copilot 不僅是程式碼建議者，更是一個能自主執行任務的代理。這裡將透過流程圖展示其如何從一個 GitHub issue 自動生成 Pull Request，並介紹如何透過特定檔案客製化代理的行為。</p>
+            <div class="bg-white p-8 rounded-xl shadow-lg">
+                <h4 class="text-xl font-bold text-slate-800 mb-6 text-center">從 Issue 到 PR 的自動化工作流程</h4>
+                <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4 text-center">
+                    <div class="p-4 bg-slate-100 rounded-lg w-full md:w-1/4">
+                        <div class="text-2xl mb-2">①</div>
+                        <h5 class="font-bold">指派 Issue</h5>
+                        <p class="text-sm text-slate-600">開發者將一個 GitHub Issue 指派給 Copilot。</p>
+                    </div>
+                    <div class="text-4xl font-thin text-sky-500 transform rotate-90 md:rotate-0">→</div>
+                    <div class="p-4 bg-sky-100 rounded-lg w-full md:w-1/3 border-2 border-sky-500">
+                        <div class="text-2xl mb-2">②</div>
+                        <h5 class="font-bold">Copilot 編碼代理</h5>
+                        <p class="text-sm text-slate-600">代理進入「代理模式」，自主分析、修改檔案、執行命令並迭代解決問題。</p>
+                    </div>
+                    <div class="text-4xl font-thin text-sky-500 transform rotate-90 md:rotate-0">→</div>
+                    <div class="p-4 bg-slate-100 rounded-lg w-full md:w-1/4">
+                        <div class="text-2xl mb-2">③</div>
+                        <h5 class="font-bold">建立 PR</h5>
+                        <p class="text-sm text-slate-600">完成任務後，代理建立一個 Pull Request 供開發者審查。</p>
+                    </div>
+                </div>
+                <hr class="my-8 border-slate-200">
+                <h4 class="text-xl font-bold text-slate-800 mb-6 text-center">客製化代理行為</h4>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-50 p-6 rounded-lg">
+                        <h5 class="font-bold text-slate-800">指令檔案：<code class="text-sm bg-slate-200 text-sky-700 px-1 py-0.5 rounded">.github/copilot-instructions.md</code></h5>
+                        <p class="mt-2 text-slate-600">提供儲存庫特定的上下文和編碼規範，指導 Copilot 產生更符合團隊風格的程式碼和回應。</p>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-lg">
+                        <h5 class="font-bold text-slate-800">環境設定：<code class="text-sm bg-slate-200 text-sky-700 px-1 py-0.5 rounded">copilot-setup-steps.yml</code></h5>
+                        <p class="mt-2 text-slate-600">透過 GitHub Actions 工作流程預先配置代理的開發環境，如安裝依賴、設定工具等，確保執行環境的一致性。</p>
+                    </div>
+                 </div>
+            </div>
+        </section>
+
+        <section id="modes" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-slate-800 mb-2 text-center">開發模式</h3>
+             <p class="text-center text-slate-600 mb-8 max-w-3xl mx-auto">Copilot 的體驗會因使用環境而異。本節將深入比較在提供豐富上下文的 IDE 中，與在功能集中的命令列(CLI)環境中使用 Copilot 的核心差異，幫助您了解不同場景下的優勢與限制。</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h4 class="text-2xl font-bold text-slate-800 mb-4">👨‍💻 IDE 環境</h4>
+                    <ul class="space-y-3 text-slate-600">
+                        <li class="flex items-start"><span class="text-sky-500 mr-3 mt-1">✔</span><div><strong class="text-slate-700">深度上下文：</strong>能獲取整個專案的程式碼結構、依賴項和開啟的檔案，提供高度相關的建議。</div></li>
+                        <li class="flex items-start"><span class="text-sky-500 mr-3 mt-1">✔</span><div><strong class="text-slate-700">全功能輔助：</strong>涵蓋程式碼生成、除錯、重構、測試案例等完整開發週期。</div></li>
+                        <li class="flex items-start"><span class="text-sky-500 mr-3 mt-1">✔</span><div><strong class="text-slate-700">模型選擇：</strong>在 Copilot Chat 中可自由選擇 OpenAI, Claude, Gemini 等不同模型。</div></li>
+                         <li class="flex items-start"><span class="text-sky-500 mr-3 mt-1">✔</span><div><strong class="text-slate-700">無縫工作流：</strong>即時行內建議與聊天功能，與編碼過程緊密結合。</div></li>
+                    </ul>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h4 class="text-2xl font-bold text-slate-800 mb-4">💲 CLI / 終端機</h4>
+                    <ul class="space-y-3 text-slate-600">
+                        <li class="flex items-start"><span class="text-orange-500 mr-3 mt-1">✖</span><div><strong class="text-slate-700">有限上下文：</strong>主要聚焦於單個指令查詢或當前 shell 環境，上下文較淺。</div></li>
+                        <li class="flex items-start"><span class="text-orange-500 mr-3 mt-1">✖</span><div><strong class="text-slate-700">輔助範圍窄：</strong>集中在建議和解釋 shell 指令，而非通用程式碼開發。</div></li>
+                        <li class="flex items-start"><span class="text-orange-500 mr-3 mt-1">✖</span><div><strong class="text-slate-700">無模型選擇：</strong>通常使用預設模型，用戶無法手動切換。</div></li>
+                        <li class="flex items-start"><span class="text-orange-500 mr-3 mt-1">✖</span><div><strong class="text-slate-700">獨立工具：</strong>更像是一個針對特定查詢的工具，與持續開發循環的整合度較低。</div></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="showdown" class="scroll-mt-20">
+            <h3 class="text-3xl font-bold text-slate-800 mb-2 text-center">工具對決</h3>
+            <p class="text-center text-slate-600 mb-8 max-w-3xl mx-auto">AI 程式碼助理領域競爭激烈。透過下方的選擇器，您可以將 GitHub Copilot 與其他主流工具（如 Cursor、Google Jules）進行一對一比較，深入了解它們在代理能力、LLM 選擇和核心開發範式上的異同。</p>
+            <div class="flex justify-center mb-6">
+                <select id="competitor-select" class="block w-full max-w-xs p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                    <option value="cursor">比較對象：Cursor</option>
+                    <option value="jules">比較對象：Google Jules</option>
+                    <option value="codex">比較對象：OpenAI Codex</option>
+                </select>
+            </div>
+            <div id="comparison-container"></div>
+        </section>
+
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const planData = {
+                personal: {
+                    title: '個人方案',
+                    headers: ['特性', 'Free', 'Pro', 'Pro+'],
+                    rows: [
+                        ['價格', '免費', '每月 $10', '每月 $39'],
+                        ['IDE 程式碼建議', '每月 2,000 次', '無限制', '無限制'],
+                        ['Copilot Chat', '每月 50 次', '無限制', '無限制'],
+                        ['進階請求', '50 次', '300 次', '1,500 次'],
+                        ['存取進階模型', '否', '有限', '完整'],
+                        ['編碼代理', '否', '否', '是'],
+                    ],
+                    chartData: [2000, Infinity, Infinity],
+                    advancedRequests: [50, 300, 1500]
+                },
+                business: {
+                    title: '企業方案',
+                    headers: ['特性', 'Business', 'Enterprise'],
+                    rows: [
+                        ['價格 (每位使用者)', '每月 $19', '每月 $39'],
+                        ['IDE 程式碼建議', '無限制', '無限制'],
+                        ['Copilot Chat', '無限制', '無限制'],
+                        ['進階請求', '300 次', '1,000 次'],
+                        ['企業管理功能', '是', '是'],
+                        ['知識庫整合', '否', '是'],
+                        ['編碼代理', '否', '是']
+                    ],
+                    chartData: [Infinity, Infinity],
+                    advancedRequests: [300, 1000]
+                }
+            };
+
+            const modelData = {
+                completion: `
+                    <div class="bg-white p-8 rounded-xl shadow-lg text-center card-enter">
+                        <h4 class="text-2xl font-bold text-slate-800 mb-4">預設模型：GPT-4o Copilot</h4>
+                        <p class="text-slate-600 max-w-2xl mx-auto">程式碼補全功能預設使用基於 <strong>GPT-4o mini</strong> 微調的模型。它在超過 30 種程式語言的大量高品質公開程式碼上進行訓練，提供了知識庫更新、反應速度更快的優質建議。用戶在支援的 IDE 中也可以選擇切換至其他可用模型。</p>
+                    </div>`,
+                chat: `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 card-enter">
+                        <div class="bg-white p-6 rounded-xl shadow-lg">
+                            <h5 class="text-xl font-bold text-slate-800 mb-2">🤖 OpenAI</h5>
+                            <p class="text-slate-600">提供 GPT-4o, GPT-4.1, GPT-4.5 (預覽) 等模型，擅長複雜邏輯、高品質程式碼生成和長上下文理解。</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-lg">
+                            <h5 class="text-xl font-bold text-slate-800 mb-2">✍️ Anthropic Claude</h5>
+                            <p class="text-slate-600">提供 Claude 3.5 Sonnet, 3.7 Sonnet 等模型，在成本與性能之間取得良好平衡，適合需要逐步思考的任務。</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-lg">
+                            <h5 class="text-xl font-bold text-slate-800 mb-2">✨ Google Gemini</h5>
+                            <p class="text-slate-600">提供 Gemini 2.0 Flash 等模型，適用於需要多模態輸入和即時性能的場景。</p>
+                        </div>
+                    </div>
+                    <p class="text-center text-sm text-slate-500 mt-6">註：用戶可依需求在 Copilot Chat 介面中切換模型，不同模型對「進階請求」的消耗可能不同。</p>
+                `,
+                'agent-model': `
+                    <div class="bg-white p-8 rounded-xl shadow-lg text-center card-enter">
+                        <h4 class="text-2xl font-bold text-slate-800 mb-4">進階模型驅動</h4>
+                        <p class="text-slate-600 max-w-2xl mx-auto">Copilot 編碼代理的運作會消耗「進階請求」，這間接表明其背後由更強大的模型（如 GPT-4.5、Claude 3.7 Sonnet）驅動。模型選擇與用戶的訂閱方案 (Pro+ 或 Enterprise) 相關聯，由系統根據任務複雜度自動調用，用戶無法手動為單個代理任務指定模型。</p>
+                    </div>`
+            };
+            
+            const comparisonData = {
+                cursor: {
+                    title: 'GitHub Copilot vs. Cursor',
+                    headers: ['特性', 'GitHub Copilot (IDE)', 'Cursor'],
+                    rows: [
+                        ['核心範式', '主流 IDE 的 AI 擴充功能', 'AI 原生的獨立程式碼編輯器'],
+                        ['專案上下文理解', '深度 (語義索引)', '深度 (原生程式碼庫感知)'],
+                        ['迭代代理能力', '有限 (主要透過聊天/代理處理離散任務)', '是 (代理模式可執行、驗證、修復)'],
+                        ['代理規則客製化', '是 (`copilot-instructions.md`)', '是 (Cursor Rules)'],
+                        ['LLM 選擇彈性', '高 (可選 OpenAI, Claude, Gemini)', '極高 (可選多種模型並自訂後端)'],
+                    ]
+                },
+                jules: {
+                    title: 'GitHub Copilot vs. Google Jules',
+                    headers: ['特性', 'GitHub Copilot', 'Google Jules'],
+                    rows: [
+                        ['自主建立 PR', '是 (從 Issue 或聊天指令)', '是 (自主產生功能、修復錯誤)'],
+                        ['操作模型', '整合於 GitHub 工作流程', '非同步背景操作，與 GitHub 整合'],
+                        ['代理指令機制', '`copilot-instructions.md` (上下文)', '提示 (Prompts) + 設定腳本 (環境)'],
+                        ['環境客製化', '是 (透過 Actions)', '是 (透過設定腳本)'],
+                        ['主要 LLM', 'GPT/Claude/Gemini 等多模型選擇', '固定使用 Gemini 2.5 Pro'],
+                    ]
+                },
+                 codex: {
+                    title: 'GitHub Copilot vs. OpenAI Codex',
+                    headers: ['特性', 'GitHub Copilot', 'OpenAI Codex (雲端代理)'],
+                    rows: [
+                        ['自主建立 PR', '是 (從 Issue 或聊天指令)', '是 (在其環境中起草 PR)'],
+                        ['代理指令機制', '`copilot-instructions.md` (上下文/風格)', '`AGENTS.MD` (程序/驗證指令)'],
+                        ['指令範圍', '風格指導、環境設定', '程序性指令、驗證步驟 (lint, test)'],
+                        ['環境客製化', '是 (透過 Actions)', '是 (Docker 容器 + 設定腳本)'],
+                        ['主要 LLM', 'GPT/Claude/Gemini 等多模型選擇', 'Codex 系列模型 (基於 GPT)'],
+                    ]
+                }
+            };
+
+            const planToggleButtons = document.querySelectorAll('.plan-toggle-btn');
+            const planTableContainer = document.getElementById('plan-table-container');
+            const plansChartCanvas = document.getElementById('plansChart').getContext('2d');
+            let plansChart;
+            
+            const modelTabs = document.querySelectorAll('.tab-btn');
+            const modelContentContainer = document.getElementById('model-content-container');
+
+            const competitorSelect = document.getElementById('competitor-select');
+            const comparisonContainer = document.getElementById('comparison-container');
+
+            function createTable(data) {
+                const table = document.createElement('table');
+                table.className = 'w-full text-left border-collapse';
+                const thead = table.createTHead();
+                const headerRow = thead.insertRow();
+                headerRow.className = 'bg-slate-100';
+                data.headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.className = 'p-3 text-sm font-semibold tracking-wide text-slate-800';
+                    th.textContent = headerText;
+                    headerRow.appendChild(th);
+                });
+
+                const tbody = table.createTBody();
+                data.rows.forEach(rowData => {
+                    const row = tbody.insertRow();
+                    row.className = 'border-b border-slate-200';
+                    rowData.forEach((cellData, index) => {
+                        const cell = row.insertCell();
+                        cell.className = `p-3 text-slate-600 ${index === 0 ? 'font-medium text-slate-700' : ''}`;
+                        cell.innerHTML = cellData;
+                    });
+                });
+                return table;
+            }
+
+            function updatePlansView(planType) {
+                planToggleButtons.forEach(btn => {
+                    btn.classList.toggle('bg-sky-600', btn.id.startsWith(planType));
+                    btn.classList.toggle('text-white', btn.id.startsWith(planType));
+                    btn.classList.toggle('text-slate-600', !btn.id.startsWith(planType));
+                    btn.classList.toggle('bg-slate-200', !btn.id.startsWith(planType));
+                });
+                
+                const data = planData[planType];
+                planTableContainer.innerHTML = '';
+                planTableContainer.appendChild(createTable(data));
+                planTableContainer.firstChild.classList.add('card-enter');
+
+                if (plansChart) {
+                    plansChart.destroy();
+                }
+
+                plansChart = new Chart(plansChartCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: data.headers.slice(1),
+                        datasets: [{
+                            label: '每月進階請求配額',
+                            data: data.advancedRequests,
+                            backgroundColor: ['#38bdf8', '#0ea5e9', '#0284c7', '#0369a1'],
+                            borderColor: ['#0ea5e9', '#0284c7', '#0369a1', '#075985'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.x !== null) {
+                                            label += context.parsed.x + ' 次';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: '請求次數'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateModelsView(tabId) {
+                modelTabs.forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.tab === tabId);
+                    tab.classList.toggle('text-sky-600', tab.dataset.tab === tabId);
+                    tab.classList.toggle('border-sky-600', tab.dataset.tab === tabId);
+                    tab.classList.toggle('text-slate-600', tab.dataset.tab !== tabId);
+                    tab.classList.toggle('border-transparent', tab.dataset.tab !== tabId);
+                });
+                modelContentContainer.innerHTML = modelData[tabId];
+            }
+
+            function updateComparisonView(competitorId) {
+                const data = comparisonData[competitorId];
+                comparisonContainer.innerHTML = '';
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded-xl shadow-lg overflow-x-auto card-enter';
+                card.appendChild(createTable(data));
+                comparisonContainer.appendChild(card);
+            }
+
+            planToggleButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    updatePlansView(button.id.split('-')[0]);
+                });
+            });
+
+            modelTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    updateModelsView(tab.dataset.tab);
+                });
+            });
+            
+            competitorSelect.addEventListener('change', (e) => {
+                updateComparisonView(e.target.value);
+            });
+
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                        });
+                    }
+                });
+            }, { rootMargin: "-50% 0px -50% 0px" });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+            
+            updatePlansView('personal');
+            updateModelsView('chat');
+            updateComparisonView('cursor');
+        });
+    </script>
+</body>
+</html>
