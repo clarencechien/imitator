@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>柯文哲起訴書互動式摘要分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 60vh;
+            }
+        }
+        .flow-node {
+            transition: all 0.3s ease;
+        }
+        .flow-node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -33px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: #a8a29e; 
+            border: 3px solid #f5f5f4;
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .network-line {
+            position: absolute;
+            background-color: #a8a29e; /* stone-400 */
+            height: 2px;
+            transform-origin: 0 0;
+            z-index: 5; 
+        }
+        .network-node {
+            z-index: 10; /* Ensure nodes are above lines */
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header id="home" class="bg-white shadow-md">
+        <div class="container mx-auto px-6 py-4">
+            <h1 class="text-3xl md:text-4xl font-bold text-stone-700">柯文哲起訴書互動式摘要分析</h1>
+            <p class="mt-2 text-stone-600">本頁面將臺北地檢署對前臺北市長柯文哲之起訴書內容，進行視覺化與互動式呈現，旨在協助使用者快速理解案件核心。</p>
+        </div>
+    </header>
+    
+    <nav class="sticky top-0 bg-stone-100 z-40 shadow-sm">
+        <div class="container mx-auto px-6">
+            <div class="flex justify-center space-x-2 md:space-x-8 overflow-x-auto py-3">
+                <a href="#overview" class="nav-link text-sm md:text-base font-medium text-stone-600 hover:text-rose-800 transition">案件總覽</a>
+                <a href="#case-details" class="nav-link text-sm md:text-base font-medium text-stone-600 hover:text-rose-800 transition">三大主案</a>
+                <a href="#network" class="nav-link text-sm md:text-base font-medium text-stone-600 hover:text-rose-800 transition">涉案關係圖</a>
+                <a href="#timeline" class="nav-link text-sm md:text-base font-medium text-stone-600 hover:text-rose-800 transition">時序全記錄</a>
+                <a href="#arguments" class="nav-link text-sm md:text-base font-medium text-stone-600 hover:text-rose-800 transition">法律攻防</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="overview" class="my-8 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-8 text-stone-700">案件總覽：核心指控與數據</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold text-rose-800">京華城案</h3>
+                    <p class="text-stone-600 mt-2">圖利、收賄</p>
+                    <p class="text-2xl font-bold text-stone-800 mt-4">不法利益逾 121 億</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold text-rose-800">政治獻金案</h3>
+                    <p class="text-stone-600 mt-2">公益侵占</p>
+                    <p class="text-2xl font-bold text-stone-800 mt-4">侵占逾 6,800 萬</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold text-rose-800">眾望基金會案</h3>
+                    <p class="text-stone-600 mt-2">背信</p>
+                    <p class="text-2xl font-bold text-stone-800 mt-4">挪用逾 827 萬</p>
+                </div>
+            </div>
+             <div class="mt-12 bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-2xl font-bold text-center mb-6 text-stone-700">檢方對各被告具體求刑</h3>
+                <p class="text-center text-stone-500 mb-4">此圖表呈現檢方對本案主要被告建議的刑期，點擊圖表上的長條可查看詳細資訊。</p>
+                <div class="chart-container">
+                    <canvas id="sentencesChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="case-details" class="my-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-8 text-stone-700">三大主案深度解析</h2>
+            <div id="case-tabs-container" class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="border-b border-stone-200">
+                    <nav class="flex -mb-px" aria-label="Tabs">
+                        <button class="case-tab active-tab w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm md:text-base border-rose-500 text-rose-600">京華城案</button>
+                        <button class="case-tab w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm md:text-base border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300">政治獻金案</button>
+                        <button class="case-tab w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm md:text-base border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300">眾望基金會案</button>
+                    </nav>
+                </div>
+                <div id="case-content" class="mt-8">
+                </div>
+            </div>
+        </section>
+
+        <section id="network" class="my-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-2 text-stone-700">涉案關係圖</h2>
+            <p class="text-center text-stone-500 mb-8">點擊人物或實體節點，查看其在案件中的角色與關聯。</p>
+            <div class="bg-white p-4 md:p-8 rounded-lg shadow-lg relative h-[600px] md:h-[700px] flex items-center justify-center">
+                <div id="network-graph" class="relative w-full h-full max-w-2xl max-h-2xl">
+                </div>
+            </div>
+        </section>
+        
+        <section id="timeline" class="my-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-8 text-stone-700">時序全記錄</h2>
+            <div class="relative pl-8 border-l-2 border-stone-200">
+                <div class="timeline-item mb-10 relative">
+                    <h3 class="text-lg font-bold text-rose-800">2020年2月20日</h3>
+                    <p class="text-stone-600">檢方指控柯文哲與沈慶京於市長室會面，達成圖利與行收賄犯意聯絡。</p>
+                </div>
+                <div class="timeline-item mb-10 relative">
+                    <h3 class="text-lg font-bold text-rose-800">2020年3月 - 2022年2月</h3>
+                    <p class="text-stone-600">柯文哲被控透過「便當會」、核決簽呈、手諭等方式，強行推動並護航京華城容積獎勵案。</p>
+                </div>
+                 <div class="timeline-item mb-10 relative">
+                    <h3 class="text-lg font-bold text-rose-800">2022年11月1日 (指控)</h3>
+                    <p class="text-stone-600">檢方指控柯文哲收受沈慶京交付之1500萬元賄款，其關鍵證據為柯文哲硬碟中的Excel記錄。</p>
+                </div>
+                 <div class="timeline-item mb-10 relative">
+                    <h3 class="text-lg font-bold text-rose-800">2024年1月</h3>
+                    <p class="text-stone-600">監察院就京華城案提出糾正，指北市府欠缺法令依據創設容積獎勵項目。</p>
+                </div>
+                <div class="timeline-item mb-10 relative">
+                    <h3 class="text-lg font-bold text-rose-800">2024年8月底</h3>
+                    <p class="text-stone-600">柯文哲前秘書許芷瑜出境未歸，後遭檢方發布通緝。</p>
+                </div>
+                <div class="timeline-item mb-10 relative">
+                    <h3 class="text-lg font-bold text-rose-800">2024年12月26日</h3>
+                    <p class="text-stone-600">臺北地檢署偵查終結，依貪污等罪起訴柯文哲等11人，對柯具體求刑28年6個月。</p>
+                </div>
+                <div class="timeline-item relative">
+                    <h3 class="text-lg font-bold text-rose-800">2025年 - 至今</h3>
+                    <p class="text-stone-600">案件進入臺北地方法院審理，多次召開準備程序庭，柯文哲等人持續羈押禁見。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="arguments" class="my-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-8 text-stone-700">法律攻防焦點</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold text-center text-rose-800 mb-4">檢方論點</h3>
+                    <ul class="space-y-3 list-disc list-inside text-stone-600">
+                        <li>濫用市長職權，明知違法仍護航京華城案，圖利財團逾121億。</li>
+                        <li>收受沈慶京共1710萬賄款，嚴重敗壞官箴。</li>
+                        <li>侵占應屬民眾黨之政治獻金、挪用眾望基金會款項，公私不分。</li>
+                        <li>犯後否認犯行，態度不佳，無悔意。</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold text-center text-rose-800 mb-4">柯方回應</h3>
+                    <ul class="space-y-3 list-disc list-inside text-stone-600">
+                        <li>堅稱清白，指控檢方羅織罪名、政治迫害。</li>
+                        <li>收賄指控無直接證據與金流，僅憑間接拼湊。</li>
+                        <li>京華城案決策屬合法行政裁量權範圍。</li>
+                        <li>質疑偵查程序不公，如疲勞訊問、偵查不公開遭破壞。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-stone-200 text-stone-600 text-center py-4">
+        <p>資料來源：臺北地檢署起訴書及相關公開報導研析報告。</p>
+        <p class="text-sm">本網站內容為起訴書資訊視覺化呈現，不代表對事實的最終認定，一切以法院判決為準。</p>
+    </footer>
+
+    <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 id="modal-title" class="text-2xl font-bold text-stone-800"></h3>
+                    <button id="modal-close" class="text-stone-500 hover:text-stone-800">&times;</button>
+                </div>
+                <div id="modal-content" class="mt-4 text-stone-700"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const caseData = {
+        '京華城案': `
+            <div class="prose max-w-none text-stone-700">
+                <h4>檢方指控</h4>
+                <p>柯文哲於市長任內，為圖利京華城及其實際掌控人沈慶京，明知容積獎勵違法，仍利用職權強行核准，使該公司獲取<strong>121.5億</strong>元不法利益，並收受共計<strong>1710萬</strong>元賄款。</p>
+                
+                <h4>關鍵手法與金流</h4>
+                <div class="space-y-4">
+                     <div class="flow-node bg-stone-100 p-4 rounded-lg">
+                        <strong class="text-rose-700">1. 犯意聯絡 (2020/2)</strong><br>柯文哲與沈慶京單獨會面，達成圖利與行收賄共識。
+                    </div>
+                    <div class="text-center">↓</div>
+                     <div class="flow-node bg-stone-100 p-4 rounded-lg">
+                        <strong class="text-rose-700">2. 行政護航 (2020/3 - 2022/2)</strong><br>柯透過便當會裁示、簽呈核決、手諭等方式，無視內部質疑，一路護航。
+                    </div>
+                    <div class="text-center">↓</div>
+                    <div class="flow-node bg-stone-100 p-4 rounded-lg">
+                        <strong class="text-rose-700">3. 收受賄款 (指控)</strong><br>
+                        - <strong>210萬：</strong>沈慶京指示人頭以政治獻金名義匯入民眾黨專戶。<br>
+                        - <strong>1500萬：</strong>動土典禮後，沈慶京親自交付現金予柯文哲。
+                    </div>
+                </div>
+
+                <h4>主要證據</h4>
+                <ul>
+                    <li>柯文哲硬碟中的Excel檔案，記錄「姓名小沈-數字1500」。</li>
+                    <li>前市府官員（如彭振聲、邵琇珮）之證詞。</li>
+                    <li>相關會議紀錄與公文簽呈。</li>
+                </ul>
+            </div>
+        `,
+        '政治獻金案': `
+            <div class="prose max-w-none text-stone-700">
+                <h4>檢方指控</h4>
+                <p>柯文哲身為民眾黨主席，涉嫌侵占應屬民眾黨或其個人競選之政治獻金，總計超過<strong>6,800萬</strong>元，並透過「木可公關顧問有限公司」作為資金水房，規避法規監督。</p>
+
+                <h4>侵占手法 (透過木可公司)</h4>
+                 <div class="space-y-4">
+                     <div class="flow-node bg-stone-100 p-4 rounded-lg">
+                        <strong>資金來源</strong><br>
+                        - 募款小物販售 (4133萬)<br>
+                        - KP SHOW演唱會 (77萬)<br>
+                        - 肖像權授權金 (1500萬)<br>
+                        - 企業捐贈 (300萬)<br>
+                        - 其他 (600萬)
+                    </div>
+                    <div class="text-center">↓</div>
+                     <div class="flow-node bg-stone-100 p-4 rounded-lg">
+                        <strong>操作平台：木可公關顧問有限公司</strong><br>
+                        應進入政治獻金專戶的款項，直接或間接流入由柯親信李文宗、李文娟掌控的木可公司帳戶。
+                    </div>
+                    <div class="text-center">↓</div>
+                    <div class="flow-node bg-stone-100 p-4 rounded-lg">
+                        <strong>最終流向</strong><br>
+                        檢方指控款項被挪為私用、支付非競選相關開銷，或用於投資營利事業，脫離公眾監督。
+                    </div>
+                </div>
+            </div>
+        `,
+        '眾望基金會案': `
+            <div class="prose max-w-none text-stone-700">
+                <h4>檢方指控</h4>
+                <p>柯文哲與時任眾望基金會董事長李文宗，違背基金會「辦理社會福利」之章程，將民眾捐款共<strong>827萬</strong>元，挪用於支付柯文哲總統競選辦公室13名員工的薪資。</p>
+
+                <h4>背信行為分析</h4>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                    <div class="flow-node bg-green-100 p-4 rounded-lg border-2 border-green-300">
+                        <strong class="text-green-800">基金會章程目的</strong><br>
+                        辦理臺北市社會福利（關懷）
+                    </div>
+                    <div class="flow-node bg-red-100 p-4 rounded-lg border-2 border-red-300">
+                        <strong class="text-red-800">實際資金用途</strong><br>
+                        支付總統競選辦公室員工薪資
+                    </div>
+                </div>
+                <p class="text-center my-4 font-bold text-2xl text-rose-700">→</p>
+                <p class="text-center text-lg font-semibold">檢方認定：此舉已明確違反基金會設立宗旨，構成背信罪，損害基金會利益。</p>
+                
+                <h4>關鍵證據</h4>
+                <p>檢方掌握柯文哲與李文宗的LINE訊息，內容提及「蔡Ｏ如的薪水...我是想從基金會領...在基金會這邊比較隱密」，被視為意圖利用基金會隱匿支付薪資的直接證據。</p>
+            </div>
+        `,
+    };
+
+    const networkData = {
+        '柯文哲': {
+            role: '前臺北市長、民眾黨主席',
+            charge: '圖利、收賄、公益侵占、背信',
+            sentence: '求刑28年6月',
+            position: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+            class: 'bg-rose-600 text-white w-28 h-28 text-lg'
+        },
+        '沈慶京': {
+            role: '威京集團主席',
+            charge: '圖利、行賄',
+            sentence: '求刑17年',
+            position: 'top-[10%] left-[5%]',
+            class: 'bg-amber-500 text-white w-24 h-24'
+        },
+        '李文宗': {
+            role: '前柯辦財務長',
+            charge: '收賄、公益侵占、背信',
+            sentence: '求刑17年4月',
+            position: 'top-[10%] right-[5%]',
+            class: 'bg-amber-500 text-white w-24 h-24'
+        },
+        '應曉薇': {
+            role: '臺北市議員',
+            charge: '收賄、洗錢',
+            sentence: '求刑16年6月',
+            position: 'bottom-[10%] left-[5%]',
+            class: 'bg-amber-500 text-white w-24 h-24'
+        },
+        '許芷瑜': {
+            role: '前柯文哲貼身祕書',
+            charge: '涉處理機密款項，已遭通緝',
+            sentence: '通緝中',
+            position: 'bottom-[10%] right-[5%]',
+            class: 'bg-slate-500 text-white w-24 h-24'
+        },
+        '京華城': {
+            role: '開發案主體',
+            charge: '涉圖利案',
+            sentence: '不法利益121.5億',
+            position: 'top-[38%] left-[-2%]',
+            class: 'bg-cyan-500 text-white w-24 h-24'
+        },
+        '木可公司': {
+            role: '資金處理平台',
+            charge: '涉公益侵占案',
+            sentence: '涉案金額逾6200萬',
+            position: 'top-[38%] right-[-2%]',
+            class: 'bg-cyan-500 text-white w-24 h-24'
+        },
+        '眾望基金會': {
+            role: '公益基金會',
+            charge: '涉背信案',
+            sentence: '挪用金額逾827萬',
+            position: 'bottom-[30%] left-1/2 -translate-x-1/2',
+            class: 'bg-cyan-500 text-white w-24 h-24'
+        }
+    };
+    
+    function createSentencesChart() {
+        const ctx = document.getElementById('sentencesChart').getContext('2d');
+        const data = {
+            labels: ['柯文哲', '沈慶京', '李文宗', '應曉薇', '黃景茂', '彭振聲', '邵琇珮'],
+            datasets: [{
+                label: '檢方求刑年數',
+                data: [28.5, 17, 17.33, 16.5, 7, 3, 1.25],
+                backgroundColor: 'rgba(190, 70, 79, 0.6)',
+                borderColor: 'rgba(190, 70, 79, 1)',
+                borderWidth: 1
+            }]
+        };
+        new Chart(ctx, {
+            type: 'bar',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '有期徒刑 (年)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if(context.label === "邵琇珮"){
+                                        label += context.parsed.y + ' 年 (建議緩刑2年)';
+                                    } else {
+                                        label += context.parsed.y + ' 年';
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function setupCaseTabs() {
+        const tabs = document.querySelectorAll('.case-tab');
+        const contentContainer = document.getElementById('case-content');
+        
+        function updateContent(tabName) {
+            contentContainer.innerHTML = caseData[tabName] || '內容載入中...';
+        }
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('active-tab', 'border-rose-500', 'text-rose-600');
+                    t.classList.add('border-transparent', 'text-stone-500');
+                });
+                tab.classList.add('active-tab', 'border-rose-500', 'text-rose-600');
+                tab.classList.remove('border-transparent', 'text-stone-500');
+                updateContent(tab.textContent);
+            });
+        });
+
+        updateContent(tabs[0].textContent);
+    }
+    
+    function setupNetworkGraph() {
+        const graphContainer = document.getElementById('network-graph');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const modalClose = document.getElementById('modal-close');
+
+        const nodes = {};
+
+        Object.keys(networkData).forEach(key => {
+            const nodeInfo = networkData[key];
+            const nodeElement = document.createElement('div');
+            nodeElement.className = `network-node absolute flex items-center justify-center text-center p-2 rounded-full shadow-lg cursor-pointer transition-transform duration-300 hover:scale-110 ${nodeInfo.position} ${nodeInfo.class || 'bg-blue-500 text-white w-24 h-24'}`;
+            nodeElement.innerHTML = `<strong>${key}</strong>`;
+            nodeElement.dataset.key = key;
+
+            nodeElement.addEventListener('click', () => {
+                const data = networkData[key];
+                modalTitle.textContent = key;
+                modalContent.innerHTML = `
+                    <p><strong>角色:</strong> ${data.role}</p>
+                    <p><strong>所涉罪名/情況:</strong> ${data.charge}</p>
+                    <p><strong>檢方求刑/狀態:</strong> ${data.sentence}</p>
+                `;
+                modal.classList.remove('hidden');
+            });
+            graphContainer.appendChild(nodeElement);
+            nodes[key] = nodeElement;
+        });
+        
+        const connections = [
+            { from: '柯文哲', to: '沈慶京' },
+            { from: '柯文哲', to: '李文宗' },
+            { from: '柯文哲', to: '應曉薇' },
+            { from: '柯文哲', to: '許芷瑜' },
+            { from: '柯文哲', to: '京華城' },
+            { from: '柯文哲', to: '木可公司' },
+            { from: '柯文哲', to: '眾望基金會' }
+        ];
+
+        // Ensure nodes are rendered before calculating positions for lines
+        requestAnimationFrame(() => {
+            const containerRect = graphContainer.getBoundingClientRect();
+
+            connections.forEach(conn => {
+                const fromNode = nodes[conn.from];
+                const toNode = nodes[conn.to];
+
+                if (fromNode && toNode) {
+                    const line = document.createElement('div');
+                    line.className = 'network-line';
+
+                    const fromRect = fromNode.getBoundingClientRect();
+                    const toRect = toNode.getBoundingClientRect();
+
+                    const x1_viewport = fromRect.left + fromRect.width / 2;
+                    const y1_viewport = fromRect.top + fromRect.height / 2;
+                    const x2_viewport = toRect.left + toRect.width / 2;
+                    const y2_viewport = toRect.top + toRect.height / 2;
+
+                    const x1 = x1_viewport - containerRect.left;
+                    const y1 = y1_viewport - containerRect.top;
+                    const x2 = x2_viewport - containerRect.left;
+                    const y2 = y2_viewport - containerRect.top;
+
+                    const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                    const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+
+                    line.style.width = `${length}px`;
+                    line.style.left = `${x1}px`;
+                    line.style.top = `${y1}px`;
+                    line.style.transform = `rotate(${angle}deg)`;
+                    
+                    graphContainer.appendChild(line);
+                }
+            });
+        });
+
+
+        modalClose.addEventListener('click', () => modal.classList.add('hidden'));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+
+    function setupSmoothScroll() {
+        document.querySelectorAll('a.nav-link').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetElement = document.querySelector(this.getAttribute('href'));
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    }
+
+    createSentencesChart();
+    setupCaseTabs();
+    setupNetworkGraph();
+    setupSmoothScroll();
+});
+</script>
+
+</body>
+</html>
