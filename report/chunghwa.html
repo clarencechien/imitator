@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome 憑證不信任事件：互動式全解析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+        .nav-button.active {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-5xl font-bold text-slate-900">Chrome 憑證不信任事件</h1>
+            <p class="mt-2 text-lg text-slate-600">一份關於 Google 調整對中華電信與 Netlock 憑證信任的互動式解析</p>
+        </header>
+
+        <nav class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+            <button data-tab="overview" class="nav-button py-2 px-4 rounded-lg bg-white shadow-sm font-semibold text-slate-700 hover:bg-blue-100">事件總覽</button>
+            <button data-tab="deep-dive" class="nav-button py-2 px-4 rounded-lg bg-white shadow-sm font-semibold text-slate-700 hover:bg-blue-100">深度剖析</button>
+            <button data-tab="impact" class="nav-button py-2 px-4 rounded-lg bg-white shadow-sm font-semibold text-slate-700 hover:bg-blue-100">影響與應對</button>
+            <button data-tab="background" class="nav-button py-2 px-4 rounded-lg bg-white shadow-sm font-semibold text-slate-700 hover:bg-blue-100">背景知識</button>
+        </nav>
+
+        <main>
+            <section id="overview-section" class="tab-content">
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900">核心事件：信任的動搖</h2>
+                    <p class="text-slate-700 mb-6 leading-relaxed">
+                        Google Chrome 團隊宣布，由於對中華電信 (Chunghwa Telecom) 及匈牙利 Netlock 作為憑證頒發機構 (CA) 的可靠性信心下降，將自 2025 年 8 月 1 日起，不再預設信任這兩家公司在特定日期後簽發的 TLS 伺服器憑證。此舉旨在保護 Chrome 使用者的網路安全，並引發了業界對憑證管理與合規性的廣泛討論。
+                    </p>
+
+                    <h3 class="text-xl font-bold mb-6 text-center text-slate-800">關鍵事件時間線</h3>
+                    <div class="relative">
+                        <div class="absolute left-1/2 h-full w-0.5 bg-slate-200 hidden md:block"></div>
+                        <div class="space-y-8 md:space-y-0">
+                             <div class="flex md:items-center flex-col md:flex-row">
+                                <div class="md:w-1/2 md:pr-8 flex md:justify-end">
+                                    <div class="bg-white p-4 rounded-lg border-2 border-slate-200 w-full md:w-auto">
+                                        <p class="font-bold text-slate-900">2024 年 - 2025 年初</p>
+                                        <p class="text-slate-600">合規問題浮現</p>
+                                    </div>
+                                </div>
+                                <div class="relative w-full md:w-auto">
+                                    <div class="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 h-4 w-0.5 md:h-0.5 md:w-4 bg-slate-200"></div>
+                                    <div class="z-10 relative flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold mx-auto">1</div>
+                                </div>
+                                <div class="md:w-1/2 md:pl-8">
+                                    <p class="mt-2 md:mt-0 text-slate-700">中華電信與 Netlock 在公開事件報告中揭露了多項合規問題，引發瀏覽器社群的關注與質疑。</p>
+                                </div>
+                            </div>
+                            <div class="flex md:items-center flex-col md:flex-row-reverse">
+                                <div class="md:w-1/2 md:pl-8 flex md:justify-start">
+                                    <div class="bg-white p-4 rounded-lg border-2 border-slate-200 w-full md:w-auto">
+                                        <p class="font-bold text-slate-900">2025 年 5 月 30 日</p>
+                                        <p class="text-slate-600">Google 正式公告</p>
+                                    </div>
+                                </div>
+                                <div class="relative w-full md:w-auto">
+                                    <div class="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 h-4 w-0.5 md:h-0.5 md:w-4 bg-slate-200"></div>
+                                    <div class="z-10 relative flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold mx-auto">2</div>
+                                </div>
+                                <div class="md:w-1/2 md:pr-8 text-left md:text-right">
+                                    <p class="mt-2 md:mt-0 text-slate-700">Google 安全部落格發布文章，詳細說明移除信任的決定、原因、時間表與影響範圍。</p>
+                                </div>
+                            </div>
+                            <div class="flex md:items-center flex-col md:flex-row">
+                                <div class="md:w-1/2 md:pr-8 flex md:justify-end">
+                                     <div class="bg-white p-4 rounded-lg border-2 border-slate-200 w-full md:w-auto">
+                                        <p class="font-bold text-slate-900">2025 年 7 月 31 日</p>
+                                        <p class="text-slate-600">信任截止日期</p>
+                                    </div>
+                                </div>
+                                <div class="relative w-full md:w-auto">
+                                    <div class="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 h-4 w-0.5 md:h-0.5 md:w-4 bg-slate-200"></div>
+                                    <div class="z-10 relative flex items-center justify-center w-8 h-8 rounded-full bg-orange-500 text-white font-bold mx-auto">3</div>
+                                </div>
+                                <div class="md:w-1/2 md:pl-8">
+                                    <p class="mt-2 md:mt-0 text-slate-700">UTC 23:59:59 之後，兩家 CA 簽發的新 TLS 憑證將不再受 Chrome 預設信任。</p>
+                                </div>
+                            </div>
+                           <div class="flex md:items-center flex-col md:flex-row-reverse">
+                                <div class="md:w-1/2 md:pl-8 flex md:justify-start">
+                                     <div class="bg-white p-4 rounded-lg border-2 border-slate-200 w-full md:w-auto">
+                                        <p class="font-bold text-slate-900">2025 年 8 月 1 日</p>
+                                        <p class="text-slate-600">政策正式生效</p>
+                                    </div>
+                                </div>
+                                <div class="relative w-full md:w-auto">
+                                    <div class="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 h-4 w-0.5 md:h-0.5 md:w-4 bg-slate-200"></div>
+                                    <div class="z-10 relative flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white font-bold mx-auto">4</div>
+                                </div>
+                                <div class="md:w-1/2 md:pr-8 text-left md:text-right">
+                                     <p class="mt-2 md:mt-0 text-slate-700">隨著 Chrome 139 版本發布，不信任政策開始實施。使用受影響新憑證的網站將顯示安全警告。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="deep-dive-section" class="tab-content">
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-bold mb-2 text-center text-slate-900">案例深度剖析：中華電信 vs Netlock</h2>
+                    <p class="text-center text-slate-600 mb-8">Google 的決定並非單一事件，而是基於對兩家 CA 長期合規表現的評估。點擊下方卡片中的按鈕，探索其官方說法與公開技術問題記錄之間的差異。</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div id="cht-card" class="border p-6 rounded-lg bg-slate-50"></div>
+                        <div id="netlock-card" class="border p-6 rounded-lg bg-slate-50"></div>
+                    </div>
+
+                    <div class="mt-12">
+                        <h3 class="text-xl font-bold mb-4 text-center text-slate-800">合規事件規模比較</h3>
+                        <p class="text-center text-slate-600 mb-6">此圖表顯示了兩家 CA 在關鍵公開事件報告中涉及的憑證或實體數量，直觀地反映了問題的規模與性質。</p>
+                        <div class="chart-container">
+                            <canvas id="issuesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="impact-section" class="tab-content">
+                 <div class="bg-white p-6 md:p-8 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-bold mb-2 text-center text-slate-900">影響與應對策略</h2>
+                    <p class="text-center text-slate-600 mb-8">此次信任調整對不同群體產生了不同程度的影響。請根據您的身份，查看對應的建議與行動指南。</p>
+                    <div id="impact-cards-container" class="grid md:grid-cols-3 gap-6">
+                    </div>
+                </div>
+            </section>
+
+            <section id="background-section" class="tab-content">
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-bold mb-2 text-center text-slate-900">背景知識小學堂</h2>
+                    <p class="text-center text-slate-600 mb-8">了解事件背後的關鍵技術概念，有助於您更全面地理解網路安全的重要性。點擊下方問題展開答案。</p>
+                    <div id="accordion-container" class="space-y-4 max-w-4xl mx-auto">
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const appData = {
+        deepDive: {
+            cht: {
+                title: '中華電信 (Chunghwa Telecom)',
+                official: {
+                    title: '官方說法',
+                    content: '將原因歸咎於「部分程序未能於 Chrome 新政策要求的時限內調整完成」，強調並非憑證本身有安全漏洞，且已完成所有調整，符合 Chrome 新政策要求。'
+                },
+                technical: {
+                    title: '技術問題 (Bugzilla #1903066)',
+                    content: '核心問題為延遲撤銷多達 12,911 張憑證，違反了 CA/Browser Forum 的「五天內撤銷」規定。雖解釋稱因客戶多為政府機關，流程複雜，但在社群壓力下才承諾未來嚴格遵守規定。'
+                }
+            },
+            netlock: {
+                title: 'Netlock',
+                official: {
+                    title: '官方說法',
+                    content: '在英文公開資料中較難找到直接聲明。匈牙利媒體報導提及了 Google 的決定，以及公司所有權變更等資訊。'
+                },
+                technical: {
+                    title: '技術問題 (Bugzilla #1904041)',
+                    content: '未能按時向 CCADB (通用 CA 資料庫) 揭露 4 個新簽發的中繼 CA 憑證。公司將其歸因於「行政混淆」和「缺乏經驗」，但其延遲處理與溝通的方式，引發社群對其可靠性的嚴重關切。'
+                }
+            }
+        },
+        chartData: {
+            labels: ['中華電信: 延遲撤銷的憑證', 'Netlock: 未揭露的中繼CA'],
+            data: [12911, 4],
+        },
+        impact: [
+            {
+                role: '網站管理員',
+                icon: '🖥️',
+                summary: '您的網站可能面臨流量下降與使用者信任危機。',
+                details: [
+                    '**立即檢查：** 使用 Chrome 憑證檢視工具，確認憑證簽發者是否為中華電信或 Netlock。',
+                    '**規劃遷移：** 盡快將憑證遷移至其他受信任的 CA (如 Let\'s Encrypt, DigiCert)。',
+                    '**設定時限：** 務必在 2025年7月31日 或憑證到期前完成更換，避免服務中斷。'
+                ]
+            },
+            {
+                role: '企業IT部門',
+                icon: '🏢',
+                summary: '內部系統可能受影響，需制定全面應對策略。',
+                details: [
+                    '**內部服務：** 可考慮在本機作業系統將相關根憑證設為信任，以覆寫 Chrome 限制，作為臨時措施。',
+                    '**公開網站：** 應對方式與一般網站管理員相同，立即規劃遷移。',
+                    '**全面盤點：** 藉此機會審視公司的憑證管理策略，避免過度依賴單一 CA。'
+                ]
+            },
+            {
+                role: '一般使用者',
+                icon: '👤',
+                summary: '您可能會在瀏覽部分網站時看到安全警告。',
+                details: [
+                    '**理解警告：** 這表示網站憑證的簽發機構信譽在 Chrome 中已降低。',
+                    '**謹慎操作：** 除非您非常確定網站的安全性，否則不建議輕易點擊「繼續前往」等按鈕。',
+                    '**保持更新：** 確保您的 Chrome 瀏覽器維持在最新版本，以獲得最完整的安全保護。'
+                ]
+            }
+        ],
+        accordion: [
+            {
+                question: '什麼是 HTTPS 和數位憑證？',
+                answer: 'HTTPS 是一種安全的網路通訊協定，您在網址列看到的鎖頭圖示就代表它。數位憑證則像是網站的「數位身分證」，由一個可信的第三方（CA）簽發，用來證明網站的真實身份並啟用 HTTPS 加密連線。'
+            },
+            {
+                question: '什麼是憑證頒發機構 (CA)？',
+                answer: 'CA 是一個受信任的組織，負責簽發、管理和撤銷數位憑證。它們的核心職責是驗證申請憑證的網站或組織的身份。CA 必須嚴格遵守國際標準，否則就可能被瀏覽器移除信任。'
+            },
+            {
+                question: '瀏覽器如何決定要信任哪些 CA？',
+                answer: '每個瀏覽器（如 Chrome）都有一個內建的「根憑證庫」(Root Store)，裡面存放了它所信任的 CA 清單。當您造訪一個 HTTPS 網站時，瀏覽器會檢查該網站的憑證是否由信任清單中的 CA 所簽發，以此建立安全連線。'
+            },
+            {
+                question: '為什麼 Google 要採取這次行動？',
+                answer: 'Google 認為中華電信和 Netlock 長期存在「令人擔憂的行為模式」，包括未能遵守行業規範、未能履行改進承諾等，這些行為侵蝕了 Google 對其作為可信賴 CA 的信心。此舉是為了保護全球 Chrome 使用者的安全。'
+            }
+        ]
+    };
+
+    const tabs = document.querySelectorAll('.nav-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    function switchTab(tabId) {
+        tabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabId);
+        });
+        tabContents.forEach(content => {
+            content.classList.toggle('active', content.id === `${tabId}-section`);
+        });
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchTab(tab.dataset.tab);
+        });
+    });
+
+    function createDeepDiveCard(caKey) {
+        const caData = appData.deepDive[caKey];
+        const card = document.getElementById(`${caKey}-card`);
+        
+        card.innerHTML = `
+            <h3 class="text-xl font-bold mb-4 text-slate-900">${caData.title}</h3>
+            <div class="flex gap-2 mb-4">
+                <button data-ca="${caKey}" data-type="official" class="deep-dive-toggle flex-1 py-2 px-3 rounded-md text-sm font-semibold transition">官方說法</button>
+                <button data-ca="${caKey}" data-type="technical" class="deep-dive-toggle flex-1 py-2 px-3 rounded-md text-sm font-semibold transition">技術問題</button>
+            </div>
+            <div class="content p-4 bg-white rounded-md min-h-[160px]">
+                <h4 class="font-bold text-slate-800 mb-2" id="${caKey}-content-title"></h4>
+                <p class="text-slate-600" id="${caKey}-content-p"></p>
+            </div>
+        `;
+
+        const toggles = card.querySelectorAll('.deep-dive-toggle');
+        toggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const type = toggle.dataset.type;
+                updateDeepDiveContent(caKey, type);
+            });
+        });
+        updateDeepDiveContent(caKey, 'official');
+    }
+
+    function updateDeepDiveContent(caKey, type) {
+        const caData = appData.deepDive[caKey];
+        document.getElementById(`${caKey}-content-title`).textContent = caData[type].title;
+        document.getElementById(`${caKey}-content-p`).textContent = caData[type].content;
+        
+        const card = document.getElementById(`${caKey}-card`);
+        const toggles = card.querySelectorAll('.deep-dive-toggle');
+        toggles.forEach(toggle => {
+            if (toggle.dataset.type === type) {
+                toggle.classList.add('bg-blue-500', 'text-white');
+                toggle.classList.remove('bg-slate-200', 'text-slate-700');
+            } else {
+                toggle.classList.add('bg-slate-200', 'text-slate-700');
+                toggle.classList.remove('bg-blue-500', 'text-white');
+            }
+        });
+    }
+
+    function createImpactCards() {
+        const container = document.getElementById('impact-cards-container');
+        appData.impact.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'bg-slate-50 border rounded-lg p-6 flex flex-col items-center text-center';
+            card.innerHTML = `
+                <div class="text-4xl mb-3">${item.icon}</div>
+                <h3 class="text-xl font-bold text-slate-900">${item.role}</h3>
+                <p class="text-slate-600 mt-2 mb-4 flex-grow">${item.summary}</p>
+                <button class="impact-details-btn bg-blue-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition">查看詳細建議</button>
+                <div class="impact-details hidden mt-4 text-left text-sm space-y-2">
+                    <ul class="list-disc list-inside space-y-2 text-slate-700">
+                        ${item.details.map(detail => `<li>${detail}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        document.querySelectorAll('.impact-details-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const details = button.nextElementSibling;
+                const isHidden = details.classList.contains('hidden');
+                details.classList.toggle('hidden', !isHidden);
+                button.textContent = isHidden ? '收起建議' : '查看詳細建議';
+            });
+        });
+    }
+    
+    function createAccordion() {
+        const container = document.getElementById('accordion-container');
+        appData.accordion.forEach((item, index) => {
+            const accordionItem = document.createElement('div');
+            accordionItem.className = 'border border-slate-200 rounded-lg overflow-hidden';
+            accordionItem.innerHTML = `
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 transition">
+                    <span>${item.question}</span>
+                    <span class="accordion-icon transform transition-transform text-blue-500 text-xl font-bold">+</span>
+                </button>
+                <div class="accordion-content hidden p-4 bg-white">
+                    <p class="text-slate-700 leading-relaxed">${item.answer}</p>
+                </div>
+            `;
+            container.appendChild(accordionItem);
+        });
+
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('.accordion-icon');
+                const isHidden = content.classList.contains('hidden');
+                
+                content.classList.toggle('hidden', !isHidden);
+                icon.textContent = isHidden ? '-' : '+';
+                icon.classList.toggle('rotate-45', isHidden);
+            });
+        });
+    }
+
+    function createChart() {
+        const ctx = document.getElementById('issuesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: appData.chartData.labels,
+                datasets: [{
+                    label: '涉及數量 (對數標尺)',
+                    data: appData.chartData.data,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        type: 'logarithmic',
+                        title: {
+                            display: true,
+                            text: '數量 (對數標尺)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            autoSkip: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.x !== null) {
+                                    label += new Intl.NumberFormat('en-US').format(context.parsed.x);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    createDeepDiveCard('cht');
+    createDeepDiveCard('netlock');
+    createImpactCards();
+    createAccordion();
+    createChart();
+    switchTab('overview');
+});
+</script>
+
+</body>
+</html>
