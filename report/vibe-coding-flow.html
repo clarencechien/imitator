@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：邏輯粒度框架</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices: 
+        - 5-Layer Stack: Goal: Organize/Inform. Viz: Interactive vertical diagram using HTML/CSS. Interaction: Clicking a layer card reveals its detailed information. Justification: More engaging and less overwhelming than a static table. Library: Vanilla JS.
+        - Leadership Playbook: Goal: Compare. Viz: Side-by-side cards and a Chart.js bar chart for team size comparison (5 vs 50). Interaction: Visual comparison. Justification: Makes the benefits tangible for different roles. Library: Chart.js.
+        - Risks & Gotchas: Goal: Inform. Viz: Accordion list. Interaction: Click to expand/collapse. Justification: Keeps the UI clean and scannable. Library: Vanilla JS.
+        - Flywheel Effect: Goal: Inform/Organize. Viz: A circular flow diagram made with HTML/CSS. Interaction: Static visual. Justification: A strong visual metaphor to summarize the core benefit. Library: N/A.
+    -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        .active-nav {
+            color: #0d9488; /* teal-600 */
+            font-weight: 700;
+        }
+        .section-fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .section-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-slate-800">
+
+    <header class="bg-stone-50/80 backdrop-blur-lg sticky top-0 z-50 border-b border-stone-200">
+        <nav class="container mx-auto px-6 py-3">
+            <ul class="flex justify-center items-center space-x-4 sm:space-x-8 text-sm sm:text-base">
+                <li><a href="#problem" class="text-slate-600 hover:text-teal-600 transition duration-300">問題</a></li>
+                <li><a href="#solution" class="text-slate-600 hover:text-teal-600 transition duration-300">解決方案</a></li>
+                <li><a href="#stack" class="text-slate-600 hover:text-teal-600 transition duration-300">五層堆疊</a></li>
+                <li><a href="#playbook" class="text-slate-600 hover:text-teal-600 transition duration-300">領導 Playbook</a></li>
+                <li><a href="#risks" class="text-slate-600 hover:text-teal-600 transition duration-300">風險與對策</a></li>
+                <li><a href="#flywheel" class="text-slate-600 hover:text-teal-600 transition duration-300">飛輪效應</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12 sm:py-20">
+        
+        <section id="hero" class="text-center mb-24 section-fade-in">
+            <h1 class="text-4xl md:text-6xl font-black text-slate-900 leading-tight mb-4">邏輯粒度</h1>
+            <p class="text-lg md:text-2xl text-teal-700 font-semibold mb-6">創辦人打造可靠「氛圍編碼」工作流程的藍圖</p>
+            <p class="max-w-3xl mx-auto text-slate-600">一個讓小團隊能比十倍大團隊更快交付成果，同時確保系統穩定性的強大框架。</p>
+        </section>
+
+        <section id="problem" class="mb-24 section-fade-in">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">問題：高速下的混亂</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto">本節將介紹「氛圍編碼」的興起，並點出在缺乏結構的情況下，單純追求開發速度可能引發的潛在危機，為「邏輯粒度」框架的必要性鋪路。</p>
+            </div>
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-stone-200">
+                <h3 class="text-2xl font-bold text-teal-800 mb-4">什麼是「氛圍編碼 (Vibe Coding)」？</h3>
+                <p class="mb-6 text-slate-700">這是一種透過與大型語言模型 (LLM) 對話來建構軟體的新模式，而非自己逐行撰寫程式碼。開發者從「寫程式」轉為「指導程式」。</p>
+                <div class="grid md:grid-cols-3 gap-6 text-center">
+                    <div class="bg-stone-100 p-6 rounded-lg">
+                        <div class="text-4xl mb-2">💬</div>
+                        <h4 class="font-bold mb-1">描述意圖</h4>
+                        <p class="text-sm text-slate-600">用自然語言說明需求。</p>
+                    </div>
+                    <div class="bg-stone-100 p-6 rounded-lg">
+                        <div class="text-4xl mb-2">🤖</div>
+                        <h4 class="font-bold mb-1">模型生成</h4>
+                        <p class="text-sm text-slate-600">AI 產生架構、測試和腳本。</p>
+                    </div>
+                    <div class="bg-stone-100 p-6 rounded-lg">
+                        <div class="text-4xl mb-2">🧪</div>
+                        <h4 class="font-bold mb-1">指導與測試</h4>
+                        <p class="text-sm text-slate-600">調整提示而非修改語法。</p>
+                    </div>
+                </div>
+                 <div class="mt-8 pt-6 border-t border-stone-200">
+                    <h4 class="text-xl font-bold text-red-600 mb-3">缺乏結構的風險</h4>
+                     <p class="text-slate-700 mb-4">雖然許多團隊回報 AI 生成了 90% 的程式碼，但缺乏結構的速度會導致混亂。一個簡單的澄清提示，就可能漣漪般地影響數千行程式碼。</p>
+                    <ul class="space-y-2">
+                        <li class="flex items-start"><span class="text-red-500 mr-3 mt-1">⚠️</span><div><strong>功能衰退：</strong>UI 微調意外破壞了後端資料庫。</div></li>
+                        <li class="flex items-start"><span class="text-red-500 mr-3 mt-1">⚠️</span><div><strong>提示漂移：</strong>後來的請求覆蓋了先前的假設。</div></li>
+                        <li class="flex items-start"><span class="text-red-500 mr-3 mt-1">⚠️</span><div><strong>技術債雪球：</strong>模型「熱心」地重寫了穩定的程式碼。</div></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="solution" class="mb-24 section-fade-in">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">解決方案：引入「邏輯粒度」</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto">本節闡述「邏輯粒度」的核心思想——將開發流程切分為五個可驗證、可凍結的層次，以建立防洪堤，有效管理複雜性並確保品質。</p>
+            </div>
+            <div class="bg-teal-50 p-8 rounded-2xl shadow-sm border border-teal-200 text-center">
+                <div class="text-5xl mb-4">🧱</div>
+                <p class="text-xl text-teal-800 font-semibold max-w-2xl mx-auto">邏輯粒度將從「概念發想」到「實際產出」的過程，切分為<span class="font-bold">五個可驗證的層次</span>。一旦某一層被接受，就會被鎖定；下游的編輯無法改寫上游已確認的合約。</p>
+            </div>
+        </section>
+
+        <section id="stack" class="mb-24 section-fade-in">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">互動式五層堆疊</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto">這是「邏輯粒度」框架的核心。點擊下方的任何一個層次，即可探索其主要交付成果、「完成」的定義以及範例提示，親身體驗如何將抽象概念轉化為具體步驟。</p>
+            </div>
+            <div class="flex flex-col md:flex-row gap-8">
+                <div id="layer-nav" class="md:w-1/3 space-y-3">
+                </div>
+                <div id="layer-content" class="md:w-2/3 bg-white p-8 rounded-2xl shadow-sm border border-stone-200 min-h-[300px]">
+                </div>
+            </div>
+        </section>
+
+        <section id="playbook" class="mb-24 section-fade-in">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">領導 Playbook：角色轉變</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto">本節透過互動圖表與並列比較，展示導入「邏輯粒度」後，團隊中各個角色（產品、設計、工程）的工作模式如何轉變，並突顯小規模團隊如何因此獲得超越大型團隊的敏捷性。</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                    <h4 class="text-xl font-bold text-slate-800 mb-3">產品 (Product)</h4>
+                    <p class="text-sm text-slate-500 mb-4"><strong>傳統作法：</strong>龐大的 PRD 文件 → 交接給開發團隊</p>
+                    <p class="text-sm text-teal-700 font-semibold"><strong>邏輯粒度作法：</strong>產品經理負責第 1-2 層；可在不影響程式碼的情況下調整方向。</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                    <h4 class="text-xl font-bold text-slate-800 mb-3">設計 (Design)</h4>
+                    <p class="text-sm text-slate-500 mb-4"><strong>傳統作法：</strong>像素級完美的 Figma 稿 → 「丟包」給工程師</p>
+                    <p class="text-sm text-teal-700 font-semibold"><strong>邏輯粒度作法：</strong>設計師管理第 3-4 層；凍結的設計規範意味著不會有預期外的顏色變動。</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                    <h4 class="text-xl font-bold text-slate-800 mb-3">工程 (Engineering)</h4>
+                    <p class="text-sm text-slate-500 mb-4"><strong>傳統作法：</strong>撰寫所有程式碼；對抗範圍蔓延</p>
+                    <p class="text-sm text-teal-700 font-semibold"><strong>邏輯粒度作法：</strong>AI 撰寫 80-90% 程式碼；工程師負責管理第 5 層並維護測試。</p>
+                </div>
+            </div>
+             <div class="mt-12 bg-white p-8 rounded-2xl shadow-sm border border-stone-200">
+                 <h4 class="text-2xl font-bold text-center text-slate-800 mb-6">團隊規模的巨大優勢</h4>
+                 <div class="chart-container">
+                    <canvas id="teamSizeChart"></canvas>
+                </div>
+                 <p class="text-center mt-4 text-slate-600">一個 5 人的精實團隊，現在能交付可供投資人評估的產品原型，其迭代速度甚至超越 50 人的傳統團隊。</p>
+            </div>
+        </section>
+
+        <section id="risks" class="mb-24 section-fade-in">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">風險與對策</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto">採用任何新框架都伴隨著風險。本節以可展開的列表清晰呈現四大潛在陷阱，並提供具體的應對策略，幫助您的團隊防患於未然。</p>
+            </div>
+            <div id="risks-accordion" class="space-y-4">
+            </div>
+        </section>
+
+        <section id="flywheel" class="text-center section-fade-in">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">結論：釋放飛輪效應</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto">邏輯粒度不僅是個流行詞，它是一個能驅動團隊高速前進的作業系統。本節的飛輪圖將總結這個框架如何創造一個正向循環，讓您的團隊進入持續加速的良性發展軌道。</p>
+            </div>
+             <div class="relative max-w-2xl mx-auto flex items-center justify-center p-8">
+                <div class="absolute w-full h-full border-4 border-teal-200 rounded-full animate-spin" style="animation-duration: 20s;"></div>
+                <div class="grid grid-cols-2 gap-4 text-center w-full">
+                    <div class="bg-white p-4 rounded-lg shadow-md z-10 -mr-4 mt-4">
+                        <p class="font-bold text-teal-800">清晰的意圖</p>
+                        <p class="text-4xl absolute -top-4 -right-4 transform rotate-12">➡️</p>
+                    </div>
+                     <div class="bg-white p-4 rounded-lg shadow-md z-10 -ml-4 mb-4">
+                        <p class="font-bold text-teal-800">已驗證的層次</p>
+                         <p class="text-4xl absolute -bottom-4 -right-4 transform -rotate-45">➡️</p>
+                    </div>
+                     <div class="bg-white p-4 rounded-lg shadow-md z-10 mr-4 mb-4">
+                        <p class="font-bold text-teal-800">穩定的程式碼</p>
+                        <p class="text-4xl absolute -bottom-4 -left-4 transform rotate-135">➡️</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md z-10 ml-4 mt-4">
+                        <p class="font-bold text-teal-800">自動化的情境</p>
+                        <p class="text-4xl absolute -top-4 -left-4 transform -rotate-135">➡️</p>
+                    </div>
+                </div>
+            </div>
+            <p class="mt-8 text-lg font-semibold text-teal-700">清晰的意圖 → 已驗證的層次 → 自動化的情境 → 穩定的程式碼 → 更快的實驗</p>
+            <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-700">讓 AI 負責敲鍵盤，能讓你騰出手來掌舵。</p>
+        </section>
+    </main>
+
+    <footer class="text-center py-8 border-t border-stone-200 mt-16">
+        <p class="text-slate-500 text-sm">邏輯粒度互動式報告</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Section Fade-in Observer ---
+            const sections = document.querySelectorAll('.section-fade-in');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('section-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            sections.forEach(section => {
+                observer.observe(section);
+                section.classList.add('section-fade-in'); 
+            });
+            
+            const firstSection = document.querySelector('.section-fade-in');
+            if(firstSection) {
+                setTimeout(() => { // Ensure styles are applied before triggering visibility
+                     firstSection.classList.add('section-visible');
+                }, 100);
+            }
+
+
+            // --- Sticky Nav Active State ---
+            const navLinks = document.querySelectorAll('nav a');
+            const navObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active-nav', link.getAttribute('href').substring(1) === entry.target.id);
+                        });
+                    }
+                });
+            }, { rootMargin: "-50% 0px -50% 0px" });
+            document.querySelectorAll('main section').forEach(section => {
+                navObserver.observe(section);
+            });
+
+
+            // --- Interactive 5-Layer Stack ---
+            const layersData = [
+                {
+                    title: "1. 概念層 (Concept)",
+                    deliverable: "一句話的價值主張",
+                    done: "通過電梯簡報測試",
+                    prompt: "「一個能在 30 秒內發布電子報的工具。」"
+                },
+                {
+                    title: "2. 產品需求文件層 (PRD)",
+                    deliverable: "功能列表 + 關鍵績效指標 (KPIs)",
+                    done: "產品經理接受的正式 PRD 文件",
+                    prompt: "「草擬一份 MVP 的 PRD 文件，需在兩週內交付。」"
+                },
+                {
+                    title: "3. 流程層 (Flow)",
+                    deliverable: "線框稿 & 使用者故事",
+                    done: "核心路徑線框流程已審查通過",
+                    prompt: "「將 PRD 轉換為帶有標籤的線框流程圖。」"
+                },
+                {
+                    title: "4. UI/UX 元件層",
+                    deliverable: "設計規範 + Storybook 規格",
+                    done: "視覺審查已簽核",
+                    prompt: "「使用 Tailwind CSS 和 shadcn/ui 設計主要的 UI 元件。」"
+                },
+                {
+                    title: "5. 程式碼層 (Code)",
+                    deliverable: "商業邏輯 + 測試",
+                    done: "CI 綠燈；測試覆蓋率 ≥ 90%",
+                    prompt: "「實作 Button.tsx 元件，包含各種樣式變體和 Jest 測試。」"
+                }
+            ];
+
+            const layerNavContainer = document.getElementById('layer-nav');
+            const layerContentContainer = document.getElementById('layer-content');
+
+            if (layerNavContainer && layerContentContainer) {
+                layersData.forEach((layer, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'w-full text-left p-4 rounded-lg border transition duration-300';
+                    button.textContent = layer.title;
+                    button.dataset.index = index;
+                    if (index === 0) {
+                        button.classList.add('bg-teal-600', 'text-white', 'border-teal-600');
+                    } else {
+                        button.classList.add('bg-white', 'hover:bg-stone-100', 'hover:border-stone-300', 'border-stone-200');
+                    }
+                    layerNavContainer.appendChild(button);
+                });
+                
+                function updateLayerContent(index) {
+                    const layer = layersData[index];
+                    layerContentContainer.innerHTML = `
+                        <h3 class="text-2xl font-bold text-slate-800 mb-6">${layer.title}</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-500">主要交付成果</p>
+                                <p class="text-lg text-slate-900">${layer.deliverable}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-500">「完成」的定義</p>
+                                <p class="text-lg text-slate-900">${layer.done}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-500">範例提示</p>
+                                <p class="text-lg text-slate-900 bg-stone-100 p-3 rounded-md font-mono text-sm">${layer.prompt}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                layerNavContainer.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        const index = e.target.dataset.index;
+                        
+                        Array.from(layerNavContainer.children).forEach((btn, i) => {
+                            btn.classList.toggle('bg-teal-600', i == index);
+                            btn.classList.toggle('text-white', i == index);
+                            btn.classList.toggle('border-teal-600', i == index);
+                            btn.classList.toggle('bg-white', i != index);
+                            btn.classList.toggle('hover:bg-stone-100', i != index);
+                            btn.classList.toggle('hover:border-stone-300', i != index);
+                            btn.classList.toggle('border-stone-200', i != index);
+                        });
+
+                        updateLayerContent(index);
+                    }
+                });
+                updateLayerContent(0);
+            }
+
+
+            // --- Team Size Chart ---
+            const teamSizeCtx = document.getElementById('teamSizeChart');
+            if (teamSizeCtx) {
+                new Chart(teamSizeCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['傳統團隊', '邏輯粒度團隊'],
+                        datasets: [{
+                            label: '團隊規模 (人數)',
+                            data: [50, 5],
+                            backgroundColor: [
+                                'rgba(100, 116, 139, 0.6)', // slate-500
+                                'rgba(13, 148, 136, 0.6)'  // teal-600
+                            ],
+                            borderColor: [
+                                'rgb(100, 116, 139)',
+                                'rgb(13, 148, 136)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: '人數'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+
+            // --- Risks Accordion ---
+            const risksData = [
+                 {
+                    title: "提示熵增 (Prompt entropy)",
+                    description: "模型忘記先前的約定。",
+                    mitigation: "在每個提示中加入 JSON schema 合約；並測試其合規性。"
+                },
+                {
+                    title: "無聲的功能衰退 (Silent regressions)",
+                    description: "大量程式碼差異造成的隱性錯誤。",
+                    mitigation: "一旦某層的測試通過即凍結該層；任何變更都必須新增測試。"
+                },
+                {
+                    title: "供應商鎖定 (Vendor lock-in)",
+                    description: "過度依賴特定的情境伺服器。",
+                    mitigation: "Context7 是開源的；若有合規需求可自行架設。"
+                },
+                {
+                    title: "模型更新導致行為改變",
+                    description: "模型升級後產生非預期的結果。",
+                    mitigation: "針對每一層鎖定模型版本；將模型升級視為新的衝刺 (sprint)。"
+                }
+            ];
+            
+            const accordionContainer = document.getElementById('risks-accordion');
+            if (accordionContainer) {
+                risksData.forEach(risk => {
+                    const item = document.createElement('div');
+                    item.className = 'bg-white border border-stone-200 rounded-lg';
+                    item.innerHTML = `
+                        <button class="w-full flex justify-between items-center text-left p-5 font-semibold">
+                            <span>${risk.title}</span>
+                            <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-5 pb-5 text-slate-600 overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                            <p class="mb-2"><strong>風險描述：</strong>${risk.description}</p>
+                            <p><strong>應對方法：</strong>${risk.mitigation}</p>
+                        </div>
+                    `;
+                    accordionContainer.appendChild(item);
+                });
+
+                accordionContainer.addEventListener('click', (e) => {
+                    const button = e.target.closest('button');
+                    if (button) {
+                        const content = button.nextElementSibling;
+                        const icon = button.querySelector('svg');
+
+                        if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                            content.style.maxHeight = '0px';
+                            icon.classList.remove('rotate-180');
+                        } else {
+                            content.style.maxHeight = content.scrollHeight + 'px';
+                            icon.classList.add('rotate-180');
+                        }
+                    }
+                });
+            }
+
+        });
+    </script>
+</body>
+</html>
