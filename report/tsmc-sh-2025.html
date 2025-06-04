@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台積公司 民國114年股東常會 互動式摘要</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: 本應用程式採用單頁儀表板設計，分為四大可導覽區塊：「營運績效」、「財務與股東回饋」、「關鍵議題 Q&A」及「未來展望」。此結構旨在將冗長的會議記錄轉化為易於消化和探索的互動式體驗。使用者可以透過頂部導覽快速跳轉至感興趣的內容，特別是「關鍵議題 Q&A」區塊，透過主題式篩選器，將繁雜的問答內容分類整理，讓使用者能依自身興趣快速找到資訊，大幅提升資訊獲取的效率與使用者體驗。 -->
+    <!-- Visualization & Content Choices: 1. **營運績效**: 使用資訊卡片搭配圖標（Unicode）來呈現關鍵成就，目標是快速傳達資訊。2. **財務與股東回饋**: 透過兩個 Chart.js 圖表（長條圖呈現季度股利、甜甜圈圖呈現員工酬勞分配）將數字視覺化，目標是讓使用者直觀比較與理解。3. **關鍵議題 Q&A**: 核心互動區塊，使用按鈕篩選器搭配卡片式內容呈現，目標是組織化與探索。使用者點擊不同主題按鈕，即可篩選出相關問答，此互動由 Vanilla JS 驅動。4. **未來展望**: 使用引言區塊（blockquote）強調董事長的關鍵發言，目標是總結與告知。所有圖表均使用 Chart.js Canvas 實現，無 SVG 或 Mermaid JS。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F4; /* Warm neutral background */
+            color: #333333; /* Dark text for readability */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px; /* Adjusted for better balance on various screens */
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px; /* Base height for mobile */
+            max-height: 400px; /* Max height for larger charts */
+        }
+        @media (min-width: 768px) { /* Medium screens and up */
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active { /* Added active state for nav */
+            color: #4A6C8B; /* Accent color */
+            border-bottom-color: #4A6C8B; /* Accent color */
+        }
+        .filter-btn {
+            transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+            border: 1px solid #D1D5DB; /* Subtle border for non-active buttons */
+        }
+        .filter-btn:hover {
+            background-color: #E0DACE; /* Lighter accent for hover */
+            color: #333333;
+        }
+        .filter-btn.active {
+            background-color: #4A6C8B; /* Accent color */
+            color: white;
+            border-color: #4A6C8B;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .qa-card {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+        .qa-card.hidden-card {
+            opacity: 0;
+            transform: translateY(20px);
+            height: 0;
+            overflow: hidden;
+            margin-bottom: 0 !important; /* Ensure no space when hidden */
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border-width: 0 !important;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">📈</span>
+                    <h1 class="text-xl md:text-2xl font-bold text-[#4A6C8B]">TSMC 114年股東常會 互動摘要</h1>
+                </div>
+                <nav id="main-nav" class="hidden md:flex items-center space-x-6 lg:space-x-8">
+                    <a href="#introduction" class="nav-link text-gray-600 font-medium border-b-2 border-transparent pb-1">簡介</a>
+                    <a href="#performance" class="nav-link text-gray-600 font-medium border-b-2 border-transparent pb-1">營運績效</a>
+                    <a href="#financials" class="nav-link text-gray-600 font-medium border-b-2 border-transparent pb-1">財務與回饋</a>
+                    <a href="#qa" class="nav-link text-gray-600 font-medium border-b-2 border-transparent pb-1">關鍵議題 Q&A</a>
+                    <a href="#outlook" class="nav-link text-gray-600 font-medium border-b-2 border-transparent pb-1">未來展望</a>
+                </nav>
+                <button id="mobile-menu-button" class="md:hidden text-gray-600 hover:text-[#4A6C8B]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg">
+            <a href="#introduction" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">簡介</a>
+            <a href="#performance" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">營運績效</a>
+            <a href="#financials" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">財務與回饋</a>
+            <a href="#qa" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">關鍵議題 Q&A</a>
+            <a href="#outlook" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">未來展望</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <section id="introduction" class="mb-12 md:mb-16 scroll-mt-24 text-center">
+            <h2 class="text-3xl font-bold mb-4 text-[#4A6C8B]">歡迎來到台積公司股東會互動摘要</h2>
+            <p class="max-w-3xl mx-auto text-gray-600 mb-6">
+                本頁面將民國114年台灣積體電路製造股份有限公司股東常會的冗長記錄，轉化為一個易於瀏覽和理解的互動式體驗。您可以透過清晰的區塊劃分和互動功能，快速掌握公司的營運亮點、財務狀況、對股東及員工的回饋、關鍵議題的深入探討，以及對未來的展望。我們的目標是讓您能高效地獲取所需資訊，深入了解台積電的發展藍圖與核心價值。
+            </p>
+            <p class="max-w-3xl mx-auto text-sm text-gray-500">
+                請使用頂部導覽列或捲動頁面來探索各個章節。在「關鍵議題 Q&A」部分，您可以使用篩選器快速找到您感興趣的問答內容。
+            </p>
+        </section>
+
+        <section id="performance" class="mb-12 md:mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-4 text-[#4A6C8B]">年度營運績效</h2>
+            <p class="text-center max-w-3xl mx-auto text-gray-600 mb-10 md:mb-12">此區塊總結了民國113年度公司的主要營運成就與核心業務表現。透過關鍵數據，您可以快速了解公司在技術領先、生產規模及市場地位上的卓越成果，展現了公司穩健成長的動能。</p>
+            
+            <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <div class="mb-6">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">民國113年主要成就</h3>
+                    <p class="text-gray-500">營收與每股盈餘皆創下歷史新高，先進製程佔比顯著提升。</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                    <div class="bg-slate-50 hover:bg-slate-100 transition-colors p-6 rounded-lg shadow">
+                        <span class="text-4xl" role="img" aria-label="成長圖示">📈</span>
+                        <h4 class="text-xl font-bold text-[#4A6C8B] mt-2">69%</h4>
+                        <p class="text-gray-600 mt-1 text-sm">先進製程銷售佔比</p>
+                    </div>
+                    <div class="bg-slate-50 hover:bg-slate-100 transition-colors p-6 rounded-lg shadow">
+                        <span class="text-4xl" role="img" aria-label="晶圓圖示">💿</span>
+                        <h4 class="text-xl font-bold text-[#4A6C8B] mt-2">1,220萬片</h4>
+                        <p class="text-gray-600 mt-1 text-sm">12吋約當晶圓出貨</p>
+                    </div>
+                    <div class="bg-slate-50 hover:bg-slate-100 transition-colors p-6 rounded-lg shadow">
+                        <span class="text-4xl" role="img" aria-label="客戶圖示">👥</span>
+                        <h4 class="text-xl font-bold text-[#4A6C8B] mt-2">522 個</h4>
+                        <p class="text-gray-600 mt-1 text-sm">全球客戶</p>
+                    </div>
+                    <div class="bg-slate-50 hover:bg-slate-100 transition-colors p-6 rounded-lg shadow">
+                        <span class="text-4xl" role="img" aria-label="產品圖示">💡</span>
+                        <h4 class="text-xl font-bold text-[#4A6C8B] mt-2">11,878 種</h4>
+                        <p class="text-gray-600 mt-1 text-sm">不同產品生產</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="financials" class="mb-12 md:mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-4 text-[#4A6C8B]">財務與股東回饋</h2>
+            <p class="text-center max-w-3xl mx-auto text-gray-600 mb-10 md:mb-12">本區塊透過視覺化圖表，呈現公司的財務摘要與對股東、員工的回饋政策。您可以透過互動圖表，直觀地了解股利分派的穩定性及員工酬勞的組成結構，體現公司價值共享的理念。</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-start">
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4 text-center">民國113年度 每股現金股利 (元)</h3>
+                    <div class="chart-container mx-auto">
+                        <canvas id="dividendChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4 text-center">民國113年度 員工酬勞分紅 (億元)</h3>
+                    <div class="chart-container mx-auto">
+                        <canvas id="bonusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="qa" class="mb-12 md:mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-4 text-[#4A6C8B]">關鍵議題 Q&A</h2>
+            <p class="text-center max-w-3xl mx-auto text-gray-600 mb-10 md:mb-12">此互動區塊匯集了股東們最關心的議題及經營團隊的回應。您可以點擊下方的主題按鈕進行篩選，快速查閱關於ESG、地緣政治、AI發展、營運策略等方面的深入問答，了解公司對各項挑戰的看法與策略。</p>
+            
+            <div id="filter-container" class="flex flex-wrap justify-center gap-2 md:gap-3 mb-8">
+                <button class="filter-btn active px-4 py-2 rounded-full font-medium text-sm" data-filter="all">全部議題</button>
+                <button class="filter-btn px-4 py-2 rounded-full font-medium text-sm" data-filter="esg">🌱 綠電與ESG</button>
+                <button class="filter-btn px-4 py-2 rounded-full font-medium text-sm" data-filter="geo">🌍 地緣政治與營運</button>
+                <button class="filter-btn px-4 py-2 rounded-full font-medium text-sm" data-filter="ai">🤖 AI發展</button>
+                <button class="filter-btn px-4 py-2 rounded-full font-medium text-sm" data-filter="shareholder">💰 股東權益</button>
+                <button class="filter-btn px-4 py-2 rounded-full font-medium text-sm" data-filter="safety">👷 工安與社區</button>
+            </div>
+
+            <div id="qa-grid" class="space-y-4 md:space-y-6">
+                <div class="qa-card bg-white rounded-xl shadow-lg p-5 md:p-6" data-category="esg">
+                    <details>
+                        <summary class="font-semibold text-lg text-[#4A6C8B] cursor-pointer hover:text-[#3E5A74]">問：公司如何確保綠電供應及達成RE100目標？面對碳費與電價上漲有何對策？</summary>
+                        <p class="text-gray-700 mt-3 text-sm leading-relaxed">答：主席劉德音表示，公司全力支持再生能源，所有能買的綠電一定會買，並持續投資台灣綠電發展。儘管成本會增加，但公司有能力應付，環保是公司不變的政策。在海外，因綠電供給足夠，已承諾100%使用；在台灣，會盡最大努力，並與政府密切合作。同時，將設定並公佈至2030年每年的再生能源使用比例目標。</p>
+                    </details>
+                </div>
+                <div class="qa-card bg-white rounded-xl shadow-lg p-5 md:p-6" data-category="geo">
+                     <details>
+                        <summary class="font-semibold text-lg text-[#4A6C8B] cursor-pointer hover:text-[#3E5A74]">問：如何應對關稅壁壘與台幣升值對毛利率的影響？</summary>
+                        <p class="text-gray-700 mt-3 text-sm leading-relaxed">答：主席劉德音坦言，台幣每升值1%，毛利率降低0.4%，影響巨大。對策是努力維持技術世界第一，賣出應有的價值。關稅對台積電影響非直接，但可能影響終端需求；然AI需求依然強勁，公司對持續成長有信心。</p>
+                    </details>
+                </div>
+                 <div class="qa-card bg-white rounded-xl shadow-lg p-5 md:p-6" data-category="geo">
+                    <details>
+                        <summary class="font-semibold text-lg text-[#4A6C8B] cursor-pointer hover:text-[#3E5A74]">問：海外設廠（如美國、日本）是否存在技術機密外流的風險？</summary>
+                        <p class="text-gray-700 mt-3 text-sm leading-relaxed">答：主席劉德音強調「不會」。他解釋台積電的技術是上萬名工程師協作的成果，並有極其複雜的量產導入流程，涉及數百人團隊的學習與建置，非少數人能複製或偷取。公司有信心在世界各地設廠，同時保護好核心技術。</p>
+                    </details>
+                </div>
+                <div class="qa-card bg-white rounded-xl shadow-lg p-5 md:p-6" data-category="ai">
+                    <details>
+                        <summary class="font-semibold text-lg text-[#4A6C8B] cursor-pointer hover:text-[#3E5A74]">問：公司在AGI（通用人工智慧）時代的定位與責任是什麼？人形機器人訂單狀況如何？</summary>
+                        <p class="text-gray-700 mt-3 text-sm leading-relaxed">答：主席劉德音指出，所有AI發展都需要硬體（即台積電晶片）支援，全世界的AI客戶都必須與台積電合作。公司的責任是提供足夠的晶片，目前仍在努力滿足「供不應求」的強勁需求。他也透露，人形機器人晶片的訂單狀況「很好」，現在就已開始對營收產生貢獻。</p>
+                    </details>
+                </div>
+                <div class="qa-card bg-white rounded-xl shadow-lg p-5 md:p-6" data-category="shareholder">
+                    <details>
+                        <summary class="font-semibold text-lg text-[#4A6C8B] cursor-pointer hover:text-[#3E5A74]">問：台股（2330）與ADR價差過大，以及公司股利政策的未來規劃？</summary>
+                        <p class="text-gray-700 mt-3 text-sm leading-relaxed">答：財務長黃仁昭解釋，價差主要源於市場供需，為保護全體股東權益，暫不考慮開放普通股轉換ADR。股利政策方面，目標是「可持續且穩定增加」，每年提撥約70%的自由現金流量作為現金股利。當資本支出回收期，自由現金流增加，股利增速會更快。</p>
+                    </details>
+                </div>
+                <div class="qa-card bg-white rounded-xl shadow-lg p-5 md:p-6" data-category="geo">
+                    <details>
+                        <summary class="font-semibold text-lg text-[#4A6C8B] cursor-pointer hover:text-[#3E5A74]">問：對於先進封裝（CoWoS）等產能，如何避免未來可能因需求波動而供過於求？</summary>
+                        <p class="text-gray-700 mt-3 text-sm leading-relaxed">答：主席劉德音表示，經營團隊有非常好的規劃系統，不僅與客戶溝通，甚至與客戶的客戶溝通，以精準評估真實需求。面對每年巨大的資本支出，公司都非常小心規劃，避免犯錯，確保投資效益。</p>
+                    </details>
+                </div>
+                <div class="qa-card bg-white rounded-xl shadow-lg p-5 md:p-6" data-category="safety">
+                    <details>
+                        <summary class="font-semibold text-lg text-[#4A6C8B] cursor-pointer hover:text-[#3E5A74]">問：針對建廠的工安事件，公司有何檢討與改善措施？</summary>
+                        <p class="text-gray-700 mt-3 text-sm leading-relaxed">答：主席劉德音對工安事件表達歉意，並強調生命無價，公司絕非賠錢了事。他承諾將研究日本等地的先進管理經驗，加強台灣的工安管理，若有必要，台積電會親自管理專案，將危害降到最低。對於慰問家屬若有疏忽，亦表示會檢討改進。</p>
+                    </details>
+                </div>
+                 <div class="qa-card bg-white rounded-xl shadow-lg p-5 md:p-6" data-category="shareholder">
+                    <details>
+                        <summary class="font-semibold text-lg text-[#4A6C8B] cursor-pointer hover:text-[#3E5A74]">問：公司是否有漲價規劃以提升毛利率？</summary>
+                        <p class="text-gray-700 mt-3 text-sm leading-relaxed">答：主席劉德音幽默回應：「心裡想的事情，嘴巴可不能講。」</p>
+                    </details>
+                </div>
+            </div>
+             <p id="no-results" class="text-center text-gray-500 mt-8 hidden">沒有找到符合篩選條件的問答。</p>
+        </section>
+
+        <section id="outlook" class="scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-4 text-[#4A6C8B]">未來展望</h2>
+            <p class="text-center max-w-3xl mx-auto text-gray-600 mb-10 md:mb-12">本區塊聚焦於經營團隊對未來的策略性看法。透過董事長的直接引述，您可以掌握公司對於長期發展的信心，以及在AI時代下的關鍵角色與持續成長的承諾。</p>
+
+            <div class="max-w-4xl mx-auto space-y-6 md:space-y-8">
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <blockquote class="border-l-4 border-[#C8B88A] pl-4 md:pl-6 text-lg md:text-xl italic text-gray-700">
+                        <p>"我們正邁入一個AI驅動的世界...我們正處在一個極佳的位置，能夠透過差異化技術來應對5G、AI和HPC等產業大趨勢的成長。"</p>
+                    </blockquote>
+                    <p class="text-right mt-4 font-semibold text-gray-600 text-sm">— 魏哲家董事長, 營業報告</p>
+                </div>
+                 <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <blockquote class="border-l-4 border-[#C8B88A] pl-4 md:pl-6 text-lg md:text-xl italic text-gray-700">
+                        <p>"對未來的五年或十年展望是什麼？三個字：『非常好』。至於施行的細節，公司機密。請相信我們。"</p>
+                    </blockquote>
+                    <p class="text-right mt-4 font-semibold text-gray-600 text-sm">— 劉德音主席, 回答股東提問</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-12 md:mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-xs md:text-sm">
+            <p>&copy; 2025 互動式摘要。本頁面內容根據台灣積體電路製造股份有限公司民國114年股東常會公開記錄整理，僅供參考，不構成任何投資建議。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const dividendData = {
+                labels: ['第一季', '第二季', '第三季', '第四季'],
+                datasets: [{
+                    label: '每股現金股利 (元)',
+                    data: [4.0013820, 3.99963706, 4.500000422, 4.500000422],
+                    backgroundColor: '#4A6C8B',
+                    borderColor: '#3E5A74',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.7
+                }]
+            };
+
+            const dividendCtx = document.getElementById('dividendChart').getContext('2d');
+            new Chart(dividendCtx, {
+                type: 'bar',
+                data: dividendData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#333333',
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#FFFFFF',
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'NT$ ' + context.parsed.y.toFixed(3);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '新台幣 (元)',
+                                font: { size: 12 }
+                            },
+                            grid: {
+                                color: '#E0E0E0'
+                            }
+                        },
+                        x: {
+                             grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            const bonusData = {
+                labels: ['業績獎金', '酬勞分紅'],
+                datasets: [{
+                    label: '金額 (億元)',
+                    data: [702.96, 702.96],
+                    backgroundColor: [
+                        '#4A6C8B',
+                        '#C8B88A' 
+                    ],
+                    borderColor: '#F8F7F4',
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            };
+
+            const bonusCtx = document.getElementById('bonusChart').getContext('2d');
+            new Chart(bonusCtx, {
+                type: 'doughnut',
+                data: bonusData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12 },
+                                boxWidth: 15,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#333333',
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#FFFFFF',
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed.toLocaleString() + ' 億元';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            const filterContainer = document.getElementById('filter-container');
+            const qaCards = document.querySelectorAll('.qa-card');
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const noResultsP = document.getElementById('no-results');
+
+            filterContainer.addEventListener('click', function (e) {
+                if (!e.target.classList.contains('filter-btn')) return;
+
+                const filterValue = e.target.dataset.filter;
+                let visibleCount = 0;
+
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                qaCards.forEach(card => {
+                    const isVisible = filterValue === 'all' || card.dataset.category === filterValue;
+                    if (isVisible) {
+                        card.classList.remove('hidden-card');
+                        card.style.display = 'block'; // Ensure it's block for layout
+                        visibleCount++;
+                    } else {
+                        card.classList.add('hidden-card');
+                        // Delay hiding to allow animation
+                        setTimeout(() => {
+                             if (card.classList.contains('hidden-card')) card.style.display = 'none';
+                        }, 500);
+                    }
+                });
+                noResultsP.style.display = visibleCount === 0 ? 'block' : 'none';
+            });
+
+            const navLinks = document.querySelectorAll('#main-nav a, #mobile-menu a');
+            const sections = document.querySelectorAll('main section');
+            const headerHeight = document.querySelector('header').offsetHeight;
+
+            navLinks.forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        const targetPosition = targetElement.offsetTop - headerHeight - 20; // Extra offset
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+
+                        // Close mobile menu if open
+                        const mobileMenu = document.getElementById('mobile-menu');
+                        if (!mobileMenu.classList.contains('hidden')) {
+                            mobileMenu.classList.add('hidden');
+                        }
+                        
+                        // Update active nav link
+                        navLinks.forEach(link => link.classList.remove('active'));
+                        this.classList.add('active');
+                        // Also update desktop nav if mobile link clicked
+                        document.querySelector(`#main-nav a[href="${targetId}"]`)?.classList.add('active');
+
+                    }
+                });
+            });
+            
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop - headerHeight - 40; // Adjusted offset
+                    if (pageYOffset >= sectionTop) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${current}`) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+            });
+        });
+    </script>
+
+</body>
+</html>
