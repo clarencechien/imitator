@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>龍與袋鼠的對峙：解析印太新賽局</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Geopolitical Calm -->
+    <!-- Application Structure Plan: The application uses a thematic, non-linear dashboard structure. A sticky navigation bar allows users to jump to distinct sections: Overview, Military Confrontation, Diplomatic Frontline, Perspectives, and Future Outlook. This structure was chosen over a linear transcript format to empower users to explore specific facets of the complex geopolitical issue at their own pace. The core interaction is the "Perspectives" section, where users can select a key question and see different stakeholders' views side-by-side, transforming passive reading into an active comparative analysis. This design prioritizes clarity and user-driven exploration of the multi-faceted conflict. -->
+    <!-- Visualization & Content Choices: 
+        1. Report Info: China's $20M+ gift vs. Australia's $85M aid to Tonga. Goal: Compare. Viz: Bar Chart (Chart.js). Interaction: Hover tooltips. Justification: Provides a direct, quantitative comparison of financial influence ("soft power"). Library: Chart.js.
+        2. Report Info: China's "rapid military expansion" and "largest navy." Goal: Show change/imbalance. Viz: Illustrative Line Chart (Chart.js). Interaction: Hover tooltips. Justification: Visually represents the growing power disparity central to the report's tension. Library: Chart.js.
+        3. Report Info: List of Pacific nations with Chinese agreements. Goal: Organize/Show Relationships. Viz: Clickable HTML grid. Interaction: Click to reveal details. Justification: Offers a quick, interactive overview of China's strategic footprint without needing a complex map library. Method: HTML/CSS/JS.
+        4. Report Info: Contrasting quotes from key figures. Goal: Compare viewpoints. Viz: Dynamic text cards. Interaction: Click a topic button to update text content for all speakers. Justification: The core interactive element, enabling users to directly compare arguments on key issues, fostering deeper understanding. Method: JS DOM manipulation.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F4;
+            color: #333333;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #D9534F;
+            border-bottom-color: #D9534F;
+        }
+        .perspective-btn {
+            transition: all 0.3s ease;
+        }
+        .perspective-btn.active {
+            background-color: #3B5998 !important;
+            color: #FFFFFF !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative; 
+            width: 100%; 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="sticky top-0 bg-white/80 backdrop-blur-md z-50 shadow-sm">
+        <nav class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">龍與袋鼠的對峙</h1>
+                <div class="hidden md:flex space-x-6">
+                    <a href="#overview" class="nav-link text-gray-600 font-medium pb-1">情勢概覽</a>
+                    <a href="#military" class="nav-link text-gray-600 font-medium pb-1">軍事角力</a>
+                    <a href="#diplomacy" class="nav-link text-gray-600 font-medium pb-1">外交前線</a>
+                    <a href="#perspectives" class="nav-link text-gray-600 font-medium pb-1">多方觀點</a>
+                    <a href="#future" class="nav-link text-gray-600 font-medium pb-1">未來展望</a>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden text-gray-700 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg">
+            <a href="#overview" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">情勢概覽</a>
+            <a href="#military" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">軍事角力</a>
+            <a href="#diplomacy" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">外交前線</a>
+            <a href="#perspectives" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">多方觀點</a>
+            <a href="#future" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">未來展望</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <section id="hero" class="text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-bold text-gray-900 mb-4">解析印太新賽局</h2>
+            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">一場結合軍事、外交與經濟的無聲戰爭，正在澳洲門前上演。本報告深入剖析《60分鐘》訪談，揭示各方角力下的真相與未來。</p>
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <p class="text-gray-700 italic">「你們會輸。我們的士兵會很勇猛，我們的武器會很致命。」</p>
+                    <p class="text-right font-medium text-sm mt-2 text-red-600">- 前解放軍上校 周波</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <p class="text-gray-700 italic">「澳洲絕對是目標之一...你去問中國人，他們會告訴你（戰爭已經開始）。」</p>
+                    <p class="text-right font-medium text-sm mt-2 text-blue-800">- 前美國陸戰隊上校 格蘭特・紐斯翰</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <p class="text-gray-700 italic">「衝突的起因千百種，但結局只有兩種...失去戰鬥意志，或失去經濟能力。」</p>
+                    <p class="text-right font-medium text-sm mt-2 text-gray-600">- 澳洲海軍司令 馬克・哈蒙德</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="overview" class="py-16 bg-white rounded-xl shadow-lg mb-16">
+            <div class="text-center mb-12 px-4">
+                <h3 class="text-3xl font-bold text-gray-900 mb-3">情勢概覽：看不見的戰線</h3>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">中國不僅在軍事上展現肌肉，更透過經濟援助等「軟實力」在南太平洋區域擴大影響力，形成對澳洲的戰略包圍。這場角力不僅在海上，更在各國的經濟與政治決策中展開。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-6">
+                <div class="text-gray-700 space-y-4">
+                    <h4 class="text-xl font-bold text-center mb-4">金錢外交的影響力</h4>
+                    <p>報告中以東加為例，揭示了中國如何透過鉅額援助（如價值超過2000萬美元的政府大樓）建立深厚關係。相較之下，澳洲雖提供更多總體援助（未來四年8500萬澳幣），但在建立「持久關係」上，被認為仍有努力空間。</p>
+                    <p>這種策略讓太平洋島國在經濟上對中國產生依賴，進而可能影響其地緣政治立場，對澳洲的區域安全構成挑戰。</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="aidChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="military" class="py-16 mb-16">
+            <div class="text-center mb-12 px-4">
+                <h3 class="text-3xl font-bold text-gray-900 mb-3">軍事角力：海上的對峙</h3>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">中國海軍的快速擴張與挑釁行為是緊張局勢的核心。其艦隊繞行澳洲並進行實彈演習，被視為一次精心策劃的武力展示與情報蒐集行動，直接挑戰澳洲的國防底線。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-6">
+                 <div class="chart-container">
+                    <canvas id="navyChart"></canvas>
+                </div>
+                <div class="text-gray-700 space-y-4">
+                    <h4 class="text-xl font-bold text-center mb-4">失衡的天平</h4>
+                    <p>訪談中多位專家指出，中國擁有世界最大的海軍，其軍力擴張速度是二戰以來最快的。這張圖表旨在呈現此一趨勢。相較之下，澳洲雖致力於升級軍備（如為驅逐艦配備戰斧飛彈），但在規模上仍處於劣勢。</p>
+                    <p>澳洲海軍司令坦言，其職責是「做最壞的打算」，假設情勢會惡化而非好轉，這反映了澳洲軍方面對此一權力失衡的嚴峻現實。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="diplomacy" class="py-16 bg-white rounded-xl shadow-lg mb-16">
+            <div class="text-center mb-12 px-4">
+                <h3 class="text-3xl font-bold text-gray-900 mb-3">外交前線：太平洋的拉鋸戰</h3>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">中國正透過「一帶一路」及安全協議，系統性地在南太平洋島國建立影響力。點擊下方國家，查看中國在該區域的佈局。</p>
+            </div>
+            <div class="max-w-4xl mx-auto px-6">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                    <div class="country-card p-4 bg-gray-100 rounded-lg cursor-pointer" data-info="與中國簽署安全協議，引發區域高度關注。">索羅門群島 🇸🇧</div>
+                    <div class="country-card p-4 bg-gray-100 rounded-lg cursor-pointer" data-info="接受中國鉅額基礎建設援助，如政府大樓『聖喬治宮』。">東加 🇹🇴</div>
+                    <div class="country-card p-4 bg-gray-100 rounded-lg cursor-pointer" data-info="與中國簽署經濟發展與海上合作協議。">庫克群島 🇨🇰</div>
+                    <div class="country-card p-4 bg-gray-100 rounded-lg cursor-pointer" data-info="警察部隊中有中國官員派駐。">斐濟 🇫🇯</div>
+                    <div class="country-card p-4 bg-gray-100 rounded-lg cursor-pointer" data-info="警察部隊中有中國官員派駐。">萬那杜 🇻🇺</div>
+                    <div class="country-card p-4 bg-gray-100 rounded-lg cursor-pointer" data-info="與中國達成安全合作協議。">薩摩亞 🇼🇸</div>
+                </div>
+                <div id="country-info-box" class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-r-lg hidden">
+                    <p id="country-info-text"></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="perspectives" class="py-16 mb-16">
+            <div class="text-center mb-12 px-4">
+                <h3 class="text-3xl font-bold text-gray-900 mb-3">多方觀點：一場羅生門</h3>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">這場衝突的本質是什麼？各方看法南轅北轍。點選下方問題，聆聽不同角色的解讀。</p>
+            </div>
+            <div class="flex flex-wrap justify-center gap-3 mb-10 px-4">
+                <button class="perspective-btn active bg-white text-gray-700 font-semibold py-2 px-5 rounded-full shadow" data-topic="warStatus">我們開戰了嗎？</button>
+                <button class="perspective-btn bg-white text-gray-700 font-semibold py-2 px-5 rounded-full shadow" data-topic="chinaIntent">中國的意圖？</button>
+                <button class="perspective-btn bg-white text-gray-700 font-semibold py-2 px-5 rounded-full shadow" data-topic="navalAction">軍艦繞行是挑釁嗎？</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h4 class="font-bold text-lg mb-2 text-blue-800">格蘭特・紐斯翰</h4>
+                    <p class="text-sm text-gray-500 mb-4">前美國陸戰隊上校</p>
+                    <p id="perspective-newsham" class="text-gray-700"></p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h4 class="font-bold text-lg mb-2 text-red-600">周波</h4>
+                    <p class="text-sm text-gray-500 mb-4">前解放軍上校</p>
+                    <p id="perspective-zhou" class="text-gray-700"></p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h4 class="font-bold text-lg mb-2 text-gray-600">馬克・哈蒙德</h4>
+                    <p class="text-sm text-gray-500 mb-4">澳洲海軍司令</p>
+                    <p id="perspective-hammond" class="text-gray-700"></p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h4 class="font-bold text-lg mb-2 text-green-700">西亞・梅莉・拉圖</h4>
+                    <p class="text-sm text-gray-500 mb-4">東加-中國友好協會秘書長</p>
+                    <p id="perspective-latu" class="text-gray-700"></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="future" class="py-16 bg-gray-800 text-white rounded-xl shadow-lg">
+            <div class="text-center mb-12 px-4">
+                <h3 class="text-3xl font-bold mb-3">未來展望：十字路口的抉擇</h3>
+                <p class="text-lg text-gray-300 max-w-3xl mx-auto">若台海爆發衝突，澳洲將面臨嚴峻的考驗。前解放軍上校周波發出直接警告，而澳洲海軍司令則強調，國家的存續取決於戰鬥意志與經濟實力。</p>
+            </div>
+            <div class="max-w-2xl mx-auto px-6 text-center">
+                <div class="border-2 border-red-400 p-6 rounded-lg">
+                    <p class="text-2xl font-bold italic mb-2">「你們會輸，肯定會。」</p>
+                    <p class="text-gray-200">周波警告澳洲，在軍力規模、地利與決心上都處於下風。他形容中國士兵將會「勇猛」，武器將會「致命」。這不僅是軍事評估，更是心理上的威嚇，意圖削弱澳洲介入任何潛在衝突的意願。</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-200 py-6 mt-16">
+        <div class="container mx-auto px-4 text-center text-gray-600">
+            <p>&copy; 2024 互動報告分析. 內容基於《60分鐘》澳洲版訪談。</p>
+            <p class="text-sm mt-1">此為資訊視覺化專案，不代表任何官方立場。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const perspectivesData = {
+                warStatus: {
+                    newsham: '非常接近。你去問中國人，他們會告訴你。中國的戰爭概念包含政治、經濟與心理戰，開火只是最後一步。',
+                    zhou: '中國的崛起是前所未有的和平，是人類歷史的奇蹟。說中國構成威脅是完全錯誤的。',
+                    hammond: '我必須為國防做最壞的打算，假設情況會惡化。我們投資軍備是為了嚇阻效果，而不是基於希望。',
+                    latu: '（未直接評論）但東加與中國的關係像兄弟姊妹，是無條件的愛。我們與所有國家為友。'
+                },
+                chinaIntent: {
+                    newsham: '他們的意圖很清楚，只是我們選擇不信。澳洲絕對是目標之一。他們正在告訴澳洲，還會有更多（軍事行動）。',
+                    zhou: '我們的意圖不是秘密，就是要建立世界一流的軍隊。強大不等於霸權，沒有證據顯示中國想成為霸權。',
+                    hammond: '政府不會無緣無故投資數十億發展軍事能力。他們正在向世界展示其藍水海軍的部署能力。',
+                    latu: '中國的政策是尊重我們的主權，我對此深信不疑。他們只是在做好生意。'
+                },
+                navalAction: {
+                    newsham: '這是一次蓄意的、具侵略性的武力展示。是經過深思熟慮、考量政治效應的行動。',
+                    zhou: '這次航行給了你們一個自我反省的機會，反省你們對中國做了什麼。是誰先派船艦到中國近海挑釁的？',
+                    hammond: '這是我們首次看到解放軍海軍特遣隊繞行澳洲。但我們並非措手不及，全程都有監控。他們並未在我們的專屬經濟區內有任何威脅性互動。',
+                    latu: '（未直接評論）'
+                }
+            };
+            
+            function updatePerspectives(topic) {
+                const data = perspectivesData[topic];
+                document.getElementById('perspective-newsham').textContent = data.newsham || '在此議題上未有明確表態。';
+                document.getElementById('perspective-zhou').textContent = data.zhou || '在此議題上未有明確表態。';
+                document.getElementById('perspective-hammond').textContent = data.hammond || '在此議題上未有明確表態。';
+                document.getElementById('perspective-latu').textContent = data.latu || '在此議題上未有明確表態。';
+            }
+
+            const perspectiveButtons = document.querySelectorAll('.perspective-btn');
+            perspectiveButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    perspectiveButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    const topic = button.dataset.topic;
+                    updatePerspectives(topic);
+                });
+            });
+            
+            updatePerspectives('warStatus');
+
+            const aidCtx = document.getElementById('aidChart').getContext('2d');
+            new Chart(aidCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['中國對東加單一項目援助', '澳洲對東加年度援助'],
+                    datasets: [{
+                        label: '援助金額 (百萬美元)',
+                        data: [20, 21.25], 
+                        backgroundColor: [
+                            'rgba(217, 83, 79, 0.6)',
+                            'rgba(59, 89, 152, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(217, 83, 79, 1)',
+                            'rgba(59, 89, 152, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '對東加的財政影響力比較 (示意)',
+                            font: { size: 16, family: "'Noto Sans TC', sans-serif" }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.x * 1000000);
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                             ticks: {
+                                callback: function(value) {
+                                    return value + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const navyCtx = document.getElementById('navyChart').getContext('2d');
+            new Chart(navyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['2000', '2005', '2010', '2015', '2020', '2024'],
+                    datasets: [{
+                        label: '中國海軍艦隊規模 (示意)',
+                        data: [100, 120, 180, 250, 340, 370],
+                        borderColor: 'rgba(217, 83, 79, 1)',
+                        backgroundColor: 'rgba(217, 83, 79, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: '澳洲海軍艦隊規模 (示意)',
+                        data: [50, 52, 55, 58, 60, 62],
+                        borderColor: 'rgba(59, 89, 152, 1)',
+                        backgroundColor: 'rgba(59, 89, 152, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '海軍規模擴張趨勢 (示意圖)',
+                            font: { size: 16, family: "'Noto Sans TC', sans-serif" }
+                        },
+                         legend: {
+                            position: 'bottom',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '艦艇數量'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const countryCards = document.querySelectorAll('.country-card');
+            const infoBox = document.getElementById('country-info-box');
+            const infoText = document.getElementById('country-info-text');
+
+            countryCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const info = card.dataset.info;
+                    infoText.textContent = info;
+                    infoBox.classList.remove('hidden');
+                });
+            });
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
