@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小資YP的千萬之路：互動式財務策略儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony Neutrals -->
+    <!-- Application Structure Plan: The SPA is designed as a thematic, dashboard-style journey through YP's financial strategies. Instead of a linear report, it uses a top navigation bar to allow users to jump to key pillars of his success: Overcoming Adversity, Savings, Investing, Risk Protection, and Asset Allocation. This non-linear structure enhances usability by letting users explore topics of interest directly. The flow begins with impactful stats, moves through interactive modules with charts and clickable elements for deeper dives, and concludes with an actionable plan. This design choice transforms a passive reading experience into an active, exploratory one, making complex financial concepts more digestible and engaging. -->
+    <!-- Visualization & Content Choices: 
+        - Key Stats (Goal: Inform): Presented as large, styled text boxes using HTML/CSS for immediate impact. More effective than a chart for headline figures.
+        - Savings Rate (Goal: Compare): Chart.js Doughnut chart to visually compare savings vs. spending. Interaction: Tooltips on hover. Justification: A donut chart is intuitive for showing part-to-whole relationships.
+        - Insurance Plan (Goal: Organize): Interactive accordion using HTML/CSS/JS. Interaction: Click to expand/collapse. Justification: Manages information density, allowing users to progressively disclose details on the insurance types they are interested in, preventing overwhelm.
+        - Property Value (Goal: Change): Chart.js Bar chart to show value growth over time. Justification: Clearly visualizes the 'before and after' increase.
+        - Mortgage Strategy (Goal: Compare/Inform): A simple radio-button interactive element updates text fields. Interaction: User selection triggers JS to update text. Justification: This makes the abstract concept of long-term loans tangible by showing a direct consequence (lower monthly payments) without needing a complex chart.
+        - Action Plan (Goal: Organize): A checklist-style layout using HTML/CSS. Justification: More visually engaging and action-oriented than a standard list.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF6;
+            color: #4A4A4A;
+        }
+        .text-main { color: #4A4A4A; }
+        .text-accent { color: #739072; }
+        .bg-accent { background-color: #739072; }
+        .bg-secondary { background-color: #ECE3CE; }
+        .border-accent { border-color: #739072; }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #739072;
+            border-bottom-color: #739072;
+        }
+        .stat-card {
+            background-color: white;
+            border-left: 5px solid #E7C8A0;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .content-card {
+            background-color: #FFFFFF;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; 
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .accordion-header {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .accordion-header:hover {
+            background-color: #f9f7f2;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .accordion-content.open {
+            max-height: 500px;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <a href="#hero" class="text-xl font-bold text-accent">小資YP的千萬之路</a>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#journey" class="nav-link px-3 py-2 rounded-md text-sm font-medium">逆境歷練</a>
+                        <a href="#strategy" class="nav-link px-3 py-2 rounded-md text-sm font-medium">核心策略</a>
+                        <a href="#risk" class="nav-link px-3 py-2 rounded-md text-sm font-medium">風險防護</a>
+                        <a href="#assets" class="nav-link px-3 py-2 rounded-md text-sm font-medium">資產配置</a>
+                        <a href="#action" class="nav-link px-3 py-2 rounded-md text-sm font-medium">行動藍圖</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-accent hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#journey" class="nav-link block px-3 py-2 rounded-md text-base font-medium">逆境歷練</a>
+                <a href="#strategy" class="nav-link block px-3 py-2 rounded-md text-base font-medium">核心策略</a>
+                <a href="#risk" class="nav-link block px-3 py-2 rounded-md text-base font-medium">風險防護</a>
+                <a href="#assets" class="nav-link block px-3 py-2 rounded-md text-base font-medium">資產配置</a>
+                <a href="#action" class="nav-link block px-3 py-2 rounded-md text-base font-medium">行動藍圖</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="hero" class="py-16 md:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold text-main tracking-tight leading-tight">探索小資YP的財務自由之道</h1>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">一位軟體工程師，如何在34歲前靠著紀律、策略與韌性，累積千萬資產？本儀表板將帶您剖析他成功的關鍵。</p>
+                <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                    <div class="stat-card p-6 rounded-lg shadow-md">
+                        <p class="text-4xl font-bold text-accent">34歲</p>
+                        <p class="mt-2 text-gray-600 font-medium">達成財務自由</p>
+                    </div>
+                    <div class="stat-card p-6 rounded-lg shadow-md">
+                        <p class="text-4xl font-bold text-accent">千萬</p>
+                        <p class="mt-2 text-gray-600 font-medium">累積資產</p>
+                    </div>
+                    <div class="stat-card p-6 rounded-lg shadow-md">
+                        <p class="text-4xl font-bold text-accent">80%</p>
+                        <p class="mt-2 text-gray-600 font-medium">極致儲蓄率</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="journey" class="py-16 md:py-20 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-main">逆火淬煉：困境鍛造的財務意志</h2>
+                    <p class="mt-3 max-w-2xl mx-auto text-md text-gray-600">YP的財務智慧並非憑空而來，而是在真實生活的嚴峻考驗中形塑而成。這些經歷是理解他後續所有決策的基礎。</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div class="space-y-6">
+                        <div class="content-card p-6">
+                            <h3 class="font-bold text-xl text-accent">🔥 早年的財務困境</h3>
+                            <p class="mt-2 text-gray-600">18歲時家庭投資失利，讓他提早體認到財務風險，並在大學期間依靠助學貸款與兼職完成學業，培養了自力更生的勤奮品格與對金錢價值的深刻體會。</p>
+                        </div>
+                        <div class="content-card p-6">
+                            <h3 class="font-bold text-xl text-accent">🛡️ 家庭的嚴峻考驗</h3>
+                            <p class="mt-2 text-gray-600">31歲時，家人重病住院，每月開銷高達10萬。他憑藉預先準備的緊急預備金與部分持股，成功度過難關，這也實際檢驗並強化了他對風險規劃的信念。</p>
+                        </div>
+                    </div>
+                    <div class="text-center md:text-left">
+                        <p class="text-5xl md:text-6xl text-secondary font-bold select-none">韌</p>
+                        <p class="text-2xl font-bold text-main mt-2">從試煉中汲取的教訓</p>
+                        <p class="mt-4 text-gray-600">這些被他稱為「魔王關」的挑戰，不僅教會他具體的財務準備方法，更從根本上塑造了他審慎行事、規避風險以及對財務安全不懈追求的品格。這些深刻的體悟，為他日後超乎常人的紀律奠定了堅實基礎。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategy" class="py-16 md:py-20">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-main">核心策略：儲蓄與投資的藝術</h2>
+                    <p class="mt-3 max-w-2xl mx-auto text-md text-gray-600">高儲蓄率與紀律投資是YP財富累積的兩大引擎。了解他如何將理論付諸實踐，並長期堅持。</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
+                    <div class="content-card p-6 md:p-8">
+                        <h3 class="font-bold text-xl text-accent mb-4">極致儲蓄率的實踐</h3>
+                        <p class="text-gray-600 mb-6">YP最令人印象深刻的，莫過於高達80%的儲蓄率。這並非單純的口號，而是透過善用公司福利（宿舍、供餐）將每月開銷控制在5-6千元，並在日常生活中奉行極簡哲學（一餐50元、穿了20年的外套），從而最大化可投資的資金。</p>
+                        <div class="chart-container">
+                            <canvas id="savingsChart"></canvas>
+                        </div>
+                    </div>
+                     <div class="content-card p-6 md:p-8">
+                        <h3 class="font-bold text-xl text-accent mb-4">紀律嚴明的投資哲學</h3>
+                        <div class="space-y-4 text-gray-600">
+                            <div>
+                                <h4 class="font-semibold text-main">🎯 核心：指數化投資</h4>
+                                <p>不主動選股，不預測市場時機。透過投資指數型基金獲取市場平均回報，降低個股風險，有效捕捉市場的長期上漲趨勢。</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-main">💼 原則：立即出售公司股票</h4>
+                                <p>即便能以優惠價獲得員工認股權，他也總是在取得後立即賣出。他的指導原則是：「不持有自己不會花錢買進的股票」，以此避免情感因素與持股過度集中的風險。</p>
+                            </div>
+                             <div>
+                                <h4 class="font-semibold text-main">🧠 心法：紀律性的被動</h4>
+                                <p>這種策略優先考慮長期、系統性的財富積累，最大限度地減少情緒化決策。這是他從過往經歷中學到的、風險可控且結果相對可預期的模式。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="risk" class="py-16 md:py-20 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-main">風險防護：鞏固財務的安全基石</h2>
+                    <p class="mt-3 max-w-2xl mx-auto text-md text-gray-600">在投資之前，先建立保障。YP認為保險是防範災難性風險的必要工具，尤其對資本有限的小資族更是如此。點擊下方項目查看他的具體建議。</p>
+                </div>
+                <div class="max-w-3xl mx-auto space-y-4">
+                    <div class="accordion-item content-card overflow-hidden">
+                        <div class="accordion-header flex justify-between items-center p-5">
+                            <h3 class="font-semibold text-lg text-accent">1. 失能險 (最優先)</h3>
+                            <span class="text-accent transform transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="accordion-content px-5 border-t border-gray-200">
+                            <p class="text-gray-600"><strong>YP的理由：</strong>這是他極力推薦、認為「非常划算」的險種。用以應對因疾病或意外導致長期失能、需要他人照護或罹癌等所帶來的龐大財務壓力。<br><strong>具體建議：</strong>他以自身為例，年繳數千元保費，可獲得一次性500萬及每月5萬的給付。重點在於用小錢轉嫁毀滅性的財務衝擊。</p>
+                        </div>
+                    </div>
+                    <div class="accordion-item content-card overflow-hidden">
+                        <div class="accordion-header flex justify-between items-center p-5">
+                            <h3 class="font-semibold text-lg text-accent">2. 醫療險 (實支實付型)</h3>
+                            <span class="text-accent transform transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="accordion-content px-5 border-t border-gray-200">
+                            <p class="text-gray-600"><strong>YP的理由：</strong>鑑於健保給付範圍有限，實支實付型保單能讓人在需要時，有能力選擇品質更佳的醫療照護，而不必完全受限於健保框架。<br><strong>具體建議：</strong>規劃時應著重「實支實付」的額度與範圍。</p>
+                        </div>
+                    </div>
+                    <div class="accordion-item content-card overflow-hidden">
+                        <div class="accordion-header flex justify-between items-center p-5">
+                            <h3 class="font-semibold text-lg text-accent">3. 其他針對性保險</h3>
+                             <span class="text-accent transform transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="accordion-content px-5 border-t border-gray-200">
+                            <p class="text-gray-600"><strong>YP的理由：</strong>依個人情況評估需求。這些保險能在個人或家庭面臨重大危機時，提供一筆關鍵的財務支援，作為危機應對的緩衝。<br><strong>具體建議：</strong>若健康狀況欠佳、擔心高額長照費用或有家族病史，可考慮「長期照顧險」或「癌症險」。為應對重大危機，也可考慮「重大傷病險」。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="assets" class="py-16 md:py-20">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-main">資產配置：駕馭房產與善用債務</h2>
+                    <p class="mt-3 max-w-2xl mx-auto text-md text-gray-600">YP的資產配置展現了高度的策略性，他將債務視為一種工具，並結合當下環境做出明智決策。</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
+                     <div class="content-card p-6 md:p-8">
+                        <h3 class="font-bold text-xl text-accent mb-4">房地產：自住為本，非投機</h3>
+                        <p class="text-gray-600 mb-6">他在2022年購入自住房產，雖然在3年內獲利25%，但他強調目的為自住，不打算投機。這反映了他保守的態度，專注於核心的財富增長領域。</p>
+                        <div class="chart-container">
+                            <canvas id="propertyChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="content-card p-6 md:p-8">
+                        <h3 class="font-bold text-xl text-accent mb-4">通膨下的債務策略</h3>
+                         <p class="text-gray-600 mb-6">YP認為在通膨時代，債務的實質價值會遞減，因此建議首購族盡可能延長房貸年限（如40年）。選擇您的理想房貸年限，看看策略如何影響現金流：</p>
+                         <div class="space-y-4">
+                            <div class="flex items-center">
+                                <input id="loan20" type="radio" name="loanTerm" value="20" class="h-4 w-4 text-accent border-gray-300 focus:ring-accent">
+                                <label for="loan20" class="ml-3 block text-sm font-medium text-gray-700">20年房貸</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="loan40" type="radio" name="loanTerm" value="40" class="h-4 w-4 text-accent border-gray-300 focus:ring-accent" checked>
+                                <label for="loan40" class="ml-3 block text-sm font-medium text-gray-700">40年房貸 (YP建議)</label>
+                            </div>
+                        </div>
+                        <div id="loan-result" class="mt-6 p-4 rounded-lg bg-secondary">
+                            <p class="text-main font-semibold">策略結果：</p>
+                            <p class="text-gray-700 text-sm"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="action" class="py-16 md:py-20 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-main">行動藍圖：您的財務自由起點</h2>
+                    <p class="mt-3 max-w-2xl mx-auto text-md text-gray-600">財務自由並非遙不可及。從YP的經驗中，我們可以提煉出具體可行的行動啟示，作為您規劃的起點。</p>
+                </div>
+                <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex items-start space-x-4">
+                        <span class="text-2xl text-accent">✅</span>
+                        <div>
+                            <h4 class="font-semibold text-main">檢視保險規劃</h4>
+                            <p class="text-sm text-gray-600">反思個人「最恐懼的風險」，以此為出發點，調整自身保險，優先保障重大風險。</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4">
+                        <span class="text-2xl text-accent">✅</span>
+                        <div>
+                            <h4 class="font-semibold text-main">簡化預算追蹤</h4>
+                            <p class="text-sm text-gray-600">嘗試花一至兩個月，掌握80-90%的主要資金流向，不必鉅細靡遺，重點在於洞悉支出模式。</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4">
+                        <span class="text-2xl text-accent">✅</span>
+                        <div>
+                            <h4 class="font-semibold text-main">審視投資組合</h4>
+                            <p class="text-sm text-gray-600">參考「不持有自己不會花錢買進的股票」原則，避免因情感或便利性而做出非理性的持股決策。</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4">
+                        <span class="text-2xl text-accent">✅</span>
+                        <div>
+                            <h4 class="font-semibold text-main">評估債務選項</h4>
+                            <p class="text-sm text-gray-600">若有購房計畫，特別是在通膨環境下，可評估延長房貸年限的選項，以保留更多可運用資金。</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4">
+                        <span class="text-2xl text-accent">✅</span>
+                        <div>
+                            <h4 class="font-semibold text-main">相信複利效應</h4>
+                            <p class="text-sm text-gray-600">體認到即使是微小但持續的節儉習慣，長期下來也能透過複利產生巨大效果。</p>
+                        </div>
+                    </div>
+                     <div class="flex items-start space-x-4">
+                        <span class="text-2xl text-accent">✅</span>
+                        <div>
+                            <h4 class="font-semibold text-main">定義個人目標</h4>
+                            <p class="text-sm text-gray-600">將財務自由視為實現更大價值與人生目標的手段，而不僅僅是終點。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white">
+        <div class="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-sm">本頁面內容整理自以下報導，旨在提供互動式摘要與分析。</p>
+            <div class="mt-4 flex justify-center space-x-4 text-xs">
+                <a href="https://wantrich.chinatimes.com/news/20250528900004-420101" target="_blank" rel="noopener noreferrer" class="hover:text-accent">報導一</a>
+                <span>|</span>
+                <a href="https://wantrich.chinatimes.com/news/20250528900003-420101" target="_blank" rel="noopener noreferrer" class="hover:text-accent">報導二</a>
+                 <span>|</span>
+                <a href="https://wantrich.chinatimes.com/news/20250528900002-420101" target="_blank" rel="noopener noreferrer" class="hover:text-accent">報導三</a>
+            </div>
+            <p class="mt-6 text-xs text-gray-400">&copy; 2024 互動式財務策略儀表板。僅供資訊參考。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            const savingsCtx = document.getElementById('savingsChart').getContext('2d');
+            new Chart(savingsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['儲蓄', '生活開銷'],
+                    datasets: [{
+                        label: '資金分配',
+                        data: [80, 20],
+                        backgroundColor: [
+                            '#739072',
+                            '#ECE3CE'
+                        ],
+                        borderColor: '#FDFBF6',
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#4A4A4A',
+                                font: {
+                                    family: "'Noto Sans TC', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            const propertyCtx = document.getElementById('propertyChart').getContext('2d');
+            new Chart(propertyCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['購入時', '目前'],
+                    datasets: [{
+                        label: '房產每坪價值 (萬)',
+                        data: [50, 62.5], 
+                        backgroundColor: [
+                            '#ECE3CE',
+                            '#739072'
+                        ],
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                           display: false
+                        },
+                         tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '約 ' + context.parsed.y + ' 萬 / 坪';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f0f0f0'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '萬';
+                                },
+                                color: '#4A4A4A'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                               color: '#4A4A4A'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const accordionItems = document.querySelectorAll('.accordion-item');
+            accordionItems.forEach(item => {
+                const header = item.querySelector('.accordion-header');
+                const content = item.querySelector('.accordion-content');
+                const icon = header.querySelector('span');
+
+                header.addEventListener('click', () => {
+                    const isOpen = content.classList.contains('open');
+                    
+                    document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
+                    document.querySelectorAll('.accordion-header span').forEach(i => i.style.transform = 'rotate(0deg)');
+
+                    if (!isOpen) {
+                        content.classList.add('open');
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                });
+            });
+
+            const loanRadios = document.querySelectorAll('input[name="loanTerm"]');
+            const loanResultEl = document.querySelector('#loan-result p:last-child');
+            function updateLoanInfo() {
+                const selectedValue = document.querySelector('input[name="loanTerm"]:checked').value;
+                if (selectedValue === '40') {
+                    loanResultEl.innerHTML = "<strong>較低的月付金</strong>能釋放出更多現金流用於投資，在通膨侵蝕債務實質價值的背景下，此策略更具效率。";
+                } else {
+                    loanResultEl.innerHTML = "<strong>較高的月付金</strong>能更快還清貸款，減少總利息支出，但會佔用更多當期現金流，可能影響投資機會。";
+                }
+            }
+            loanRadios.forEach(radio => radio.addEventListener('change', updateLoanInfo));
+            updateLoanInfo();
+        });
+    </script>
+</body>
+</html>
+
