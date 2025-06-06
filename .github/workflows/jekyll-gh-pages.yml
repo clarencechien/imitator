@@ -16,6 +16,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Fetch all history for all branches and tags
+          # This is necessary for git log to find the commit history of files
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -23,8 +27,11 @@ jobs:
           python-version: '3.x'
 
       - name: Generate report_list.json
+        # Use a 'here document' (<< EOF) to pass the script to python.
+        # This is more robust than `python -c "..."` as it avoids shell parsing issues
+        # with special characters and quotes inside the script.
         run: |
-          python -c "
+          python << 'EOF'
           import os
           import json
           import subprocess
@@ -64,7 +71,6 @@ jobs:
                           # Python's datetime.fromisoformat expects a colon (e.g., +02:00).
                           # This checks for a sign (+ or -) at the 5th position from the end and no colon at the 3rd.
                           if len(git_timestamp_str) > 5 and git_timestamp_str[-5] in ['+', '-'] and git_timestamp_str[-3] != ':':
-                             # FIX: The colon must be a string literal ":" for concatenation.
                              git_timestamp_str = git_timestamp_str[:-2] + ":" + git_timestamp_str[-2:]
 
                           # Parse the ISO 8601 formatted string into a datetime object.
@@ -97,8 +103,8 @@ jobs:
           print("Generated report_list.json:")
           with open('report_list.json', 'r') as f:
             print(f.read())
+          EOF
 
-          "
       - name: Commit report_list.json
         run: |
           git config --global user.name 'github-actions[bot]'
