@@ -27,14 +27,19 @@
       <div class="col s12">
         <h4 class="header_text center-align" style="font-family: 'Roboto', sans-serif; color: #263238;">Available Reports</h4>
         <div class="row" style="margin-bottom: 20px;">
-          <div class="col s12 m6 l4 push-l2">
+          <div class="col s12 m4 l4">
             <button id="sort-by-title-btn" class="btn waves-effect waves-light blue darken-1" style="width:100%;">Sort by Title
               <i class="material-icons left">sort_by_alpha</i>
             </button>
           </div>
-          <div class="col s12 m6 l4 push-l2">
+          <div class="col s12 m4 l4">
             <button id="sort-by-filename-btn" class="btn waves-effect waves-light green darken-1" style="width:100%;">Sort by Filename
               <i class="material-icons left">sort</i>
+            </button>
+          </div>
+          <div class="col s12 m4 l4">
+            <button id="sort-by-date-btn" class="btn waves-effect waves-light orange darken-1" style="width:100%;">Sort by Date
+              <i class="material-icons left">date_range</i>
             </button>
           </div>
         </div>
@@ -90,6 +95,7 @@
                         <div class="card-content">
                           <span class="card-title truncate">${report.title}</span>
                           <p class="grey-text text-darken-1" style="font-size: 0.9rem;">${report.fileName}</p>
+                          <p class="grey-text text-lighten-1" style="font-size: 0.8rem; margin-top: 4px;">${report.timestamp}</p>
                         </div>
                         <div class="card-action">
                           <a href="${report.reportFilePath}" class="blue-text text-accent-4">View Report</a>
@@ -108,21 +114,25 @@
                 }
                 return response.json();
             })
-            .then(reportFiles => {
+            .then(reportFileObjects => { // Renamed for clarity, this is now an array of objects
                 if (!reportCardsContainer) {
                     console.error('Error: report-cards-container div not found initially.');
                     document.body.insertAdjacentHTML('beforeend', '<p class="red-text container center-align">Error: Report container div not found in HTML.</p>');
                     return;
                 }
 
-                if (!Array.isArray(reportFiles) || reportFiles.length === 0) {
+                if (!Array.isArray(reportFileObjects) || reportFileObjects.length === 0) {
                     reportCardsContainer.innerHTML = '<p class="flow-text center-align">No reports listed in report_list.json. Add HTML files to the "report" directory and ensure the GitHub Action has run.</p>';
                     return []; // Return empty array to Promise.all
                 }
 
-                const fetchPromises = reportFiles.map(fileName => {
-                    if (typeof fileName === 'string' && fileName.endsWith('.html')) {
+                const fetchPromises = reportFileObjects.map(item => {
+                    // Ensure item is an object and has name & timestamp properties
+                    if (typeof item === 'object' && item && typeof item.name === 'string' && item.name.endsWith('.html') && typeof item.timestamp === 'string') {
+                        const fileName = item.name;
+                        const fileTimestamp = item.timestamp;
                         const reportFilePath = `report/${fileName}`;
+
                         return fetch(reportFilePath)
                             .then(response => {
                                 if (!response.ok) {
@@ -135,14 +145,16 @@
                                 if (!htmlContent) return null;
                                 const titleMatch = /<title>(.*?)<\/title>/i.exec(htmlContent);
                                 const title = titleMatch && titleMatch[1] ? titleMatch[1] : fileName;
-                                return { title, fileName, reportFilePath };
+                                // Include timestamp in the resolved object
+                                return { title, fileName, reportFilePath, timestamp: fileTimestamp };
                             })
                             .catch(error => {
                                 console.error(`Error processing report ${fileName}:`, error);
                                 return null; // Skip this report on error
                             });
                     }
-                    return Promise.resolve(null); // Skip non-string or non-html files
+                    console.warn('Skipping invalid item in report_list.json:', item);
+                    return Promise.resolve(null); // Skip malformed items
                 });
 
                 return Promise.all(fetchPromises);
@@ -172,6 +184,15 @@
         function setupSortingEventListeners() {
             const sortByTitleBtn = document.getElementById('sort-by-title-btn');
             const sortByFilenameBtn = document.getElementById('sort-by-filename-btn');
+            const sortByDateBtn = document.getElementById('sort-by-date-btn');
+
+            // Helper function to parse "YYYY/MM/DD HH:MM:SS" into a Date object
+            function parseTimestamp(tsString) {
+                if (!tsString) return new Date(0); // Return epoch if timestamp is missing, for safety
+                const parts = tsString.split(/[/ :]/);
+                // new Date(year, monthIndex (0-11), day, hours, minutes, seconds)
+                return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+            }
 
             if (sortByTitleBtn) {
                 sortByTitleBtn.addEventListener('click', () => {
@@ -189,6 +210,19 @@
                 });
             } else {
                 console.error("Sort by Filename button not found.");
+            }
+
+            if (sortByDateBtn) {
+                sortByDateBtn.addEventListener('click', () => {
+                    reportsData.sort((a, b) => {
+                        const dateA = parseTimestamp(a.timestamp);
+                        const dateB = parseTimestamp(b.timestamp);
+                        return dateB - dateA; // Sort descending (newest first)
+                    });
+                    renderCards(reportsData);
+                });
+            } else {
+                console.error("Sort by Date button not found.");
             }
         }
     });
