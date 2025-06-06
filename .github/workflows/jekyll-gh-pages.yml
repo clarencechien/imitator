@@ -30,20 +30,24 @@ jobs:
           import subprocess
           import datetime
 
+          # The directory containing the reports.
           report_dir = 'report'
           reports_with_timestamps = []
           default_timestamp = '2025/06/06 00:00:00'
 
+          # Check if the report directory exists.
           if not os.path.exists(report_dir):
-              print(f\"Directory '{report_dir}' not found. Creating an empty report_list.json.\")
+              print(f"Directory '{report_dir}' not found. Creating an empty report_list.json.")
           else:
+              # Get all HTML files from the report directory.
               report_files_names = [f for f in os.listdir(report_dir) if f.endswith('.html')]
               
               for file_name in report_files_names:
                   file_path = os.path.join(report_dir, file_name)
                   formatted_timestamp = default_timestamp
                   try:
-                      # Get the last commit date for the file
+                      # Get the last commit date for the file using git log.
+                      # The format %cI gives the committer date in ISO 8601 format.
                       result = subprocess.run(
                           ['git', 'log', '-1', '--pretty=format:%cI', '--', file_path],
                           capture_output=True, text=True, check=False, encoding='utf-8'
@@ -52,39 +56,48 @@ jobs:
                       git_timestamp_str = result.stdout.strip()
 
                       if result.returncode == 0 and git_timestamp_str:
-                          # Handle 'Z' for UTC if present, replace with +00:00 for fromisoformat
+                          # Handle 'Z' for UTC if present, replace with +00:00 which fromisoformat can parse.
                           if git_timestamp_str.endswith('Z'):
                               git_timestamp_str = git_timestamp_str[:-1] + '+00:00'
                           
-                          # Handle timezone offsets that might not have a colon in older git versions (e.g. +0200)
-                          # Python's fromisoformat expects a colon (e.g. +02:00)
-                          if len(git_timestamp_str) > 6 and git_timestamp_str[-5] in ['+', '-'] and git_timestamp_str[-3] != ':':
+                          # Handle timezone offsets that might not have a colon (e.g., +0200).
+                          # Python's datetime.fromisoformat expects a colon (e.g., +02:00).
+                          # This checks for a sign (+ or -) at the 5th position from the end and no colon at the 3rd.
+                          if len(git_timestamp_str) > 5 and git_timestamp_str[-5] in ['+', '-'] and git_timestamp_str[-3] != ':':
+                             # FIX: The colon must be a string literal ":" for concatenation.
                              git_timestamp_str = git_timestamp_str[:-2] + ":" + git_timestamp_str[-2:]
 
+                          # Parse the ISO 8601 formatted string into a datetime object.
                           parsed_date = datetime.datetime.fromisoformat(git_timestamp_str)
+                          # Format the datetime object into the desired string format.
                           formatted_timestamp = parsed_date.strftime('%Y/%m/%d %H:%M:%S')
                       elif result.returncode != 0:
-                          print(f\"Git log command failed for {file_path} (exit code {result.returncode}): {result.stderr.strip()}\")
-                          print(f\"Using default timestamp for {file_name}\")
-                      else: # Empty timestamp
-                          print(f\"No git timestamp found for {file_path}. It might be a new, uncommitted file. Using default timestamp.\")
+                          # Log an error if the git command failed.
+                          print(f"Git log command failed for {file_path} (exit code {result.returncode}): {result.stderr.strip()}")
+                          print(f"Using default timestamp for {file_name}")
+                      else: 
+                          # Handle cases where the file is new and not yet committed.
+                          print(f"No git timestamp found for {file_path}. It might be a new, uncommitted file. Using default timestamp.")
 
                   except ValueError as ve:
-                      print(f\"ValueError parsing date '{git_timestamp_str}' for file {file_name}: {ve}. Using default timestamp.\")
+                      print(f"ValueError parsing date '{git_timestamp_str}' for file {file_name}: {ve}. Using default timestamp.")
                   except Exception as e:
-                      print(f\"An unexpected error occurred while processing {file_name}: {e}. Using default timestamp.\")
+                      print(f"An unexpected error occurred while processing {file_name}: {e}. Using default timestamp.")
                   
                   reports_with_timestamps.append({'name': file_name, 'timestamp': formatted_timestamp})
               
-              # Sort by filename
+              # Sort the list of reports by filename for consistent output.
               reports_with_timestamps.sort(key=lambda x: x['name'])
 
+          # Write the final list to a JSON file.
           with open('report_list.json', 'w') as f:
             json.dump(reports_with_timestamps, f, indent=2)
-          
-          print(\"Generated report_list.json:\")
+
+          # Print the generated JSON to the console for verification.
+          print("Generated report_list.json:")
           with open('report_list.json', 'r') as f:
             print(f.read())
+
           "
       - name: Commit report_list.json
         run: |
