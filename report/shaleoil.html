@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>頁岩革命：一場技術的劇變</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as a comparative educational tool. Instead of a linear report, it uses a tab-based interface allowing users to directly contrast "Past" (Oil Shale) vs. "Present" (Shale Revolution). This structure immediately addresses the user's core question about the differences. The flow is: 1) Hero section for a direct answer. 2) Interactive tabs for deep comparison of process, technology, and impacts. 3) An interactive timeline to visualize the historical context. 4) A summary radar chart for a quick, data-driven comparison. This non-linear, interactive approach enhances understanding and engagement more effectively than a static document. -->
+    <!-- Visualization & Content Choices: 
+        - Goal: Compare/Contrast -> Method: Tabbed interface (HTML/JS) -> Interaction: Click to switch views -> Justification: Allows direct, side-by-side analysis of key differences.
+        - Goal: Visualize Process -> Method: Simplified diagrams (HTML/CSS) -> Interaction: Static visual aid -> Justification: Clarifies complex industrial processes without needing heavy libraries or SVG. Shows "Mining/Heating" vs. "Drilling/Fracturing".
+        - Goal: Show Chronology -> Method: Interactive Timeline (HTML/JS) -> Interaction: Hover/Click on points -> Justification: Provides historical context and highlights the "recent" nature of the revolution.
+        - Goal: Summarize Comparison -> Method: Radar Chart (Chart.js/Canvas) -> Interaction: Static chart for visual comparison -> Justification: Effectively compares multiple attributes (scale, cost, complexity) of the two eras in a single, digestible graphic.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8;
+            color: #4B423D;
+        }
+        .tab-active {
+            background-color: #8C6A5D;
+            color: #FDFBF8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .tab-inactive {
+            background-color: #EAE3DD;
+            color: #6D5D53;
+        }
+        .content-card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAE3DD;
+            transition: all 0.3s ease-in-out;
+        }
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2.5rem;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: -0.6rem;
+            top: 0.1rem;
+            height: 1.2rem;
+            width: 1.2rem;
+            border-radius: 50%;
+            border: 3px solid #D1C7BF;
+            background-color: #FDFBF8;
+            transition: all 0.3s ease;
+        }
+        .timeline-item:hover .timeline-dot {
+            background-color: #8C6A5D;
+            transform: scale(1.1);
+        }
+        .timeline-line {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #EAE3DD;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .diagram-box {
+            border: 2px solid #D1C7BF;
+        }
+        .diagram-arrow {
+            color: #8C6A5D;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <!-- Header Section -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#8C6A5D] mb-2">頁岩革命：一場技術的劇變</h1>
+            <p class="text-lg md:text-xl max-w-3xl mx-auto">
+                頁岩油革命是最近才發生的嗎？<span class="font-bold text-[#A67B5B]">是的</span>。這場始於21世紀的能源變革，其核心技術與過去的開發方式有著根本的不同。本頁將帶您深入探索今昔之別。
+            </p>
+        </header>
+
+        <!-- Interactive Comparison Section -->
+        <section id="comparison" class="mb-16">
+            <div class="flex justify-center mb-8 space-x-2 md:space-x-4">
+                <button id="tab-past" class="px-6 py-3 font-bold rounded-lg shadow-sm transition-all duration-300 ease-in-out text-base md:text-lg">
+                    昔日：油頁岩開採
+                </button>
+                <button id="tab-present" class="px-6 py-3 font-bold rounded-lg shadow-sm transition-all duration-300 ease-in-out text-base md:text-lg">
+                    今日：頁岩油氣革命
+                </button>
+            </div>
+
+            <div id="content-display" class="w-full">
+                <!-- Content will be dynamically inserted here -->
+            </div>
+        </section>
+        
+        <!-- Timeline Section -->
+        <section id="timeline" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-[#8C6A5D] mb-10">關鍵技術演進時間軸</h2>
+            <div class="max-w-4xl mx-auto">
+                <p class="text-center text-gray-600 mb-8">
+                    現代的頁岩革命並非一蹴可幾，而是建立在超過一個世紀的技術積累之上。這個時間軸將展示從早期概念到革命性突破的關鍵節點。您可以將滑鼠懸停在每個節點上查看詳細資訊。
+                </p>
+                <div class="relative pl-8">
+                    <div class="timeline-line"></div>
+                    <div id="timeline-container">
+                        <!-- Timeline items will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Summary Chart Section -->
+        <section id="summary-chart">
+            <h2 class="text-3xl font-bold text-center text-[#8C6A5D] mb-10">今昔開發模式綜合比較</h2>
+            <div class="max-w-4xl mx-auto bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-md border border-gray-200">
+                <p class="text-center text-gray-600 mb-8">
+                    此雷達圖從五個維度——「技術複雜度」、「作業規模」、「經濟效益」、「地表環境影響」與「水資源依賴」——綜合比較了兩種開發模式的特點。圖形面積越大，代表在該維度的表現或影響越顯著，兩者的差異一目了然。
+                </p>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center mt-16 pt-8 border-t border-gray-200">
+            <p class="text-gray-500">此互動式報告根據「頁岩革命：今昔開發差異」文件生成。</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const data = {
+                past: {
+                    title: "昔日：開採油頁岩以提煉油品",
+                    intro: "在現代頁岩革命之前，人類對頁岩的能源利用主要集中在「油頁岩」。這是一種富含固態有機物「油母質」的岩石。其核心理念是將這些岩石挖出，再透過加熱的方式將固態的油母質轉化為合成原油。",
+                    resource: {
+                        name: "目標資源：油母質 (Kerogen)",
+                        description: "一種固態的石油前驅物，嵌在岩石中，需要高溫才能轉化為液態油品。",
+                        icon: "🧱"
+                    },
+                    processDiagram: `
+                        <div class="text-center p-4 diagram-box rounded-lg">
+                            <h4 class="font-bold mb-4">開採與加工流程</h4>
+                            <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
+                                <div class="text-center">
+                                    <div class="text-5xl">⛏️</div>
+                                    <p class="font-semibold mt-2">1. 露天/地下開採</p>
+                                    <p class="text-sm text-gray-600">將油頁岩礦石挖出</p>
+                                </div>
+                                <div class="text-5xl diagram-arrow transform rotate-90 md:rotate-0">→</div>
+                                <div class="text-center">
+                                    <div class="text-5xl">🏭</div>
+                                    <p class="font-semibold mt-2">2. 地表乾餾加熱</p>
+                                    <p class="text-sm text-gray-600">在>450°C高溫下熱解</p>
+                                </div>
+                                <div class="text-5xl diagram-arrow transform rotate-90 md:rotate-0">→</div>
+                                <div class="text-center">
+                                    <div class="text-5xl">🛢️</div>
+                                    <p class="font-semibold mt-2">3. 產出合成原油</p>
+                                    <p class="text-sm text-gray-600">油母質轉化為油氣</p>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    tech: {
+                        title: "核心技術",
+                        items: ["採礦設備", "破碎設備", "乾餾爐 (Retort)", "熱加工技術"]
+                    },
+                    impact: {
+                        title: "主要特徵與影響",
+                        items: [
+                            "成本高昂，經濟性差，高度依賴高油價",
+                            "產生大量廢棄礦渣，體積甚至大於原岩",
+                            "露天開採破壞地表生態",
+                            "乾餾過程消耗大量能源並產生廢氣"
+                        ]
+                    }
+                },
+                present: {
+                    title: "今日：解放頁岩中的油氣",
+                    intro: "現代頁岩革命的目標完全不同。它針對的是已經生成、但被「囚禁」在極低滲透性頁岩層中的液態石油和天然氣。其核心理念是「原地開採」，即在地下創造通道，讓油氣自行流出。",
+                    resource: {
+                        name: "目標資源：頁岩油/氣 (Shale Oil/Gas)",
+                        description: "已生成的液態原油和天然氣，儲存在緻密的岩石微小孔隙中。",
+                        icon: "💧"
+                    },
+                    processDiagram: `
+                        <div class="text-center p-4 diagram-box rounded-lg">
+                            <h4 class="font-bold mb-4">開採流程</h4>
+                            <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
+                                <div class="text-center">
+                                    <div class="text-5xl">🎯</div>
+                                    <p class="font-semibold mt-2">1. 水平鑽井</p>
+                                    <p class="text-sm text-gray-600">精準鑽入目標頁岩層</p>
+                                </div>
+                                <div class="text-5xl diagram-arrow transform rotate-90 md:rotate-0">→</div>
+                                <div class="text-center">
+                                    <div class="text-5xl">💥</div>
+                                    <p class="font-semibold mt-2">2. 水力壓裂</p>
+                                    <p class="text-sm text-gray-600">高壓液體製造裂縫</p>
+                                </div>
+                                <div class="text-5xl diagram-arrow transform rotate-90 md:rotate-0">→</div>
+                                <div class="text-center">
+                                    <div class="text-5xl">⛽</div>
+                                    <p class="font-semibold mt-2">3. 油氣開採</p>
+                                    <p class="text-sm text-gray-600">油氣沿裂縫流出</p>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    tech: {
+                        title: "核心技術",
+                        items: ["水平鑽井", "水力壓裂 (裂解)", "隨鑽測量 (MWD)", "微地震監測"]
+                    },
+                    impact: {
+                        title: "主要特徵與影響",
+                        items: [
+                            "具備商業競爭力，改變全球能源格局",
+                            "壓裂過程消耗大量水資源",
+                            "需處理返排液與採出水",
+                            "可能引發微小地震及甲烷逸散問題"
+                        ]
+                    }
+                }
+            };
+            
+            const timelineData = [
+                { year: "1821", event: "首次記錄", description: "在紐約弗雷多尼亞，人們從具有天然裂縫的淺層頁岩中收集天然氣用於照明，是頁岩氣利用的最早記錄。" },
+                { year: "1837", event: "工業開端", description: "法國開始工業化開採油頁岩（富含油母質的岩石），透過乾餾生產煤油等產品。" },
+                { year: "1949", event: "壓裂商業化", description: "水力壓裂技術首次實現商業化應用，但主要用於傳統的垂直井，以提高產量。" },
+                { year: "1970s", event: "技術萌芽", description: "隨鑽測量(MWD)等技術發展，為後來的精準水平鑽井奠定基礎。大規模水力壓裂(MHF)也在此時出現。" },
+                { year: "1990s", event: "關鍵突破", description: "Mitchell Energy公司在Barnett頁岩區成功應用了成本更低的「滑溜水壓裂」技術，證明了大規模經濟開採頁岩氣的可能性。" },
+                { year: "2000s後期", event: "革命爆發", description: "水平鑽井與多段水力壓裂技術大規模結合應用，引發了美國的頁岩油氣革命，產量急劇上升，徹底改變能源市場。" }
+            ];
+
+            const contentDisplay = document.getElementById('content-display');
+            const tabPast = document.getElementById('tab-past');
+            const tabPresent = document.getElementById('tab-present');
+            const timelineContainer = document.getElementById('timeline-container');
+
+            function renderContent(era) {
+                const d = data[era];
+                contentDisplay.innerHTML = `
+                    <div class="max-w-4xl mx-auto transition-opacity duration-500 ease-in-out">
+                        <div class="text-center bg-white p-6 rounded-t-xl border border-b-0 border-gray-200">
+                            <h3 class="text-2xl font-bold text-[#8C6A5D]">${d.title}</h3>
+                            <p class="mt-2 text-gray-600">${d.intro}</p>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-4 bg-gray-50 p-6 rounded-b-xl border border-t-0 border-gray-200">
+                            <div class="content-card p-6 rounded-lg">
+                                <h4 class="font-bold text-lg mb-2 flex items-center"><span class="text-2xl mr-2">${d.resource.icon}</span> ${d.resource.name}</h4>
+                                <p class="text-gray-700">${d.resource.description}</p>
+                            </div>
+                            <div class="content-card p-6 rounded-lg">
+                                ${d.processDiagram}
+                            </div>
+                             <div class="content-card p-6 rounded-lg">
+                                <h4 class="font-bold text-lg mb-2">${d.tech.title}</h4>
+                                <ul class="list-disc list-inside text-gray-700 space-y-1">
+                                    ${d.tech.items.map(item => `<li>${item}</li>`).join('')}
+                                </ul>
+                            </div>
+                             <div class="content-card p-6 rounded-lg">
+                                <h4 class="font-bold text-lg mb-2">${d.impact.title}</h4>
+                                <ul class="list-disc list-inside text-gray-700 space-y-1">
+                                    ${d.impact.items.map(item => `<li>${item}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function setActiveTab(activeTab) {
+                if (activeTab === 'past') {
+                    tabPast.classList.remove('tab-inactive');
+                    tabPast.classList.add('tab-active');
+                    tabPresent.classList.remove('tab-active');
+                    tabPresent.classList.add('tab-inactive');
+                } else {
+                    tabPresent.classList.remove('tab-inactive');
+                    tabPresent.classList.add('tab-active');
+                    tabPast.classList.remove('tab-active');
+                    tabPast.classList.add('tab-inactive');
+                }
+                renderContent(activeTab);
+            }
+
+            function renderTimeline() {
+                let html = '';
+                timelineData.forEach(item => {
+                    html += `
+                        <div class="timeline-item">
+                             <div class="timeline-dot"></div>
+                             <div class="ml-4">
+                                <time class="mb-1 text-sm font-normal leading-none text-gray-400">${item.year}</time>
+                                <h3 class="text-lg font-semibold text-[#6D5D53]">${item.event}</h3>
+                                <p class="text-base font-normal text-gray-600">${item.description}</p>
+                             </div>
+                        </div>
+                    `;
+                });
+                timelineContainer.innerHTML = html;
+            }
+
+            tabPast.addEventListener('click', () => setActiveTab('past'));
+            tabPresent.addEventListener('click', () => setActiveTab('present'));
+
+            // Initial render
+            setActiveTab('present');
+            renderTimeline();
+
+            // Chart.js Radar Chart
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            const chartData = {
+                labels: ['技術複雜度', '作業規模', '經濟效益', '地表環境影響', '水資源依賴'],
+                datasets: [{
+                    label: '昔日: 油頁岩',
+                    data: [2, 3, 2, 8, 4],
+                    fill: true,
+                    backgroundColor: 'rgba(210, 180, 160, 0.2)',
+                    borderColor: 'rgb(210, 180, 160)',
+                    pointBackgroundColor: 'rgb(210, 180, 160)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(210, 180, 160)'
+                }, {
+                    label: '今日: 頁岩革命',
+                    data: [9, 8, 7, 5, 9],
+                    fill: true,
+                    backgroundColor: 'rgba(140, 106, 93, 0.2)',
+                    borderColor: 'rgb(140, 106, 93)',
+                    pointBackgroundColor: 'rgb(140, 106, 93)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(140, 106, 93)'
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'radar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: '#EAE3DD'
+                            },
+                            grid: {
+                                color: '#EAE3DD'
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 14,
+                                    family: "'Noto Sans TC', sans-serif"
+                                },
+                                color: '#4B423D'
+                            },
+                            ticks: {
+                                backdropColor: '#FDFBF8',
+                                color: '#6D5D53',
+                                stepSize: 2
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: "'Noto Sans TC', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.r !== null) {
+                                        label += context.parsed.r + ' / 10';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
