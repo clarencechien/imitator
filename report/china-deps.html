@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Chosen Palette: Calm Harmony (Stone, Slate, Sky) -->
+    <!-- Application Structure Plan: The application is structured into four thematic, scrollable sections to transform the linear report into an interactive exploration. 1) 'Overview Dashboard': An interactive bar chart of the most critical dependencies, providing an immediate high-level understanding. Clicking a bar updates a detail panel, allowing users to quickly grasp key facts without getting lost in text. 2) 'Categorical Deep Dive': Uses a tabbed interface (Minerals, Energy, etc.) to let users explore specific areas of interest. This breaks down the dense report table into manageable, focused chunks. 3) 'Root Cause Analysis': An interactive accordion section to explain the 'why'. This transforms complex paragraphs into a digestible Q&A format, making the core arguments of the report more accessible. 4) 'Strategic Responses': A card-based layout comparing the successes and limitations of China's policies. This provides a balanced, at-a-glance summary. This user-centric, non-linear structure prioritizes discoverability and comprehension over the original report's sequential format. -->
+    <!-- Visualization & Content Choices: 1) Main Chart (Inform/Compare): An interactive horizontal bar chart (Chart.js/Canvas) is chosen for its clarity in comparing dependency levels and its excellent mobile responsiveness. The click-to-update detail panel provides layered information on demand. 2) Category Charts (Compare): Smaller bar charts maintain visual consistency. 3) Root Causes/Strategies (Organize): An accordion/card layout with Unicode icons (HTML/CSS) organizes qualitative information into scannable, interactive blocks, avoiding long text passages. This is more engaging than static text. All interactions are powered by vanilla JS to update content dynamically based on user selections, directly linking visualizations to explanatory text. This design ensures all information is presented contextually and interactively. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <title>互動式報告：透視中國工業的進口命脈</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            width: 100%;
+        }
+        .section-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #0c4a6e; /* sky-800 */
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .section-intro {
+            max-width: 48rem;
+            margin: 0 auto 2.5rem auto;
+            text-align: center;
+            color: #475569; /* slate-600 */
+            font-size: 1.125rem;
+            line-height: 1.75;
+        }
+        .active-tab {
+            border-color: #0284c7; /* sky-600 */
+            background-color: #f0f9ff; /* sky-50 */
+            color: #0369a1; /* sky-700 */
+            font-weight: 600;
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-xl md:text-2xl font-bold text-sky-800">透視中國工業的進口命脈</h1>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#overview" class="text-gray-600 hover:text-sky-600 transition">依賴度總覽</a>
+                    <a href="#deep-dive" class="text-gray-600 hover:text-sky-600 transition">分類剖析</a>
+                    <a href="#why" class="text-gray-600 hover:text-sky-600 transition">根本原因</a>
+                    <a href="#strategy" class="text-gray-600 hover:text-sky-600 transition">戰略應對</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        
+        <section id="overview" class="py-12">
+            <h2 class="section-title">依賴度總覽：互動儀表板</h2>
+            <p class="section-intro">
+                本區提供一個中國關鍵工業物資進口依賴度的宏觀視圖。圖表展示了對外依存度最高的物資。您可以點擊圖表中的任一長條，右側的資訊卡將會顯示該物資的詳細資訊，包括其工業用途、高度依賴的簡要原因及主要進口來源，幫助您快速理解其在中國工業體系中的戰略重要性。
+            </p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-bold text-center mb-4 text-sky-800">關鍵物資進口依賴度 (%)</h3>
+                    <div class="chart-container h-96 md:h-[70vh]">
+                        <canvas id="dependencyChart"></canvas>
+                    </div>
+                </div>
+                <div id="details-panel" class="bg-white p-6 rounded-lg shadow sticky top-24">
+                    <h3 class="text-xl font-bold text-sky-800 mb-4" id="details-title">點擊左側圖表查看詳情</h3>
+                    <div id="details-content" class="space-y-4 text-slate-700">
+                        <p>這裡是互動說明的起始位置。當您點擊左側圖表的任何一個項目時，這裡將會更新顯示該項目的詳細數據與分析。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="deep-dive" class="py-12">
+            <h2 class="section-title">分類剖析：深入探索各領域</h2>
+            <p class="section-intro">
+                中國的進口依賴遍及多個工業領域。本區允許您深入探索特定類別的依賴情況。請點選下方的分頁標籤，切換檢視「戰略性礦產與金屬」、「關鍵能源輸入」、「農工原料」以及「先進材料與化學品」四大類別的詳細分析和數據。
+            </p>
+            <div class="w-full">
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="-mb-px flex flex-wrap justify-center gap-4" aria-label="Tabs">
+                        <button onclick="changeTab('minerals')" class="tab-button active-tab whitespace-nowrap py-3 px-5 border-b-2 font-medium text-sm rounded-t-md">
+                            戰略性礦產與金屬
+                        </button>
+                        <button onclick="changeTab('energy')" class="tab-button text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-3 px-5 border-b-2 font-medium text-sm rounded-t-md">
+                            關鍵能源輸入
+                        </button>
+                        <button onclick="changeTab('agri')" class="tab-button text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-3 px-5 border-b-2 font-medium text-sm rounded-t-md">
+                            農工原料
+                        </button>
+                        <button onclick="changeTab('advanced')" class="tab-button text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-3 px-5 border-b-2 font-medium text-sm rounded-t-md">
+                            先進材料與化學品
+                        </button>
+                    </nav>
+                </div>
+                <div id="tab-content" class="bg-white p-4 sm:p-8 rounded-lg shadow">
+                </div>
+            </div>
+        </section>
+        
+        <section id="why" class="py-12">
+            <h2 class="section-title">根本原因：為何依賴多年未解？</h2>
+            <p class="section-intro">
+                中國長期無法解決進口依賴，並非單一原因造成，而是多重結構性因素複雜交織的結果。下方將從五個核心層面進行剖析，您可以點擊每個標題展開，了解其背後的詳細原因與挑戰。
+            </p>
+            <div id="accordion-container" class="space-y-4 max-w-4xl mx-auto">
+            </div>
+        </section>
+        
+        <section id="strategy" class="py-12">
+            <h2 class="section-title">戰略應對及其局限性</h2>
+            <p class="section-intro">
+                面對持續的進口依賴，中國採取了多種戰略措施試圖提升產業安全。然而，這些努力在實踐中往往面臨諸多挑戰。本節將逐一檢視這些策略的成效與其內在的局限性。
+            </p>
+            <div id="strategy-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 py-8 text-center">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p class="mb-2">「自給自足」在所有關鍵材料上都是一個複雜，甚至可能不切實際的目標。</p>
+            <p class="text-sm text-slate-400">資料來源：中國工業進口依賴分析報告 | 互動應用程式生成</p>
+        </div>
+    </footer>
+
+    <script>
+        const dependencyData = {
+            '鉻 (鉻鐵礦)': { category: 'minerals', value: 98, use: '不銹鋼、超級合金', reason: '國內礦床稀少、規模小、分散、品位低，高品位礦已基本枯竭。', sources: '南非、土耳其、辛巴威' },
+            '錳礦石': { category: 'minerals', value: 96, use: '鋼鐵生產 (脫氧劑、脫硫劑)，電池', reason: '國內礦石品位低，開採成本高，不足以滿足需求。', sources: '南非、澳洲、加彭' },
+            '鈷': { category: 'minerals', value: 95, use: '電池 (電動車、電子產品)，超級合金', reason: '國內伴生礦品質低，回收成本高，幾乎無經濟可採的獨立鈷礦。', sources: '剛果民主共和國、印尼' },
+            '鎳': { category: 'minerals', value: 90, use: '不銹鋼、電池 (電動車)', reason: '國內儲量有限，依賴海外投資/進口以滿足冶煉原料需求。', sources: '印尼、菲律賓、俄羅斯' },
+            '大豆': { category: 'agri', value: 83, use: '動物飼料 (蛋白質)，食用油', reason: '可耕地有限，水資源短缺，國內產量/成本效益低於進口。', sources: '巴西、美國、阿根廷' },
+            '鐵礦石': { category: 'minerals', value: 81, use: '鋼鐵生產', reason: '國內高品位儲量不足，開採成本高。', sources: '澳洲、巴西、幾內亞' },
+            '銅': { category: 'minerals', value: 79, use: '電線、電子、建築、工業機械', reason: '國內儲量不足，礦石品位低，加工能力強但原料依賴進口。', sources: '智利、秘魯、剛果民主共和國' },
+            '原油': { category: 'energy', value: 75, use: '交通燃料、石化原料', reason: '國內產量停滯，需求不斷增長，易開採地質儲量有限。', sources: '中東、俄羅斯、安哥拉' },
+            '高性能聚合物': { category: 'advanced', value: 70, use: '航太、汽車、醫療、電子、工業零組件', reason: '國內原創技術薄弱，產品批次穩定性問題，基礎樹脂合成企業少。', sources: '美國、歐洲、日本' },
+            '鋁土礦': { category: 'minerals', value: 68, use: '鋁生產', reason: '國內優質儲量有限，環保法規趨嚴，國內礦石品質下降。', sources: '幾內亞、澳洲、印尼' },
+            '天然氣': { category: 'energy', value: 43, use: '工業燃料、發電、民用供暖', reason: '國內產量增長但不足且具挑戰性；成本考量。', sources: '澳洲、卡達、俄羅斯' },
+            '先進半導體': { category: 'advanced', value: 90, use: '電子產品、汽車、AI、通訊', reason: '先進晶片設計與製造技術差距顯著，依賴外國IP、設備及特殊材料。', sources: '台灣、韓國、美國' },
+            '基礎石化產品': { category: 'advanced', value: 30, use: '塑膠、合成纖維、樹脂', reason: '原料限制，部分製程技術瓶頸，特定品級需求增長迅速。', sources: '中東、美國、韓國' },
+        };
+        
+        const deepDiveData = {
+            minerals: {
+                title: "戰略性礦產與金屬",
+                description: "這些物資是中國龐大工業體系的基石，從鋼鐵到電池製造無所不包。普遍面臨國內儲量不足、品位低、開採成本高等問題，導致極高的進口依賴。",
+                materials: ['鉻 (鉻鐵礦)', '錳礦石', '鈷', '鎳', '鐵礦石', '銅', '鋁土礦']
+            },
+            energy: {
+                title: "關鍵能源輸入",
+                description: "能源是工業的命脈。隨著經濟發展和環保轉型，中國對原油和天然氣的需求激增，而國內產量增長乏力，形成了巨大的供應缺口。",
+                materials: ['原油', '天然氣']
+            },
+            agri: {
+                title: "農工原料",
+                description: "部分農產品同時也是重要的工業原料。大豆的進口依賴尤其突出，這不僅是糧食問題，更是支撐龐大畜牧業和食品加工業的供應鏈安全問題。",
+                materials: ['大豆']
+            },
+            advanced: {
+                title: "先進材料與化學品",
+                description: "在高科技和先進製造領域，中國面臨著技術「卡脖子」的困境。對先進半導體、高性能聚合物等領域的依賴，反映了其在核心技術和原創創新上的差距。",
+                materials: ['先進半導體', '高性能聚合物', '基礎石化產品']
+            }
+        };
+
+        const accordionData = [
+            {
+                title: "國內資源稟賦：天生的制約",
+                content: "許多關鍵礦產（如高品位鐵、銅、鉻）國內儲量要麼絕對稀缺，要麼品質低下、開採成本高昂。農業上，有限的耕地和水資源也限制了大豆等作物的產能。這是最根本、最難以改變的結構性約束。"
+            },
+            {
+                title: "經濟要素：成本與效率的選擇",
+                content: "在全球化的市場中，進口高品質、低成本的原料往往比開採國內低品位、高成本的資源更具經濟效率。為了維持製造業的全球競爭力，中國在經濟理性驅動下選擇了進口。這是全球供應鏈專業化的必然結果。"
+            },
+            {
+                title: "技術與創新差距：追趕移動的靶心",
+                content: "在半導體、高性能聚合物等先進材料領域，中國缺乏核心的自主技術。全球技術前沿不斷推進，追趕不僅需要巨額投入，更需要克服數十年形成的專利壁壘和創新生態系統差距，形成「移動靶心」效應。"
+            },
+            {
+                title: "工業需求規模：世界工廠的巨大胃口",
+                content: "作為「世界工廠」，中國製造業的巨大規模本身就產生了對原材料的海量需求。這種需求體量遠超任何國家單靠國內資源所能滿足的極限。即使國內產量增加，也常常趕不上需求的增長速度。"
+            },
+            {
+                title: "政策與監管環境：權衡與非預期後果",
+                content: "日益嚴格的國內環保和安全法規，在保護環境的同時也增加了國內開採成本，相對削弱了其與進口的競爭力。同時，歷史上的市場開放政策（如加入WTO）也對某些國內產業（如大豆）造成了長期影響。"
+            }
+        ];
+
+        const strategyData = [
+            {
+                title: "「中國製造2025」與「雙循環」",
+                success: "在新能源車、發電設備等領域提升了國內市場份額，推動了部分領域的進口替代。",
+                limitations: "在尖端半導體、生物醫藥等核心技術領域差距依然顯著，外國公司不願轉讓核心IP，未能根本解決「卡脖子」問題。"
+            },
+            {
+                title: "確保海外資源（「走出去」政策）",
+                success: "透過海外投資，獲取了對部分礦產（如剛果的鈷、印尼的鎳、幾內亞的鋁土礦）的直接控制權，保障了原料供應。",
+                limitations: "並未消除依賴，只是將市場依賴轉變為對投資東道國穩定性的地緣政治依賴，面臨政治風險和「資源民族主義」挑戰。"
+            },
+            {
+                title: "投資國內勘探與研發",
+                success: "頁岩氣開採取得進展，發現了一些新礦藏。在部分領域的專利和研發投入巨大。",
+                limitations: "新發現的資源往往開採難度大、成本高。研發成果要轉化為有商業競爭力的大規模生產，仍需克服「死亡之谷」。"
+            },
+            {
+                title: "建立戰略儲備",
+                success: "能有效緩衝短期供應中斷和價格劇烈波動，為應對緊急情況提供保障。",
+                limitations: "儲備量有限，無法滿足長期的、大規模的需求，是一種風險管理工具，而非解決依賴的根本辦法。"
+            }
+        ];
+
+        let myChart;
+
+        function updateDetailsPanel(label) {
+            const data = dependencyData[label];
+            if (!data) return;
+
+            document.getElementById('details-title').textContent = label;
+            const contentDiv = document.getElementById('details-content');
+            contentDiv.innerHTML = `
+                <p><strong>📊 預估進口依賴度:</strong> <span class="text-2xl font-bold text-sky-600">${data.value}%</span></p>
+                <p><strong>🏭 主要工業用途:</strong> ${data.use}</p>
+                <p><strong>🔍 高度依賴原因:</strong> ${data.reason}</p>
+                <p><strong>🌍 主要進口來源:</strong> ${data.sources}</p>
+            `;
+        }
+        
+        function renderMainChart() {
+            const ctx = document.getElementById('dependencyChart').getContext('2d');
+            const sortedData = Object.entries(dependencyData).sort(([, a], [, b]) => b.value - a.value);
+            
+            const labels = sortedData.map(item => item[0]);
+            const values = sortedData.map(item => item[1].value);
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '進口依賴度 (%)',
+                        data: values,
+                        backgroundColor: 'rgba(2, 132, 199, 0.6)', // sky-600 with opacity
+                        borderColor: 'rgba(2, 132, 199, 1)', // sky-600
+                        borderWidth: 1,
+                        hoverBackgroundColor: 'rgba(3, 105, 161, 0.8)', // sky-700 with opacity
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: '依賴度 (%)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                autoSkip: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` 依賴度: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chartElement = elements[0];
+                            const label = myChart.data.labels[chartElement.index];
+                            updateDetailsPanel(label);
+                        }
+                    }
+                }
+            });
+            updateDetailsPanel(labels[0]);
+        }
+        
+        function changeTab(tabName) {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active-tab');
+            });
+            document.querySelector(`button[onclick="changeTab('${tabName}')"]`).classList.add('active-tab');
+
+            const contentDiv = document.getElementById('tab-content');
+            const data = deepDiveData[tabName];
+            
+            let materialsHtml = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
+            data.materials.forEach(materialName => {
+                const materialData = dependencyData[materialName];
+                materialsHtml += `
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h4 class="font-bold text-sky-700 text-lg">${materialName}</h4>
+                        <p class="text-slate-500 text-sm mb-2">${materialData.use}</p>
+                        <p class="font-semibold text-xl">${materialData.value}% <span class="text-sm font-normal text-slate-500">依賴度</span></p>
+                    </div>
+                `;
+            });
+            materialsHtml += '</div>';
+
+            contentDiv.innerHTML = `
+                <h3 class="text-2xl font-bold text-sky-800 mb-2">${data.title}</h3>
+                <p class="text-slate-600 mb-6">${data.description}</p>
+                ${materialsHtml}
+            `;
+        }
+        
+        function renderAccordions() {
+            const container = document.getElementById('accordion-container');
+            let html = '';
+            accordionData.forEach((item, index) => {
+                html += `
+                <div class="bg-white rounded-lg shadow-sm">
+                    <button onclick="toggleAccordion(${index})" class="w-full flex justify-between items-center text-left p-5 font-semibold text-sky-800 focus:outline-none">
+                        <span>${item.title}</span>
+                        <span class="transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content px-5">
+                        <p class="py-4 text-slate-600 border-t">${item.content}</p>
+                    </div>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function toggleAccordion(index) {
+            const button = document.querySelectorAll('#accordion-container button')[index];
+            const content = button.nextElementSibling;
+            const icon = button.querySelector('span:last-child');
+
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                // Close all other accordions
+                document.querySelectorAll('.accordion-content').forEach(el => el.style.maxHeight = null);
+                document.querySelectorAll('#accordion-container button span:last-child').forEach(el => el.style.transform = 'rotate(0deg)');
+                
+                content.style.maxHeight = content.scrollHeight + "px";
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function renderStrategies() {
+            const container = document.getElementById('strategy-container');
+            let html = '';
+            strategyData.forEach(item => {
+                html += `
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold text-sky-800 mb-4">${item.title}</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold text-emerald-600 flex items-center"><span class="mr-2 text-lg">✅</span>成效</h4>
+                            <p class="text-slate-600 ml-7">${item.success}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-rose-600 flex items-center"><span class="mr-2 text-lg">❌</span>局限性</h4>
+                            <p class="text-slate-600 ml-7">${item.limitations}</p>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMainChart();
+            changeTab('minerals');
+            renderAccordions();
+            renderStrategies();
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
