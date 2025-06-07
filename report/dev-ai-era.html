@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 紀元的九大新興開發者模式</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Tech (Light neutrals with muted cyan accents) -->
+    <!-- Application Structure Plan: The SPA uses a "hub-and-spoke" model. The hub is a 3x3 interactive grid of the nine patterns, allowing for quick, non-linear exploration. Clicking a pattern (spoke) dynamically loads its content into a central detail area. This structure was chosen over a linear document format to encourage user engagement and allow for easy comparison between patterns, reflecting the interconnected yet distinct nature of the concepts in the source report. The user flow is: Land -> Explore Grid -> Select Pattern -> View Details -> Select Another. -->
+    <!-- Visualization & Content Choices: Each pattern is broken down into Problem/Solution/Implications for clarity. Goal: Compare "old vs. new". Method: Side-by-side text and a conceptual diagram built with HTML/Tailwind to visually represent the shift. Goal: Provide an at-a-glance summary. Method: An interactive bar chart (Chart.js/Canvas) showing fictional "Disruption" and "Adoption" scores for each pattern. This adds a quantitative, interactive layer to the qualitative report. A final summary bar chart compares all patterns. Justification: These choices turn a dense text report into a digestible, interactive experience, aiding comprehension and retention. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .pattern-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .pattern-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .pattern-card.active {
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 2px #0891b2; /* cyan-600 */
+            border-color: #0891b2; /* cyan-600 */
+        }
+        .content-section {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 320px;
+            width: 100%;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900 mb-4">AI 紀元的九大新興開發者模式</h1>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto">探索 AI 如何從根本上重塑我們打造軟體的方式——從版本控制到使用者介面，以及兩者之間的一切。</p>
+        </header>
+
+        <main>
+            <section id="patterns-grid" class="mb-16">
+                 <h2 class="text-3xl font-bold text-center text-slate-800 mb-8">選擇一個模式以深入了解</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                </div>
+            </section>
+
+            <section id="pattern-detail" class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg min-h-[500px]">
+                <div id="detail-content" class="content-section opacity-0">
+                </div>
+            </section>
+
+            <section id="summary-chart" class="mt-16">
+                <h2 class="text-3xl font-bold text-center text-slate-800 mb-8">九大模式影響力總覽</h2>
+                <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="summaryChartCanvas"></canvas>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="text-center mt-16 text-slate-500">
+            <p>基於 a16z 報告《Nine Emerging Developer Patterns for the AI Era》進行分析與視覺化呈現。</p>
+            <p class="mt-2 text-sm">此為互動式摘要，旨在促進資訊理解與探索。</p>
+        </footer>
+
+    </div>
+
+    <script>
+        const patternsData = [
+            {
+                id: 0,
+                title: 'AI 原生 Git',
+                short: '為 AI 代理重新思考版本控制。',
+                icon: '↔️',
+                disruption: 9,
+                adoption: 6,
+                content: {
+                    intro: '隨著 AI 代理越來越多地編寫和修改程式碼，傳統的版本控制系統 Git 正面臨挑戰。開發者的關注點從逐行審查程式碼轉向驗證最終的行為是否符合預期。',
+                    oldWay: {
+                        title: '傳統作法：以程式碼為中心',
+                        description: '開發者手動編寫程式碼，Git 精確追蹤每一行變更。程式碼的「差異比較 (diff)」是審查的核心，而提交雜湊值 (commit hash) 是程式碼庫狀態的唯一真實來源。',
+                        diagramLabel: '人類驅動'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：以意圖為中心',
+                        description: '開發者提供「提示 (prompt)」和「測試案例」，AI 代理生成程式碼。「提示+測試」的組合包成為新的版本控制單元，驗證行為的正確性比追蹤程式碼本身更重要。',
+                        diagramLabel: 'AI 驅動'
+                    },
+                    implications: [
+                        '程式碼審查的重點從「程式碼」轉向「提示與測試結果」。',
+                        'Git 的角色可能從「原始碼歷史」轉變為「產物日誌 (artifact log)」，記錄變更的「原因」而非僅僅是「內容」。',
+                        '催生全新的「AI 優先」開發工具生態系，用於管理提示、測試和模型版本。'
+                    ]
+                }
+            },
+            {
+                id: 1,
+                title: '儀表板的進化',
+                short: '從靜態儀表板到動態綜合分析。',
+                icon: '📊',
+                disruption: 8,
+                adoption: 7,
+                content: {
+                    intro: '傳統的儀表板雖然資訊豐富，但往往過於複雜，使用者難以快速找到所需資訊並採取行動。大型語言模型 (LLM) 正在將其轉變為對話式的互動介面。',
+                    oldWay: {
+                        title: '傳統作法：靜態儀表板',
+                        description: '充滿圖表、篩選器和分頁的複雜介面。使用者需要學習如何操作才能找到洞察，對於非進階使用者門檻較高。',
+                        diagramLabel: '手動探索'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：對話式分析',
+                        description: '使用者可以用自然語言提問（例如，「上週歐洲地區的銷售異常是什麼？」），AI 會綜合數據、生成摘要並重新配置介面來呈現答案。',
+                        diagramLabel: '自然語言查詢'
+                    },
+                    implications: [
+                        '降低數據分析的門檻，讓組織內更多人能從數據中獲益。',
+                        '未來的介面可能出現「雙模式」：一種為人類設計，另一種為 AI 代理設計的機器可讀介面。',
+                        '系統監控從「被動警報」轉向 AI 提供的「主動診斷與建議」。'
+                    ]
+                }
+            },
+            {
+                id: 2,
+                title: '文件進化論',
+                short: '文件成為給人類與機器的知識庫。',
+                icon: '📚',
+                disruption: 8,
+                adoption: 8,
+                content: {
+                    intro: '開發者查閱文件的行為正在改變，從「從頭閱讀」轉變為「直接提問」。這使得文件不再只是靜態文檔，而是成為可供 AI 代理查詢和使用的互動式知識系統。',
+                    oldWay: {
+                        title: '傳統作法：被動文檔',
+                        description: '文件是為人類讀者編寫的靜態資訊儲存庫，需要手動搜尋和閱讀來理解如何使用一個系統。',
+                        diagramLabel: '人類閱讀'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：主動知識庫',
+                        description: '文件被結構化並建立索引，使其可以透過語意搜尋被 AI 編碼代理查詢。文件品質直接影響 AI 生成程式碼的準確性。',
+                        diagramLabel: '人機共讀'
+                    },
+                    implications: [
+                        '文件的讀者擴展到 AI 代理，催生「文件即 API」的概念。',
+                        '文件品質變得空前重要，因為它直接影響 AI 開發助理的表現。',
+                        '文件撰寫需要同時兼顧機器可讀性與人類的理解力。'
+                    ]
+                }
+            },
+            {
+                id: 3,
+                title: '從模板到生成',
+                short: '「氛圍式編碼」取代樣板程式碼。',
+                icon: '✨',
+                disruption: 9,
+                adoption: 5,
+                content: {
+                    intro: '過去啟動新專案依賴固定的模板或腳手架工具 (例如 create-react-app)，但這往往帶來許多限制。現在，開發者可以透過描述來即時生成個人化的專案。',
+                    oldWay: {
+                        title: '傳統作法：靜態模板',
+                        description: '使用通用的樣板程式碼 (boilerplate) 或 CLI 工具來建立專案。開發者需要遵循框架的預設，客製化空間有限。',
+                        diagramLabel: '固定起點'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：氛圍式編碼',
+                        description: '開發者用自然語言描述想要的專案（例如，「一個用 Next.js 和 Supabase 的部落格」），AI 會即時生成一個客製化的專案鷹架。',
+                        diagramLabel: '動態生成'
+                    },
+                    implications: [
+                        '大幅降低嘗試新技術堆疊的門檻，加速創新週期。',
+                        '框架決策變得更具「可逆性」，因為 AI 代理可以協助處理大規模的重構和遷移。',
+                        '開發重點從「選擇框架」轉向「描述成果」，鼓勵工具生態系的多樣性。'
+                    ]
+                }
+            },
+            {
+                id: 4,
+                title: '超越 .env 檔案',
+                short: '代理驅動時代的密鑰管理。',
+                icon: '🔑',
+                disruption: 7,
+                adoption: 4,
+                content: {
+                    intro: '在本地開發中，`.env` 檔案長期以來是管理 API 金鑰等敏感資訊的標準。但在 AI 代理能自動編寫和部署程式碼的時代，這種模式變得脆弱。',
+                    oldWay: {
+                        title: '傳統作法：靜態 .env 檔案',
+                        description: '將 API 金鑰和資料庫密碼等敏感憑證以純文字形式儲存在本地的 `.env` 檔案中，由開發者手動管理。',
+                        diagramLabel: '靜態密鑰'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：動態授權代理',
+                        description: 'AI 代理不再直接存取金鑰，而是透過一個「密鑰代理服務」請求特定權限（例如，「部署到測試環境」）。該服務會動態授予短期、有範圍限制的權杖。',
+                        diagramLabel: '動態權杖'
+                    },
+                    implications: [
+                        '密鑰管理從「環境配置」演變為更安全的「API 授權」模式。',
+                        '催生新的開發工具層級——本地密鑰代理服務，為 AI 代理的行為提供稽核和控制。',
+                        '與企業級的身分與存取管理 (IAM) 概念接軌，大幅提升 AI 輔助開發的安全性。'
+                    ]
+                }
+            },
+            {
+                id: 5,
+                title: '無障礙性即通用介面',
+                short: 'AI 透過無障礙性 API 與應用程式互動。',
+                icon: '🦾',
+                disruption: 7,
+                adoption: 3,
+                content: {
+                    intro: '一些新的 AI 應用程式正利用作業系統的「無障礙性 (Accessibility)」功能來觀察和操作其他應用程式的介面。這預示著一個深刻的轉變：無障礙性 API 可能成為 AI 代理的通用介面。',
+                    oldWay: {
+                        title: '傳統作法：專用 API',
+                        description: '應用程式需要專門開發 API 才能被外部程式（包括 AI）控制。若無 API，則難以自動化。',
+                        diagramLabel: '需專用 API'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：通用無障礙層',
+                        description: 'AI 代理利用作業系統內建的無障礙性 API，在語義層面「理解」並「操作」任何應用程式的介面，就像輔助技術一樣。',
+                        diagramLabel: '利用無障礙層'
+                    },
+                    implications: [
+                        '可能讓大量現有應用程式無需修改即可「適應 AI」，大幅加速 AI 整合。',
+                        '任何有螢幕的應用程式，即使沒有公開 API，也可能被 AI 代理使用。',
+                        '反過來激勵開發者從一開始就建構更強大的無障礙性功能，造福所有使用者。'
+                    ]
+                }
+            },
+            {
+                id: 6,
+                title: '非同步代理工作',
+                short: '開發者成為 AI 任務的協調者。',
+                icon: '⏳',
+                disruption: 8,
+                adoption: 6,
+                content: {
+                    intro: '與 AI 協作的模式正從即時的「配對編程」轉向非同步的「任務指派」。開發者設定目標，讓 AI 代理在背景執行，然後再回來檢查結果。',
+                    oldWay: {
+                        title: '傳統作法：同步協作',
+                        description: '開發者與工具或同事進行即時互動，許多任務需要同步會議或等待他人完成交接。',
+                        diagramLabel: '同步執行'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：非同步委派',
+                        description: '開發者將耗時的任務（如重構、錯誤分類）指派給 AI 代理，然後繼續處理其他工作。代理完成後會回報進度。',
+                        diagramLabel: '非同步執行'
+                    },
+                    implications: [
+                        '開發者的角色從「執行者」轉變為 AI 任務的「協調者」和「指派者」。',
+                        '互動介面擴展到 IDE 之外，可透過 Slack、Figma 留言等方式與代理溝通。',
+                        '壓縮了團隊間的協調時間，過去需要開會解決的問題現在可以交給代理處理。'
+                    ]
+                }
+            },
+            {
+                id: 7,
+                title: '模型上下文協定 (MCP)',
+                short: '朝向代理互動的通用標準。',
+                icon: '📜',
+                disruption: 8,
+                adoption: 5,
+                content: {
+                    intro: '模型上下文協定 (MCP) 正在成為一個標準，用來解決 AI 代理如何獲取完成任務所需的上下文，以及如何與各種工具互動的問題。',
+                    oldWay: {
+                        title: '傳統作法：客製化整合',
+                        description: '每個 AI 代理與每個工具之間的整合都需要客製化開發，導致 N×M 種不同的整合方式，複雜且難以維護。',
+                        diagramLabel: '點對點整合'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：標準化協定',
+                        description: '工具暴露一個標準的 MCP 介面（伺服器），任何 AI 代理（客戶端）都可以用同樣的方式與之互動，實現即插即用。',
+                        diagramLabel: '通用協定'
+                    },
+                    implications: [
+                        '催生一個類似「應用程式商店」的 AI 能力生態系，代理可以輕易發現和使用各種工具。',
+                        '實現強大的「可組合性」，代理既可以是工具的消費者，也可以是能力的提供者。',
+                        '加速 AI 功能的普及，因為應用程式只需支援 MCP 即可「為 AI 做好準備」。'
+                    ]
+                }
+            },
+            {
+                id: 8,
+                title: '抽象化基礎建設',
+                short: '為 AI 代理提供即插即用的核心服務。',
+                icon: '🏗️',
+                disruption: 7,
+                adoption: 4,
+                content: {
+                    intro: '正如人類開發者依賴 Stripe 處理支付、Clerk 處理身份驗證一樣，強大的 AI 代理也需要可靠、易於整合的基礎服務元件，才能搭建出穩定的應用程式。',
+                    oldWay: {
+                        title: '傳統作法：為人類設計的 SDK',
+                        description: '後端服務 (如資料庫、支付) 主要提供給人類開發者使用的 API 和軟體開發套件 (SDK)。',
+                        diagramLabel: '面向開發者'
+                    },
+                    newWay: {
+                        title: 'AI 新模式：為代理優化的服務',
+                        description: '基礎服務供應商開始提供「代理友好」的介面（例如 MCP），讓 AI 代理能更可靠、安全地發現和使用其功能，而無需從頭生成邏輯。',
+                        diagramLabel: '面向代理'
+                    },
+                    implications: [
+                        '提升 AI 代理能夠建構的應用程式的複雜度和可靠性。',
+                        '開創一個新的「AI 原生」基礎設施服務市場區隔。',
+                        '對服務供應商提出了新的要求：不僅要提供 API，還要提供強大的治理和控制機制，以確保代理的安全使用。'
+                    ]
+                }
+            }
+        ];
+
+        let detailChart = null;
+        let summaryChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const grid = document.querySelector('#patterns-grid .grid');
+            const detailContentEl = document.getElementById('detail-content');
+
+            patternsData.forEach(pattern => {
+                const card = document.createElement('div');
+                card.className = 'pattern-card bg-white p-6 rounded-xl border-2 border-transparent cursor-pointer shadow-md';
+                card.dataset.id = pattern.id;
+                card.innerHTML = `
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl mr-4">${pattern.icon}</span>
+                        <h3 class="text-xl font-bold text-slate-800">${pattern.title}</h3>
+                    </div>
+                    <p class="text-slate-600">${pattern.short}</p>
+                `;
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.pattern-card').forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+                    updateDetailView(pattern.id);
+                });
+                grid.appendChild(card);
+            });
+            
+            updateDetailView(0);
+            document.querySelector('.pattern-card[data-id="0"]').classList.add('active');
+
+            renderSummaryChart();
+        });
+
+        function updateDetailView(id) {
+            const pattern = patternsData.find(p => p.id === id);
+            const detailContentEl = document.getElementById('detail-content');
+            
+            detailContentEl.classList.remove('opacity-100');
+            detailContentEl.classList.add('opacity-0');
+
+            setTimeout(() => {
+                detailContentEl.innerHTML = `
+                    <div class="flex flex-col md:flex-row items-center mb-6">
+                        <span class="text-5xl mr-0 md:mr-6 mb-4 md:mb-0">${pattern.icon}</span>
+                        <h2 class="text-3xl font-bold text-slate-900 text-center md:text-left">${pattern.title}</h2>
+                    </div>
+                    <p class="text-lg text-slate-600 mb-8">${pattern.content.intro}</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                        <div class="lg:col-span-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div class="bg-slate-100 p-4 rounded-lg">
+                                    <h4 class="font-bold text-slate-700 mb-2">傳統作法</h4>
+                                    <p class="text-sm text-slate-600">${pattern.content.oldWay.description}</p>
+                                </div>
+                                <div class="bg-cyan-50 border border-cyan-200 p-4 rounded-lg">
+                                    <h4 class="font-bold text-cyan-800 mb-2">AI 新模式</h4>
+                                    <p class="text-sm text-cyan-700">${pattern.content.newWay.description}</p>
+                                </div>
+                            </div>
+                            
+                            <h4 class="font-bold text-slate-700 mb-3 text-lg">核心轉變示意</h4>
+                            <div class="flex items-center justify-center bg-gray-50 p-4 rounded-lg border">
+                                <div class="text-center">
+                                    <div class="text-sm font-semibold">${pattern.content.oldWay.diagramLabel}</div>
+                                    <div class="w-24 h-16 bg-white border-2 border-slate-300 rounded-md flex items-center justify-center m-2 shadow">舊</div>
+                                </div>
+                                <div class="text-4xl text-slate-400 mx-4 animate-pulse">→</div>
+                                <div class="text-center">
+                                    <div class="text-sm font-semibold text-cyan-700">${pattern.content.newWay.diagramLabel}</div>
+                                    <div class="w-24 h-16 bg-cyan-100 border-2 border-cyan-400 rounded-md flex items-center justify-center m-2 shadow">新</div>
+                                </div>
+                            </div>
+
+                            <h4 class="font-bold text-slate-700 mt-8 mb-3 text-lg">主要影響</h4>
+                            <ul class="list-disc list-inside space-y-2 text-slate-600">
+                                ${pattern.content.implications.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="lg:col-span-2">
+                             <h4 class="font-bold text-slate-700 mb-3 text-lg text-center">影響力評估</h4>
+                             <div class="chart-container" style="height: 250px; max-width: 400px;">
+                                <canvas id="detailChartCanvas"></canvas>
+                             </div>
+                        </div>
+                    </div>
+                `;
+
+                if (detailChart) {
+                    detailChart.destroy();
+                }
+                const ctx = document.getElementById('detailChartCanvas').getContext('2d');
+                detailChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['顛覆潛力', '預期採用率'],
+                        datasets: [{
+                            label: pattern.title,
+                            data: [pattern.disruption, pattern.adoption],
+                            backgroundColor: [
+                                'rgba(22, 163, 74, 0.6)', // green-600
+                                'rgba(8, 145, 178, 0.6)' // cyan-600
+                            ],
+                            borderColor: [
+                                'rgba(22, 163, 74, 1)',
+                                'rgba(8, 145, 178, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 10,
+                                grid: {
+                                    color: 'rgba(203, 213, 225, 0.5)'
+                                }
+                            },
+                             y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.x !== null) {
+                                            label += context.parsed.x + ' / 10';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                detailContentEl.classList.remove('opacity-0');
+                detailContentEl.classList.add('opacity-100');
+                detailContentEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            }, 300);
+        }
+
+        function renderSummaryChart() {
+            const ctx = document.getElementById('summaryChartCanvas').getContext('2d');
+            const labels = patternsData.map(p => p.title);
+            const disruptionData = patternsData.map(p => p.disruption);
+            const adoptionData = patternsData.map(p => p.adoption);
+
+            if (summaryChart) {
+                summaryChart.destroy();
+            }
+
+            summaryChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '顛覆潛力',
+                            data: disruptionData,
+                            backgroundColor: 'rgba(22, 163, 74, 0.6)',
+                            borderColor: 'rgba(22, 163, 74, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '預期採用率',
+                            data: adoptionData,
+                            backgroundColor: 'rgba(8, 145, 178, 0.6)',
+                            borderColor: 'rgba(8, 145, 178, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                             grid: {
+                                color: 'rgba(203, 213, 225, 0.5)'
+                            }
+                        },
+                        x: {
+                             grid: {
+                                display: false
+                            },
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                             mode: 'index',
+                             intersect: false,
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
