@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：Anthropic 團隊如何使用 Claude Code</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive dashboard, moving away from the linear report format. It starts with high-impact quantitative metrics to grab attention. The core of the app is a filterable card-based explorer, allowing users to view teams by 'department type' (e.g., Engineering, Creative) rather than a long list. This user-centric navigation is more intuitive. Clicking a card reveals detailed use cases, impacts, and tips in an accordion-style expansion, keeping the UI clean. A key interactive element is the radar chart, which visually compares the *types* of benefits (e.g., Automation, Debugging) across different team groups, offering a synthesized, at-a-glance understanding. This structure prioritizes user-led exploration and data synthesis over passive reading. -->
+    <!-- Visualization & Content Choices: Report Info: Team use cases, impacts, and tips. -> Goal: Organize, Compare, Inform. -> Viz/Presentation Method: 1. Key Metrics: Large text & icons (HTML/CSS) for immediate impact. 2. Team Explorer: Filterable cards (HTML/Tailwind/JS) for organized exploration. 3. Benefit Analysis: Interactive Radar Chart (Chart.js/Canvas) to visually compare benefit categories between team types (e.g., Engineering vs. Non-Technical). -> Interaction: Users click filters to dynamically display relevant teams. They click cards to expand for details. They can toggle datasets on the chart to compare groups. -> Justification: This multi-faceted approach transforms a static document into an engaging tool. The radar chart, specifically, synthesizes qualitative data into a powerful comparative visualization. -> Library/Method: Chart.js (Canvas), Vanilla JS, Tailwind CSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f7f4;
+            color: #4a4a4a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        .card {
+            transition: all 0.3s ease-in-out;
+            transform-style: preserve-3d;
+        }
+        .card-content {
+            backface-visibility: hidden;
+            transition: transform 0.4s ease-in-out;
+        }
+        .details-content {
+            backface-visibility: hidden;
+            transform: rotateY(180deg);
+            transition: transform 0.4s ease-in-out;
+        }
+        .is-flipped .card-content {
+            transform: rotateY(-180deg);
+        }
+        .is-flipped .details-content {
+            transform: rotateY(0deg);
+        }
+        .active-filter {
+            background-color: #4a5568;
+            color: #ffffff;
+        }
+        .filter-btn {
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8">
+
+        <header class="text-center mb-12">
+            <div class="inline-block bg-white p-2 rounded-lg shadow-sm mb-4">
+                <span class="text-3xl">🧑‍💻</span>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-2">Anthropic 如何使用 Claude Code</h1>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">一份互動式報告，探索 AI 程式碼助理如何改變技術與非技術團隊的工作流程。</p>
+        </header>
+
+        <main>
+            <section id="key-impacts" class="mb-16">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">核心效益概覽</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                        <p class="text-5xl font-bold text-teal-600 mb-2">80%</p>
+                        <p class="text-gray-700 font-semibold">減少研究時間</p>
+                        <p class="text-sm text-gray-500">(推理團隊)</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                        <p class="text-5xl font-bold text-sky-600 mb-2">10x</p>
+                        <p class="text-gray-700 font-semibold">提升創意產出</p>
+                        <p class="text-sm text-gray-500">(成長行銷團隊)</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                        <p class="text-5xl font-bold text-amber-600 mb-2">2-4x</p>
+                        <p class="text-gray-700 font-semibold">加速重構任務</p>
+                        <p class="text-sm text-gray-500">(資料科學團隊)</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                        <p class="text-5xl font-bold text-indigo-600 mb-2">66%</p>
+                        <p class="text-gray-700 font-semibold">縮短除錯時間</p>
+                        <p class="text-sm text-gray-500">(安全工程團隊)</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="benefit-analysis" class="mb-16 bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200">
+                 <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">效益維度分析</h2>
+                 <p class="text-center text-gray-600 mb-6 max-w-2xl mx-auto">這張雷達圖比較了不同類型的團隊如何從 Claude Code 的各項能力中獲益。您可以切換檢視「工程技術團隊」與「業務與創意團隊」，觀察他們應用重點的差異。</p>
+                 <div class="flex justify-center mb-6">
+                    <div id="chart-toggle" class="flex space-x-1 bg-gray-200 rounded-full p-1">
+                        <button class="chart-toggle-btn active-filter px-4 py-2 text-sm font-medium rounded-full" data-dataset="tech">工程技術團隊</button>
+                        <button class="chart-toggle-btn px-4 py-2 text-sm font-medium rounded-full" data-dataset="business">業務與創意團隊</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="benefitRadarChart"></canvas>
+                </div>
+            </section>
+
+            <section id="team-explorer">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">團隊案例探索</h2>
+                <p class="text-center text-gray-600 mb-8 max-w-2xl mx-auto">點擊下方的按鈕，篩選您感興趣的團隊類型。再點擊團隊卡片，即可深入了解該團隊的具體應用案例、工作影響與實用秘訣。</p>
+
+                <div id="filters" class="flex flex-wrap justify-center gap-2 mb-8">
+                    <button class="filter-btn active-filter font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700" data-filter="all">所有團隊</button>
+                    <button class="filter-btn font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700" data-filter="engineering">工程技術</button>
+                    <button class="filter-btn font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700" data-filter="data">資料科學</button>
+                    <button class="filter-btn font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700" data-filter="creative">業務與創意</button>
+                </div>
+
+                <div id="team-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </section>
+        </main>
+        
+        <footer class="text-center mt-16 pt-8 border-t border-gray-300">
+            <p class="text-gray-500">基於 Anthropic 報告製作的互動式應用程式。</p>
+        </footer>
+    </div>
+
+    <script>
+        const teamsData = [
+            {
+                name: "資料基礎架構",
+                category: "data",
+                icon: "🏗️",
+                role: "為全公司的團隊整理所有的業務資料。",
+                useCases: ["透過螢幕截圖進行 Kubernetes 偵錯", "為非技術團隊建立自動化流程", "加速新人上手", "持續優化文件"],
+                impact: ["無需特定領域專家即可解決問題", "讓財務團隊能獨立完成資料任務"],
+                tips: ["撰寫詳細的說明文件 (Claude.md)", "注重資料安全", "內部案例分享"],
+                benefits: { automation: 1, debugging: 1, codeComprehension: 1, empowering: 1, prototyping: 0, testing: 0 }
+            },
+            {
+                name: "產品開發",
+                category: "engineering",
+                icon: "🚀",
+                role: "使用自家產品來建構 Claude Code 的更新。",
+                useCases: ["快速原型製作", "核心功能開發", "實作 Vim 模式", "自動生成測試與修復錯誤"],
+                impact: ["大幅加速功能開發", "提升開發速度", "透過自動化測試確保程式碼品質"],
+                tips: ["建立能自我驗證的循環", "學會判斷任務類型", "提供清晰明確的指令"],
+                benefits: { automation: 1, debugging: 1, codeComprehension: 0, empowering: 0, prototyping: 1, testing: 1 }
+            },
+            {
+                name: "安全工程",
+                category: "engineering",
+                icon: "🛡️",
+                role: "專注於軟體開發生命週期的安全。",
+                useCases: ["複雜的基礎架構偵錯", "Terraform 程式碼審查", "整合文件並產出操作手冊", "測試驅動開發 (TDD)"],
+                impact: ["事件解決時間縮短 60-70%", "改善安全審查週期", "團隊成員能更快貢獻"],
+                tips: ["善用自訂斜線指令", "讓 Claude 主導", "將其用於文件處理"],
+                benefits: { automation: 1, debugging: 1, codeComprehension: 1, empowering: 0, prototyping: 0, testing: 1 }
+            },
+            {
+                name: "推理",
+                category: "engineering",
+                icon: "🧠",
+                role: "管理 Claude 回應時的記憶體系統。",
+                useCases: ["理解程式碼庫與新人上手", "生成包含邊界案例的單元測試", "解釋機器學習概念", "跨語言程式碼翻譯"],
+                impact: ["學習機器學習概念時間縮短 80%", "更快地理解系統架構"],
+                tips: ["先測試其知識庫功能", "從程式碼生成開始", "將它用於測試撰寫"],
+                benefits: { automation: 0, debugging: 0, codeComprehension: 1, empowering: 1, prototyping: 0, testing: 1 }
+            },
+            {
+                name: "資料科學與視覺化",
+                category: "data",
+                icon: "📊",
+                role: "打造視覺化工具來理解模型性能。",
+                useCases: ["建構前端儀表板應用程式", "處理重複性的重構任務", "打造可重複使用的分析工具"],
+                impact: ["日常重構任務節省 2-4 倍時間", "用不熟悉的語言建構複雜應用", "從一次性腳本轉變為永續工具"],
+                tips: ["把它當成「拉霸機」", "適時打斷並要求簡化"],
+                benefits: { automation: 1, debugging: 0, codeComprehension: 0, empowering: 1, prototyping: 1, testing: 0 }
+            },
+            {
+                name: "API",
+                category: "engineering",
+                icon: "🔌",
+                role: "開發將外部知識引入 Claude 的功能。",
+                useCases: ["規劃工作流程的第一步", "獨立進行跨程式碼庫的偵錯", "透過「內部測試」來迭代模型"],
+                impact: ["提升處理不熟悉領域問題的信心", "大幅節省收集背景資訊的時間"],
+                tips: ["將它視為迭代夥伴", "用它來建立信心", "從最少的資訊開始"],
+                benefits: { automation: 0, debugging: 1, codeComprehension: 1, empowering: 0, prototyping: 0, testing: 0 }
+            },
+            {
+                name: "成長行銷",
+                category: "creative",
+                icon: "📈",
+                role: "負責績效行銷管道。",
+                useCases: ["自動化 Google 廣告文案生成", "用於大量製作創意的 Figma 外掛", "建立 Meta 廣告的 MCP 伺服器"],
+                impact: ["重複性工作時間大幅縮短", "創意產出量提升 10 倍", "一人團隊能處理需工程資源的任務"],
+                tips: ["找出可透過 API 自動化的重複性任務", "將複雜流程拆解成子代理人", "先徹底思考並規劃提示詞"],
+                benefits: { automation: 1, debugging: 0, codeComprehension: 0, empowering: 1, prototyping: 1, testing: 0 }
+            },
+            {
+                name: "產品設計",
+                category: "creative",
+                icon: "🎨",
+                role: "支援 Claude 產品的設計。",
+                useCases: ["前端介面微調與狀態管理", "透過 GitHub Actions 自動化處理票務", "快速互動原型製作", "發掘邊界案例"],
+                impact: ["執行速度提升 2-3 倍", "過去需一週的專案現在只需一小時", "為非技術使用者帶來全新體驗"],
+                tips: ["尋求工程師的設定協助", "使用自訂記憶體檔案來引導 Claude", "利用貼圖功能製作原型"],
+                benefits: { automation: 1, debugging: 0, codeComprehension: 1, empowering: 1, prototyping: 1, testing: 0 }
+            },
+            {
+                name: "強化學習工程",
+                category: "engineering",
+                icon: "🔄",
+                role: "專注於高效取樣與權重轉移。",
+                useCases: ["在監督下進行功能開發", "生成測試與程式碼審查", "偵錯與錯誤調查", "理解程式碼庫與呼叫堆疊"],
+                impact: ["促成「嘗試後回滾」的實驗性開發方法", "自動加入註解節省文件撰寫時間"],
+                tips: ["客製化你的 Claude.md 檔案", "採用頻繁存檔的工作流程", "先嘗試一次性解決，再轉為協作"],
+                benefits: { automation: 0, debugging: 1, codeComprehension: 1, empowering: 0, prototyping: 0, testing: 1 }
+            },
+            {
+                name: "法務",
+                category: "creative",
+                icon: "⚖️",
+                role: "透過實驗發掘潛力，並為個人需求打造工具。",
+                useCases: ["為家人打造客製化的輔助溝通工具", "法務部門工作流程自動化", "團隊協調工具", "快速原型製作以驗證解決方案"],
+                impact: ["展現非開發人員解決實際問題的潛力", "激發跨部門創新"],
+                tips: ["先在 Claude.ai 中充分規劃", "採用漸進式與視覺化的工作方式", "勇於分享不完美的原型"],
+                benefits: { automation: 1, debugging: 0, codeComprehension: 0, empowering: 1, prototyping: 1, testing: 0 }
+            },
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('team-cards-container');
+            const filters = document.getElementById('filters');
+            let activeCard = null;
+
+            function createCard(team) {
+                const cardWrapper = document.createElement('div');
+                cardWrapper.className = 'team-card perspective-1000';
+                cardWrapper.dataset.category = team.category;
+
+                cardWrapper.innerHTML = `
+                    <div class="card relative w-full min-h-[280px]">
+                        <div class="card-content absolute w-full h-full p-6 bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col justify-between cursor-pointer">
+                            <div>
+                                <div class="flex items-center mb-4">
+                                    <span class="text-3xl mr-4">${team.icon}</span>
+                                    <h3 class="text-2xl font-bold text-gray-800">${team.name}</h3>
+                                </div>
+                                <p class="text-gray-600">${team.role}</p>
+                            </div>
+                            <div class="text-right text-sm font-semibold text-blue-600 mt-4">點擊查看詳情 →</div>
+                        </div>
+                        <div class="details-content absolute w-full h-full p-6 bg-gray-800 text-white rounded-2xl shadow-lg flex flex-col overflow-y-auto cursor-pointer">
+                            <h4 class="font-bold text-lg mb-2 text-cyan-300">主要用途</h4>
+                            <ul class="list-disc list-inside text-sm mb-4 space-y-1">
+                                ${team.useCases.map(uc => `<li>${uc}</li>`).join('')}
+                            </ul>
+                            <h4 class="font-bold text-lg mb-2 text-cyan-300">團隊影響</h4>
+                            <ul class="list-disc list-inside text-sm mb-4 space-y-1">
+                                ${team.impact.map(i => `<li>${i}</li>`).join('')}
+                            </ul>
+                            <h4 class="font-bold text-lg mb-2 text-cyan-300">團隊秘訣</h4>
+                            <ul class="list-disc list-inside text-sm space-y-1">
+                                ${team.tips.map(t => `<li>${t}</li>`).join('')}
+                            </ul>
+                             <div class="text-right text-sm font-semibold text-cyan-300 mt-auto pt-4">點擊返回 ←</div>
+                        </div>
+                    </div>
+                `;
+                
+                cardWrapper.querySelector('.card').addEventListener('click', () => {
+                    cardWrapper.querySelector('.card').classList.toggle('is-flipped');
+                });
+
+                return cardWrapper;
+            }
+
+            teamsData.forEach(team => {
+                container.appendChild(createCard(team));
+            });
+
+            filters.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const filter = e.target.dataset.filter;
+
+                    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active-filter'));
+                    e.target.classList.add('active-filter');
+
+                    document.querySelectorAll('.team-card').forEach(card => {
+                        if (filter === 'all' || card.dataset.category === filter) {
+                            card.classList.remove('hidden');
+                        } else {
+                            card.classList.add('hidden');
+                        }
+                    });
+                }
+            });
+            
+            const ctx = document.getElementById('benefitRadarChart').getContext('2d');
+            
+            const benefitLabels = ["自動化", "除錯", "程式碼理解", "賦能非技術人員", "原型製作", "測試"];
+            
+            function calculateBenefitScores(filterFn) {
+                const filteredTeams = teamsData.filter(filterFn);
+                const scores = benefitLabels.map(label => 0);
+                const keyMap = { "自動化": "automation", "除錯": "debugging", "程式碼理解": "codeComprehension", "賦能非技術人員": "empowering", "原型製作": "prototyping", "測試": "testing" };
+
+                filteredTeams.forEach(team => {
+                    benefitLabels.forEach((label, index) => {
+                         if(team.benefits[keyMap[label]] === 1) {
+                             scores[index]++;
+                         }
+                    });
+                });
+                return scores.map(score => (score / filteredTeams.length) * 100); 
+            }
+            
+            const techData = calculateBenefitScores(t => t.category === 'engineering' || t.category === 'data');
+            const businessData = calculateBenefitScores(t => t.category === 'creative');
+
+            const radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: benefitLabels,
+                    datasets: [{
+                        label: '工程技術團隊 (%)',
+                        data: techData,
+                        fill: true,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        pointBackgroundColor: 'rgb(54, 162, 235)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(54, 162, 235)'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    elements: {
+                        line: {
+                            borderWidth: 3
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                color: '#333'
+                            },
+                            ticks: {
+                                backdropColor: 'rgba(255, 255, 255, 0.75)',
+                                color: '#666',
+                                stepSize: 25,
+                                callback: function(value) {
+                                    return value + '%'
+                                }
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                       tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.r !== null) {
+                                        label += Math.round(context.parsed.r * 10) / 10 + '% 的團隊提及此效益';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const chartToggle = document.getElementById('chart-toggle');
+            chartToggle.addEventListener('click', (e) => {
+                if(e.target.tagName === 'BUTTON') {
+                    const datasetType = e.target.dataset.dataset;
+                    
+                    document.querySelectorAll('.chart-toggle-btn').forEach(btn => btn.classList.remove('active-filter'));
+                    e.target.classList.add('active-filter');
+
+                    if(datasetType === 'tech') {
+                        radarChart.data.datasets[0].label = '工程技術團隊 (%)';
+                        radarChart.data.datasets[0].data = techData;
+                        radarChart.data.datasets[0].backgroundColor = 'rgba(54, 162, 235, 0.2)';
+                        radarChart.data.datasets[0].borderColor = 'rgb(54, 162, 235)';
+                        radarChart.data.datasets[0].pointBackgroundColor = 'rgb(54, 162, 235)';
+                        radarChart.data.datasets[0].pointHoverBorderColor = 'rgb(54, 162, 235)';
+                    } else {
+                        radarChart.data.datasets[0].label = '業務與創意團隊 (%)';
+                        radarChart.data.datasets[0].data = businessData;
+                        radarChart.data.datasets[0].backgroundColor = 'rgba(255, 99, 132, 0.2)';
+                        radarChart.data.datasets[0].borderColor = 'rgb(255, 99, 132)';
+                        radarChart.data.datasets[0].pointBackgroundColor = 'rgb(255, 99, 132)';
+                        radarChart.data.datasets[0].pointHoverBorderColor = 'rgb(255, 99, 132)';
+                    }
+                    radarChart.update();
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
+
