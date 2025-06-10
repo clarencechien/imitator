@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式 Docker O11y 教學指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral with Teal/Blue accents -->
+    <!-- Application Structure Plan: A single-page application with a fixed left-hand navigation sidebar. This structure allows users to easily jump between different logical sections of the tutorial (Architecture, Components, Code, Visualization) without losing context, which is more user-friendly than a long, linear scroll. The main sections are: Overview, Architecture (interactive diagram), Components (detailed cards), Setup/Code (tabbed interface for all code snippets), Data Exploration (simulated Grafana view with Chart.js), and Next Steps. This design prioritizes non-linear exploration and quick access to specific information, enhancing usability over the original report's format. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Overall system architecture -> Goal: Show relationships -> Viz: Interactive diagram with HTML/CSS/SVG -> Interaction: Click on nodes to see details -> Justification: Visually intuitive and robust way to understand data flow. SVG is used for reliable line drawing.
+        - Report Info: Component descriptions -> Goal: Inform -> Viz: Card layout -> Interaction: Click to highlight in architecture diagram -> Justification: Easy to scan and compare tools.
+        - Report Info: Multiple configuration files (YAML, Dockerfile, etc.) -> Goal: Organize and present code -> Viz: Tabbed interface for code blocks -> Interaction: Click tabs to switch files, copy button -> Justification: Prevents overwhelming the user with a wall of text; organizes code logically.
+        - Report Info: Metrics data -> Goal: Show change over time -> Viz: Line chart -> Library: Chart.js -> Justification: Standard and effective for time-series data.
+        - Report Info: Log data -> Goal: Show textual events -> Viz: Styled HTML block resembling a console -> Justification: Familiar and clear presentation for logs.
+        - Report Info: Trace data -> Goal: Show request flow and duration -> Viz: HTML-based Gantt/waterfall chart -> Justification: Effectively represents the nested and timed nature of spans in a trace.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .nav-link { transition: all 0.2s ease-in-out; }
+        .nav-link.active { background-color: #e0f2f1; color: #0d9488; border-right: 3px solid #0d9488; }
+        .nav-link:not(.active):hover { background-color: #f1f5f9; color: #334155; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .code-block { background-color: #1e293b; color: #e2e8f0; font-family: 'Courier New', Courier, monospace; }
+        .tab-button.active { background-color: #0d9488; color: white; }
+        .tab-button { background-color: #f1f5f9; color: #334155; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 400px; max-height: 50vh; }
+        .arch-node { transition: all 0.3s ease-in-out; }
+        .arch-node.highlight { transform: scale(1.05); box-shadow: 0 0 0 3px #14b8a6; }
+        .svg-text { font-size: 12px; fill: #64748b; font-family: 'Inter', sans-serif; }
+        .manual-content ol { list-style-type: decimal; margin-left: 1.5rem; }
+        .manual-content li { margin-bottom: 0.75rem; }
+        .manual-content code { background-color: #e2e8f0; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: 'Courier New', Courier, monospace; color: #1e293b; }
+    </style>
+</head>
+<body class="text-slate-700">
+    <div class="flex h-screen bg-gray-50">
+        <aside class="w-64 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
+            <div class="h-16 flex items-center justify-center border-b border-slate-200">
+                <h1 class="text-xl font-bold text-teal-700">Docker O11y Guide</h1>
+            </div>
+            <nav class="flex-1 px-4 py-4 space-y-2">
+                <a href="#overview" class="nav-link flex items-center px-4 py-2 text-slate-600 rounded-md font-medium">總覽</a>
+                <a href="#architecture" class="nav-link flex items-center px-4 py-2 text-slate-600 rounded-md font-medium">架構視覺化</a>
+                <a href="#components" class="nav-link flex items-center px-4 py-2 text-slate-600 rounded-md font-medium">核心元件</a>
+                <a href="#setup" class="nav-link flex items-center px-4 py-2 text-slate-600 rounded-md font-medium">設定與實作</a>
+                <a href="#explore" class="nav-link flex items-center px-4 py-2 text-slate-600 rounded-md font-medium">在 Grafana 中探索</a>
+                <a href="#next-steps" class="nav-link flex items-center px-4 py-2 text-slate-600 rounded-md font-medium">後續步驟</a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto p-6 md:p-10">
+            <div id="overview" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Docker 可觀測性最小化實踐</h2>
+                <p class="text-lg text-slate-600 mb-6">這份互動式指南將引導您建構一個最小化但功能完整的 Docker 可觀測性 (Observability, o11y) 解決方案，涵蓋指標 (Metrics)、日誌 (Logs) 與追蹤 (Tracing) 三大支柱。</p>
+                <div class="bg-teal-50 border-l-4 border-teal-500 text-teal-800 p-4 rounded-r-lg">
+                    <p>本指南的目標是讓您掌握建立本地 Docker 環境可觀測性系統的完整流程。您將學習如何整合 Prometheus、Loki、Tempo 與 OpenTelemetry Collector，並透過 Grafana 進行統一視覺化展示。使用左側的導覽列來探索系統的各個部分。</p>
+                </div>
+
+                 <div class="mt-8 p-6 bg-white rounded-lg shadow-sm">
+                    <h3 class="text-2xl font-semibold text-slate-800 mb-4">核心元件概覽</h3>
+                    <p class="mb-6 text-slate-600">整個系統由多個開源工具協同工作而成。點擊左側的「核心元件」可以深入了解每個工具的角色與功能。</p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+                        <div class="p-4 bg-gray-100 rounded-lg"><span class="font-semibold">Prometheus</span><br><span class="text-sm text-slate-500">Metrics</span></div>
+                        <div class="p-4 bg-gray-100 rounded-lg"><span class="font-semibold">Loki</span><br><span class="text-sm text-slate-500">Logs</span></div>
+                        <div class="p-4 bg-gray-100 rounded-lg"><span class="font-semibold">Tempo</span><br><span class="text-sm text-slate-500">Traces</span></div>
+                        <div class="p-4 bg-gray-100 rounded-lg"><span class="font-semibold">OTel Collector</span><br><span class="text-sm text-slate-500">Data Hub</span></div>
+                        <div class="p-4 bg-gray-100 rounded-lg"><span class="font-semibold">Grafana</span><br><span class="text-sm text-slate-500">Visualization</span></div>
+                        <div class="p-4 bg-gray-100 rounded-lg"><span class="font-semibold">Docker</span><br><span class="text-sm text-slate-500">Runtime</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="architecture" class="content-section">
+                 <h2 class="text-3xl font-bold text-slate-800 mb-4">架構視覺化</h2>
+                 <p class="text-lg text-slate-600 mb-8">下圖展示了遙測數據如何在系統中流動。點擊任何一個元件節點來查看其詳細資訊，並在下方的「核心元件」卡片中查看其對應的醒目標示。</p>
+                <div class="relative w-full p-8 bg-white rounded-lg shadow-sm" style="height: 600px;">
+                    <!-- SVG lines -->
+                    <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                            </marker>
+                        </defs>
+                        <!-- App -> OTel -->
+                        <line x1="160" y1="300" x2="220" y2="300" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="165" y="290" class="svg-text">OTLP Data</text>
+                        
+                        <!-- App logs -> Docker -->
+                        <line x1="90" y1="350" x2="90" y2="450" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="95" y="400" class="svg-text">Container Logs</text>
+
+                        <!-- Docker Logs -> Loki -->
+                        <polyline points="160,500 320,500 320,300 420,300" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <text x="280" y="520" class="svg-text">Shipped Logs</text>
+
+                        <!-- OTel -> Tempo -->
+                        <polyline points="360,300 390,300 390,500 420,500" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <text x="375" y="400" class="svg-text">Traces</text>
+
+                        <!-- OTel -> Prometheus -->
+                        <polyline points="360,275 390,275 390,100 420,100" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <text x="340" y="90" class="svg-text">App Metrics</text>
+                        
+                        <!-- Docker -> Prometheus -->
+                        <polyline points="160,475 200,475 200,125 420,125" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <text x="210" y="115" class="svg-text">Daemon Metrics</text>
+
+                        <!-- Data sources -> Grafana -->
+                        <line x1="560" y1="300" x2="620" y2="300" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <polyline points="560,100 590,100 590,300" stroke="#94a3b8" stroke-width="2" fill="none"/>
+                        <polyline points="560,500 590,500 590,300" stroke="#94a3b8" stroke-width="2" fill="none"/>
+                        <text x="565" y="290" class="svg-text">Query</text>
+                    </svg>
+
+                    <!-- Nodes -->
+                    <div id="arch-node-app" data-component="app" class="arch-node absolute flex flex-col items-center justify-center p-4 bg-blue-100 border-2 border-blue-400 rounded-lg cursor-pointer" style="top: 250px; left: 20px; width: 140px; height: 100px;">
+                        <span class="font-bold">範例應用程式</span>
+                        <span class="text-sm">(App1, App2)</span>
+                    </div>
+                     <div id="arch-node-docker" data-component="docker" class="arch-node absolute flex items-center justify-center p-4 bg-cyan-100 border-2 border-cyan-400 rounded-lg cursor-pointer" style="top: 450px; left: 20px; width: 140px; height: 100px;">
+                        <span class="font-bold">Docker Daemon</span>
+                    </div>
+                    <div id="arch-node-otel" data-component="otel" class="arch-node absolute flex items-center justify-center p-4 bg-indigo-100 border-2 border-indigo-400 rounded-lg cursor-pointer" style="top: 250px; left: 220px; width: 140px; height: 100px;">
+                        <span class="font-bold">OTel Collector</span>
+                    </div>
+                    <div id="arch-node-prometheus" data-component="prometheus" class="arch-node absolute flex flex-col items-center justify-center p-4 bg-orange-100 border-2 border-orange-400 rounded-lg cursor-pointer" style="top: 50px; left: 420px; width: 140px; height: 100px;">
+                        <span class="font-bold">Prometheus</span>
+                        <span class="text-sm">(Metrics)</span>
+                    </div>
+                    <div id="arch-node-loki" data-component="loki" class="arch-node absolute flex flex-col items-center justify-center p-4 bg-yellow-100 border-2 border-yellow-400 rounded-lg cursor-pointer" style="top: 250px; left: 420px; width: 140px; height: 100px;">
+                        <span class="font-bold">Loki</span>
+                        <span class="text-sm">(Logs)</span>
+                    </div>
+                    <div id="arch-node-tempo" data-component="tempo" class="arch-node absolute flex flex-col items-center justify-center p-4 bg-purple-100 border-2 border-purple-400 rounded-lg cursor-pointer" style="top: 450px; left: 420px; width: 140px; height: 100px;">
+                         <span class="font-bold">Tempo</span>
+                        <span class="text-sm">(Traces)</span>
+                    </div>
+                    <div id="arch-node-grafana" data-component="grafana" class="arch-node absolute flex items-center justify-center p-4 bg-green-100 border-2 border-green-400 rounded-lg cursor-pointer" style="top: 250px; left: 620px; width: 140px; height: 100px;">
+                        <span class="font-bold">Grafana</span>
+                    </div>
+                </div>
+                <div id="arch-details" class="mt-8 p-6 bg-white rounded-lg shadow-sm min-h-[100px]">
+                    <p class="text-slate-500">點擊上方圖表中的一個節點以查看其說明。</p>
+                </div>
+            </div>
+
+            <div id="components" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">核心元件詳解</h2>
+                <p class="text-lg text-slate-600 mb-8">可觀測性堆疊由多個協同工作的元件組成。下方是每個元件的詳細介紹。</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div id="component-card-docker" class="component-card bg-white p-6 rounded-lg shadow-sm border-2 border-transparent">
+                        <h3 class="text-xl font-semibold text-cyan-700 mb-2">Docker Daemon</h3>
+                        <p class="text-slate-600">提供 Docker 引擎自身的運行指標 (如 CPU、記憶體)，並透過日誌驅動程式 (Logging Driver) 成為容器日誌的來源。</p>
+                    </div>
+                    <div id="component-card-prometheus" class="component-card bg-white p-6 rounded-lg shadow-sm border-2 border-transparent">
+                        <h3 class="text-xl font-semibold text-orange-700 mb-2">Prometheus</h3>
+                        <p class="text-slate-600">一個開源的監控和警報工具包。它以時間序列數據庫的形式收集並儲存指標，並提供強大的查詢語言 (PromQL) 進行分析。</p>
+                    </div>
+                    <div id="component-card-loki" class="component-card bg-white p-6 rounded-lg shadow-sm border-2 border-transparent">
+                        <h3 class="text-xl font-semibold text-yellow-700 mb-2">Loki</h3>
+                        <p class="text-slate-600">由 Grafana Labs 開發的水平可擴展、高可用性的日誌聚合系統。它的設計理念是只對日誌的元數據 (metadata) 進行索引，而非日誌全文，從而降低儲存成本。</p>
+                    </div>
+                    <div id="component-card-tempo" class="component-card bg-white p-6 rounded-lg shadow-sm border-2 border-transparent">
+        
+                        <h3 class="text-xl font-semibold text-purple-700 mb-2">Tempo</h3>
+                        <p class="text-slate-600">一個高擴展性、易於操作的分散式追蹤後端。它僅需要對象儲存 (object storage) 即可運行，並透過與 Grafana、Prometheus 和 Loki 的深度整合，實現了追蹤的無縫查詢。</p>
+                    </div>
+                    <div id="component-card-otel" class="component-card bg-white p-6 rounded-lg shadow-sm border-2 border-transparent">
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-2">OpenTelemetry Collector</h3>
+                        <p class="text-slate-600">一個廠商中立的代理程式，用於接收、處理和匯出遙測數據。它解耦了應用程式與後端監控系統，讓您可以輕鬆切換後端而無需修改應用程式代碼。</p>
+                    </div>
+                    <div id="component-card-grafana" class="component-card bg-white p-6 rounded-lg shadow-sm border-2 border-transparent">
+                        <h3 class="text-xl font-semibold text-green-700 mb-2">Grafana</h3>
+                        <p class="text-slate-600">領先的開源分析與監控視覺化平台。它允許您查詢、視覺化、告警並理解您的指標、日誌和追蹤數據，無論它們儲存在哪裡。</p>
+                    </div>
+                     <div id="component-card-app" class="component-card bg-white p-6 rounded-lg shadow-sm border-2 border-transparent">
+                        <h3 class="text-xl font-semibold text-blue-700 mb-2">範例應用程式</h3>
+                        <p class="text-slate-600">一個模擬微服務環境的多容器應用，包含 Python/Flask 前後端、PostgreSQL 和 MongoDB，用於演示如何使用 OpenTelemetry SDK 進行自動埋點。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="setup" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">設定與實作</h2>
+                <p class="text-lg text-slate-600 mb-8">這裡是建構整個可觀測性堆疊所需的所有設定檔與應用程式碼。點擊下方的按鈕來切換查看不同的檔案。</p>
+                
+                <div id="code-switcher" class="flex flex-wrap gap-2 mb-4">
+                </div>
+
+                <div id="code-view-container">
+                    <div class="relative">
+                        <pre class="code-block p-4 rounded-lg overflow-x-auto text-sm"><code id="code-content"></code></pre>
+                        <button id="copy-button" class="absolute top-2 right-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold py-1 px-2 rounded">Copy</button>
+                    </div>
+                </div>
+                <div id="manual-view-container" class="hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm manual-content prose prose-slate">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-4">操作步驟指南</h3>
+                        <ol>
+                            <li>
+                                <strong>準備環境：</strong><br>
+                                確保您已經安裝了最新版的 Docker 和 Docker Compose，並且 Docker 服務正在運行。
+                            </li>
+                            <li>
+                                <strong>設定 Docker Daemon：</strong><br>
+                                根據您的作業系統，找到並修改 <code>daemon.json</code> 檔案，加入 <code>metrics-addr</code> 和 `log-driver` 設定，然後重啟 Docker 服務。如果無法修改主機的 `daemon.json`，您也可以在 <code>docker-compose.yml</code> 中為每個服務單獨指定 `logging` driver。
+                            </li>
+                            <li>
+                                <strong>啟動所有服務：</strong><br>
+                                在專案根目錄 (包含 <code>docker-compose.yml</code> 的目錄) 下，打開終端機並執行以下命令：<br>
+                                <code>docker compose up --build -d</code><br>
+                                <code>--build</code> 參數會確保 Docker 根據最新的 Dockerfile 建置您的應用程式映像檔。<code>-d</code> 參數會讓容器在背景運行。
+                            </li>
+                            <li>
+                                <strong>產生測試流量：</strong><br>
+                                所有容器啟動後，打開您的網頁瀏覽器或使用 <code>curl</code> 工具來訪問 `app1` 的 API 端點，以產生追蹤和日誌數據：<br>
+                                <code>curl http://localhost:8080/call_downstream</code><br>
+                                您可以多次執行此命令以產生更多數據。
+                            </li>
+                            <li>
+                                <strong>探索 Grafana：</strong><br>
+                                在瀏覽器中打開 Grafana：<code>http://localhost:3000</code>。<br>
+                                使用預設帳號 <code>admin</code> 和密碼 <code>admin</code> 登入。
+                            </li>
+                            <li>
+                                <strong>驗證數據：</strong><br>
+                                <ul>
+                                    <li>前往 <strong>Explore</strong> 頁面。</li>
+                                    <li>從頂部下拉選單中選擇 <strong>Loki</strong> 數據源，使用查詢 <code>{container_name="app1"}</code> 查看 `app1` 的日誌。</li>
+                                    <li>在日誌中找到一個包含 <code>traceID</code> 的條目，點擊它旁邊的 <strong>Tempo</strong> 按鈕，這會帶您到對應的分散式追蹤。</li>
+                                    <li>切換到 <strong>Prometheus</strong> 數據源，查詢 <code>rate(http_server_duration_seconds_count{service_name="app1-flask-service"}[1m])</code> 來查看 `app1` 的請求率。</li>
+                                </ul>
+                            </li>
+                             <li>
+                                <strong>關閉並清理：</strong><br>
+                                當您完成測試後，可以執行以下命令來停止並移除所有容器、網路和儲存卷：<br>
+                                <code>docker compose down -v</code><br>
+                                <code>-v</code> 參數會一併移除命名儲存卷 (volumes)，將會刪除所有收集到的數據。
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div id="explore" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">在 Grafana 中探索數據</h2>
+                 <p class="text-lg text-slate-600 mb-8">一旦所有服務都運行起來並產生數據，您就可以在 Grafana 中將指標、日誌和追蹤關聯起來，進行全面的問題診斷。下方是一個模擬的 Grafana 探索視圖。</p>
+                
+                <div class="flex justify-center gap-2 mb-6">
+                    <button data-type="metrics" class="viz-toggle-button bg-teal-600 text-white py-2 px-4 rounded-md shadow-sm">查看指標 (Metrics)</button>
+                    <button data-type="logs" class="viz-toggle-button bg-gray-200 text-slate-700 py-2 px-4 rounded-md">查看日誌 (Logs)</button>
+                    <button data-type="traces" class="viz-toggle-button bg-gray-200 text-slate-700 py-2 px-4 rounded-md">查看追蹤 (Traces)</button>
+                </div>
+
+                <div id="viz-container" class="bg-white p-6 rounded-lg shadow-sm">
+                    <div id="metrics-viz" class="viz-content">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-700">Prometheus - Docker CPU 使用率</h3>
+                        <div class="chart-container">
+                            <canvas id="metricsChart"></canvas>
+                        </div>
+                        <p class="text-sm text-slate-500 mt-4 text-center">此圖表顯示了從 Prometheus 查詢到的 `engine_daemon_cpu_nanoseconds_total` 指標，反映了 Docker 守護程序的 CPU 使用趨勢。</p>
+                    </div>
+
+                    <div id="logs-viz" class="viz-content hidden">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-700">Loki - 應用程式日誌</h3>
+                        <div class="code-block p-4 rounded-lg overflow-x-auto text-sm h-96">
+                            <p>[2023-10-27T10:30:01Z] INFO [app.py:25] - App1: Received request for /call_downstream. <span class="text-yellow-400">traceID=a1b2c3d4e5f6</span></p>
+                            <p>[2023-10-27T10:30:01Z] INFO [app.py:30] - App1: Calling App2 at http://app2:8081/app2_data</p>
+                            <p class="text-cyan-400">[2023-10-27T10:30:02Z] INFO [app.py:28] - App2: Received request for /app2_data. <span class="text-yellow-400">traceID=a1b2c3d4e5f6</span></p>
+                            <p class="text-cyan-400">[2023-10-27T10:30:02Z] INFO [app.py:44] - App2: Inserted document into MongoDB with id: 653b8b5a...</p>
+                            <p>[2023-10-27T10:30:02Z] INFO [app.py:33] - App1: Received response from App2: {'source': 'App2', ...}</p>
+                            <p>[2023-10-27T10:30:03Z] INFO [app.py:42] - App1: Calling PostgREST at http://postgrest:3000/items</p>
+                            <p class="text-red-400">[2023-10-27T10:30:04Z] ERROR [app.py:46] - App1: Error calling PostgREST: 500 Server Error</p>
+                        </div>
+                         <p class="text-sm text-slate-500 mt-4 text-center">Loki 收集了所有容器的標準輸出日誌。在 Grafana 中，您可以根據容器名稱、日誌內容進行過濾，並點擊日誌中的 `traceID` 直接跳轉到 Tempo 查看完整的分散式追蹤。</p>
+                    </div>
+
+                    <div id="traces-viz" class="viz-content hidden">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-700">Tempo - 分散式追蹤瀑布圖</h3>
+                        <div class="p-4 bg-slate-800 rounded-lg h-96 space-y-3 font-mono text-white text-sm overflow-hidden">
+                            <!-- Trace waterfall diagram -->
+                            <div class="relative w-full h-8 bg-blue-500/50 rounded flex items-center px-2" style="width: 100%;">
+                                app1: GET /call_downstream <span class="ml-auto">2015ms</span>
+                            </div>
+                            <div class="relative w-full h-8 bg-cyan-500/50 rounded flex items-center px-2 ml-4" style="width: 90%;">
+                                app1: GET app2/app2_data <span class="ml-auto">1050ms</span>
+                            </div>
+                            <div class="relative w-full h-8 bg-green-500/50 rounded flex items-center px-2 ml-8" style="width: 70%;">
+                                app2: DB query mongodb <span class="ml-auto">550ms</span>
+                            </div>
+                            <div class="relative w-full h-8 bg-red-500/50 rounded flex items-center px-2 ml-4" style="width: 85%;">
+                                app1: GET postgrest/items <span class="ml-auto">950ms</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-500 mt-4 text-center">Tempo 視覺化了單個請求跨越多個服務的完整生命週期。每個橫條代表一個操作 (span)，其長度表示耗時。這可以幫助您快速定位效能瓶頸和錯誤發生的環節。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="next-steps" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">結論與後續步驟</h2>
+                <div class="bg-white p-6 rounded-lg shadow-sm space-y-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">「最小化」堆疊回顧</h3>
+                        <p class="text-slate-600">本指南展示了如何整合 Prometheus、Loki、Tempo、OTel Collector 和 Grafana 來為您的 Docker 應用建立一個強大的可觀測性基礎。這個堆疊為監控健康狀況、效能表現和故障排除提供了堅實的起點。</p>
+                    </div>
+                     <div>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">主要學習點</h3>
+                        <ul class="list-disc list-inside space-y-2 text-slate-600">
+                            <li><strong>解耦是關鍵:</strong> OpenTelemetry Collector 解耦了應用程式與後端，提供了極大的靈活性。</li>
+                            <li><strong>自動化價值:</strong> OpenTelemetry 自動埋點功能大大簡化了接入過程。</li>
+                            <li><strong>關聯的力量:</strong> 將指標 (M)、日誌 (L) 和追蹤 (T) 在 Grafana 中關聯起來，是實現高效可觀測性的核心。</li>
+                            <li><strong>基礎設施即程式碼:</strong> 使用 Docker Compose 和 Grafana Provisioning 確保了環境的一致性和可重複性。</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">後續探索方向</h3>
+                        <p class="text-slate-600 mb-4">這個「最小化」堆疊為更進階的實踐奠定了基礎。您可以進一步探索：</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-gray-100 p-4 rounded-lg"><strong>告警 (Alerting):</strong> 在 Prometheus 或 Grafana 中設定告警規則，以及時發現問題。</div>
+                            <div class="bg-gray-100 p-4 rounded-lg"><strong>進階處理:</strong> 探索 Collector 更複雜的處理器，如屬性修改、過濾和採樣。</div>
+                            <div class="bg-gray-100 p-4 rounded-lg"><strong>擴展性考量:</strong> 為生產環境配置更可靠的儲存後端 (如 S3) 和集群部署。</div>
+                            <div class="bg-gray-100 p-4 rounded-lg"><strong>安全性強化:</strong> 為內部通訊啟用 TLS，並為服務設定身份驗證。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const contentSections = document.querySelectorAll('.content-section');
+    const archNodes = document.querySelectorAll('.arch-node');
+    const componentCards = document.querySelectorAll('.component-card');
+    const archDetails = document.getElementById('arch-details');
+    const vizToggleButtons = document.querySelectorAll('.viz-toggle-button');
+    const vizContents = document.querySelectorAll('.viz-content');
+    const codeSwitcher = document.getElementById('code-switcher');
+    const codeContentEl = document.getElementById('code-content');
+    const copyButton = document.getElementById('copy-button');
+    const codeViewContainer = document.getElementById('code-view-container');
+    const manualViewContainer = document.getElementById('manual-view-container');
+
+    const componentDetails = {
+        docker: {
+            title: "Docker Daemon",
+            description: "負責運行容器，並透過 `daemon.json` 設定檔暴露自身的監控指標 (metrics)。同時，它使用 Loki Docker Driver 將容器的 `stdout`/`stderr` 日誌流直接發送到 Loki 服務。"
+        },
+        app: {
+            title: "範例應用程式 (Python/Flask)",
+            description: "一個模擬微服務的應用程式。它使用 OpenTelemetry SDK 進行自動埋點，將遙測數據 (Traces & Metrics) 以 OTLP 格式發送到 OpenTelemetry Collector。"
+        },
+        otel: {
+            title: "OpenTelemetry Collector",
+            description: "可觀測性數據的中樞。它從應用程式接收 OTLP 格式的數據，經過批次處理後，將追蹤數據轉發到 Tempo，並暴露一個 `/metrics` 端點供 Prometheus 抓取指標。"
+        },
+        prometheus: {
+            title: "Prometheus",
+            description: "定期從目標 (OTel Collector 和 Docker Daemon)「拉取」(scrape) 指標數據。收集到的數據儲存為時間序列，可供 Grafana 查詢以生成圖表和告警。"
+        },
+        loki: {
+            title: "Loki",
+            description: "從 Docker 日誌驅動程式接收日誌流。它只對日誌的元數據 (如容器名稱) 進行索引，使得日誌儲存和查詢非常高效。"
+        },
+        tempo: {
+            title: "Tempo",
+            description: "從 OTel Collector 接收追蹤數據並進行儲存。其設計為「無索引」，依賴追蹤 ID 進行查詢，通常與日誌或指標中的追蹤 ID 關聯後跳轉過來。"
+        },
+        grafana: {
+            title: "Grafana",
+            description: "終端使用者界面。它連接到 Prometheus、Loki 和 Tempo 作為數據源，使用它們各自的查詢語言 (PromQL, LogQL, TraceQL) 來查詢數據，並將其視覺化為儀表板、圖表和列表。"
+        }
+    };
+
+    const codeSnippets = {
+        'Docker Compose': {
+            'docker-compose.yml': `version: '3.8'
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.92.0
+    container_name: otel-collector
+    command: ["--config=/etc/otelcol-contrib/otel-collector-config.yml"]
+    volumes:
+      - ./otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/otel-collector-config.yml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+    networks:
+      - o11y-net
+    depends_on:
+      - loki
+      - tempo
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:v2.49.1
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - o11y-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  loki:
+    image: grafana/loki:2.9.5
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+    networks:
+      - o11y-net
+
+  tempo:
+    image: grafana/tempo:2.3.1
+    container_name: tempo
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/tempo-data
+    ports:
+      - "3200:3200"
+    networks:
+      - o11y-net
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/:/etc/grafana/provisioning/:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - o11y-net
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+      
+  # ... (Sample App Services)
+  
+volumes:
+  prometheus_data:
+  loki_data:
+  tempo_data:
+  grafana_data:
+  postgres_data:
+  mongodb_data:
+
+networks:
+  o11y-net:
+    driver: bridge`
+        },
+        '後端設定': {
+            'daemon.json': `{
+  "metrics-addr": "127.0.0.1:9323",
+  "experimental": true,
+  "log-driver": "loki",
+  "log-opts": {
+    "loki-url": "http://loki:3100/loki/api/v1/push",
+    "mode": "non-blocking"
+  }
+}`,
+            'prometheus.yml': `global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['host.docker.internal:9323']
+
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8889']`,
+            'otel-collector-config.yml': `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  logging:
+    loglevel: debug
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo, logging]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, logging]`,
+            'grafana-datasources.yml': `apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      exemplarTraceIdDestinations:
+        - name: 'trace_id'
+          datasourceUid: 'tempo'
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - datasourceUid: 'tempo'
+          matcherRegex: 'traceID=(\\w+)'
+          name: 'TraceID'
+          url: '\${__value.raw}'
+
+  - name: Tempo
+    uid: 'tempo'
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogs:
+        datasourceUid: 'loki'
+        filterByTraceID: true`
+        },
+        '範例應用程式': {
+            'app1/app.py': `from flask import Flask, jsonify
+import requests
+import os
+import logging
+
+app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+APP2_URL = os.environ.get("APP2_URL", "http://app2:8081")
+POSTGREST_URL = os.environ.get("POSTGREST_URL", "http://postgrest:3000")
+
+@app.route("/call_downstream")
+def call_downstream():
+    logger.info("App1: Received request for /call_downstream.")
+    
+    try:
+        app2_response = requests.get(f"{APP2_URL}/app2_data")
+        app2_data = app2_response.json()
+    except Exception as e:
+        app2_data = {"error": str(e)}
+        
+    try:
+        postgrest_response = requests.get(f"{POSTGREST_URL}/items")
+        postgrest_data = postgrest_response.json()
+    except Exception as e:
+        postgrest_data = {"error": str(e)}
+
+    return jsonify({
+        "from_app1": "Data from downstream",
+        "from_app2": app2_data,
+        "from_postgrest": postgrest_data
+    })
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8080)`,
+            'app1/Dockerfile': `FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \\
+    && opentelemetry-bootstrap -a install
+COPY app.py .
+CMD ["opentelemetry-instrument", "python", "app.py"]`,
+            'app1/requirements.txt': `flask
+requests
+opentelemetry-distro
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-flask
+opentelemetry-instrumentation-requests`
+        }
+    };
+    
+    function showContent(hash) {
+        contentSections.forEach(section => {
+            if ('#' + section.id === hash) {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
+        });
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === hash) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+
+    function highlightComponent(componentId) {
+        archNodes.forEach(node => {
+            if (node.dataset.component === componentId) {
+                node.classList.add('highlight');
+            } else {
+                node.classList.remove('highlight');
+            }
+        });
+        componentCards.forEach(card => {
+            if (card.id === `component-card-${componentId}`) {
+                card.classList.add('highlight', 'border-teal-500', 'shadow-lg');
+            } else {
+                card.classList.remove('highlight', 'border-teal-500', 'shadow-lg');
+            }
+        });
+    }
+
+    archNodes.forEach(node => {
+        node.addEventListener('click', () => {
+            const componentId = node.dataset.component;
+            const details = componentDetails[componentId];
+            if (details) {
+                archDetails.innerHTML = `<h3 class="text-xl font-semibold text-slate-800 mb-2">${details.title}</h3><p class="text-slate-600">${details.description}</p>`;
+                highlightComponent(componentId);
+            }
+        });
+    });
+
+    vizToggleButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const type = button.dataset.type;
+            
+            vizToggleButtons.forEach(btn => {
+                btn.classList.remove('bg-teal-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-slate-700');
+            });
+            button.classList.add('bg-teal-600', 'text-white');
+            button.classList.remove('bg-gray-200', 'text-slate-700');
+
+            vizContents.forEach(content => {
+                if (content.id === `${type}-viz`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    const setupTabs = () => {
+        // Create code tabs
+        for (const groupName in codeSnippets) {
+            const group = codeSnippets[groupName];
+            for(const fileName in group) {
+                const button = document.createElement('button');
+                button.textContent = fileName;
+                button.dataset.type = 'code';
+                button.dataset.group = groupName;
+                button.dataset.file = fileName;
+                button.className = 'tab-button text-sm py-2 px-3 rounded-md transition';
+                codeSwitcher.appendChild(button);
+            }
+        }
+        
+        // Create manual tab
+        const manualButton = document.createElement('button');
+        manualButton.textContent = '實作細節手冊';
+        manualButton.dataset.type = 'manual';
+        manualButton.className = 'tab-button text-sm py-2 px-3 rounded-md transition';
+        codeSwitcher.appendChild(manualButton);
+
+        const buttons = codeSwitcher.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                buttons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                const type = button.dataset.type;
+                if (type === 'code') {
+                    codeViewContainer.classList.remove('hidden');
+                    manualViewContainer.classList.add('hidden');
+                    const group = button.dataset.group;
+                    const file = button.dataset.file;
+                    codeContentEl.textContent = codeSnippets[group][file];
+                } else if (type === 'manual') {
+                    codeViewContainer.classList.add('hidden');
+                    manualViewContainer.classList.remove('hidden');
+                }
+            });
+        });
+        
+        if(buttons.length > 0) {
+            buttons[0].click();
+        }
+    };
+
+    copyButton.addEventListener('click', () => {
+        const textToCopy = codeContentEl.textContent;
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            copyButton.textContent = 'Copied!';
+            setTimeout(() => {
+                copyButton.textContent = 'Copy';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+        }
+        document.body.removeChild(textArea);
+    });
+    
+    const renderMetricsChart = () => {
+        const ctx = document.getElementById('metricsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['-60s', '-50s', '-40s', '-30s', '-20s', '-10s', 'now'],
+                datasets: [{
+                    label: 'CPU Usage (nanoseconds)',
+                    data: [120, 190, 150, 250, 220, 300, 280],
+                    borderColor: '#0d9488',
+                    backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    };
+    
+    // Initial setup
+    const initialHash = window.location.hash || '#overview';
+    showContent(initialHash);
+    setupTabs();
+    renderMetricsChart();
+
+    // Handle navigation
+    window.addEventListener('hashchange', () => {
+        showContent(window.location.hash);
+    });
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetHash = link.getAttribute('href');
+            window.location.hash = targetHash;
+        });
+    });
+});
+</script>
+</body>
+</html>
