@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式分散式追蹤教學</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: A dashboard-style SPA with top navigation to switch between thematic sections: "總覽" (concepts & architecture), "追蹤瀏覽器" (simulated trace list and detail view), "服務圖" (interactive service dependency graph and metrics), and "進階分析" (heatmap and other plugin views). This structure transforms the linear tutorial into an exploratory tool, mimicking the actual user experience of Grafana and enhancing learning by allowing non-linear exploration of concepts and their practical applications. -->
+    <!-- Visualization & Content Choices: 
+        - Architecture Diagram: HTML/CSS Flexbox for a clear data flow visualization. Goal: Inform.
+        - Trace List: Interactive HTML table. Goal: Compare/Select.
+        - Trace Waterfall: Chart.js Horizontal Bar Chart. Goal: Analyze. Interaction: Click a trace in the table to render its waterfall.
+        - Service Graph: HTML/CSS Grid/Flex with JS for interaction. Goal: Relate. Interaction: Click nodes to show metrics.
+        - Metrics Table: HTML table with JS interaction to link exemplars. Goal: Correlate.
+        - Duration Distribution: Chart.js Bar Chart. Goal: Analyze distribution.
+        - All choices are made to provide an interactive, hands-on learning experience without using SVG or Mermaid, adhering to the constraints. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f9f9f9;
+        }
+        .nav-btn {
+            @apply px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all;
+        }
+        .nav-btn.active {
+            @apply bg-slate-800 text-white shadow-md;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 40vh;
+            width: 100%;
+            max-width: 900px;
+            max-height: 400px;
+        }
+        .service-node {
+            @apply bg-white p-3 border border-slate-300 rounded-lg shadow-md flex flex-col items-center justify-center text-center cursor-pointer transition-transform duration-300 hover:scale-105 hover:shadow-lg;
+            z-index: 10;
+        }
+        .arrow {
+            position: absolute;
+            background-color: #94a3b8;
+            height: 2px;
+            transform-origin: left;
+            z-index: 0;
+        }
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #94a3b8;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="min-h-screen container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">互動式分散式追蹤教學</h1>
+            <p class="mt-2 text-md text-slate-600">使用 Tempo, Alloy, 和 Grafana 探索微服務效能</p>
+        </header>
+
+        <nav class="flex flex-wrap justify-center gap-2 mb-8">
+            <button class="nav-btn active" onclick="showView('overview')">總覽</button>
+            <button class="nav-btn" onclick="showView('explorer')">追蹤瀏覽器</button>
+            <button class="nav-btn" onclick="showView('service-graph')">服務圖</button>
+            <button class="nav-btn" onclick="showView('advanced')">進階分析</button>
+        </nav>
+
+        <main id="app-content">
+            <!-- Overview Section -->
+            <section id="overview" class="content-section active space-y-8">
+                 <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h2 class="text-2xl font-bold mb-4">什麼是分散式追蹤？</h2>
+                    <p class="text-slate-700 leading-relaxed">在現今的雲端原生環境中，一個應用程式通常由許多微服務組成。當一個請求發出時，它會分散到多個服務中處理。分散式追蹤就是「追蹤」這個請求從頭到尾的完整路徑，讓我們能了解它在每個環節的處理情況。</p>
+                    <ul class="mt-4 space-y-2 list-disc list-inside">
+                        <li><strong>追蹤 (Trace):</strong> 代表一個請求的完整生命週期。</li>
+                        <li><strong>Span:</strong> 代表在一次追蹤中，單一服務執行的特定操作。一個追蹤由多個 Span 組成。</li>
+                    </ul>
+                    <p class="mt-4 text-slate-700 leading-relaxed">它的主要價值在於，當系統出現延遲時，我們可以透過分析追蹤記錄，快速找出是哪個服務的哪個操作（Span）造成了效能瓶頸，從而精準地進行優化。</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h2 class="text-2xl font-bold mb-4">系統架構</h2>
+                    <p class="text-slate-600 mb-6">本教學中的系統由多個元件協同工作，從產生追蹤資料到最終的視覺化分析，流程如下：</p>
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-4 text-center text-sm font-medium">
+                        <div class="flex flex-col items-center">
+                            <div class="p-4 bg-blue-100 border-2 border-blue-300 rounded-lg shadow">K6 Tracing</div>
+                            <p class="mt-1 text-xs text-slate-500">產生假追蹤資料</p>
+                        </div>
+                        <div class="text-2xl text-slate-400">→</div>
+                        <div class="flex flex-col items-center">
+                            <div class="p-4 bg-purple-100 border-2 border-purple-300 rounded-lg shadow">Alloy</div>
+                            <p class="mt-1 text-xs text-slate-500">接收並處理資料</p>
+                        </div>
+                        <div class="text-2xl text-slate-400">→</div>
+                        <div class="flex flex-col items-center">
+                            <div class="p-4 bg-teal-100 border-2 border-teal-300 rounded-lg shadow">Tempo</div>
+                             <p class="mt-1 text-xs text-slate-500">儲存追蹤 &<br>產生指標</p>
+                        </div>
+                         <div class="text-2xl text-slate-400">→</div>
+                         <div class="flex flex-col items-center">
+                            <div class="p-4 bg-red-100 border-2 border-red-300 rounded-lg shadow">Prometheus</div>
+                             <p class="mt-1 text-xs text-slate-500">儲存指標資料</p>
+                        </div>
+                        <div class="text-2xl text-slate-400">→</div>
+                        <div class="flex flex-col items-center">
+                            <div class="p-4 bg-orange-100 border-2 border-orange-300 rounded-lg shadow">Grafana</div>
+                             <p class="mt-1 text-xs text-slate-500">視覺化與分析</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Trace Explorer Section -->
+            <section id="explorer" class="content-section space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h2 class="text-2xl font-bold mb-2">追蹤瀏覽器</h2>
+                    <p class="text-slate-600 mb-4">這裡模擬 Grafana 的 Trace Explorer 介面。下方列出了系統中捕獲到的所有追蹤記錄。您可以點擊任何一筆追蹤，特別是耗時較長的，來深入分析其詳細的 Span 瀑布圖，找出效能瓶頸。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                     <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">Trace ID</th>
+                                    <th scope="col" class="px-6 py-3">起始服務</th>
+                                    <th scope="col" class="px-6 py-3">根 Span</th>
+                                    <th scope="col" class="px-6 py-3">總耗時 (ms)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="traces-table">
+                                <!-- Traces will be injected here by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="trace-detail-container" class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 hidden">
+                    <h3 id="trace-detail-title" class="text-xl font-bold mb-4"></h3>
+                    <div class="chart-container">
+                        <canvas id="trace-waterfall-chart"></canvas>
+                    </div>
+                    <div id="trace-analysis" class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400 text-amber-800 rounded"></div>
+                </div>
+            </section>
+
+            <!-- Service Graph Section -->
+            <section id="service-graph" class="content-section space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h2 class="text-2xl font-bold mb-2">服務圖 (Service Graph)</h2>
+                    <p class="text-slate-600 mb-4">服務圖提供了一個宏觀的視角，展示系統中各微服務之間的依賴關係、請求速率和健康狀況。節點之間的箭頭代表請求流向。點擊任一服務節點可以查看其關鍵效能指標（Metrics）。這有助於我們快速定位有問題的服務。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 relative min-h-[400px]" id="service-graph-container">
+                    <!-- Nodes -->
+                    <div class="service-node absolute top-[40%] left-[5%]" id="node-user">
+                        <span>👤</span>
+                        <span>使用者</span>
+                    </div>
+                    <div class="service-node absolute top-[40%] left-[25%]" id="node-shop-backend">
+                        <span>🛍️</span>
+                        <span>shop-backend</span>
+                    </div>
+                    <div class="service-node absolute top-[10%] left-[50%]" id="node-auth-service">
+                        <span>🔐</span>
+                        <span>auth-service</span>
+                    </div>
+                    <div class="service-node absolute top-[40%] left-[50%]" id="node-article-service">
+                        <span>📰</span>
+                        <span>article-service</span>
+                    </div>
+                    <div class="service-node absolute top-[70%] left-[50%]" id="node-cart-service">
+                        <span>🛒</span>
+                        <span>cart-service</span>
+                    </div>
+                    <div class="service-node absolute top-[40%] left-[75%]" id="node-postgres">
+                        <span>🐘</span>
+                        <span>postgres</span>
+                    </div>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h3 class="text-xl font-bold mb-4">服務指標</h3>
+                    <div id="metrics-display" class="p-4 bg-slate-50 rounded-lg">
+                        <p class="text-slate-500">點擊上方圖中的一個服務節點來查看其詳細指標。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Analysis Section -->
+            <section id="advanced" class="content-section space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h2 class="text-2xl font-bold mb-2">進階分析</h2>
+                    <p class="text-slate-600 mb-4">這個分頁模擬了 Grafana 的進階分析功能，提供了另一種分析視角。下方的長條圖根據持續時間和頻率將所有 Span 視覺化，讓我們能一眼看出效能分佈情況。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                    <h3 class="text-xl font-bold mb-4">Span 持續時間分佈圖</h3>
+                     <p class="text-slate-600 mb-4">這張圖表顯示了不同持續時間區間內的 Span 數量。顏色越深的長條，代表該區間的 Span 越多。這能幫助我們了解大多數操作的耗時情況，以及是否存在異常耗時的離群值。</p>
+                    <div class="chart-container">
+                        <canvas id="duration-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        
+        <footer class="text-center mt-12 text-xs text-slate-500">
+            <p>此互動式報告根據影片內容生成。</p>
+            <p>原始資料來源: 
+                <a href="https://github.com/rslim087a/distributed-tracing-alloy-grafana-tempo" target="_blank" class="text-blue-600 hover:underline">GitHub Repo</a> | 
+                <a href="https://kubernetestraining.io/blog/distributed-tracing-tempo-alloy-grafana-(docker)" target="_blank" class="text-blue-600 hover:underline">教學文章</a>
+            </p>
+        </footer>
+
+    </div>
+
+    <script>
+        const views = ['overview', 'explorer', 'service-graph', 'advanced'];
+        const navButtons = document.querySelectorAll('.nav-btn');
+        let activeChart = null;
+        let durationChartInstance = null;
+
+        const traceData = [
+            { id: 't1', service: 'shop-backend', rootSpan: 'article-to-cart', duration: 1050, error: true },
+            { id: 't2', service: 'shop-backend', rootSpan: 'get-recommendations', duration: 550, error: false },
+            { id: 't3', service: 'shop-backend', rootSpan: 'checkout', duration: 680, error: false },
+            { id: 't4', service: 'shop-backend', rootSpan: 'article-to-cart', duration: 982, error: true },
+            { id: 't5', service: 'shop-backend', rootSpan: 'login', duration: 75, error: false },
+            { id: 't6', service: 'shop-backend', rootSpan: 'get-recommendations', duration: 580, error: false },
+        ];
+
+        const traceDetails = {
+            t1: {
+                title: "Trace t1: article-to-cart (1050ms)",
+                analysis: "瓶頸分析：`place-articles` 操作耗時最長 (800ms)，其子操作 `persist-cart` 花了 470ms，是主要延遲來源。需要優化 `cart-service` 中的 `persist-cart` 函式。",
+                spans: [
+                    { service: 'shop-backend', name: 'article-to-cart', start: 0, end: 1050, level: 0 },
+                    { service: 'shop-backend', name: 'authenticate', start: 5, end: 75, level: 1 },
+                    { service: 'auth-service', name: 'authenticate', start: 10, end: 70, level: 2 },
+                    { service: 'shop-backend', name: 'get-article', start: 5, end: 605, level: 1 },
+                    { service: 'article-service', name: 'get-article', start: 10, end: 600, level: 2 },
+                    { service: 'postgres', name: 'select-articles', start: 150, end: 350, level: 3 },
+                    { service: 'shop-backend', name: 'place-articles', start: 5, end: 805, level: 1 },
+                    { service: 'cart-service', name: 'place-articles', start: 10, end: 800, level: 2 },
+                    { service: 'cart-service', name: 'persist-cart', start: 300, end: 770, level: 3 },
+                ]
+            }
+        };
+
+        const serviceMetrics = {
+            'user': { name: '使用者', rps: 0.33, avg_duration: '-', error_rate: '0%' },
+            'shop-backend': { name: 'shop-backend', rps: 0.33, avg_duration: '655ms', error_rate: '24%' },
+            'auth-service': { name: 'auth-service', rps: 0.33, avg_duration: '186ms', error_rate: '24%' },
+            'article-service': { name: 'article-service', rps: 0.15, avg_duration: '~400ms', error_rate: '0%' },
+            'cart-service': { name: 'cart-service', rps: 0.15, avg_duration: '~800ms', error_rate: '0%' },
+            'postgres': { name: 'postgres', rps: 0.30, avg_duration: '~200ms', error_rate: '0%' },
+        };
+
+        function showView(viewId) {
+            views.forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+            document.getElementById(viewId).classList.add('active');
+
+            navButtons.forEach(btn => {
+                if (btn.getAttribute('onclick') === `showView('${viewId}')`) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            if (viewId === 'service-graph') {
+                setTimeout(setupServiceGraph, 0); 
+            }
+            if (viewId === 'advanced') {
+                renderDurationChart();
+            }
+        }
+
+        function populateTracesTable() {
+            const tableBody = document.getElementById('traces-table');
+            tableBody.innerHTML = '';
+            traceData.sort((a,b) => b.duration - a.duration).forEach(trace => {
+                const row = document.createElement('tr');
+                row.className = `bg-white border-b hover:bg-gray-50 ${trace.id === 't1' ? 'cursor-pointer' : 'cursor-not-allowed'}`;
+                if (trace.id === 't1') {
+                    row.onclick = () => showTraceDetail('t1');
+                }
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${trace.id} ${trace.id === 't1' ? '🔍' : ''}</td>
+                    <td class="px-6 py-4">${trace.service}</td>
+                    <td class="px-6 py-4">${trace.rootSpan}</td>
+                    <td class="px-6 py-4 ${trace.error ? 'text-red-500 font-bold' : ''}">${trace.duration}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function showTraceDetail(traceId) {
+            const detail = traceDetails[traceId];
+            if (!detail) return;
+            
+            const container = document.getElementById('trace-detail-container');
+            container.classList.remove('hidden');
+            document.getElementById('trace-detail-title').innerText = detail.title;
+            document.getElementById('trace-analysis').innerText = detail.analysis;
+
+            renderWaterfallChart(detail.spans);
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderWaterfallChart(spans) {
+            const ctx = document.getElementById('trace-waterfall-chart').getContext('2d');
+            if (activeChart) {
+                activeChart.destroy();
+            }
+
+            const colors = ['#38bdf8', '#818cf8', '#a78bfa', '#f472b6', '#fb923c', '#facc15'];
+
+            activeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: spans.map(s => `${' '.repeat(s.level * 2)}${s.service}: ${s.name}`),
+                    datasets: [{
+                        label: 'Span Duration',
+                        data: spans.map(s => [s.start, s.end]),
+                        backgroundColor: spans.map(s => colors[s.level % colors.length]),
+                        borderColor: spans.map(s => colors[s.level % colors.length]),
+                        borderWidth: 1,
+                        barPercentage: 0.6,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const span = spans[context.dataIndex];
+                                    const duration = span.end - span.start;
+                                    return `${span.service} - ${span.name}: ${duration}ms`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            min: 0,
+                            title: {
+                                display: true,
+                                text: '時間 (ms)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderDurationChart() {
+            const ctx = document.getElementById('duration-chart').getContext('2d');
+            if (durationChartInstance) {
+                durationChartInstance.destroy();
+            }
+            
+            const labels = ['0-100', '100-200', '200-400', '400-600', '600-800', '800-1000', '>1000'];
+            const dataPoints = [33, 15, 22, 31, 18, 12, 28];
+            const maxVal = Math.max(...dataPoints);
+
+            durationChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Span 數量',
+                        data: dataPoints,
+                        backgroundColor: dataPoints.map(v => `rgba(249, 115, 22, ${0.2 + (v/maxVal) * 0.8})`),
+                        borderColor: 'rgba(249, 115, 22, 1)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.raw} 個 Spans`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                         y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Span 數量'
+                            }
+                        },
+                         x: {
+                            title: {
+                                display: true,
+                                text: 'Span 持續時間區間 (ms)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupServiceGraph() {
+            const container = document.getElementById('service-graph-container');
+            const existingArrows = container.querySelectorAll('.arrow');
+            existingArrows.forEach(arrow => arrow.remove());
+            
+            const nodes = {
+                user: document.getElementById('node-user'),
+                shop: document.getElementById('node-shop-backend'),
+                auth: document.getElementById('node-auth-service'),
+                article: document.getElementById('node-article-service'),
+                cart: document.getElementById('node-cart-service'),
+                pg: document.getElementById('node-postgres'),
+            };
+
+            const connections = [
+                { from: nodes.user, to: nodes.shop },
+                { from: nodes.shop, to: nodes.auth },
+                { from: nodes.shop, to: nodes.article },
+                { from: nodes.shop, to: nodes.cart },
+                { from: nodes.article, to: nodes.pg },
+                { from: nodes.cart, to: nodes.pg },
+            ];
+            
+            connections.forEach(conn => {
+                const fromRect = conn.from.getBoundingClientRect();
+                const toRect = conn.to.getBoundingClientRect();
+                
+                const fromCenterX = conn.from.offsetLeft + fromRect.width / 2;
+                const fromCenterY = conn.from.offsetTop + fromRect.height / 2;
+                const toCenterX = conn.to.offsetLeft + toRect.width / 2;
+                const toCenterY = conn.to.offsetTop + toRect.height / 2;
+
+                const angle = Math.atan2(toCenterY - fromCenterY, toCenterX - fromCenterX);
+                
+                const x1 = fromCenterX + (fromRect.width / 2) * Math.cos(angle);
+                const y1 = fromCenterY + (fromRect.height / 2) * Math.sin(angle);
+                const x2 = toCenterX - (toRect.width / 2) * Math.cos(angle);
+                const y2 = toCenterY - (toRect.height / 2) * Math.sin(angle);
+
+                const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                const rotation = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+
+                const arrow = document.createElement('div');
+                arrow.classList.add('arrow');
+                arrow.style.width = `${length}px`;
+                arrow.style.left = `${x1}px`;
+                arrow.style.top = `${y1}px`;
+                arrow.style.transform = `rotate(${rotation}deg)`;
+                
+                container.appendChild(arrow);
+            });
+            
+             Object.entries(nodes).forEach(([key, nodeEl]) => {
+                if(nodeEl.dataset.listenerAttached) return;
+                nodeEl.dataset.listenerAttached = 'true';
+
+                nodeEl.addEventListener('click', () => {
+                    const metrics = serviceMetrics[nodeEl.id.replace('node-', '')];
+                    displayServiceMetrics(metrics);
+                    document.querySelectorAll('.service-node').forEach(n => n.classList.remove('ring-2', 'ring-blue-500'));
+                    nodeEl.classList.add('ring-2', 'ring-blue-500');
+                });
+            });
+        }
+        
+        function displayServiceMetrics(metrics) {
+            const display = document.getElementById('metrics-display');
+            display.innerHTML = `
+                <h4 class="font-bold text-lg text-slate-800">${metrics.name}</h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2 text-sm">
+                    <div>
+                        <p class="text-slate-500">請求速率 (RPS)</p>
+                        <p class="font-semibold text-lg">${metrics.rps}</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500">平均延遲</p>
+                        <p class="font-semibold text-lg">${metrics.avg_duration}</p>
+                    </div>
+                     <div>
+                        <p class="text-slate-500">錯誤率</p>
+                        <p class="font-semibold text-lg ${metrics.error_rate !== '0%' ? 'text-red-500' : ''}">${metrics.error_rate}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateTracesTable();
+            window.addEventListener('resize', () => {
+                if (document.getElementById('service-graph').classList.contains('active')) {
+                    setupServiceGraph();
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
