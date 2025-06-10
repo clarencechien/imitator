@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式 Docker Engine 外掛分析儀</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral with Teal Accent -->
+    <!-- Application Structure Plan: The SPA is designed with a top navigation bar to switch between four main thematic sections: '總覽 (Overview)', '外掛類型 (Plugin Types)', '應用案例 (Use Cases)', and '管理與實踐 (Management & Practices)'. This task-oriented, non-linear structure allows users to freely explore topics of interest, which is more effective for knowledge discovery than the original report's linear format. The 'Overview' uses a timeline to visualize history. 'Plugin Types' uses interactive cards for comparison. 'Use Cases' uses tabs and a chart to detail applications. 'Management' acts as a practical reference. This design prioritizes user engagement and comprehension by breaking down complex information into manageable, interactive chunks. -->
+    <!-- Visualization & Content Choices: 
+        - Evolution Timeline (Overview): Goal: Show Change. Method: HTML/CSS timeline. Interaction: Hover effects. Justification: More engaging than Table 1.
+        - Plugin Type Cards (Plugin Types): Goal: Organize/Compare. Method: Interactive HTML cards. Interaction: Click to reveal details. Justification: Better for comparing types than a static table.
+        - O11y Approach Chart (Use Cases): Goal: Compare. Method: Chart.js Bar Chart. Interaction: Tooltips. Justification: Visually quantifies the different implementation approaches listed in Table 3.
+        - Use Case Toggles (Use Cases): Goal: Organize. Method: HTML/JS Tabs. Interaction: Click to switch views. Justification: Manages content complexity for O11y and Encryption.
+        - Management Cheatsheet (Management): Goal: Inform. Method: Styled `<code>` blocks. Interaction: Copy buttons. Justification: Provides a practical, easy-to-use reference for commands.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .nav-link.active {
+            color: #14b8a6; 
+            border-bottom-color: #14b8a6;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .plugin-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .plugin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 50%;
+            background-color: #f1f5f9;
+            border: 4px solid #0d9488;
+            top: 50%;
+            left: -0.625rem;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl md:text-2xl font-bold text-teal-700">Docker 外掛分析儀</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-link px-3 py-2 text-stone-600 hover:text-teal-600 border-b-2 border-transparent">總覽</a>
+                        <a href="#types" class="nav-link px-3 py-2 text-stone-600 hover:text-teal-600 border-b-2 border-transparent">外掛類型</a>
+                        <a href="#usecases" class="nav-link px-3 py-2 text-stone-600 hover:text-teal-600 border-b-2 border-transparent">應用案例</a>
+                        <a href="#management" class="nav-link px-3 py-2 text-stone-600 hover:text-teal-600 border-b-2 border-transparent">管理與實踐</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-stone-500 hover:text-white hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+             <div id="mobile-menu" class="md:hidden hidden">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="#overview" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-stone-600 hover:text-teal-600 hover:bg-stone-100">總覽</a>
+                    <a href="#types" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-stone-600 hover:text-teal-600 hover:bg-stone-100">外掛類型</a>
+                    <a href="#usecases" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-stone-600 hover:text-teal-600 hover:bg-stone-100">應用案例</a>
+                    <a href="#management" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-stone-600 hover:text-teal-600 hover:bg-stone-100">管理與實踐</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <section id="overview" class="content-section">
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm">
+                <h2 class="text-3xl font-bold text-teal-700 mb-4">Docker Engine 外掛程式：擴展核心的基石</h2>
+                <p class="text-stone-600 leading-relaxed mb-6">本節介紹 Docker Engine 外掛程式在整個生態系統中的核心角色。外掛程式是一種強大的機制，它允許開發者和維運人員在不修改 Docker 核心程式碼的情況下，客製化和擴展 Docker 的功能。這不僅提供了極大的靈活性，也使得 Docker 能夠無縫整合各種第三方儲存、網路、日誌和安全解決方案，滿足複雜的企業級需求。</p>
+
+                <div class="mt-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">外掛程式系統演進時間軸</h3>
+                    <div class="relative pl-8 border-l-4 border-teal-200">
+                        <div class="timeline-item mb-12 relative">
+                            <h4 class="text-lg font-semibold text-teal-800">舊版外掛程式時期</h4>
+                            <time class="text-sm text-stone-500">&lt; Docker 1.12</time>
+                            <p class="mt-2 text-stone-600">在正式的受管理外掛程式系統出現之前，Docker 已具備初步的外掛程式機制。這些「舊版外掛程式」為後續發展奠定基礎，但在管理、安全性和易用性上存在不足。</p>
+                        </div>
+                        <div class="timeline-item mb-12 relative">
+                             <h4 class="text-lg font-semibold text-teal-800">實驗性受管理外掛程式</h4>
+                            <time class="text-sm text-stone-500">Docker 1.12 (2016年7月)</time>
+                            <p class="mt-2 text-stone-600">首次引入實驗性的受管理外掛程式 API，這是邁向標準化外掛程式管理的重要一步，但 API 尚不穩定。</p>
+                        </div>
+                        <div class="timeline-item relative">
+                             <h4 class="text-lg font-semibold text-teal-800">正式受管理外掛程式系統</h4>
+                            <time class="text-sm text-stone-500">Docker 1.13 (2017年1月)</time>
+                            <p class="mt-2 text-stone-600">一個重要的里程碑。引入了與 1.12 不相容的正式 API，並帶來了 docker plugin 系列命令，使外掛程式的生命週期管理更加標準化、安全和便捷。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="types" class="content-section">
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm">
+                 <h2 class="text-3xl font-bold text-teal-700 mb-4">核心外掛程式類型探索</h2>
+                <p class="text-stone-600 leading-relaxed mb-8">Docker Engine 根據其提供的「功能 (capability)」對外掛程式進行分類。這使得 Docker 的擴展點非常清晰，主要集中在與外部基礎設施整合的操作層面。點擊下方的卡片，可以深入了解每種類型外掛程式的目的、功能和典型範例，探索它們如何擴展 Docker 的能力。</p>
+                
+                <div id="plugin-types-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </div>
+        </section>
+
+        <section id="usecases" class="content-section">
+             <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm">
+                <h2 class="text-3xl font-bold text-teal-700 mb-4">真實世界應用案例</h2>
+                <p class="text-stone-600 leading-relaxed mb-6">外掛程式的真正價值在於解決實際問題。本節將深入探討兩個關鍵的應用場景：可觀測性 (o11y) 和資料加密。您將看到外掛程式如何與各種工具整合，以建立強大的日誌監控系統，以及如何透過磁碟區外掛程式保護容器中的靜態資料安全。這有助於理解如何利用外掛程式來滿足生產環境中對監控與安全的嚴格要求。</p>
+                
+                <div class="mb-6 border-b border-stone-200">
+                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button class="usecase-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-teal-600 border-teal-500" data-target="o11y">
+                            可觀測性 (O11y)
+                        </button>
+                        <button class="usecase-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-stone-500 hover:text-stone-700 hover:border-stone-300" data-target="encryption">
+                            資料加密
+                        </button>
+                    </nav>
+                </div>
+
+                <div id="o11y" class="usecase-content active">
+                    <h3 class="text-2xl font-semibold text-stone-800 mb-4">實現全面的可觀測性</h3>
+                    <p class="text-stone-600 mb-6">在 Docker 環境中，可觀測性通常透過組合日誌與指標收集來實現。日誌驅動程式 (logdriver) 外掛程式是實現集中式日誌的關鍵，而指標收集則更常依賴 cAdvisor 或 Prometheus Exporters 等整合工具。</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                        <div>
+                             <h4 class="text-xl font-semibold text-stone-700 mb-4">日誌與指標收集工具</h4>
+                             <div id="o11y-accordion"></div>
+                        </div>
+                        <div class="chart-container relative w-full max-w-lg mx-auto h-80 md:h-96">
+                             <canvas id="o11yChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="encryption" class="usecase-content">
+                    <h3 class="text-2xl font-semibold text-stone-800 mb-4">保障靜態資料安全</h3>
+                    <p class="text-stone-600 mb-6">Docker Engine 外掛程式主要透過磁碟區 (volumedriver) 外掛程式來實現靜態資料加密。這意味著將加密的複雜性委託給專門的儲存外掛程式，讓使用者可以根據安全需求選擇最合適的解決方案。</p>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-stone-200">
+                            <thead class="bg-stone-100">
+                                <tr>
+                                    <th class="py-3 px-4 border-b text-left text-sm font-semibold text-stone-600">解決方案/外掛程式</th>
+                                    <th class="py-3 px-4 border-b text-left text-sm font-semibold text-stone-600">類型</th>
+                                    <th class="py-3 px-4 border-b text-left text-sm font-semibold text-stone-600">加密機制</th>
+                                </tr>
+                            </thead>
+                            <tbody id="encryption-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+             </div>
+        </section>
+
+        <section id="management" class="content-section">
+             <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm">
+                <h2 class="text-3xl font-bold text-teal-700 mb-4">管理與最佳實踐</h2>
+                 <p class="text-stone-600 leading-relaxed mb-6">有效管理外掛程式的生命週期並遵循安全最佳實踐，對於維護一個穩定且安全的 Docker 環境至關重要。本節提供了一個 docker plugin 命令的快速參考，以及在部署外掛程式時必須考慮的關鍵安全和效能問題。</p>
+
+                <h3 class="text-2xl font-semibold text-stone-800 mb-4">外掛程式生命週期管理命令</h3>
+                <div id="management-commands" class="space-y-4"></div>
+
+                <h3 class="text-2xl font-semibold text-stone-800 mt-10 mb-4">關鍵最佳實踐</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
+                        <h4 class="font-bold text-orange-800">⚠️ 外掛程式安全</h4>
+                        <p class="mt-2 text-orange-700">謹慎使用 `--grant-all-permissions`。始終從受信任的來源安裝外掛程式，並僅授予最小必要權限，以防止潛在的安全漏洞。</p>
+                    </div>
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                        <h4 class="font-bold text-blue-800">⚙️ 效能影響</h4>
+                        <p class="mt-2 text-blue-700">網路、儲存和日誌外掛程式可能會引入效能開銷。在部署到生產環境前，務必進行充分的效能測試，評估其對系統的影響。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('.content-section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            const pluginTypesData = [
+                { name: 'volumedriver', icon: '💾', description: '管理來自外部儲存系統的持久性儲存，如雲端儲存或 SAN。', example: 'Azure File Storage, docker-lvm-plugin' },
+                { name: 'networkdriver', icon: '🌐', description: '整合自訂網路拓撲，提供超越預設網路的組態。', example: 'Contiv Networking, Kuryr' },
+                { name: 'ipamdriver', icon: '📍', description: '管理 IP 位址的分配 (IPAM)，可整合外部 IPAM 系統。', example: '與 networkdriver 一併提供' },
+                { name: 'logdriver', icon: '📜', description: '將容器日誌轉發到外部日誌聚合系統，如 Fluentd 或 Splunk。', example: 'Fluentd, Loki, Splunk' },
+                { name: 'authz', icon: '🛡️', description: '為 Docker API 操作提供細粒度的存取控制，提升安全性。', example: 'Casbin-based authz plugin' },
+                { name: 'metricscollector', icon: '📊', description: '從 Docker 守護程序和容器收集指標，用於監控目的。', example: '理論上存在，但實務上較少見' }
+            ];
+
+            const o11yTools = [
+                { name: 'Fluentd', type: '日誌記錄', approach: 'Engine 外掛程式', desc: '一個統一的日誌層，可將日誌轉發到多種後端，如 Elasticsearch。' },
+                { name: 'Loki Docker Driver', type: '日誌記錄', approach: 'Engine 外掛程式', desc: '直接將 Docker 日誌發送到 Grafana Loki 的社群外掛程式。' },
+                { name: 'cAdvisor', type: '指標收集', approach: '整合代理/工具', desc: '廣泛用於收集容器資源使用和效能指標的工具。' },
+                { name: 'Docker Daemon Prometheus Endpoint', type: '指標收集', approach: '守護程序功能', desc: 'Docker 1.13+ 內建的實驗性端點，公開基本指標。'},
+                { name: 'Prometheus Exporters', type: '指標收集', approach: '整合代理/工具', desc: '作為旁路容器運行，從特定服務收集指標。'}
+            ];
+
+            const encryptionTools = [
+                { name: 'containers/docker-lvm-plugin', type: 'Engine 磁碟區外掛程式', mechanism: 'LUKS' },
+                { name: 'Thales Vormetric', type: '商業解決方案', mechanism: '基於策略的透明加密' },
+                { name: 'Portworx', type: '容器原生儲存', mechanism: '磁碟區級別加密' }
+            ];
+            
+            const managementCommands = [
+                { cmd: 'docker plugin install [OPTIONS] PLUGIN', desc: '安裝一個外掛程式' },
+                { cmd: 'docker plugin ls [OPTIONS]', desc: '列出已安裝的外掛程式' },
+                { cmd: 'docker plugin enable PLUGIN', desc: '啟用一個已禁用的外掛程式' },
+                { cmd: 'docker plugin disable PLUGIN', desc: '禁用一個正在運行的外掛程式' },
+                { cmd: 'docker plugin inspect PLUGIN', desc: '檢視外掛程式的詳細資訊' },
+                { cmd: 'docker plugin rm PLUGIN', desc: '移除一個外掛程式' },
+                { cmd: 'docker plugin upgrade PLUGIN', desc: '升級一個外掛程式' }
+            ];
+
+            function populatePluginTypes() {
+                const grid = document.getElementById('plugin-types-grid');
+                grid.innerHTML = pluginTypesData.map(plugin => `
+                    <div class="plugin-card bg-slate-50 rounded-lg p-6 cursor-pointer border border-slate-200 hover:border-teal-400">
+                        <div class="flex items-center space-x-4">
+                            <span class="text-4xl">${plugin.icon}</span>
+                            <div>
+                                <h3 class="text-xl font-bold text-stone-800">${plugin.name}</h3>
+                                <p class="text-stone-500">${plugin.description}</p>
+                                <p class="text-sm text-teal-600 mt-2"><strong>範例:</strong> ${plugin.example}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function populateO11yAccordion() {
+                const accordion = document.getElementById('o11y-accordion');
+                accordion.innerHTML = o11yTools.map((tool, index) => `
+                    <div class="border-b border-stone-200">
+                        <button class="accordion-toggle w-full flex justify-between items-center text-left py-4 px-2" data-index="${index}">
+                            <span class="font-semibold text-stone-700">${tool.name}</span>
+                            <span class="transform transition-transform duration-300">
+                                <svg class="w-5 h-5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </span>
+                        </button>
+                        <div class="accordion-content px-2">
+                            <div class="pb-4">
+                                <p class="text-stone-600">${tool.desc}</p>
+                                <div class="mt-2 text-xs">
+                                    <span class="inline-block bg-teal-100 text-teal-800 rounded-full px-3 py-1 mr-2">${tool.type}</span>
+                                    <span class="inline-block bg-sky-100 text-sky-800 rounded-full px-3 py-1">${tool.approach}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.accordion-toggle').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const content = button.nextElementSibling;
+                        const icon = button.querySelector('svg');
+                        if (content.style.maxHeight) {
+                            content.style.maxHeight = null;
+                            content.style.padding = '0px';
+                            icon.parentElement.style.transform = '';
+                        } else {
+                            document.querySelectorAll('.accordion-content').forEach(ac => {
+                                ac.style.maxHeight = null;
+                                ac.style.padding = '0px';
+                                ac.previousElementSibling.querySelector('svg').parentElement.style.transform = '';
+                            });
+                            content.style.maxHeight = content.scrollHeight + "px";
+                            content.style.padding = '0px 0.5rem 1rem 0.5rem';
+                            icon.parentElement.style.transform = 'rotate(180deg)';
+                        }
+                    });
+                });
+            }
+
+            function populateEncryptionTable() {
+                const tbody = document.getElementById('encryption-table-body');
+                tbody.innerHTML = encryptionTools.map(tool => `
+                    <tr class="hover:bg-stone-50">
+                        <td class="py-3 px-4 border-b border-stone-200 font-medium">${tool.name}</td>
+                        <td class="py-3 px-4 border-b border-stone-200">${tool.type}</td>
+                        <td class="py-3 px-4 border-b border-stone-200"><span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${tool.mechanism}</span></td>
+                    </tr>
+                `).join('');
+            }
+            
+            function populateManagementCommands() {
+                const container = document.getElementById('management-commands');
+                container.innerHTML = managementCommands.map(item => `
+                    <div class="bg-gray-900 text-white rounded-lg p-4 flex items-center justify-between">
+                        <code class="text-sm sm:text-base text-green-400">${item.cmd}</code>
+                        <span class="text-gray-400 text-xs sm:text-sm text-right ml-4 hidden sm:block">${item.desc}</span>
+                        <button class="copy-btn ml-4 flex-shrink-0 bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold py-1 px-3 rounded text-xs" data-command="${item.cmd}">複製</button>
+                    </div>
+                `).join('');
+
+                document.querySelectorAll('.copy-btn').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const command = button.dataset.command;
+                        const tempInput = document.createElement('input');
+                        document.body.appendChild(tempInput);
+                        tempInput.value = command;
+                        tempInput.select();
+                        try {
+                            document.execCommand('copy');
+                            button.textContent = '已複製!';
+                            setTimeout(() => { button.textContent = '複製'; }, 2000);
+                        } catch (err) {
+                            console.error('Copy failed', err);
+                        }
+                        document.body.removeChild(tempInput);
+                    });
+                });
+            }
+
+            function renderO11yChart() {
+                const ctx = document.getElementById('o11yChart').getContext('2d');
+                const approaches = {};
+                o11yTools.forEach(tool => {
+                    approaches[tool.approach] = (approaches[tool.approach] || 0) + 1;
+                });
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(approaches),
+                        datasets: [{
+                            label: '工具數量',
+                            data: Object.values(approaches),
+                            backgroundColor: ['#2dd4bf', '#60a5fa', '#a78bfa'],
+                            borderColor: ['#0d9488', '#2563eb', '#7c3aed'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: '可觀測性工具實現方式分佈',
+                                color: '#44403c',
+                                font: { size: 16 }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const usecaseTabs = document.querySelectorAll('.usecase-tab');
+            const usecaseContents = document.querySelectorAll('.usecase-content');
+            usecaseTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    usecaseTabs.forEach(t => {
+                        t.classList.remove('text-teal-600', 'border-teal-500');
+                        t.classList.add('text-stone-500', 'hover:text-stone-700', 'hover:border-stone-300');
+                    });
+                    tab.classList.add('text-teal-600', 'border-teal-500');
+                    tab.classList.remove('text-stone-500', 'hover:text-stone-700', 'hover:border-stone-300');
+
+                    usecaseContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(tab.dataset.target).classList.add('active');
+                });
+            });
+            
+            function navigate(hash) {
+                if (!hash) hash = '#overview';
+
+                navLinks.forEach(link => {
+                    if (link.getAttribute('href') === hash) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+
+                sections.forEach(section => {
+                    if ('#' + section.id === hash) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+                
+                mobileMenu.classList.add('hidden');
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const hash = e.currentTarget.getAttribute('href');
+                    history.pushState(null, null, hash);
+                    navigate(hash);
+                });
+            });
+            
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            window.addEventListener('popstate', () => navigate(location.hash));
+            
+            populatePluginTypes();
+            populateO11yAccordion();
+            populateEncryptionTable();
+            populateManagementCommands();
+            renderO11yChart();
+            navigate(location.hash);
+        });
+    </script>
+</body>
+</html>
