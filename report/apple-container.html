@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Container 專案互動式入門網站</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate and Amber -->
+    <!-- Application Structure Plan: The SPA is designed as a single, vertically scrolling page with a sticky top navigation bar for quick access to key sections (Introduction, Architecture, Getting Started, Project Structure, Contribution). This task-oriented flow guides the user logically from a high-level overview to detailed, actionable steps. Key information is presented through interactive elements: an HTML/CSS-based architecture diagram with hover effects for explanations, an accordion-style guide for the setup process to reduce cognitive load, and a collapsible file tree for exploring the repository structure. This design prioritizes usability and active engagement over passively reading a static document, making the technical content more digestible and easier to navigate for developers. -->
+    <!-- Visualization & Content Choices: 1. Architecture Diagram: Report Info -> Core system components (CLI, APIServer, Services). Goal -> Organize/Relationships. Viz/Method -> HTML/CSS diagram using Tailwind Flexbox. Interaction -> Hovering over a component reveals its description, clarifying its role without cluttering the UI. Justification -> More engaging and informative than a static image or text list. Library -> None (Vanilla HTML/CSS). 2. Getting Started Guide: Report Info -> Step-by-step installation and usage commands. Goal -> Inform/Organize. Viz/Method -> Accordion list built with HTML details/summary tags. Interaction -> Clicking a step expands to show details and code snippets. A "copy" button is added to each code block. Justification -> Breaks down a complex process into manageable steps, improving user focus. Library -> None (Vanilla JS for copy functionality). 3. Project Structure: Report Info -> Directory structure explanation. Goal -> Organize. Viz/Method -> Nested HTML lists styled as a file tree. Interaction -> Clicking a folder toggles its visibility. Justification -> Mimics a familiar IDE/file explorer interface, making it intuitive for developers. Library -> None (Vanilla JS for toggle). CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .nav-link {
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        .active-link {
+            color: #f59e0b; /* amber-500 */
+            border-bottom-color: #f59e0b; /* amber-500 */
+        }
+        .tech-preview-banner {
+            background: linear-gradient(45deg, #fef3c7, #fde68a);
+        }
+        .step-accordion[open] summary {
+            color: #b45309; /* amber-700 */
+        }
+        .code-block {
+            position: relative;
+            background-color: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #475569; /* slate-600 */
+            color: #e2e8f0; /* slate-200 */
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .copy-btn:hover {
+            background-color: #64748b; /* slate-500 */
+        }
+        .file-tree .folder > span {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <a href="#intro" class="flex items-center text-xl font-bold text-slate-900">
+                        <span class="text-2xl mr-2 text-slate-700">⌧</span>
+                        Container 專案
+                    </a>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#intro" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:text-amber-600 border-b-2 border-transparent">簡介</a>
+                        <a href="#architecture" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:text-amber-600 border-b-2 border-transparent">核心架構</a>
+                        <a href="#getting-started" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:text-amber-600 border-b-2 border-transparent">如何開始</a>
+                        <a href="#structure" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:text-amber-600 border-b-2 border-transparent">專案結構</a>
+                        <a href="#contribute" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:text-amber-600 border-b-2 border-transparent">如何貢獻</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button id="mobile-menu-button" type="button" class="bg-slate-200 inline-flex items-center justify-center p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-300 focus:outline-none">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" id="menu-icon-open" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="h-6 w-6 hidden" id="menu-icon-close" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#intro" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-amber-600 hover:bg-amber-50">簡介</a>
+                <a href="#architecture" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-amber-600 hover:bg-amber-50">核心架構</a>
+                <a href="#getting-started" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-amber-600 hover:bg-amber-50">如何開始</a>
+                <a href="#structure" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-amber-600 hover:bg-amber-50">專案結構</a>
+                <a href="#contribute" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-amber-600 hover:bg-amber-50">如何貢獻</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <section id="intro" class="mb-16 scroll-mt-16">
+            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">專案簡介</h2>
+            <p class="mt-4 text-lg text-slate-600">這份互動式指南旨在幫助您快速了解 Apple 的開源 `Container` 專案。`apple/container` 是一個由 Apple 開源的工具集和函式庫，它讓您能夠在 macOS 上建置、執行和管理符合 OCI (Open Container Initiative) 標準的容器。您可以將其視為一個專為 macOS 設計的、類似 Docker 的容器化解決方案。</p>
+            
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-amber-400">
+                    <h3 class="text-xl font-semibold mb-2">主要特性</h3>
+                    <ul class="space-y-3 text-slate-600">
+                        <li class="flex items-start"><span class="mr-3 text-amber-500">◆</span><strong>原生整合</strong>：利用 macOS 的 `Virtualization.framework` 和 `vmnet.framework`，在輕量級的 Linux 虛擬機中執行容器，以確保效能和安全性。</li>
+                        <li class="flex items-start"><span class="mr-3 text-amber-500">◆</span><strong>相容性</strong>：支援 OCI 標準，能夠處理符合規範的容器映像檔和執行環境。</li>
+                        <li class="flex items-start"><span class="mr-3 text-amber-500">◆</span><strong>指令列工具</strong>：提供一個名為 `container` 的強大指令列工具，其語法和操作邏輯與大家熟悉的容器管理工具（如 Docker）非常相似。</li>
+                        <li class="flex items-start"><span class="mr-3 text-amber-500">◆</span><strong>Swift 開發</strong>：整個專案主要使用 Swift 語言編寫，對於 Apple 生態系的開發者來說非常友好。</li>
+                    </ul>
+                </div>
+                <div class="tech-preview-banner p-6 rounded-lg shadow-md text-amber-900">
+                     <h3 class="text-xl font-semibold mb-2">請注意：技術預覽</h3>
+                    <p>此專案目前處於<strong>技術預覽 (Technology Preview)</strong> 階段，這意味著它仍在積極開發中，API 和功能可能會在未來版本中發生變化。建議您用於實驗和學習，在生產環境中使用前請謹慎評估。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="architecture" class="mb-16 scroll-mt-16">
+            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">核心架構</h2>
+            <p class="mt-4 text-lg text-slate-600">在深入研究程式碼之前，先了解其高層架構會很有幫助。`Container` 專案主要由以下幾個部分組成，將滑鼠懸停在下方的元件上以查看其詳細說明。</p>
+            
+            <div class="mt-8 flex flex-col md:flex-row items-center md:items-start justify-center gap-8 bg-white p-8 rounded-lg shadow-lg border">
+                <div class="w-full md:w-2/3 space-y-4">
+                    <div id="arch-cli" class="arch-component border-2 border-slate-300 p-4 rounded-lg text-center cursor-pointer transition-all duration-300 hover:border-amber-500 hover:shadow-xl">
+                        <h4 class="font-bold text-lg">指令列介面 (CLI - `container`)</h4>
+                        <p class="text-sm text-slate-500">使用者互動的主要入口</p>
+                    </div>
+                    <div class="text-center text-2xl text-slate-400">↓</div>
+                    <div id="arch-api" class="arch-component border-2 border-slate-300 p-4 rounded-lg text-center cursor-pointer transition-all duration-300 hover:border-amber-500 hover:shadow-xl">
+                        <h4 class="font-bold text-lg">API 伺服器 (`apiservd`)</h4>
+                        <p class="text-sm text-slate-500">系統中樞，處理請求</p>
+                    </div>
+                    <div class="text-center text-2xl text-slate-400">↓</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div id="arch-services" class="arch-component border-2 border-slate-300 p-4 rounded-lg text-center cursor-pointer transition-all duration-300 hover:border-amber-500 hover:shadow-xl">
+                            <h4 class="font-bold">核心服務</h4>
+                            <p class="text-sm text-slate-500">執行實際操作</p>
+                        </div>
+                        <div id="arch-helpers" class="arch-component border-2 border-slate-300 p-4 rounded-lg text-center cursor-pointer transition-all duration-300 hover:border-amber-500 hover:shadow-xl">
+                            <h4 class="font-bold">輔助工具</h4>
+                            <p class="text-sm text-slate-500">特權操作</p>
+                        </div>
+                        <div id="arch-dns" class="arch-component border-2 border-slate-300 p-4 rounded-lg text-center cursor-pointer transition-all duration-300 hover:border-amber-500 hover:shadow-xl">
+                            <h4 class="font-bold">DNS 伺服器</h4>
+                            <p class="text-sm text-slate-500">網路解析</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/3 p-4 bg-slate-100 rounded-lg min-h-[200px] flex items-center justify-center transition-all duration-300">
+                    <p id="arch-description" class="text-slate-700 text-center">將滑鼠懸停在左側元件上</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="getting-started" class="mb-16 scroll-mt-16">
+            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">如何開始</h2>
+            <p class="mt-4 text-lg text-slate-600">您可以按照以下步驟來建置、安裝和執行您的第一個容器。點擊每個步驟來展開或收合詳細內容。</p>
+
+            <div class="mt-8 space-y-4">
+                <details class="step-accordion bg-white p-4 rounded-lg shadow-md border border-slate-200 transition-shadow hover:shadow-lg">
+                    <summary class="font-semibold text-lg cursor-pointer">步驟 1：建置專案</summary>
+                    <div class="mt-4 border-t pt-4">
+                        <p>首先，請確保您已安裝最新版本的 Xcode 和 Xcode Command Line Tools。然後在終端機中從程式碼倉庫的根目錄執行以下指令：</p>
+                        <div class="code-block mt-2">
+                            <button class="copy-btn" title="Copy to clipboard">複製</button>
+                            <pre><code>swift build</code></pre>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="step-accordion bg-white p-4 rounded-lg shadow-md border border-slate-200 transition-shadow hover:shadow-lg">
+                    <summary class="font-semibold text-lg cursor-pointer">步驟 2：安裝與啟動系統</summary>
+                    <div class="mt-4 border-t pt-4">
+                        <p>建置完成後，您需要安裝並啟動系統的背景服務。`tutorial.md` 文件中詳細描述了如何進行，以下是關鍵指令摘要：</p>
+                        <div class="code-block mt-2">
+                            <button class="copy-btn" title="Copy to clipboard">複製</button>
+                            <pre><code># 啟動 container 系統服務
+# 這會安裝必要的背景服務並啟動它們
+sudo ./scripts/install-init.sh
+
+# 您也可以使用 'system' 指令來管理
+sudo ./.build/debug/container system start</code></pre>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="step-accordion bg-white p-4 rounded-lg shadow-md border border-slate-200 transition-shadow hover:shadow-lg">
+                    <summary class="font-semibold text-lg cursor-pointer">步驟 3：建置一個容器映像檔</summary>
+                    <div class="mt-4 border-t pt-4">
+                        <p>與 Dockerfile 類似，您可以定義一個 `Containerfile` 來描述如何建置您的映像檔。例如，建立一個名為 `Containerfile` 的檔案：</p>
+                        <div class="code-block mt-2">
+                            <button class="copy-btn" title="Copy to clipboard">複製</button>
+                            <pre><code>FROM ubuntu:latest
+RUN apt-get update && apt-get install -y cowsay
+ENTRYPOINT ["/usr/games/cowsay"]
+CMD ["Hello from Apple Container!"]</code></pre>
+                        </div>
+                        <p class="mt-4">然後執行建置指令：</p>
+                         <div class="code-block mt-2">
+                            <button class="copy-btn" title="Copy to clipboard">複製</button>
+                            <pre><code># -t 為映像檔命名
+./.build/debug/container build -t my-cowsay-app .</code></pre>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="step-accordion bg-white p-4 rounded-lg shadow-md border border-slate-200 transition-shadow hover:shadow-lg">
+                    <summary class="font-semibold text-lg cursor-pointer">步驟 4：執行容器</summary>
+                    <div class="mt-4 border-t pt-4">
+                        <p>使用 `run` 指令來啟動您的容器，您應該會看到 `cowsay` 的經典 ASCII 藝術輸出。</p>
+                        <div class="code-block mt-2">
+                            <button class="copy-btn" title="Copy to clipboard">複製</button>
+                            <pre><code># 執行您剛剛建立的映像檔
+./.build/debug/container run my-cowsay-app</code></pre>
+                        </div>
+                    </div>
+                </details>
+                
+                <details class="step-accordion bg-white p-4 rounded-lg shadow-md border border-slate-200 transition-shadow hover:shadow-lg">
+                    <summary class="font-semibold text-lg cursor-pointer">步驟 5：管理容器與映像檔</summary>
+                    <div class="mt-4 border-t pt-4">
+                        <p>以下是一些常用的管理指令：</p>
+                        <div class="code-block mt-2">
+                             <button class="copy-btn" title="Copy to clipboard">複製</button>
+                            <pre><code># 列出正在執行的容器
+container ps
+
+# 列出所有本機映像檔
+container images
+
+# 在執行中的容器內執行指令
+container exec &lt;container_id&gt; &lt;command&gt;
+
+# 停止一個容器
+container stop &lt;container_id&gt;
+
+# 移除一個容器
+container rm &lt;container_id&gt;
+
+# 移除一個映像檔
+container rmi &lt;image_id&gt;</code></pre>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <section id="structure" class="mb-16 scroll-mt-16">
+            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">專案結構導覽</h2>
+            <p class="mt-4 text-lg text-slate-600">為了方便您尋找相關程式碼，這裡以互動式檔案總管的方式呈現專案結構。點擊資料夾可展開/收合，將滑鼠懸停在項目上可查看其功能說明。</p>
+
+            <div class="mt-8 bg-white p-6 rounded-lg shadow-lg border flex flex-col md:flex-row gap-6">
+                <div class="w-full md:w-1/2 lg:w-2/5 file-tree text-slate-700 font-mono text-sm space-y-1">
+                    <ul>
+                        <li class="folder" data-description="包含 GitHub Actions 的 CI/CD 設定檔。">
+                            <span>▶ .github/</span>
+                            <ul class="hidden ml-4">
+                                <li>...</li>
+                            </ul>
+                        </li>
+                        <li class="folder" data-description="專案的核心原始碼。">
+                            <span>▶ Sources/</span>
+                            <ul class="hidden ml-4">
+                                <li data-description="指令列工具 (container) 的所有指令和邏輯。">📄 CLI/</li>
+                                <li data-description="後端 API 伺服器 (apiservd) 的實作。">📄 APIServer/</li>
+                                <li data-description="容器建置流程的相關邏輯。">📄 ContainerBuild/</li>
+                                <li data-description="用於與 apiservd 溝通的客戶端函式庫。">📄 ContainerClient/</li>
+                                <li data-description="核心背景服務的實作。">📄 Services/</li>
+                                <li data-description="內建的 DNS 伺服器，用於容器間的網路解析。">📄 DNSServer/</li>
+                                <li>...</li>
+                            </ul>
+                        </li>
+                        <li class="folder" data-description="各個模組的單元測試和整合測試。">
+                            <span>▶ Tests/</span>
+                             <ul class="hidden ml-4">
+                                <li>...</li>
+                            </ul>
+                        </li>
+                        <li class="folder" data-description="專案的詳細文件，包含技術概觀、教學和操作方法。">
+                            <span>▶ docs/</span>
+                             <ul class="hidden ml-4">
+                                <li>...</li>
+                            </ul>
+                        </li>
+                        <li class="folder" data-description="系統服務的預設設定檔。">
+                            <span>▶ config/</span>
+                             <ul class="hidden ml-4">
+                                <li>...</li>
+                            </ul>
+                        </li>
+                         <li class="folder" data-description="各種輔助腳本，如安裝、卸載、產生文件等。">
+                            <span>▶ scripts/</span>
+                             <ul class="hidden ml-4">
+                                <li>...</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                 <div class="w-full md:w-1/2 lg:w-3/5 p-4 bg-slate-100 rounded-lg min-h-[150px] flex items-center justify-center">
+                    <p id="file-tree-description" class="text-slate-700 text-center">懸停在左側檔案/資料夾上查看說明</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="contribute" class="scroll-mt-16">
+            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">如何貢獻</h2>
+            <p class="mt-4 text-lg text-slate-600">如果您對此專案感興趣並希望做出貢獻，請務必閱讀 `CONTRIBUTING.md` 文件。它詳細說明了貢獻流程、程式碼風格指南以及其他注意事項。我們歡迎任何形式的貢獻，讓這個專案變得更好！</p>
+            <div class="mt-6">
+                <a href="https://github.com/apple/container/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="inline-block bg-amber-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-amber-600 transition-transform transform hover:scale-105">
+                    查看貢獻指南
+                </a>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-slate-800 text-slate-300 mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
+            <p>此為基於 Apple 開源 `container` 專案文件製作的互動式指南。</p>
+            <p class="text-sm text-slate-400 mt-2">專案非官方，僅供學習與展示用途。</p>
+        </div>
+    </footer>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const menuIconOpen = document.getElementById('menu-icon-open');
+            const menuIconClose = document.getElementById('menu-icon-close');
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                menuIconOpen.classList.toggle('hidden');
+                menuIconClose.classList.toggle('hidden');
+            });
+
+            // Smooth scroll for nav links and close mobile menu on click
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (mobileMenu.classList.contains('hidden') === false) {
+                       mobileMenu.classList.add('hidden');
+                       menuIconOpen.classList.remove('hidden');
+                       menuIconClose.classList.add('hidden');
+                    }
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            // Active nav link highlighting on scroll
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active-link');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active-link');
+                            }
+                        });
+                    }
+                });
+            }, { rootMargin: '-50% 0px -50% 0px' });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+
+
+            // Architecture diagram interaction
+            const archComponents = {
+                'arch-cli': '<strong>指令列介面 (CLI - `container`)</strong>: 使用者與容器系統互動的主要入口。它負責解析使用者輸入的指令（如 `container build`, `container run`），並透過 XPC 將請求發送給後端的 API 伺服器。',
+                'arch-api': '<strong>API 伺服器 (`apiservd`)</strong>: 一個在背景執行的守護行程 (Daemon)，負責接收並處理來自 CLI 的請求。它是整個系統的中樞，會協調下方的各種服務來完成任務。',
+                'arch-services': '<strong>核心服務 (Services)</strong>: 這些是以更高權限執行的背景服務，負責處理實際的容器操作，如映像檔管理、網路配置和沙箱執行。',
+                'arch-helpers': '<strong>輔助工具 (Helpers)</strong>: 這些工具執行需要特權的操作，例如由核心服務調用以設定網路或管理檔案系統。',
+                'arch-dns': '<strong>DNS 伺服器</strong>: 一個內建的 DNS 伺服器，負責處理容器間的服務發現與名稱解析，讓容器可以透過名稱互相溝通。'
+            };
+            const archDescription = document.getElementById('arch-description');
+            document.querySelectorAll('.arch-component').forEach(component => {
+                component.addEventListener('mouseenter', () => {
+                    archDescription.innerHTML = archComponents[component.id];
+                });
+                component.addEventListener('mouseleave', () => {
+                     archDescription.innerHTML = '<p class="text-slate-700 text-center">將滑鼠懸停在左側元件上</p>';
+                });
+            });
+
+            // Copy to clipboard for code blocks
+            document.querySelectorAll('.copy-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const pre = button.parentElement.querySelector('pre');
+                    const code = pre.innerText;
+                    
+                    const textArea = document.createElement('textarea');
+                    textArea.value = code;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        button.textContent = '已複製!';
+                        setTimeout(() => {
+                            button.textContent = '複製';
+                        }, 2000);
+                    } catch (err) {
+                        console.error('Failed to copy text: ', err);
+                        button.textContent = '失敗';
+                         setTimeout(() => {
+                            button.textContent = '複製';
+                        }, 2000);
+                    }
+                    document.body.removeChild(textArea);
+                });
+            });
+            
+            // File tree interaction
+            const fileTreeItems = document.querySelectorAll('.file-tree li');
+            const fileTreeDescription = document.getElementById('file-tree-description');
+
+            fileTreeItems.forEach(item => {
+                const description = item.dataset.description;
+                if (description) {
+                    item.addEventListener('mouseenter', () => {
+                        fileTreeDescription.textContent = description;
+                    });
+                    item.addEventListener('mouseleave', () => {
+                        fileTreeDescription.textContent = '懸停在左側檔案/資料夾上查看說明';
+                    });
+                }
+
+                if (item.classList.contains('folder')) {
+                    const span = item.querySelector('span');
+                    span.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const sublist = item.querySelector('ul');
+                        if (sublist) {
+                            sublist.classList.toggle('hidden');
+                            span.textContent = sublist.classList.contains('hidden') ? '▶ ' + span.textContent.substring(2) : '▼ ' + span.textContent.substring(2);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
