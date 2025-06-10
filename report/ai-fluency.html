@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 協作素養：互動式學習指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: 採用單頁垂直滾動的導覽式旅程設計。此結構能邏輯性地引導使用者從基礎概念走向實際應用，模擬真實的學習過程。頁面由「簡介」開始，接著進入核心的「4D 框架」（以互動式四象限卡片呈現），再解釋「三種互動模式」（採並列比較欄位），並將關鍵的「表達-審視循環」視覺化，最後匯集於「實踐工作坊」區塊，提供互動練習。頂部固定導覽列則方便使用者進行非線性的探索。這種設計比呆板的模組列表更具吸引力，更能激發探索的樂趣。 -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: 4D 框架 -> Goal: 組織與解釋 -> Viz: 互動式四象限卡片 -> Interaction: 點擊展開/顯示細節 -> Justification: 視覺化呈現四個同等重要的組成部分，鼓勵探索而非被動閱讀。Method: HTML/CSS/JS。
+        - Report Info: 三種互動模式 -> Goal: 比較 -> Viz: 帶有圖標的三欄式佈局 -> Interaction: 點擊高亮並顯示文字 -> Justification: 易於並排比較不同概念。Method: HTML/CSS/JS。
+        - Report Info: 表達-審視循環 -> Goal: 展示關係/流程 -> Viz: 環形圖 -> Interaction: 懸停/點擊高亮各階段 -> Justification: 直觀地顯示流程的循環迭代特性。Method: HTML/CSS/JS。
+        - Report Info: 自我評估練習 -> Goal: 互動/提供資訊 -> Viz: 雷達圖 -> Interaction: 點擊評分以更新圖表 -> Justification: 個人化學習體驗，使抽象概念具體化。Library: Chart.js。
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F3;
+            color: #3D3D3D;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .nav-link.active {
+            color: #4A90E2;
+            border-bottom-color: #4A90E2;
+        }
+        .card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="header" class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 lg:px-6 py-3 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-[#2C3E50]">AI 協作素養指南</h1>
+            <div class="hidden md:flex space-x-6">
+                <a href="#intro" class="nav-link text-gray-600 hover:text-[#4A90E2] border-b-2 border-transparent pb-1">介紹</a>
+                <a href="#framework" class="nav-link text-gray-600 hover:text-[#4A90E2] border-b-2 border-transparent pb-1">4D 框架</a>
+                <a href="#modes" class="nav-link text-gray-600 hover:text-[#4A90E2] border-b-2 border-transparent pb-1">互動模式</a>
+                <a href="#loop" class="nav-link text-gray-600 hover:text-[#4A90E2] border-b-2 border-transparent pb-1">核心循環</a>
+                <a href="#practice" class="nav-link text-gray-600 hover:text-[#4A90E2] border-b-2 border-transparent pb-1">實踐工作坊</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none">
+                <span class="text-2xl">&#9776;</span>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden px-4 pb-4">
+             <a href="#intro" class="block py-2 text-gray-600 hover:text-[#4A90E2]">介紹</a>
+             <a href="#framework" class="block py-2 text-gray-600 hover:text-[#4A90E2]">4D 框架</a>
+             <a href="#modes" class="block py-2 text-gray-600 hover:text-[#4A90E2]">互動模式</a>
+             <a href="#loop" class="block py-2 text-gray-600 hover:text-[#4A90E2]">核心循環</a>
+             <a href="#practice" class="block py-2 text-gray-600 hover:text-[#4A90E2]">實踐工作坊</a>
+        </div>
+    </header>
+
+    <main>
+        <section id="intro" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6 lg:px-8 text-center fade-in">
+                <h2 class="text-3xl md:text-5xl font-bold text-[#2C3E50] mb-4">歡迎來到「AI 協作素養」課程</h2>
+                <p class="max-w-3xl mx-auto text-lg md:text-xl text-gray-600 mb-8">
+                    本課程旨在協助您掌握如何有效、高效、合乎道德且安全地與 AI 系統協作。這不僅是學習提示詞，更是培養一套實用的技能、知識與價值觀，讓您成為負責任且具備全方位能力的 AI 使用者。
+                </p>
+                <a href="#framework" class="scroll-link bg-[#4A90E2] text-white font-bold py-3 px-8 rounded-full hover:bg-[#357ABD] transition duration-300 text-lg">
+                    開始探索 4D 框架
+                </a>
+            </div>
+        </section>
+
+        <section id="framework" class="py-16 md:py-24">
+            <div class="container mx-auto px-6 lg:px-8">
+                <div class="text-center mb-12 fade-in">
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#2C3E50] mb-4">AI 協作素養的 4D 核心能力</h2>
+                    <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                        此框架是有效、高效、合乎道德且安全地與 AI 協作的基石。點擊下方的卡片，深入了解每一項核心能力。
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div class="card bg-white p-8 rounded-xl shadow-lg cursor-pointer fade-in" data-content-id="delegation">
+                        <div class="flex items-center mb-4">
+                            <span class="text-4xl mr-4">📥</span>
+                            <h3 class="text-2xl font-bold text-[#E67E22]">任務指派 (Delegation)</h3>
+                        </div>
+                        <p class="text-gray-600">深思熟慮地判斷哪些部分適合交由 AI 處理、哪些部分應由人類親自完成，或是哪些部分最適合人機協作。</p>
+                    </div>
+                    <div class="card bg-white p-8 rounded-xl shadow-lg cursor-pointer fade-in" data-content-id="description">
+                        <div class="flex items-center mb-4">
+                            <span class="text-4xl mr-4">✍️</span>
+                            <h3 class="text-2xl font-bold text-[#27AE60]">精準表達 (Description)</h3>
+                        </div>
+                        <p class="text-gray-600">與 AI 系統進行清晰、明確且無歧義的溝通，準確地表達您的需求、目標和期望。</p>
+                    </div>
+                    <div class="card bg-white p-8 rounded-xl shadow-lg cursor-pointer fade-in" data-content-id="discernment">
+                        <div class="flex items-center mb-4">
+                             <span class="text-4xl mr-4">🧐</span>
+                            <h3 class="text-2xl font-bold text-[#2980B9]">明辨審視 (Discernment)</h3>
+                        </div>
+                        <p class="text-gray-600">以批判性和審慎的眼光，評估 AI 的輸出內容、執行過程以及展現的行為，判斷其準確性、相關性與品質。</p>
+                    </div>
+                    <div class="card bg-white p-8 rounded-xl shadow-lg cursor-pointer fade-in" data-content-id="diligence">
+                        <div class="flex items-center mb-4">
+                            <span class="text-4xl mr-4">🛡️</span>
+                            <h3 class="text-2xl font-bold text-[#8E44AD]">審慎盡責 (Diligence)</h3>
+                        </div>
+                        <p class="text-gray-600">以負責任的態度與 AI 互動，確保協作過程符合道德規範、法律法規，並對最終成果承擔責任。</p>
+                    </div>
+                </div>
+
+                <div id="framework-content-area" class="bg-white p-8 rounded-xl shadow-inner min-h-[20rem] fade-in">
+                    <div id="framework-placeholder" class="text-center text-gray-500 flex flex-col justify-center items-center h-full">
+                        <span class="text-5xl mb-4">👆</span>
+                        <p class="text-xl">點擊上方的任一核心能力以查看詳細說明。</p>
+                    </div>
+                    <div id="delegation-content" class="content-section"></div>
+                    <div id="description-content" class="content-section"></div>
+                    <div id="discernment-content" class="content-section"></div>
+                    <div id="diligence-content" class="content-section"></div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="modes" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6 lg:px-8">
+                <div class="text-center mb-12 fade-in">
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#2C3E50] mb-4">與 AI 協作的三種新興模式</h2>
+                     <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                        隨著 AI 技術的發展，我們與 AI 的協作模式也呈現出多樣化的趨勢。理解這些模式的差異，有助於我們更有效地運用 AI。
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                    <div class="card bg-gray-50 p-8 rounded-xl fade-in">
+                        <span class="text-6xl mb-4 inline-block">🤖</span>
+                        <h3 class="text-2xl font-bold mb-2 text-[#E67E22]">自動化 (Automation)</h3>
+                        <p class="text-gray-600">AI 系統根據使用者提供的明確指示，自主完成特定的、預先定義好的任務。例如，自動回覆郵件或排程會議。</p>
+                    </div>
+                    <div class="card bg-gray-50 p-8 rounded-xl fade-in" style="animation-delay: 0.2s;">
+                        <span class="text-6xl mb-4 inline-block">🤝</span>
+                        <h3 class="text-2xl font-bold mb-2 text-[#27AE60]">增強協作 (Augmentation)</h3>
+                        <p class="text-gray-600">人與 AI 建立夥伴關係，共同參與創意思考、問題解決和任務執行，AI 輔助增強人類的能力。</p>
+                    </div>
+                    <div class="card bg-gray-50 p-8 rounded-xl fade-in" style="animation-delay: 0.4s;">
+                        <span class="text-6xl mb-4 inline-block">🧠</span>
+                        <h3 class="text-2xl font-bold mb-2 text-[#2980B9]">自主代理 (Agency)</h3>
+                        <p class="text-gray-600">使用者設定整體目標與行為模式後，AI 能代表使用者獨立運作，處理更複雜且動態的任務。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="loop" class="py-16 md:py-24">
+            <div class="container mx-auto px-6 lg:px-8">
+                <div class="text-center mb-12 fade-in">
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#2C3E50] mb-4">核心循環：表達與審視</h2>
+                    <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                        有效的 AI 協作並非一次性的指令，而是一個持續迭代的對話。「精準表達」與「明辨審視」構成了一個強大的反饋循環，驅動成果不斷優化。
+                    </p>
+                </div>
+                <div class="flex flex-col md:flex-row items-center justify-center gap-8 fade-in">
+                    <div class="text-center md:text-right w-full md:w-2/5 p-6 bg-white rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-[#27AE60] mb-2">1. 精準表達</h3>
+                        <p class="text-gray-600">清晰地傳達您的需求、期望的成果、希望 AI 遵循的過程，以及理想的互動風格。</p>
+                    </div>
+                    <div class="text-4xl font-bold text-gray-400 transform md:-rotate-0 rotate-90">&lrarr;</div>
+                     <div class="text-center md:text-left w-full md:w-2/5 p-6 bg-white rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-[#2980B9] mb-2">2. 明辨審視</h3>
+                        <p class="text-gray-600">批判性地評估 AI 的回應，審視其產出、過程與表現，並提供具體的回饋以進行優化。</p>
+                    </div>
+                </div>
+                 <p class="text-center mt-8 text-gray-500 text-lg">
+                    這個循環不斷重複，直到您對協作成果感到滿意為止，最終產出超越任一方單獨作業的卓越成果。
+                </p>
+            </div>
+        </section>
+
+        <section id="practice" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6 lg:px-8">
+                <div class="text-center mb-12 fade-in">
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#2C3E50] mb-4">實踐工作坊</h2>
+                    <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                       理論需要實踐來鞏固。透過以下互動練習，將您學到的知識轉化為真正的技能。
+                    </p>
+                </div>
+                <div class="bg-gray-50 p-8 rounded-xl shadow-inner">
+                    <h3 class="text-2xl font-bold text-center mb-6 text-[#2C3E50]">個人 AI 素養自我評估</h3>
+                    <p class="text-center text-gray-600 mb-8">
+                        根據您目前的理解，為您在 4D 核心能力各面向的信心程度評分（1 為最低，5 為最高）。觀察雷達圖的變化，找出您的優勢與待發展領域。
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="chart-container">
+                            <canvas id="fluencyChart"></canvas>
+                        </div>
+                        <div id="sliders" class="space-y-4">
+                            <div>
+                                <label for="delegation-slider" class="block mb-2 font-medium text-[#E67E22]">任務指派 (Delegation)</label>
+                                <input id="delegation-slider" type="range" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                             <div>
+                                <label for="description-slider" class="block mb-2 font-medium text-[#27AE60]">精準表達 (Description)</label>
+                                <input id="description-slider" type="range" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                             <div>
+                                <label for="discernment-slider" class="block mb-2 font-medium text-[#2980B9]">明辨審視 (Discernment)</label>
+                                <input id="discernment-slider" type="range" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                             <div>
+                                <label for="diligence-slider" class="block mb-2 font-medium text-[#8E44AD]">審慎盡責 (Diligence)</label>
+                                <input id="diligence-slider" type="range" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-[#2C3E50] text-white py-8">
+        <div class="container mx-auto px-6 lg:px-8 text-center">
+            <p>&copy; 2024 AI 協作素養互動式學習指南。本內容基於 <a href="https://www.anthropic.com/ai-fluency" target="_blank" rel="noopener noreferrer" class="underline hover:text-blue-300">Anthropic 的「AI Fluency」課程</a>。</p>
+             <p class="text-sm text-gray-400 mt-2">採用創用 CC BY-NC-SA 4.0 授權條款釋出。</p>
+        </div>
+    </footer>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const frameworkContent = {
+                delegation: {
+                    title: "任務指派 (Delegation)",
+                    color: "#E67E22",
+                    content: `
+                        <p class="text-lg mb-4">這項能力要求使用者進行周全的思考與決策，判斷一項工作中的不同環節最適合由誰處理。有效的任務指派，是高效協作的第一步。</p>
+                        <h4 class="font-bold text-xl mb-2" style="color: #E67E22;">三個關鍵組成部分：</h4>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>問題意識 (Problem Awareness):</strong> 在引入 AI 前，必須先清晰地理解自身的目標，以及為了達成目標所涉及的具體工作內容和步驟。</li>
+                            <li><strong>平台意識 (Platform Awareness):</strong> 對不同 AI 系統所具備的功能、強項、限制以及適用範圍有充分的了解。</li>
+                            <li><strong>任務分派 (Task Delegation):</strong> 在理解問題和 AI 能力的基礎上，將整體工作巧妙地劃分給人類和 AI，以發揮各自的優勢。</li>
+                        </ul>
+                    `
+                },
+                description: {
+                    title: "精準表達 (Description)",
+                    color: "#27AE60",
+                    content: `
+                        <p class="text-lg mb-4">這項能力不僅是撰寫提示詞，更是一門與 AI 高效溝通的藝術。AI 無法讀懂您的心思，因此清晰溝通是品質的基石。</p>
+                        <h4 class="font-bold text-xl mb-2" style="color: #27AE60;">三種核心技能類型：</h4>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>產品表達 (Product Description):</strong> 清晰地定義您希望 AI 最終創造出什麼「產品」或成果，包含內容、格式、風格等。</li>
+                            <li><strong>過程表達 (Process Description):</strong> 引導 AI 應該「如何」去處理您的請求或達成目標，例如建議特定的思考框架或步驟。</li>
+                            <li><strong>表現表達 (Performance Description):</strong> 定義您期望 AI 在互動中展現的「行為」或「態度」，例如簡潔扼要或詳盡深入，扮演挑戰者或支持者。</li>
+                        </ul>
+                    `
+                },
+                discernment: {
+                    title: "明辨審視 (Discernment)",
+                    color: "#2980B9",
+                    content: `
+                        <p class="text-lg mb-4">在 AI 做出回應後，您需要運用批判性思維來判斷其品質。人類的判斷力、監督以及專業知識在此扮演關鍵角色。</p>
+                        <h4 class="font-bold text-xl mb-2" style="color: #2980B9;">三種主要審視類型：</h4>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>產品審視 (Product Discernment):</strong> 評估 AI 實際產出的「成果」本身的品質，如準確性、適當性、連貫性與相關性。</li>
+                            <li><strong>過程審視 (Process Discernment):</strong> 評估 AI 是「如何」達成其輸出的，探究其推理路徑是否存在邏輯錯誤或注意力差距。</li>
+                            <li><strong>表現審視 (Performance Discernment):</strong> 評估 AI 在協作互動過程本身的「行為表現」，例如其溝通風格與反應模式是否符合您的需求。</li>
+                        </ul>
+                    `
+                },
+                diligence: {
+                    title: "審慎盡責 (Diligence)",
+                    color: "#8E44AD",
+                    content: `
+                        <p class="text-lg mb-4">此能力專注於確保所有與 AI 的協作都是負責任且合乎道德倫理的，處理 AI 工作中至關重要的道德與安全層面。</p>
+                        <h4 class="font-bold text-xl mb-2" style="color: #8E44AD;">三個主要組成部分：</h4>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>創作審慎 (Creation Diligence):</strong> 審慎地思考並選擇使用哪些 AI 系統，以及如何以合乎道德的方式與之互動。</li>
+                            <li><strong>透明審慎 (Transparency Diligence):</strong> 對於 AI 在工作中所扮演的角色和貢獻，對所有相關利害關係人保持開放和誠實。</li>
+                            <li><strong>部署審慎 (Deployment Diligence):</strong> 對經由 AI 輔助產生並計劃分享的成果，承擔最終的擁有權與責任，包括驗證其準確性與品質。</li>
+                        </ul>
+                    `
+                }
+            };
+
+            const frameworkCards = document.querySelectorAll('#framework .card');
+            const contentArea = document.getElementById('framework-content-area');
+            const placeholder = document.getElementById('framework-placeholder');
+
+            frameworkCards.forEach(card => {
+                const contentId = card.dataset.contentId;
+                const contentData = frameworkContent[contentId];
+                
+                const sectionContent = document.getElementById(`${contentId}-content`);
+                sectionContent.innerHTML = `
+                    <h3 class="text-3xl font-bold mb-4" style="color: ${contentData.color};">${contentData.title}</h3>
+                    ${contentData.content}
+                `;
+
+                card.addEventListener('click', () => {
+                    placeholder.style.display = 'none';
+
+                    document.querySelectorAll('#framework-content-area .content-section').forEach(sec => {
+                        sec.classList.remove('active');
+                    });
+                    
+                    sectionContent.classList.add('active', 'fade-in');
+                    
+                    frameworkCards.forEach(c => c.classList.remove('ring-2', 'ring-offset-2'));
+                    card.classList.add('ring-2', 'ring-offset-2');
+                    card.style.borderColor = contentData.color; 
+                    card.style.setProperty('--tw-ring-color', contentData.color);
+
+                });
+            });
+            
+            const chartCtx = document.getElementById('fluencyChart').getContext('2d');
+            let fluencyChart;
+
+            const chartData = {
+                labels: ['任務指派', '精準表達', '明辨審視', '審慎盡責'],
+                datasets: [{
+                    label: '個人 AI 素養信心度',
+                    data: [3, 3, 3, 3],
+                    backgroundColor: 'rgba(74, 144, 226, 0.2)',
+                    borderColor: 'rgba(74, 144, 226, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(74, 144, 226, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(74, 144, 226, 1)'
+                }]
+            };
+
+            const chartConfig = {
+                type: 'radar',
+                data: chartData,
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            };
+            
+            fluencyChart = new Chart(chartCtx, chartConfig);
+
+            const sliders = document.querySelectorAll('#sliders input[type="range"]');
+            sliders.forEach((slider, index) => {
+                slider.addEventListener('input', (e) => {
+                    const newData = [...fluencyChart.data.datasets[0].data];
+                    newData[index] = parseInt(e.target.value, 10);
+                    fluencyChart.data.datasets[0].data = newData;
+                    fluencyChart.update();
+                });
+            });
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            const scrollLinks = document.querySelectorAll('a[href^="#"]');
+            scrollLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                         window.scrollTo({
+                            top: targetElement.offsetTop - document.getElementById('header').offsetHeight,
+                            behavior: 'smooth'
+                        });
+                        if (mobileMenu.classList.contains('hidden') === false) {
+                            mobileMenu.classList.add('hidden');
+                        }
+                    }
+                });
+            });
+
+            const sections = document.querySelectorAll('main section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const onScroll = () => {
+                const scrollPos = window.scrollY + document.getElementById('header').offsetHeight + 50;
+                sections.forEach(section => {
+                    if(section.offsetTop <= scrollPos && section.offsetTop + section.offsetHeight > scrollPos) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if(section.getAttribute('id') === link.getAttribute('href').substring(1)) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            };
+            window.addEventListener('scroll', onScroll);
+
+        });
+    </script>
+</body>
+</html>
