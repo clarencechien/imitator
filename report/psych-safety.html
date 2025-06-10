@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式應用程式：探索心理安全感的真實義</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral with Slate Blue Accent -->
+    <!-- Application Structure Plan: The SPA is structured not linearly like the podcast, but thematically to enhance user exploration and engagement. It starts with a Hero section to introduce the core problem. The main content is an interactive grid of the 'Six Misconceptions', allowing users to click and reveal details on demand. This is followed by a visual '2x2 Matrix' to clarify the relationship between psychological safety and performance. The core interactive element is the 'Self-Assessment Tool', which uses sliders and a dynamic radar chart (Chart.js) to provide immediate, personalized feedback on the user's team environment. This structure transforms passive listening into active learning and self-reflection, making the content more memorable and actionable. -->
+    <!-- Visualization & Content Choices: 1. Misconceptions (Goal: Inform/Compare) -> Interactive Cards (HTML/CSS/JS) -> Clicking reveals details, focusing user attention on one concept at a time. This is more engaging than a long list. 2. Safety vs. Performance (Goal: Organize/Relate) -> 2x2 Matrix Diagram (HTML/Tailwind) -> Visually demonstrates that high safety and high standards are complementary, a core message of the report. 3. Team Dialogue Quality (Goal: Interact/Inform) -> Interactive Sliders & Radar Chart (JS/Chart.js) -> Users input their ratings, and a radar chart dynamically visualizes their team's profile. This provides a powerful, personalized data visualization that is more impactful than a simple numerical score. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8f7f4; color: #333; }
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; }
+        .nav-button { transition: all 0.3s ease; }
+        .nav-button.active { background-color: #4A5568; color: white; }
+        .nav-button:not(.active):hover { background-color: #E2E8F0; }
+        .misconception-card { transition: all 0.3s ease; border: 1px solid transparent; }
+        .misconception-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05); border-color: #CBD5E0; }
+        .misconception-content { max-height: 0; overflow: hidden; transition: max-height 0.7s ease-in-out; }
+        .misconception-card.active .misconception-content { max-height: 500px; }
+        .matrix-cell { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 1rem; transition: all 0.3s ease; }
+        .slider-thumb::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #4A5568; cursor: pointer; border-radius: 50%; }
+        .slider-thumb::-moz-range-thumb { width: 20px; height: 20px; background: #4A5568; cursor: pointer; border-radius: 50%; }
+    </style>
+</head>
+<body class="bg-[#f8f7f4]">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <header class="text-center mb-12">
+            <h1 class="text-3xl md:text-5xl font-bold text-gray-800 mb-2">打破你對心理安全感的六大誤解</h1>
+            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">一個互動式指南，探索由 Amy Edmondson 教授提出的心理安全感真實義</p>
+        </header>
+
+        <nav class="flex justify-center space-x-2 md:space-x-4 mb-12 bg-white p-2 rounded-full shadow-sm max-w-lg mx-auto">
+            <button data-target="intro" class="nav-button active px-4 py-2 rounded-full text-sm md:text-base font-semibold text-gray-700">介紹</button>
+            <button data-target="misconceptions" class="nav-button px-4 py-2 rounded-full text-sm md:text-base font-semibold text-gray-700">六大誤解</button>
+            <button data-target="solutions" class="nav-button px-4 py-2 rounded-full text-sm md:text-base font-semibold text-gray-700">核心解方</button>
+            <button data-target="assessment" class="nav-button px-4 py-2 rounded-full text-sm md:text-base font-semibold text-gray-700">團隊檢測</button>
+        </nav>
+
+        <main>
+            <section id="intro" class="content-section space-y-8">
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">心理安全感：從被忽視到被誤解</h2>
+                    <p class="text-gray-700 leading-relaxed mb-4">心理安全感（Psychological Safety）意指在團隊中，成員可以安心地表達意見、承認錯誤，而不必擔心受到懲罰或報復。這個概念從過去的乏人問津，到現在成為管理學的熱門詞彙。然而，隨著它的普及，也出現了嚴重的誤解——許多人將其等同於「無止境的友善」與「舒適安逸」，反而扼殺了團隊真正需要的坦誠與進步動力。</p>
+                    <p class="text-gray-700 leading-relaxed">這個互動指南將帶您釐清常見的迷思，並提供實用的方法，建立一個真正能促進績效的心理安全環境。</p>
+                </div>
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">真正的目標：高效能團隊的基石</h2>
+                    <p class="text-gray-700 leading-relaxed mb-6">建立心理安全感的最終目的，並非創造一個沒有壓力的舒適圈，而是為了激發更高水準的績效與創新。一個理想的團隊，是同時具備**高心理安全感**與**高績效標準**的。下方的矩陣圖清晰地呈現了這兩者之間的關係。</p>
+                    <div class="w-full max-w-2xl mx-auto">
+                        <div class="grid grid-cols-2 grid-rows-2 gap-2 bg-gray-200 rounded-lg p-2">
+                            <div class="matrix-cell bg-white rounded-lg">
+                                <h3 class="font-bold text-lg text-red-600">焦慮區</h3>
+                                <p class="text-sm text-gray-600">高績效標準<br>低心理安全感</p>
+                            </div>
+                            <div class="matrix-cell bg-green-50 rounded-lg border-2 border-green-600">
+                                <h3 class="font-bold text-lg text-green-700">學習與高效能區</h3>
+                                <p class="text-sm text-gray-600">高績效標準<br>高心理安全感</p>
+                            </div>
+                            <div class="matrix-cell bg-white rounded-lg">
+                                <h3 class="font-bold text-lg text-yellow-600">冷漠區</h3>
+                                <p class="text-sm text-gray-600">低績效標準<br>低心理安全感</p>
+                            </div>
+                            <div class="matrix-cell bg-white rounded-lg">
+                                <h3 class="font-bold text-lg text-blue-600">舒適區</h3>
+                                <p class="text-sm text-gray-600">低績效標準<br>高心理安全感</p>
+                            </div>
+                        </div>
+                         <div class="flex justify-between mt-1 px-2">
+                            <span class="text-sm text-gray-500">← 低績效標準 →</span>
+                            <span class="text-sm text-gray-500">← 高績效標準 →</span>
+                        </div>
+                         <div class="text-center mt-1">
+                            <span class="text-sm text-gray-500">↑ 高心理安全感</span><br>
+                            <span class="text-sm text-gray-500">↓ 低心理安全感</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="misconceptions" class="content-section hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800">六大誤解：你是否也想錯了？</h2>
+                    <p class="text-gray-600 mt-2">點擊下方的卡片，來揭示每個誤解背後的真相。</p>
+                </div>
+                <div id="misconceptions-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </section>
+
+            <section id="solutions" class="content-section hidden">
+                 <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm">
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 text-center">核心解方：如何真正實踐？</h2>
+                    <p class="text-center text-gray-600 mb-8 max-w-2xl mx-auto">僅僅破除迷思是不夠的。建立真正的心理安全感，需要兩個核心支柱的持續努力。這不是一次性的政策，而是一種需要刻意培養的文化習慣。</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                            <h3 class="font-bold text-xl text-blue-800 mb-3">1. 提升團隊的「對話品質」</h3>
+                            <p class="text-gray-700 leading-relaxed">這是最關鍵的方法。透過引導式的對話，鼓勵成員坦率分享真實想法，並深思熟慮地處理資訊。目標是塑造一個讓人們「無後顧之憂、敢於表達」的氛圍，而不是壓制所有可能引起不快的「難聽話」。高品質的對話是團隊學習與進步的引擎。</p>
+                        </div>
+                        <div class="bg-purple-50 p-6 rounded-lg border border-purple-200">
+                            <h3 class="font-bold text-xl text-purple-800 mb-3">2. 建立「反思與追蹤」的制度</h3>
+                            <p class="text-gray-700 leading-relaxed">建立固定的機制來覆盤與反思。定期檢視上次的討論結果、執行進度與成敗。當團隊成員看到，即使某些建議最終失敗了，也不會有人因此受到懲罰或指責時，這種「容錯空間」會逐步強化組織整體的心理安全感。持續追蹤能將抽象的文化轉化為具體的實踐。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="assessment" class="content-section hidden">
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm">
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2 text-center">團隊對話品質快速檢測</h2>
+                    <p class="text-center text-gray-600 mb-8 max-w-2xl mx-auto">你的團隊正處於何種對話狀態？試著根據以下三個面向，為你的團隊打分數（1分表示極度缺乏，5分表示非常優秀），圖表將即時呈現你們團隊的對話輪廓。</p>
+                    <div class="flex flex-col lg:flex-row gap-8 items-center">
+                        <div class="w-full lg:w-1/2 space-y-6">
+                            <div id="assessment-questions"></div>
+                        </div>
+                        <div class="w-full lg:w-1/2">
+                            <div class="chart-container">
+                                <canvas id="assessmentChart"></canvas>
+                            </div>
+                            <div id="assessment-result" class="mt-4 text-center text-gray-700 font-medium bg-gray-50 p-4 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const content = {
+                misconceptions: [
+                    { id: 1, title: '誤解一：心理安全感 = 友善與自在', icon: '😊', misconception: '認為心理安全感就是一團和氣，大家自在、沒有壓力、不用辯論。', consequence: '大家都不敢說出真心話，看到問題也不願指出，阻礙團隊進步。', reality: '真正的「安全」是指免於人際懲罰的風險，而不是免於壓力或衝突。「坦率」是重點，即使過程不那麼「自在」。' },
+                    { id: 2, title: '誤解二：所有意見都得接納', icon: '🤔', misconception: '「你沒支持我的想法，讓我很不安全。」認為自己的任何建議都必須被採納。', consequence: '將個人意見是否被採納與環境安全劃上等號，導致標準降低，無法做出最佳決策。', reality: '安全感代表你可以提出任何想法，但不保證每個想法都會被執行。團隊仍需根據專業與目標進行篩選與決策。' },
+                    { id: 3, title: '誤解三：工作有保障，不能裁員', icon: '🛡️', misconception: '認為重視心理安全感的公司，就不可以裁員、減薪或降職。', consequence: '混淆了人際風險與商業風險，對公司產生不切實際的期望。', reality: '心理安全感處理的是「人際互動」的風險，而裁員是公司應對市場變化的「商業」風險，兩者範疇不同。' },
+                    { id: 4, title: '誤解四：不能要求績效', icon: '📉', misconception: '擔心要求績效、指出員工弱點，會破壞心理安全感，讓員工有壓力。', consequence: '為了讓員工「安心」，不敢要求績效，導致團隊陷入「舒適區」，表現下降。', reality: '心理安全感與高績效標準是「相輔相成」的。正是因為環境安全，團隊才能坦誠面對績效問題並共同提升。' },
+                    { id: 5, title: '誤解五：可以靠政策強制建立', icon: '📜', misconception: '認為只要公司頒布一項政策或法案，就能創造出心理安全的環境。', consequence: '忽略了文化是透過行為與互動累積而成的，導致政策流於形式，無法落地。', reality: '安全感無法靠一紙命令創造，它是在團隊中透過領導者以身作則、一次次的正面互動，逐步建立起來的信任。' },
+                    { id: 6, title: '誤解六：完全是領導人的責任', icon: '👑', misconception: '認為建立安全感必須由上而下，完全依賴領導者。', consequence: '組織成員認為自己無能為力，放棄了共同塑造文化的責任。', reality: '領導者以身作則固然關鍵，但塑造文化是「人人有責」的。每個人都可以透過提問與聆聽來貢獻一份力量。' }
+                ],
+                assessmentQuestions: [
+                    { id: 'q1', label: '分享與傾聽的意願', description: '團隊成員是否願意且能夠坦率分享看法與提問，不會隱瞞想法或只說場面話？' },
+                    { id: 'q2', label: '倡議與提問的並存', description: '成員是否樂於倡議自己的想法，也勇於對不懂或有疑慮的事情提問，讓好想法和好問題不斷湧現？' },
+                    { id: 'q3', label: '互相學習與共同進步', description: '團隊的對話是否能帶來實質進展，做出更明智的決策，讓組織因此集體進步？' }
+                ]
+            };
+
+            const misconceptionsGrid = document.getElementById('misconceptions-grid');
+            content.misconceptions.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'misconception-card bg-white p-5 rounded-xl shadow-sm cursor-pointer';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <span class="text-3xl mr-4">${item.icon}</span>
+                            <h3 class="font-bold text-lg text-gray-800">${item.title}</h3>
+                        </div>
+                        <span class="transform transition-transform duration-300 text-gray-400">▼</span>
+                    </div>
+                    <div class="misconception-content mt-4 pt-4 border-t border-gray-100 text-gray-600 space-y-3">
+                        <p><strong class="text-gray-700">常見誤解：</strong>${item.misconception}</p>
+                        <p><strong class="text-gray-700">錯誤後果：</strong>${item.consequence}</p>
+                        <p><strong class="text-green-700">正確現實：</strong>${item.reality}</p>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    const currentlyActive = document.querySelector('.misconception-card.active');
+                    if (currentlyActive && currentlyActive !== card) {
+                        currentlyActive.classList.remove('active');
+                         currentlyActive.querySelector('span.transform').classList.remove('rotate-180');
+                    }
+                    card.classList.toggle('active');
+                    card.querySelector('span.transform').classList.toggle('rotate-180');
+                });
+                misconceptionsGrid.appendChild(card);
+            });
+            
+            const assessmentQuestionsContainer = document.getElementById('assessment-questions');
+            content.assessmentQuestions.forEach(q => {
+                const questionDiv = document.createElement('div');
+                questionDiv.innerHTML = `
+                    <label for="${q.id}" class="block text-base font-semibold text-gray-800 mb-1">${q.label}</label>
+                    <p class="text-sm text-gray-500 mb-2">${q.description}</p>
+                    <div class="flex items-center space-x-4">
+                        <input type="range" id="${q.id}" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                        <span id="${q.id}-value" class="font-bold text-lg text-gray-800 w-8 text-center">3</span>
+                    </div>
+                `;
+                assessmentQuestionsContainer.appendChild(questionDiv);
+            });
+
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    const targetId = button.dataset.target;
+                    contentSections.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.remove('hidden');
+                        } else {
+                            section.classList.add('hidden');
+                        }
+                    });
+                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            });
+
+            const ctx = document.getElementById('assessmentChart').getContext('2d');
+            let assessmentChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: content.assessmentQuestions.map(q => q.label),
+                    datasets: [{
+                        label: '團隊對話品質',
+                        data: [3, 3, 3],
+                        backgroundColor: 'rgba(74, 85, 104, 0.2)',
+                        borderColor: 'rgba(74, 85, 104, 1)',
+                        pointBackgroundColor: 'rgba(74, 85, 104, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(74, 85, 104, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                            pointLabels: { 
+                                font: { size: 14, weight: 'bold' },
+                                color: '#333'
+                            },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                color: '#666',
+                                stepSize: 1
+                            },
+                            min: 0,
+                            max: 5
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            function updateChart() {
+                const q1Value = document.getElementById('q1').value;
+                const q2Value = document.getElementById('q2').value;
+                const q3Value = document.getElementById('q3').value;
+                
+                document.getElementById('q1-value').textContent = q1Value;
+                document.getElementById('q2-value').textContent = q2Value;
+                document.getElementById('q3-value').textContent = q3Value;
+                
+                assessmentChart.data.datasets[0].data = [q1Value, q2Value, q3Value];
+                assessmentChart.update();
+
+                const average = (parseInt(q1Value) + parseInt(q2Value) + parseInt(q3Value)) / 3;
+                const resultText = document.getElementById('assessment-result');
+                if (average < 2.5) {
+                    resultText.innerHTML = '你們的對話品質有很大的成長空間，團隊可能處於沉默或防禦狀態。';
+                } else if (average < 4) {
+                    resultText.innerHTML = '團隊有不錯的對話基礎，但在某些方面仍可加強，以激發更多潛能。';
+                } else {
+                    resultText.innerHTML = '恭喜！你們擁有高品質的對話環境，這是高效能團隊的絕佳基礎！';
+                }
+            }
+
+            document.getElementById('q1').addEventListener('input', updateChart);
+            document.getElementById('q2').addEventListener('input', updateChart);
+            document.getElementById('q3').addEventListener('input', updateChart);
+            
+            updateChart();
+        });
+    </script>
+</body>
+</html>
