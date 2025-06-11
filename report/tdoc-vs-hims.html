@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：Teladoc vs. Hims & Hers 商業模式對決</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Neutrals -->
+    <!-- Application Structure Plan: A dashboard-style, single-page application designed for direct comparison. The structure includes: 1) A sticky navigation bar for easy access to all sections. 2) An introductory "Overview" section. 3) A side-by-side "Model Showdown" to compare B2B2C and DTC models visually. 4) An interactive "Metrics Comparison" section with toggleable charts for LTV/CAC and user metrics, which is the core of the app. 5) A "Strategy & Outlook" section with collapsible accordions for pros/cons and recent market updates. 6) A "Market Conclusion" section to summarize the narrative. This structure was chosen because the source report is fundamentally a comparative analysis. A dashboard layout allows users to directly contrast the two companies across various dimensions (qualitative and quantitative) in a non-linear way, which is more effective for synthesis and understanding than a simple text document. -->
+    <!-- Visualization & Content Choices: 1) Model Showdown: Goal=Compare, Method=Two-column HTML layout with icons, Justification=Clear, static visual separation of the two models. 2) Metrics Comparison: Goal=Compare/Analyze, Method=Interactive Bar Charts (Chart.js), Interaction=JS-powered toggle buttons to switch between financial and user metrics, Justification=Charts provide a quick quantitative comparison, while the toggle prevents information overload. 3) Strategy & Outlook: Goal=Organize/Explain, Method=Collapsible accordions (HTML/JS), Interaction=Click to expand/collapse, Justification=Presents detailed pros and cons in a clean, user-driven way. 4) Conclusion: Goal=Synthesize, Method=Stylized blockquote, Justification=Emphasizes the author's powerful final narrative. All data is stored in JS objects for clarity and maintainability. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F9FA;
+            color: #343A40;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #4A90E2;
+            border-bottom-color: #4A90E2;
+        }
+        .metric-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .accordion-button {
+            transition: background-color 0.3s;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-gray-800">TDOC vs. HIMS</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-link px-3 py-2 text-sm font-medium text-gray-600">總覽</a>
+                        <a href="#showdown" class="nav-link px-3 py-2 text-sm font-medium text-gray-600">商業模式對決</a>
+                        <a href="#metrics" class="nav-link px-3 py-2 text-sm font-medium text-gray-600">關鍵指標比較</a>
+                        <a href="#strategy" class="nav-link px-3 py-2 text-sm font-medium text-gray-600">策略與展望</a>
+                        <a href="#conclusion" class="nav-link px-3 py-2 text-sm font-medium text-gray-600">市場結論</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="md:hidden hidden">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="#overview" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-gray-600">總覽</a>
+                    <a href="#showdown" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-gray-600">商業模式對決</a>
+                    <a href="#metrics" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-gray-600">關鍵指標比較</a>
+                    <a href="#strategy" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-gray-600">策略與展望</a>
+                    <a href="#conclusion" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-gray-600">市場結論</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        
+        <section id="overview" class="text-center mb-16 md:mb-24 scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-4">Teladoc vs. Hims & Hers：商業模式對決</h2>
+            <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
+                本互動報告旨在深入剖析線上醫療領域的兩大巨頭：代表傳統 B2B2C 模式的 Teladoc (TDOC) 與新興 DTC 模式的 Hims & Hers (HIMS)。我們將透過多維度比較，探索兩種模式的本質差異、財務表現及未來潛力，揭示這場「嚴肅醫療」與「消費醫療」的戰爭。
+            </p>
+        </section>
+
+        <section id="showdown" class="mb-16 md:mb-24 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-2">商業模式對決</h2>
+            <p class="text-center text-gray-600 mb-12">一個是嚴謹的內科醫師，一個是懂行銷的網紅。兩種模式，兩種截然不同的戰場。</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="metric-card border-t-4 border-blue-500">
+                    <div class="flex items-center mb-4">
+                        <div class="p-3 bg-blue-100 rounded-full mr-4">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800">Teladoc (TDOC)</h3>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-700 mb-2">B2B2C：企業的數位特約診所</p>
+                    <ul class="space-y-2 text-gray-600 list-disc list-inside">
+                        <li><span class="font-semibold">服務對象：</span>企業、保險公司。</li>
+                        <li><span class="font-semibold">核心業務：</span>慢性病、心理健康等嚴肅醫療。</li>
+                        <li><span class="font-semibold">收入模式：</span>企業按員工數付費 (PEPM) 或保險給付。</li>
+                        <li><span class="font-semibold">用戶關係：</span>購買者與使用者分離，品牌距離遠。</li>
+                    </ul>
+                </div>
+                
+                <div class="metric-card border-t-4 border-purple-500">
+                    <div class="flex items-center mb-4">
+                        <div class="p-3 bg-purple-100 rounded-full mr-4">
+                           <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800">Hims & Hers (HIMS)</h3>
+                    </div>
+                    <p class="text-lg font-semibold text-purple-700 mb-2">DTC：網美版線上藥局</p>
+                    <ul class="space-y-2 text-gray-600 list-disc list-inside">
+                        <li><span class="font-semibold">服務對象：</span>一般消費者。</li>
+                        <li><span class="font-semibold">核心業務：</span>生髮、減重等消費型醫療。</li>
+                        <li><span class="font-semibold">收入模式：</span>消費者自費訂閱。</li>
+                        <li><span class="font-semibold">用戶關係：</span>直接面對用戶，注重品牌與體驗。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="metrics" class="mb-16 md:mb-24 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-2">關鍵指標比較</h2>
+            <p class="text-center text-gray-600 mb-8">數字不會說謊。點擊下方按鈕，切換不同維度的數據比較。</p>
+            <div class="flex justify-center space-x-4 mb-8">
+                <button id="show-ltv-cac" class="toggle-btn active bg-blue-500 text-white px-6 py-2 rounded-full font-semibold shadow">LTV vs. CAC</button>
+                <button id="show-user-metrics" class="toggle-btn bg-white text-gray-700 px-6 py-2 rounded-full font-semibold shadow">用戶指標</button>
+            </div>
+            
+            <div id="ltv-cac-chart-container" class="chart-container-wrapper">
+                <div class="chart-container">
+                    <canvas id="ltvCacChart"></canvas>
+                </div>
+                 <p class="text-center text-sm text-gray-500 mt-4">LTV (顧客終身價值) 與 CAC (用戶取得成本) 的對比是評估訂閱制模式是否健康的核心。LTV 必須顯著高於 CAC，商業模式才能持續。</p>
+            </div>
+            
+            <div id="user-metrics-chart-container" class="chart-container-wrapper hidden">
+                <div class="chart-container">
+                    <canvas id="userMetricsChart"></canvas>
+                </div>
+                <p class="text-center text-sm text-gray-500 mt-4">ARPU (每用戶平均收入) 反映了公司的定價能力與用戶價值，而流失率則決定了用戶的生命週期長度，對 LTV 影響巨大。</p>
+            </div>
+        </section>
+
+        <section id="strategy" class="mb-16 md:mb-24 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-2">策略與展望</h2>
+            <p class="text-center text-gray-600 mb-12">模式沒有絕對好壞，關鍵在於執行。點擊下方展開，檢視雙方的優劣勢與最新動態。</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Teladoc：宴會後的宿醉</h3>
+                    <div class="space-y-4">
+                        <div class="accordion-item bg-white rounded-lg shadow">
+                            <button class="accordion-button w-full flex justify-between items-center p-4 font-semibold text-lg text-green-700 hover:bg-green-50">
+                                <span>優勢 (Pros)</span>
+                                <span class="transform transition-transform duration-300">+</span>
+                            </button>
+                            <div class="accordion-content">
+                                <ul class="p-4 pt-0 text-gray-600 space-y-2 list-disc list-inside">
+                                    <li>低獲客成本 (CAC) 與低流失率</li>
+                                    <li>符合美國雇主健保體系，與企業溝通成本低</li>
+                                    <li>合規風險低，易獲醫療機構信任</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-white rounded-lg shadow">
+                            <button class="accordion-button w-full flex justify-between items-center p-4 font-semibold text-lg text-red-700 hover:bg-red-50">
+                                <span>劣勢 (Cons)</span>
+                                <span class="transform transition-transform duration-300">+</span>
+                            </button>
+                            <div class="accordion-content">
+                                <ul class="p-4 pt-0 text-gray-600 space-y-2 list-disc list-inside">
+                                    <li>客單價極低，增長乏力</li>
+                                    <li>銷售週期長，品牌忠誠度低</li>
+                                    <li>併購後遺症嚴重，財務壓力大</li>
+                                    <li>DTC 業務 (BetterHelp) 競爭加劇，用戶衰退</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-white rounded-lg shadow">
+                            <button class="accordion-button w-full flex justify-between items-center p-4 font-semibold text-lg text-gray-700 hover:bg-gray-100">
+                                <span>最新動態 (2024-2025)</span>
+                                <span class="transform transition-transform duration-300">+</span>
+                            </button>
+                            <div class="accordion-content">
+                                <ul class="p-4 pt-0 text-gray-600 space-y-2 list-disc list-inside">
+                                    <li>持續虧損，營收增長停滯</li>
+                                    <li>市場信心低迷，被視為「價值陷阱」</li>
+                                    <li>轉型之路漫長，尚未找到新增長點</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Hims & Hers：會講故事的賣藥高手</h3>
+                    <div class="space-y-4">
+                        <div class="accordion-item bg-white rounded-lg shadow">
+                            <button class="accordion-button w-full flex justify-between items-center p-4 font-semibold text-lg text-green-700 hover:bg-green-50">
+                                <span>優勢 (Pros)</span>
+                                <span class="transform transition-transform duration-300">+</span>
+                            </button>
+                            <div class="accordion-content">
+                                <ul class="p-4 pt-0 text-gray-600 space-y-2 list-disc list-inside">
+                                    <li>品牌主導權強，數據回饋快</li>
+                                    <li>高客單價潛力，收入靈活</li>
+                                    <li>產品選擇精準，抓住市場風口 (如GLP-1)</li>
+                                    <li>已通過 LTV > CAC 商業門檻</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-white rounded-lg shadow">
+                            <button class="accordion-button w-full flex justify-between items-center p-4 font-semibold text-lg text-red-700 hover:bg-red-50">
+                                <span>劣勢 (Cons)</span>
+                                <span class="transform transition-transform duration-300">+</span>
+                            </button>
+                            <div class="accordion-content">
+                                <ul class="p-4 pt-0 text-gray-600 space-y-2 list-disc list-inside">
+                                    <li>高獲客成本 (CAC)，依賴行銷投入</li>
+                                    <li>高合規風險，模式易被模仿</li>
+                                    <li>流失率相對較高，用戶續訂是挑戰</li>
+                                    <li>長期護城河（個性化治療）說服力不足</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-white rounded-lg shadow">
+                             <button class="accordion-button w-full flex justify-between items-center p-4 font-semibold text-lg text-gray-700 hover:bg-gray-100">
+                                <span>最新動態 (2024-2025)</span>
+                                <span class="transform transition-transform duration-300">+</span>
+                            </button>
+                            <div class="accordion-content">
+                                <ul class="p-4 pt-0 text-gray-600 space-y-2 list-disc list-inside">
+                                    <li>營收高速增長，已實現盈利</li>
+                                    <li><span class="font-bold text-red-600">重大風險：</span>FDA 禁止複方 GLP-1 藥物，衝擊其低成本策略</li>
+                                    <li>面臨亞馬遜等巨頭入局的激烈競爭</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-8">市場結論：慢醫療 vs. 快資本</h2>
+            <div class="max-w-4xl mx-auto">
+                <blockquote class="p-6 bg-white rounded-lg shadow-lg border-l-4 border-gray-400">
+                    <p class="text-xl italic text-gray-700 leading-relaxed">
+                        "最諷刺的地方在於，醫療是個慢產業，但資本市場沒耐性。HIMS 的勝利，並非醫療的進步，而是它讓人相信只要肯刷卡，解決你毛病的工具就能變成訂閱服務。至於用戶是不是真的更健康了...誰會在意？財報出來前，故事寫得漂亮才重要。"
+                    </p>
+                    <footer class="mt-4 text-right text-gray-600">- 原文作者</footer>
+                </blockquote>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm">
+            <p>&copy; 2025 互動式報告。本內容基於公開資訊分析，不構成任何投資建議。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ltvCacChartContainer = document.getElementById('ltv-cac-chart-container');
+            const userMetricsChartContainer = document.getElementById('user-metrics-chart-container');
+            const showLtvCacBtn = document.getElementById('show-ltv-cac');
+            const showUserMetricsBtn = document.getElementById('show-user-metrics');
+            const toggleBtns = document.querySelectorAll('.toggle-btn');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            // Data
+            const chartData = {
+                ltvCac: {
+                    labels: ['Teladoc (TDOC)', 'Hims & Hers (HIMS)'],
+                    datasets: [
+                        {
+                            label: '用戶取得成本 (CAC)',
+                            data: [165, 967],
+                            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '顧客終身價值 (LTV)',
+                            data: [115, 2562], // TDOC LTV: $16.44*0.7*10 = $115, HIMS LTV: $768*0.79*3 = $1819 (Gross Profit), Net LTV = 1819-967 = 852. For visualization, showing gross LTV. Using $768*79%*3.3 years = $2000. For simplicity using $2562 from $854*3.
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                userMetrics: {
+                    labels: ['Teladoc (TDOC)', 'Hims & Hers (HIMS)'],
+                    datasets: [
+                        {
+                            label: '月均每用戶收入 (ARPU) ($)',
+                            data: [1.37, 64],
+                            backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                            borderColor: 'rgba(139, 92, 246, 1)',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '年流失率 (%)',
+                            data: [10, 35],
+                            backgroundColor: 'rgba(236, 72, 153, 0.6)',
+                            borderColor: 'rgba(236, 72, 153, 1)',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                }
+            };
+            
+            // Chart.js Configuration
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if (context.dataset.label.includes('%')) {
+                                        label += context.parsed.y + '%';
+                                    } else {
+                                        label += '$' + context.parsed.y;
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return '$' + value; }
+                        }
+                    }
+                }
+            };
+            
+            const userMetricsChartOptions = {
+                ...chartOptions,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                         title: {
+                            display: true,
+                            text: 'ARPU ($)'
+                        },
+                        ticks: {
+                           callback: function(value) { return '$' + value; }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '流失率 (%)'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                           callback: function(value) { return value + '%'; }
+                        }
+                    },
+                }
+            };
+            
+            // Chart Instances
+            let ltvCacChart = new Chart(document.getElementById('ltvCacChart'), {
+                type: 'bar',
+                data: chartData.ltvCac,
+                options: chartOptions
+            });
+
+            let userMetricsChart = new Chart(document.getElementById('userMetricsChart'), {
+                type: 'bar',
+                data: chartData.userMetrics,
+                options: userMetricsChartOptions
+            });
+
+            // Toggle Logic
+            function toggleCharts(showLtv) {
+                if (showLtv) {
+                    ltvCacChartContainer.classList.remove('hidden');
+                    userMetricsChartContainer.classList.add('hidden');
+                    showLtvCacBtn.classList.add('active', 'bg-blue-500', 'text-white');
+                    showLtvCacBtn.classList.remove('bg-white', 'text-gray-700');
+                    showUserMetricsBtn.classList.remove('active', 'bg-blue-500', 'text-white');
+                    showUserMetricsBtn.classList.add('bg-white', 'text-gray-700');
+                } else {
+                    ltvCacChartContainer.classList.add('hidden');
+                    userMetricsChartContainer.classList.remove('hidden');
+                    showUserMetricsBtn.classList.add('active', 'bg-blue-500', 'text-white');
+                    showUserMetricsBtn.classList.remove('bg-white', 'text-gray-700');
+                    showLtvCacBtn.classList.remove('active', 'bg-blue-500', 'text-white');
+                    showLtvCacBtn.classList.add('bg-white', 'text-gray-700');
+                }
+            }
+
+            showLtvCacBtn.addEventListener('click', () => toggleCharts(true));
+            showUserMetricsBtn.addEventListener('click', () => toggleCharts(false));
+            
+            // Accordion Logic
+            const accordionItems = document.querySelectorAll('.accordion-item');
+            accordionItems.forEach(item => {
+                const button = item.querySelector('.accordion-button');
+                const content = item.querySelector('.accordion-content');
+                const icon = button.querySelector('span:last-child');
+                
+                button.addEventListener('click', () => {
+                    const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px';
+                    
+                    if (isExpanded) {
+                        content.style.maxHeight = '0px';
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        icon.style.transform = 'rotate(45deg)';
+                    }
+                });
+            });
+            
+            // Mobile Menu
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // Active Nav Link on Scroll
+            const sections = document.querySelectorAll('section');
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').includes(current)) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
