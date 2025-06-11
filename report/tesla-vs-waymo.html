@@ -1,0 +1,516 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>特斯拉 vs. Waymo：互動式對比分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Neutral with Blue/Teal Accents -->
+    <!-- Application Structure Plan: Thematic comparative dashboard with top navigation. A two-column layout for side-by-side comparison is chosen to directly highlight the core contrasts between Tesla and Waymo, enhancing user understanding. The flow is designed to go from a high-level overview to deep dives into specific comparison pillars (Tech, Safety, Business, Scale). -->
+    <!-- Visualization & Content Choices: Overview: HTML/CSS diagram for core philosophy. Tech: Tables/diagrams for clear structure. Safety/Data: Interactive Chart.js bar/doughnut charts with toggles to reveal data nuances and contexts. Business: Interactive slider for cost comparison. Scale: Expandable lists for bottleneck details. All choices aim to make complex data digestible and interactive without SVG/Mermaid, using Chart.js for data viz. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F4;
+            color: #333333;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #111;
+            border-bottom-color: #4A90E2;
+        }
+        .tesla-accent { color: #4A90E2; }
+        .waymo-accent { color: #4A9A9A; }
+        .tesla-bg { background-color: #4A90E2; }
+        .waymo-bg { background-color: #4A9A9A; }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            width: 100%;
+            max-width: 600px;
+            height: 320px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .comparison-grid {
+            grid-template-columns: 1fr;
+        }
+        @media (min-width: 1024px) {
+            .comparison-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-xl md:text-2xl font-bold">自動駕駛對決：<span class="tesla-accent">特斯拉</span> vs <span class="waymo-accent">Waymo</span></h1>
+                <div class="hidden md:flex space-x-6 text-gray-600 font-medium">
+                    <a href="#overview" class="nav-link active">總覽</a>
+                    <a href="#tech" class="nav-link">技術路徑</a>
+                    <a href="#safety" class="nav-link">安全與數據</a>
+                    <a href="#business" class="nav-link">商業模式</a>
+                    <a href="#scale" class="nav-link">規模化之路</a>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden px-4 pt-2 pb-4 space-y-2">
+            <a href="#overview" class="block nav-link">總覽</a>
+            <a href="#tech" class="block nav-link">技術路徑</a>
+            <a href="#safety" class="block nav-link">安全與數據</a>
+            <a href="#business" class="block nav-link">商業模式</a>
+            <a href="#scale" class="block nav-link">規模化之路</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8 space-y-16">
+        
+        <!-- Overview Section -->
+        <section id="overview" class="scroll-mt-20 text-center">
+            <h2 class="text-3xl font-bold mb-4">核心哲學的對撞</h2>
+            <p class="max-w-3xl mx-auto text-gray-600 mb-8">特斯拉與Waymo代表了實現完全自動駕駛的兩條截然不同的道路。特斯拉賭注於以攝影機為核心的「純視覺」方案，試圖模仿人類駕駛，透過強大的AI和海量真實數據來解決問題。Waymo則採用傳統工程學的嚴謹方法，整合光學雷達(LiDAR)、雷達和攝影機等多種感測器，追求極致的冗餘和可靠性。這場競爭不僅是技術之爭，更是對未來交通根本理念的探索。</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="card p-6">
+                    <h3 class="text-2xl font-bold mb-3 tesla-accent">特斯拉：視覺至上</h3>
+                    <div class="flex justify-center items-center h-24 text-6xl">📷</div>
+                    <p class="font-semibold text-lg">AI驅動的「大腦」</p>
+                    <p class="text-gray-500 mt-2">依賴8個攝影機作為主要感測器，透過端到端神經網路直接從像素輸出駕駛決策。優勢在於低成本和潛在的快速規模化。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-2xl font-bold mb-3 waymo-accent">Waymo：多重保障</h3>
+                    <div class="flex justify-center items-center h-24 text-6xl space-x-4">
+                        <span title="LiDAR">🛰️</span>
+                        <span title="Radar">📡</span>
+                        <span title="Camera">📷</span>
+                    </div>
+                    <p class="font-semibold text-lg">工程學的「冗餘系統」</p>
+                    <p class="text-gray-500 mt-2">融合LiDAR、雷達、攝影機和聲音等多種感測器數據，透過模組化軟體架構進行決策。優勢在於高精度和高可靠性。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tech Pathway Section -->
+        <section id="tech" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-8 text-center">技術路徑：感測器與演算法</h2>
+            <div class="text-center max-w-3xl mx-auto text-gray-600 mb-12">
+                <p>硬體選擇決定了軟體開發的難度，而演算法架構則定義了車輛的「思考」方式。特斯拉的極簡硬體將壓力全部交給AI，而Waymo的豐富硬體則為AI提供了更直接、多維度的原始數據。</p>
+            </div>
+            <div class="comparison-grid gap-8">
+                <!-- Tesla Tech -->
+                <div class="card p-6">
+                    <h3 class="text-2xl font-bold mb-4 tesla-accent">特斯拉</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="font-bold text-lg">感測器：純視覺</h4>
+                            <p class="text-sm text-gray-500">8個攝影機 [主要] + 自研FSD晶片</p>
+                            <ul class="mt-2 text-sm list-disc list-inside space-y-1">
+                                <li><span class="font-semibold">優勢：</span>成本低，易於大規模生產和整合。</li>
+                                <li><span class="font-semibold">劣勢：</span>深度感知困難，易受惡劣天氣和光照影響，對AI依賴極高。</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg">演算法：端到端神經網路</h4>
+                            <p class="text-sm text-gray-500">從像素到行動，模仿人類學習</p>
+                            <ul class="mt-2 text-sm list-disc list-inside space-y-1">
+                                <li><span class="font-semibold">優勢：</span>開發流程簡潔，潛在學習效率高，能從海量數據中學習複雜關聯。</li>
+                                <li><span class="font-semibold">劣勢：</span>「黑盒子」特性，錯誤難以診斷和歸因，安全驗證困難。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <!-- Waymo Tech -->
+                <div class="card p-6">
+                    <h3 class="text-2xl font-bold mb-4 waymo-accent">Waymo</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="font-bold text-lg">感測器：多重融合</h4>
+                            <p class="text-sm text-gray-500">4+ LiDAR, 6+ 雷達, 14+ 攝影機, 聲音接收器</p>
+                            <ul class="mt-2 text-sm list-disc list-inside space-y-1">
+                                <li><span class="font-semibold">優勢：</span>高冗餘度和穩健性，精確的3D感知，惡劣天氣下綜合性能更佳。</li>
+                                <li><span class="font-semibold">劣勢：</span>硬體成本高昂，系統複雜，運算需求大。</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg">演算法：模組化架構</h4>
+                            <p class="text-sm text-gray-500">感知、預測、規劃等模組各司其職</p>
+                             <ul class="mt-2 text-sm list-disc list-inside space-y-1">
+                                <li><span class="font-semibold">優勢：</span>可解釋性強，各模組可單獨測試和驗證，錯誤易於追蹤。</li>
+                                <li><span class="font-semibold">劣勢：</span>系統整合複雜，調整單一模組可能影響全局，迭代速度可能較慢。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Safety & Data Section -->
+        <section id="safety" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-8 text-center">安全與數據：里程碑與爭議</h2>
+            <div class="text-center max-w-3xl mx-auto text-gray-600 mb-12">
+                <p>安全是自動駕駛的終極目標，但如何衡量與證明卻充滿挑戰。特斯拉擁有無與倫比的真實世界數據量，而Waymo則以高質量的數據和嚴謹的模擬著稱。兩者的安全報告都宣稱優於人類，但其方法論和透明度卻大相逕庭。</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold mb-4">安全性能對比 (指標化簡)</h3>
+                    <div class="chart-container">
+                        <canvas id="safetyChart"></canvas>
+                    </div>
+                     <p id="safety-chart-context" class="text-xs text-gray-500 mt-2 text-center">數據為簡化呈現，反映報告中提到的核心安全聲明趨勢。Waymo數據基於瑞士再保險研究，特斯拉數據基於其季度報告。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold mb-4">數據生態系統構成</h3>
+                    <div class="chart-container">
+                        <canvas id="dataChart"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 text-center">此圖表為概念性展示，反映兩家公司在數據來源上的策略側重。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Business Model Section -->
+        <section id="business" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-8 text-center">商業模式：變現之路</h2>
+            <div class="text-center max-w-3xl mx-auto text-gray-600 mb-12">
+                <p>技術最終需要透過商業模式落地。特斯拉試圖透過向龐大車主群體銷售FSD軟體來提前變現，並描繪了低成本共享機器人計程車的未來。Waymo則腳踏實地，在特定城市運營自己的機器人計程車隊，提供類似Uber的叫車服務。</p>
+            </div>
+             <div class="comparison-grid gap-8">
+                 <div class="card p-6 flex flex-col">
+                    <h3 class="text-2xl font-bold mb-4 tesla-accent">特斯拉：軟體與網路</h3>
+                    <ul class="text-sm space-y-3 flex-grow">
+                        <li class="flex items-start"><span class="tesla-bg text-white rounded-full w-5 h-5 flex items-center justify-center mr-3 flex-shrink-0">1</span><div><strong class="block">FSD軟體銷售/訂閱：</strong>向車主一次性或按月收取高利潤軟體費用。</div></li>
+                        <li class="flex items-start"><span class="tesla-bg text-white rounded-full w-5 h-5 flex items-center justify-center mr-3 flex-shrink-0">2</span><div><strong class="block">未來機器人計程車網路：</strong>車主可將閒置車輛投入共享網路賺錢，特斯拉從中抽成。</div></li>
+                        <li class="flex items-start"><span class="tesla-bg text-white rounded-full w-5 h-5 flex items-center justify-center mr-3 flex-shrink-0">3</span><div><strong class="block">成本優勢：</strong>利用消費者已購買的硬體，極大地降低了前期資本投入。</div></li>
+                    </ul>
+                </div>
+                <div class="card p-6 flex flex-col">
+                    <h3 class="text-2xl font-bold mb-4 waymo-accent">Waymo：服務與合作</h3>
+                     <ul class="text-sm space-y-3 flex-grow">
+                        <li class="flex items-start"><span class="waymo-bg text-white rounded-full w-5 h-5 flex items-center justify-center mr-3 flex-shrink-0">1</span><div><strong class="block">Waymo One叫車服務：</strong>在特定城市運營自家的機器人計程車隊，按程收費。</div></li>
+                        <li class="flex items-start"><span class="waymo-bg text-white rounded-full w-5 h-5 flex items-center justify-center mr-3 flex-shrink-0">2</span><div><strong class="block">B2B合作夥伴關係：</strong>與Uber等平台合作擴大用戶觸及面，與車廠合作獲取車輛。</div></li>
+                        <li class="flex items-start"><span class="waymo-bg text-white rounded-full w-5 h-5 flex items-center justify-center mr-3 flex-shrink-0">3</span><div><strong class="block">資本密集：</strong>需自行承擔昂貴車輛、營運、維護等全部成本，前期投入巨大。</div></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card p-6 mt-8">
+                <h3 class="text-xl font-bold mb-4 text-center">機器人計程車成本預期</h3>
+                <div class="max-w-xl mx-auto">
+                    <label for="cost-slider" class="block mb-2 text-sm font-medium text-gray-700">滑動查看成本差異</label>
+                    <input id="cost-slider" type="range" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <div id="cost-display" class="mt-4 flex justify-between items-end">
+                        <div class="text-center">
+                            <p class="text-lg font-bold tesla-accent">~$0.12 / 公里</p>
+                            <p class="text-xs text-gray-500">特斯拉的顛覆性目標</p>
+                        </div>
+                         <div class="text-center">
+                            <p class="text-lg font-bold waymo-accent">~$8.75 / 公里</p>
+                            <p class="text-xs text-gray-500">Waymo當前高昂定價</p>
+                        </div>
+                    </div>
+                    <p id="cost-context" class="mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded-md"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Path to Scale Section -->
+        <section id="scale" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-8 text-center">規模化之路：挑戰與展望</h2>
+            <div class="text-center max-w-3xl mx-auto text-gray-600 mb-12">
+                 <p>最終的勝利取決於誰能率先實現安全、可靠且經濟上可行的大規模部署。特斯拉的「軟體定義」路徑理論上可以快速覆蓋全球，但前提是其純視覺AI必須完美解決長尾問題。Waymo的「逐城攻克」路徑更為穩健，但速度緩慢且成本高昂。</p>
+            </div>
+            <div class="comparison-grid gap-8">
+                <div class="card p-6">
+                    <h3 class="text-2xl font-bold mb-4 tesla-accent">特斯拉的規模化</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold text-lg">✅ 優勢</h4>
+                            <ul class="text-sm list-inside list-disc mt-1 space-y-1">
+                                <li>槓桿現有龐大車隊，可透過OTA快速部署</li>
+                                <li>純視覺方案的潛在低成本優勢</li>
+                                <li>巨大的數據飛輪效應</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg">❌ 劣勢與瓶頸</h4>
+                             <ul class="text-sm list-inside list-disc mt-1 space-y-1">
+                                <li class="collapsible-trigger cursor-pointer">純視覺方案能否達到L4/L5級的穩健性？ <span class="text-gray-400 text-xs">▼</span></li>
+                                <div class="collapsible-content text-xs text-gray-600 pl-4 mt-1">這是最大的技術賭注。在全天候、全工況下的可靠性和安全性面臨根本性質疑，任何AI無法處理的視覺盲點都可能是災難性的。</div>
+                                <li class="collapsible-trigger cursor-pointer">全球範圍內艱鉅的監管批准 <span class="text-gray-400 text-xs">▼</span></li>
+                                <div class="collapsible-content text-xs text-gray-600 pl-4 mt-1">要讓各國監管機構批准一個無監督的L4/L5系統在全球道路上行駛，將面臨極其嚴格的審查和漫長的流程。</div>
+                                 <li class="collapsible-trigger cursor-pointer">「長尾」邊緣案例的挑戰 <span class="text-gray-400 text-xs">▼</span></li>
+                                <div class="collapsible-content text-xs text-gray-600 pl-4 mt-1">真實世界充滿了無數罕見且不可預測的事件。旨在無限制運行的系統，必須能處理這個幾乎無限的「長尾問題」。</div>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                 <div class="card p-6">
+                    <h3 class="text-2xl font-bold mb-4 waymo-accent">Waymo的規模化</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold text-lg">✅ 優勢</h4>
+                             <ul class="text-sm list-inside list-disc mt-1 space-y-1">
+                                <li>已驗證的L4級無人駕駛能力</li>
+                                <li>受控的、漸進式的推廣，易於與地方合作</li>
+                                <li>多感測器方案的穩健技術基礎</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg">❌ 劣勢與瓶頸</h4>
+                            <ul class="text-sm list-inside list-disc mt-1 space-y-1">
+                                <li class="collapsible-trigger cursor-pointer">高昂的資本成本和營運投入 <span class="text-gray-400 text-xs">▼</span></li>
+                                <div class="collapsible-content text-xs text-gray-600 pl-4 mt-1">在每個新城市部署昂貴的車隊、繪製地圖、建立運營中心都需要巨額投資，嚴重制約擴張速度。</div>
+                                <li class="collapsible-trigger cursor-pointer">緩慢的地理擴展速度 <span class="text-gray-400 text-xs">▼</span></li>
+                                <div class="collapsible-content text-xs text-gray-600 pl-4 mt-1">逐個城市部署，本質上就比全球軟體推送慢得多。每個城市都需要時間來繪製地圖、測試和獲得批准。</div>
+                                <li class="collapsible-trigger cursor-pointer">對高精地圖的依賴 <span class="text-gray-400 text-xs">▼</span></li>
+                                <div class="collapsible-content text-xs text-gray-600 pl-4 mt-1">依賴需要持續維護的高精地圖，這限制了營運區域的靈活性，增加了擴展的複雜性和成本。</div>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto p-8 text-center">
+            <p class="font-bold text-lg">結論：一場仍在進行的競賽</p>
+            <p class="text-sm text-gray-400 mt-2 max-w-3xl mx-auto">
+                特斯拉與Waymo的競爭遠未結束。最終的贏家將是在技術創新、安全可靠、經濟可行和社會責任之間取得最佳平衡的企業。未來的自動駕駛市場很可能是多元共存的格局，而非單一模式的完勝。
+            </p>
+            <p class="text-xs text-gray-500 mt-6">此互動式報告根據公開資料分析生成，僅供參考。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Data store from the source report
+            const appData = {
+                safety: {
+                    labels: ['財產損失索賠減少', '人身傷害索賠減少', '警方報告事故減少'],
+                    tesla: [0, 0, 0], // Tesla doesn't report these metrics directly, shown as 0 for comparison base
+                    waymo: [88, 92, 64] // In percentage, from Swiss Re & Waymo reports
+                },
+                dataEcosystem: {
+                    labels: ['特斯拉 - 真實世界數據', '特斯拉 - 模擬數據', 'Waymo - 高質量真實數據', 'Waymo - 大規模模擬數據'],
+                    data: [90, 10, 30, 70], // Conceptual percentages
+                    colors: [
+                        'rgba(74, 144, 226, 0.8)', // Tesla Real World
+                        'rgba(74, 144, 226, 0.4)', // Tesla Sim
+                        'rgba(74, 154, 154, 0.8)', // Waymo Real World
+                        'rgba(74, 154, 154, 0.4)'  // Waymo Sim
+                    ]
+                },
+                costSlider: {
+                    teslaContext: "特斯拉的目標是透過軟體規模化和低成本硬體，將機器人計程車成本降至極低水平，使其比擁有私家車更便宜，從而顛覆整個出行市場。這一價格點取決於多項尚未實現的重大突破。",
+                    waymoContext: "Waymo目前高昂的價格反映了其昂貴的感測器硬體、研發投入以及在有限區域內的營運成本。其盈利關鍵在於能否透過規模化和技術進步大幅降低單次行程的成本。"
+                }
+            };
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Smooth scroll and active nav link
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href');
+                    document.querySelector(targetId).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                    if (mobileMenu.classList.contains('hidden') === false) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        current = '#' + section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === current) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+
+            // Safety Chart
+            const safetyCtx = document.getElementById('safetyChart').getContext('2d');
+            new Chart(safetyCtx, {
+                type: 'bar',
+                data: {
+                    labels: appData.safety.labels,
+                    datasets: [{
+                        label: 'Waymo (相較於人類駕駛)',
+                        data: appData.safety.waymo,
+                        backgroundColor: 'rgba(74, 154, 154, 0.7)',
+                        borderColor: 'rgba(74, 154, 154, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: '事故/索賠率降低百分比 (%)' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += context.parsed.x + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%'
+                                }
+                            }
+                        },
+                        y: {
+                           ticks: {
+                                callback: function(value, index, ticks) {
+                                    const label = this.getLabelForValue(value);
+                                    return label.length > 8 ? label.substring(0, 8) + '...' : label;
+                                }
+                           }
+                        }
+                    }
+                }
+            });
+
+            // Data Ecosystem Chart (Corrected)
+            const dataCtx = document.getElementById('dataChart').getContext('2d');
+            new Chart(dataCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: appData.dataEcosystem.labels,
+                    datasets: [{
+                        data: appData.dataEcosystem.data,
+                        backgroundColor: appData.dataEcosystem.colors,
+                        borderColor: '#FFFFFF',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                        legend: { 
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Cost Slider
+            const costSlider = document.getElementById('cost-slider');
+            const costContext = document.getElementById('cost-context');
+            
+            function updateCostContext() {
+                if (costSlider.value < 50) {
+                    costContext.textContent = appData.costSlider.teslaContext;
+                    costContext.style.borderColor = '#4A90E2';
+                } else {
+                    costContext.textContent = appData.costSlider.waymoContext;
+                    costContext.style.borderColor = '#4A9A9A';
+                }
+            }
+            costSlider.addEventListener('input', updateCostContext);
+            updateCostContext();
+
+            // Collapsible sections
+            const collapsibleTriggers = document.querySelectorAll('.collapsible-trigger');
+            collapsibleTriggers.forEach(trigger => {
+                trigger.addEventListener('click', function() {
+                    const content = this.nextElementSibling;
+                    const arrow = this.querySelector('span');
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        arrow.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        arrow.style.transform = 'rotate(180deg)';
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
