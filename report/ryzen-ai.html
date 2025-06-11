@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式分析報告：AMD Ryzen AI vs Apple M4</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Serene Neutral (Stone/Amber, Slate, Indigo) -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive dashboard. It starts with a hero section for a high-level summary, followed by a sticky navigation bar for easy access to different analyses. The core of the app uses thematic sections with interactive tabs and charts to compare AMD and Apple on specs, AI performance, and overall value. This non-linear, exploratory structure allows users to dive into the details they care about most, making the dense technical information more digestible and engaging than a linear report. The final section uses interactive "persona" cards to deliver actionable conclusions. -->
+    <!-- Visualization & Content Choices: Data from the report is transformed into visual and interactive elements. Quantitative specs and benchmark scores are presented in side-by-side cards and dynamic Chart.js bar charts for quick comparison (Goal: Compare). LLM capabilities and lists are organized into tabbed content and clear text blocks (Goal: Inform). The complex topic of memory architecture is simplified using a structured HTML diagram (Goal: Organize). The final verdict is presented as interactive persona cards, guiding users to a conclusion based on their needs (Goal: Guide Decision). This approach prioritizes user understanding and interaction. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            max-height: 300px;
+        }
+        @media (min-width: 640px) {
+            .chart-container {
+                height: 320px;
+                max-height: 350px;
+            }
+        }
+        .tab-button.active {
+            border-color: #4f46e5; /* indigo-600 */
+            background-color: #eef2ff; /* indigo-50 */
+            color: #4338ca; /* indigo-700 */
+        }
+        .persona-card {
+            transform-style: preserve-3d;
+            transition: transform 0.7s;
+        }
+        .persona-card.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            backface-visibility: hidden;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <!-- Header and Hero Section -->
+    <header id="overview" class="bg-slate-800 text-white pt-12 pb-16">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">AI PC 終極對決</h1>
+            <p class="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto">AMD Ryzen AI Max+ PRO 395 vs. Apple M4 Max</p>
+            <p class="mt-6 max-w-3xl mx-auto text-slate-400">這份互動報告將深入剖析 AMD 最新的旗艦 AI 處理器，從核心規格、生成式 AI 效能到與 Apple M4 Max 的全面比較，為您提供最清晰的洞察。</p>
+        </div>
+    </header>
+
+    <!-- Sticky Navigation -->
+    <nav class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center items-center h-16 space-x-4 md:space-x-8 text-sm md:text-base">
+                <a href="#overview" class="text-slate-600 hover:text-indigo-600 transition">概覽</a>
+                <a href="#specs" class="text-slate-600 hover:text-indigo-600 transition">核心規格比較</a>
+                <a href="#gen-ai" class="text-slate-600 hover:text-indigo-600 transition">生成式 AI 效能</a>
+                <a href="#showdown" class="text-slate-600 hover:text-indigo-600 transition">全方位對決</a>
+                <a href="#verdict" class="text-slate-600 hover:text-indigo-600 transition">最終結論</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <!-- Core Specs Section -->
+        <section id="specs" class="py-16">
+            <h2 class="text-3xl font-bold text-center mb-2">核心規格比較</h2>
+            <p class="text-center text-slate-500 max-w-2xl mx-auto mb-12">深入探討兩款晶片的硬體架構差異。此處我們不僅比較紙面數據，更透過互動圖表將效能基準視覺化，讓您一目了然地看出它們在不同任務上的優劣勢。</p>
+
+            <div class="text-center mb-8">
+                <div id="spec-tabs" class="inline-flex flex-wrap justify-center rounded-lg bg-slate-200 p-1">
+                    <button data-target="tab-cpu" class="tab-button px-4 py-2 text-sm font-medium rounded-md border-2 border-transparent transition active">CPU 處理器</button>
+                    <button data-target="tab-gpu" class="tab-button px-4 py-2 text-sm font-medium rounded-md border-2 border-transparent transition">GPU 顯示卡</button>
+                    <button data-target="tab-npu" class="tab-button px-4 py-2 text-sm font-medium rounded-md border-2 border-transparent transition">NPU & 記憶體</button>
+                </div>
+            </div>
+
+            <div class="space-y-8">
+                <!-- CPU Tab Content -->
+                <div id="tab-cpu" class="spec-tab-content">
+                    <div class="grid md:grid-cols-2 gap-8 items-start">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4">CPU 規格</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="font-semibold text-indigo-700">Ryzen AI Max+ PRO 395</p>
+                                    <ul class="list-disc list-inside text-slate-600 mt-2 space-y-1">
+                                        <li>16 核心 / 32 線程</li>
+                                        <li>Zen 5 架構</li>
+                                        <li>5.1 GHz 加速時脈</li>
+                                        <li>80 MB 總快取</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-cyan-700">Apple M4 Max</p>
+                                    <ul class="list-disc list-inside text-slate-600 mt-2 space-y-1">
+                                        <li>最高 16 核心</li>
+                                        <li>-</li>
+                                        <li>-</li>
+                                        <li>-</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4">PassMark CPU 效能</h3>
+                            <div class="chart-container mx-auto max-w-xl">
+                                <canvas id="cpuBenchmarkChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GPU Tab Content -->
+                <div id="tab-gpu" class="spec-tab-content hidden">
+                    <div class="grid md:grid-cols-2 gap-8 items-start">
+                         <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4">整合 GPU 規格</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="font-semibold text-indigo-700">Ryzen AI Max+ PRO 395</p>
+                                    <ul class="list-disc list-inside text-slate-600 mt-2 space-y-1">
+                                        <li>Radeon™ 8060S</li>
+                                        <li>40 RDNA 3.5 核心</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-cyan-700">Apple M4 Max</p>
+                                    <ul class="list-disc list-inside text-slate-600 mt-2 space-y-1">
+                                        <li>Apple GPU</li>
+                                        <li>最高 40 核心</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4">Geekbench AI ONNX GPU (半精度)</h3>
+                             <div class="chart-container mx-auto max-w-xl">
+                                <canvas id="gpuBenchmarkChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NPU & Memory Tab Content -->
+                <div id="tab-npu" class="spec-tab-content hidden">
+                     <div class="grid md:grid-cols-2 gap-8 items-start">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4">NPU & 記憶體規格</h3>
+                           <div class="space-y-6">
+                                <div>
+                                    <p class="font-semibold text-lg mb-2">神經處理單元 (NPU)</p>
+                                    <div class="flex items-center justify-around text-center">
+                                        <div><p class="text-3xl font-bold text-indigo-600">50</p><p class="text-sm text-slate-500">Ryzen TOPS</p></div>
+                                        <div><p class="text-3xl font-bold text-cyan-600">38</p><p class="text-sm text-slate-500">M4 Max TOPS</p></div>
+                                    </div>
+                                </div>
+                                 <div>
+                                    <p class="font-semibold text-lg mb-2">最大統一記憶體</p>
+                                     <div class="flex items-center justify-around text-center">
+                                        <div><p class="text-3xl font-bold text-indigo-600">128<span class="text-lg">GB</span></p><p class="text-sm text-slate-500">Ryzen</p></div>
+                                        <div><p class="text-3xl font-bold text-cyan-600">128<span class="text-lg">GB</span></p><p class="text-sm text-slate-500">M4 Max</p></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-lg mb-2">記憶體頻寬</p>
+                                    <div class="flex items-center justify-around text-center">
+                                        <div><p class="text-3xl font-bold text-indigo-600">~256<span class="text-lg">GB/s</span></p><p class="text-sm text-slate-500">Ryzen</p></div>
+                                        <div><p class="text-3xl font-bold text-cyan-600">546<span class="text-lg">GB/s</span></p><p class="text-sm text-slate-500">M4 Max</p></div>
+                                    </div>
+                                </div>
+                           </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4">統一記憶體架構 (UMA) 解說</h3>
+                            <div class="flex flex-col items-center justify-center h-full">
+                                <div class="w-full max-w-sm text-center">
+                                    <div class="bg-slate-100 p-3 rounded-lg mb-2">
+                                        <p class="font-bold">統一記憶體池 (RAM)</p>
+                                    </div>
+                                    <div class="flex justify-center mb-2">
+                                        <div class="w-px bg-slate-300 h-6"></div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2">
+                                         <div class="w-full bg-slate-300 h-px"></div>
+                                         <div class="w-full bg-slate-300 h-px"></div>
+                                         <div class="w-full bg-slate-300 h-px"></div>
+                                         <div class="w-px bg-slate-300 h-6 mx-auto"></div>
+                                         <div class="w-px bg-slate-300 h-6 mx-auto"></div>
+                                         <div class="w-px bg-slate-300 h-6 mx-auto"></div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2 text-sm">
+                                        <div class="bg-indigo-100 text-indigo-800 p-2 rounded">CPU</div>
+                                        <div class="bg-indigo-100 text-indigo-800 p-2 rounded">GPU</div>
+                                        <div class="bg-indigo-100 text-indigo-800 p-2 rounded">NPU</div>
+                                    </div>
+                                </div>
+                                <p class="mt-4 text-slate-600 text-center text-sm">CPU、GPU 和 NPU 共享同一個高速記憶體池，無需在獨立的 VRAM 之間複製數據，這對大型 AI 模型至關重要。</p>
+                                 <p class="mt-2 text-slate-600 text-center text-sm font-semibold">Ryzen AI Max 可將高達 <span class="text-indigo-600">96GB</span> 的記憶體分配給 AI/GPU 使用。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GenAI Performance Section -->
+        <section id="gen-ai" class="py-16 bg-white rounded-lg shadow-inner">
+            <h2 class="text-3xl font-bold text-center mb-2">生成式 AI 效能</h2>
+            <p class="text-center text-slate-500 max-w-2xl mx-auto mb-12">GenAI 是新一代 AI PC 的核心戰場。本節將探討 Ryzen AI Max+ PRO 395 在運行大型語言模型 (LLM) 和圖像生成 (Stable Diffusion) 等真實世界 AI 任務時的潛力與實際表現。</p>
+            
+            <div class="text-center mb-8">
+                <div id="genai-tabs" class="inline-flex flex-wrap justify-center rounded-lg bg-slate-200 p-1">
+                    <button data-target="tab-llm" class="tab-button px-4 py-2 text-sm font-medium rounded-md border-2 border-transparent transition active">大型語言模型 (LLM)</button>
+                    <button data-target="tab-image" class="tab-button px-4 py-2 text-sm font-medium rounded-md border-2 border-transparent transition">圖像生成</button>
+                </div>
+            </div>
+
+            <!-- LLM Content -->
+            <div id="tab-llm" class="genai-tab-content">
+                <div class="grid md:grid-cols-2 gap-8 items-start">
+                    <div class="bg-slate-50 p-6 rounded-lg">
+                        <h3 class="text-xl font-bold mb-4">LLM Token 生成速率 (社群測試)</h3>
+                        <p class="text-sm text-slate-500 mb-4">在 HP ZBook (64GB RAM) 上的 token/秒 表現。越高越好。</p>
+                        <div class="chart-container mx-auto max-w-xl">
+                            <canvas id="llmPerfChart"></canvas>
+                        </div>
+                    </div>
+                     <div class="bg-slate-50 p-6 rounded-lg">
+                        <h3 class="text-xl font-bold mb-4">記憶體容量優勢</h3>
+                        <p class="text-slate-600 mb-4">運行大型 LLM 的關鍵瓶頸是記憶體。Ryzen AI Max 的 96GB GPU 可用記憶體，使其能夠在本地運行通常需要高階獨立顯卡的超大型模型。</p>
+                        <div class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 p-4 rounded-r-lg" role="alert">
+                            <p class="font-bold">AMD 宣稱：運行 Llama 3.3 (70B)</p>
+                            <p>相較於 RTX 4090 (24GB VRAM)，Ryzen AI Max+ 395 的 AI 效能快 <span class="text-2xl font-bold">2.2</span> 倍，功耗降低 <span class="text-2xl font-bold">87%</span>。</p>
+                        </div>
+                        <h4 class="font-semibold mt-6 mb-2">支援模型範例：</h4>
+                        <div class="flex flex-wrap gap-2 text-sm">
+                            <span class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full">Llama 70B</span>
+                            <span class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full">Mistral-7B</span>
+                             <span class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full">Qwen2-7B</span>
+                            <span class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full">Gemma2-2B</span>
+                             <span class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full">Codellama-7B</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Image Gen Content -->
+            <div id="tab-image" class="genai-tab-content hidden">
+                <div class="max-w-4xl mx-auto text-center">
+                    <h3 class="text-2xl font-bold mb-4">Stable Diffusion 圖像生成</h3>
+                     <p class="text-slate-600 mb-6">AMD 宣稱，憑藉軟體優化和高效的記憶體管理，Ryzen AI Max+395 在 Stable Diffusion 3.5 Large 模型上的表現遠超對手。</p>
+                     <div class="bg-amber-100 border-l-4 border-amber-500 text-amber-800 p-6 rounded-r-lg text-left" role="alert">
+                            <p class="font-bold text-xl">AMD 內部測試宣稱：</p>
+                            <p class="mt-2">相較於 MacBook Pro M4 Pro (48GB RAM)，Ryzen AI Max+ 395 的圖像生成速度快了 <span class="text-3xl font-bold">3.9</span> 倍。</p>
+                            <p class="text-sm mt-2 text-amber-700">測試條件：Stable Diffusion 3.5 Large, 1024x1024, 20 步。</p>
+                        </div>
+                    <p class="mt-6 text-slate-500">這項優勢在處理高解析度、多步驟的複雜圖像生成任務時尤為明顯，因為這些任務對記憶體容量和頻寬有著極高的要求。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Showdown Section -->
+        <section id="showdown" class="py-16">
+            <h2 class="text-3xl font-bold text-center mb-2">全方位對決</h2>
+            <p class="text-center text-slate-500 max-w-2xl mx-auto mb-12">效能不只看跑分。本節將從記憶體策略、軟體生態和性價比三個關鍵維度，深入分析兩大平台的戰略差異與各自的優劣。</p>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-bold mb-3">記憶體：容量 vs. 頻寬</h3>
+                    <p class="text-slate-600 mb-4">兩者都採用統一記憶體，但策略不同。</p>
+                    <p class="mb-2"><strong class="text-indigo-700">Ryzen AI Max:</strong> 優先保證「容量」。高達 96GB 的可用 AI 記憶體使其能容納更大的模型，對前沿 LLM 研究是巨大優勢。</p>
+                    <p><strong class="text-cyan-700">Apple M4 Max:</strong> 強調「頻寬」。高達 546GB/s 的速度讓其在處理記憶體內的數據時更快，對影片剪輯、3D 渲染等任務有利。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-bold mb-3">生態系統：開放 vs. 整合</h3>
+                    <p class="text-slate-600 mb-4">軟體是決定使用者體驗的關鍵。</p>
+                     <p class="mb-2"><strong class="text-indigo-700">AMD/Windows:</strong> 「開放生態」。廣泛的硬體選擇、軟體相容性（特別是遊戲）和開源友好的 AI 工具鏈是其優勢。</p>
+                    <p><strong class="text-cyan-700">Apple/macOS:</strong> 「垂直整合」。硬體、系統、軟體（Core ML, Metal）高度優化，為創意專業工作流程提供流暢且一致的體驗。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-bold mb-3">性價比：記憶體的價值</h3>
+                    <p class="text-slate-600 mb-4">價格是最終的考量因素。</p>
+                    <p class="mb-2"><strong class="text-indigo-700">Ryzen AI Max:</strong> 在相同價格下，可能提供「更大容量的 RAM」。對於需要運行 >64GB 模型的用戶，這可能帶來無可比擬的性價比。</p>
+                    <p><strong class="text-cyan-700">Apple M4 Max:</strong> 「品牌溢價」。基礎配置價格較高，升級記憶體的成本也更高，但換來的是生態和體驗的價值。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Verdict Section -->
+        <section id="verdict" class="py-16 bg-slate-800 text-white rounded-lg">
+            <h2 class="text-3xl font-bold text-center mb-2">最終結論：該選誰？</h2>
+            <p class="text-center text-slate-300 max-w-2xl mx-auto mb-12">沒有絕對的贏家，只有最適合您的選擇。點擊下方的使用者畫像，看看哪款平台更符合您的需求。</p>
+            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                
+                <div class="persona-card-container h-64 perspective-[1000px]">
+                    <div class="persona-card relative w-full h-full">
+                        <div class="card-face absolute w-full h-full bg-indigo-600 p-6 rounded-lg flex flex-col items-center justify-center text-center">
+                            <h3 class="text-2xl font-bold mb-2">LLM 開發者/研究員</h3>
+                            <p class="text-indigo-200">需要極致的記憶體容量來實驗前沿模型。</p>
+                            <button class="mt-4 bg-white text-indigo-600 font-semibold px-4 py-2 rounded-lg text-sm">點擊看結論</button>
+                        </div>
+                        <div class="card-back card-face absolute w-full h-full bg-indigo-700 p-6 rounded-lg flex flex-col justify-center">
+                            <h4 class="font-bold text-lg mb-2">推薦：Ryzen AI Max+ PRO 395</h4>
+                            <p class="text-indigo-200 text-sm">以更低的成本獲得 128GB (96GB 可用) 記憶體的能力，是運行 70B+ 大型模型的關鍵。開放的 AI 工具鏈也提供了更高的靈活性。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="persona-card-container h-64 perspective-[1000px]">
+                    <div class="persona-card relative w-full h-full">
+                        <div class="card-face absolute w-full h-full bg-slate-700 p-6 rounded-lg flex flex-col items-center justify-center text-center">
+                            <h3 class="text-2xl font-bold mb-2">Windows 進階玩家</h3>
+                             <p class="text-slate-300">追求全方位效能，兼顧 AI 功能與遊戲娛樂。</p>
+                            <button class="mt-4 bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg text-sm">點擊看結論</button>
+                        </div>
+                        <div class="card-back card-face absolute w-full h-full bg-slate-600 p-6 rounded-lg flex flex-col justify-center">
+                            <h4 class="font-bold text-lg mb-2">推薦：Ryzen AI Max+ PRO 395</h4>
+                            <p class="text-slate-200 text-sm">強勁的 Zen 5 CPU 和 RDNA 3.5 GPU 不僅能應付 AI 任務，還能在 Windows 平台上提供出色的遊戲體驗和廣泛的軟體相容性。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="persona-card-container h-64 perspective-[1000px]">
+                     <div class="persona-card relative w-full h-full">
+                        <div class="card-face absolute w-full h-full bg-cyan-600 p-6 rounded-lg flex flex-col items-center justify-center text-center">
+                            <h3 class="text-2xl font-bold mb-2">創意專業人士</h3>
+                            <p class="text-cyan-200">依賴 Apple 生態進行影片剪輯、設計和音樂製作。</p>
+                            <button class="mt-4 bg-white text-cyan-600 font-semibold px-4 py-2 rounded-lg text-sm">點擊看結論</button>
+                        </div>
+                        <div class="card-back card-face absolute w-full h-full bg-cyan-700 p-6 rounded-lg flex flex-col justify-center">
+                            <h4 class="font-bold text-lg mb-2">推薦：Mac Studio M4 Max</h4>
+                            <p class="text-cyan-200 text-sm">macOS 與專業軟體的深度整合、高記憶體頻寬以及流暢的使用者體驗，使其依然是創意工作流程的黃金標準。</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-8">
+        <p class="text-sm text-slate-500">互動式報告由 AI 生成。數據來源於公開報告和基準測試。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Data
+            const cpuData = {
+                labels: ['多核心效能 (CPU Mark)', '單核心效能'],
+                datasets: [{
+                    label: 'Ryzen AI Max+ PRO 395',
+                    data: [50882, 4118],
+                    backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Apple M4 Max (16-core)',
+                    data: [43782, 4555],
+                    backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                    borderColor: 'rgba(6, 182, 212, 1)',
+                    borderWidth: 1
+                }]
+            };
+            
+            const gpuData = {
+                labels: ['ONNX GPU (半精度)'],
+                 datasets: [{
+                    label: 'Ryzen AI Max+ 395',
+                    data: [25605],
+                    backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Apple M4 Pro',
+                    data: [17046],
+                    backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                    borderColor: 'rgba(6, 182, 212, 1)',
+                    borderWidth: 1
+                }]
+            };
+
+            const llmData = {
+                labels: ['Quen 3 4B', 'Gemma 3 27B (q8)', 'DeepSeek R 170B', 'qwen3:32b-a3b (updated)'],
+                datasets: [{
+                    label: 'Tokens/Second on Ryzen AI Max+',
+                    data: [45, 7, 3.8, 50],
+                    backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                    borderColor: 'rgba(139, 92, 246, 1)',
+                    borderWidth: 1,
+                }]
+            };
+
+            // Chart Config
+            const createChart = (ctx, type, data, options) => {
+                 new Chart(ctx, { type, data, options });
+            };
+            
+            const commonOptions = {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.x !== null) {
+                                    label += new Intl.NumberFormat('en-US').format(context.parsed.x);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                 scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(203, 213, 225, 0.3)'
+                        },
+                         ticks: {
+                            color: '#64748b'
+                        }
+                    },
+                    y: {
+                         grid: {
+                            display: false
+                        },
+                         ticks: {
+                            color: '#64748b'
+                        }
+                    }
+                }
+            };
+            
+            // Render Charts
+            const cpuCtx = document.getElementById('cpuBenchmarkChart').getContext('2d');
+            createChart(cpuCtx, 'bar', cpuData, commonOptions);
+
+            const gpuCtx = document.getElementById('gpuBenchmarkChart').getContext('2d');
+            createChart(gpuCtx, 'bar', gpuData, commonOptions);
+            
+            const llmCtx = document.getElementById('llmPerfChart').getContext('2d');
+            createChart(llmCtx, 'bar', llmData, {
+                ...commonOptions, 
+                plugins: { ...commonOptions.plugins, legend: { display: false } }
+            });
+            
+            // Tab Logic
+            function setupTabs(tabContainerId, contentClass) {
+                const tabContainer = document.getElementById(tabContainerId);
+                if (!tabContainer) return;
+                
+                tabContainer.addEventListener('click', (event) => {
+                    const button = event.target.closest('button');
+                    if (!button) return;
+                    
+                    const targetId = button.dataset.target;
+                    const targetContent = document.getElementById(targetId);
+
+                    tabContainer.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    document.querySelectorAll(`.${contentClass}`).forEach(content => content.classList.add('hidden'));
+                    if(targetContent) {
+                        targetContent.classList.remove('hidden');
+                    }
+                });
+            }
+
+            setupTabs('spec-tabs', 'spec-tab-content');
+            setupTabs('genai-tabs', 'genai-tab-content');
+
+            // Persona Card Flip Logic
+            document.querySelectorAll('.persona-card-container').forEach(container => {
+                const card = container.querySelector('.persona-card');
+                const button = container.querySelector('button');
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    card.classList.toggle('is-flipped');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
