@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科技股ETF策略互動分析儀</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Neutrals with Oceanic Accents -->
+    <!-- Application Structure Plan: The SPA is designed with a clear, user-centric information architecture using a top navigation bar to switch between four distinct, logical sections: 1) '總覽與核心辯論' (Overview & Core Debate) to set the stage, 2) '互動比較分析' (Interactive Comparison) for hands-on data exploration, 3) '稅務影響模擬' (Tax Impact Simulator) to personalize the complex tax issue, and 4) '策略建構框架' (Strategy Framework) to provide actionable conclusions. This non-linear, thematic structure empowers users to directly access the information most relevant to them, moving from high-level concepts to detailed, interactive analysis and finally to strategic application, which is far more effective for understanding complex financial trade-offs than a simple linear presentation of the source report. -->
+    <!-- Visualization & Content Choices: Report Info -> Goal -> Viz/Method -> Interaction -> Justification. 1) QYLD vs QQQ Performance -> Compare -> Bar Chart (Chart.js/Canvas) -> Buttons to toggle between Bull/Bear markets -> Visually demonstrates the core trade-off between high yield and total return. 2) Tax Rules -> Inform/Compare -> Interactive Form/Calculator (HTML/JS) -> User inputs income/dividend to see estimated tax -> Transforms dense, complex tax rules into a personalized, easy-to-understand simulation, making the abstract tangible. 3) Strategy Comparison -> Organize/Compare -> Dynamic HTML Table -> JS updates content based on selection -> Provides a quick, scannable reference of key ETF characteristics. 4) Core-Satellite Model -> Organize/Inform -> HTML/CSS Diagram -> Hover reveals details -> A visually engaging way to explain the portfolio structure concept without resorting to static text. These choices directly support the designed application structure by making each section's key message interactive and digestible. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; scroll-behavior: smooth; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 350px; max-height: 50vh; }
+        @media (min-width: 768px) { .chart-container { height: 450px; } }
+        .nav-link { transition: all 0.3s ease; }
+        .nav-link.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .nav-link:not(.active) { border-bottom-color: transparent; }
+        .tooltip { visibility: hidden; opacity: 0; transition: opacity 0.3s; }
+        .has-tooltip:hover .tooltip { visibility: visible; opacity: 1; }
+    </style>
+</head>
+<body class="bg-[#F8F7F4] text-[#333333]">
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#1E3A8A] mb-2">科技股ETF策略互動分析儀</h1>
+            <p class="text-lg text-gray-600">深入解析高配息、總報酬與稅務優勢的權衡</p>
+        </header>
+
+        <nav class="sticky top-0 z-10 bg-[#F8F7F4]/80 backdrop-blur-sm mb-8">
+            <div class="border-b border-gray-200">
+                <ul class="flex justify-center -mb-px flex-wrap text-center">
+                    <li class="mr-2"><a href="#section-intro" class="nav-link inline-block p-4 border-b-2 font-medium text-lg active">總覽與核心辯論</a></li>
+                    <li class="mr-2"><a href="#section-comparison" class="nav-link inline-block p-4 border-b-2 font-medium text-lg">互動比較分析</a></li>
+                    <li class="mr-2"><a href="#section-tax" class="nav-link inline-block p-4 border-b-2 font-medium text-lg">稅務影響模擬</a></li>
+                    <li><a href="#section-strategy" class="nav-link inline-block p-4 border-b-2 font-medium text-lg">策略建構框架</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <main>
+            <section id="section-intro" class="mb-16 scroll-mt-24">
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h2 class="text-3xl font-bold text-[#1E3A8A] mb-4">總覽與核心辯論</h2>
+                    <p class="text-gray-700 leading-relaxed mb-4">本節旨在闡明一個常見的投資迷思：台灣投資者，特別是高稅率族群，是否應該為了「稅務優勢」而優先選擇如QYLD這類美國高配息掩護性買權(Covered Call) ETF，而非傳統的台灣高股息ETF？我們將深入探討這個論述背後的核心問題，包括對「總報酬」的忽視、對稅務規則的過度簡化，以及對配息來源（可能包含本金返還）的誤解。本節將為您建立一個清晰的分析基礎，以便在後續的互動模組中進行更深入的探索。</p>
+                    <div class="grid md:grid-cols-2 gap-6 mt-6">
+                        <div class="border border-blue-100 bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-xl text-blue-800 mb-2">原論述觀點：擁抱Covered Call ETF</h3>
+                            <ul class="list-disc list-inside text-blue-700 space-y-1">
+                                <li>提供極高的年化配息率 (約11%+)</li>
+                                <li>配息屬海外所得，享750萬免稅額</li>
+                                <li>適合追求現金流的高稅率族群</li>
+                            </ul>
+                        </div>
+                        <div class="border border-red-100 bg-red-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-xl text-red-800 mb-2">本報告發現的核心問題</h3>
+                            <ul class="list-disc list-inside text-red-700 space-y-1">
+                                <li>犧牲過多資本增值，總報酬落後</li>
+                                <li>海外所得稅務規則比想像中複雜</li>
+                                <li>高配息可能含本金返還 (RoC)，侵蝕淨值</li>
+                                <li>論述本身存在矛盾 (作者自承偏好QQQ)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-comparison" class="mb-16 scroll-mt-24">
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h2 class="text-3xl font-bold text-[#1E3A8A] mb-4">互動比較分析：總報酬的真相</h2>
+                    <p class="text-gray-700 leading-relaxed mb-6">高配息率不等於高總報酬。本互動圖表將清晰揭示以高配息聞名的QYLD (掩護性買權策略) 與以資產成長為目標的QQQ (追蹤Nasdaq-100) 在不同市場環境下的總報酬差異。請點擊按鈕切換「牛市」與「熊市」情境，觀察兩者表現。您將發現，QYLD犧牲了上漲潛力以換取現金流，這在長期下來對總資產累積有著顯著的影響。</p>
+                    <div class="text-center mb-6">
+                        <button id="bullMarketBtn" class="bg-green-500 text-white font-bold py-2 px-6 rounded-full shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 transition-all">牛市 (2021)</button>
+                        <button id="bearMarketBtn" class="bg-red-500 text-white font-bold py-2 px-6 rounded-full shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75 transition-all ml-4">熊市 (2022)</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                    <div class="mt-8 grid md:grid-cols-2 gap-6 text-center">
+                         <div class="bg-gray-100 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg">QYLD (Global X Nasdaq 100 Covered Call ETF)</h4>
+                            <p class="text-sm text-gray-600">費用率: <span class="font-bold">0.60%</span></p>
+                            <p class="text-sm text-gray-600">長期總報酬 (年化): <span class="font-bold text-red-600">約 7.2%</span></p>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg">QQQ (Invesco QQQ Trust)</h4>
+                            <p class="text-sm text-gray-600">費用率: <span class="font-bold">0.20%</span></p>
+                            <p class="text-sm text-gray-600">長期總報酬 (年化): <span class="font-bold text-green-600">約 18.9%</span></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-tax" class="mb-16 scroll-mt-24">
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h2 class="text-3xl font-bold text-[#1E3A8A] mb-4">稅務影響模擬器</h2>
+                    <p class="text-gray-700 leading-relaxed mb-6">稅務是投資決策的關鍵一環，但規則複雜。此模擬器將幫助您估算在不同情境下，投資台灣高股息ETF與美國Covered Call ETF可能的稅務負擔。請輸入您的年度綜合所得淨額及預計的年配息總額，觀察結果。您會發現，「海外所得750萬免稅」並非絕對的免死金牌，而台灣高股息ETF的「收益平準金」機制也會顯著影響實際稅負。 <strong class="text-red-600">注意：本模擬僅為簡化估算，非正式稅務建議。</strong></p>
+                    
+                    <div class="grid md:grid-cols-2 gap-8 items-start">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="incomeLevel" class="block text-sm font-medium text-gray-700">您的年度綜合所得淨額 (萬)</label>
+                                <input type="number" id="incomeLevel" value="200" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                            </div>
+                            <div>
+                                <label for="dividendAmount" class="block text-sm font-medium text-gray-700">預計年配息總額 (萬)</label>
+                                <input type="number" id="dividendAmount" value="50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                            </div>
+                            <button id="calculateTaxBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition-all">開始計算稅務影響</button>
+                        </div>
+
+                        <div id="taxResult" class="space-y-4">
+                            <div class="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                                <h3 class="font-bold text-xl text-gray-800 mb-2">🇹🇼 台灣高股息ETF</h3>
+                                <p class="text-sm text-gray-500 mb-2">假設60%為應稅股利，40%為免稅收益平準金。</p>
+                                <div id="twTaxResult" class="text-gray-700 space-y-1">
+                                    <p>請點擊計算按鈕...</p>
+                                </div>
+                            </div>
+                             <div class="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                                <h3 class="font-bold text-xl text-gray-800 mb-2">🇺🇸 美國Covered Call ETF</h3>
+                                <p class="text-sm text-gray-500 mb-2">假設40%為應稅海外所得，60%為免稅本金返還(RoC)。</p>
+                                <div id="usTaxResult" class="text-gray-700 space-y-1">
+                                    <p>請點擊計算按鈕...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-strategy" class="scroll-mt-24">
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h2 class="text-3xl font-bold text-[#1E3A8A] mb-4">策略建構框架：追求稅後總報酬最大化</h2>
+                    <p class="text-gray-700 leading-relaxed mb-6">沒有一種策略適合所有人。最佳策略應以最大化「長期、稅後總報酬」為核心，並與您的個人財務目標、風險承受能力緊密結合。我們建議採用「核心-衛星」框架來建構投資組合，以平衡資產的長期增長與可能的收益需求。下方的互動圖示與表格將為您展示幾種關鍵策略的定位與特性。</p>
+
+                    <div class="mb-8 p-6 bg-slate-50 rounded-lg border border-slate-200">
+                        <h3 class="text-2xl font-semibold text-center text-slate-800 mb-4">核心-衛星 (Core-Satellite) 投資框架</h3>
+                        <div class="relative flex justify-center items-center h-64">
+                            <div class="absolute w-48 h-48 bg-blue-200 rounded-full flex items-center justify-center text-center p-4 has-tooltip">
+                                <span class="font-bold text-blue-800 text-xl">核心部位<br>(60-85%)</span>
+                                <div class="tooltip absolute -top-24 left-1/2 -translate-x-1/2 w-64 bg-gray-800 text-white text-sm rounded-lg p-3 shadow-lg z-10">
+                                    <strong class="block">目標：</strong>捕捉市場長期趨勢，作為資產增長引擎。<br>
+                                    <strong class="block">建議：</strong>廣基指數ETF或成長型ETF，如QQQ。
+                                </div>
+                            </div>
+                            <div class="absolute -top-4 left-1/2 -translate-x-1/2 w-28 h-28 bg-green-200 rounded-full flex items-center justify-center text-center p-2 has-tooltip">
+                                <span class="font-bold text-green-800">衛星部位</span>
+                                <div class="tooltip absolute -bottom-20 left-1/2 -translate-x-1/2 w-56 bg-gray-800 text-white text-sm rounded-lg p-3 shadow-lg">
+                                    <strong class="block">股息增長型</strong><br>平衡收益與成長 (如SCHD策略)
+                                </div>
+                            </div>
+                             <div class="absolute bottom-0 -left-4 w-28 h-28 bg-green-200 rounded-full flex items-center justify-center text-center p-2 has-tooltip">
+                                <span class="font-bold text-green-800">衛星部位</span>
+                                <div class="tooltip absolute top-1/2 -translate-y-1/2 -right-48 w-44 bg-gray-800 text-white text-sm rounded-lg p-3 shadow-lg">
+                                    <strong class="block">特定主題型</strong><br>投資特定產業或趨勢 (如AI、半導體)
+                                </div>
+                            </div>
+                            <div class="absolute bottom-0 -right-4 w-28 h-28 bg-red-200 rounded-full flex items-center justify-center text-center p-2 has-tooltip">
+                                <span class="font-bold text-red-800">衛星部位</span>
+                                <div class="tooltip absolute top-1/2 -translate-y-1/2 -left-52 w-48 bg-gray-800 text-white text-sm rounded-lg p-3 shadow-lg">
+                                    <strong class="block">高風險高收益型</strong><br>極小比例配置，如Covered Call ETF (QYLD)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">策略</th>
+                                    <th scope="col" class="px-6 py-3">主要目標</th>
+                                    <th scope="col" class="px-6 py-3">增長潛力</th>
+                                    <th scope="col" class="px-6 py-3">主要風險</th>
+                                    <th scope="col" class="px-6 py-3">適合對象</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">成長型 (QQQ)</th>
+                                    <td class="px-6 py-4">長期資本增值</td>
+                                    <td class="px-6 py-4 font-bold text-green-600">高</td>
+                                    <td class="px-6 py-4">市場波動、集中度高</td>
+                                    <td class="px-6 py-4">追求長期資本最大化、能承受較高波動的投資者。</td>
+                                </tr>
+                                <tr class="bg-gray-50 border-b">
+                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">股息增長型 (SCHD)</th>
+                                    <td class="px-6 py-4">均衡的收益與成長</td>
+                                    <td class="px-6 py-4 font-bold text-yellow-600">中高</td>
+                                    <td class="px-6 py-4">市場風險、選股不如預期</td>
+                                    <td class="px-6 py-4">尋求穩定且增長的現金流，同時兼顧資本增值的投資者。</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">Covered Call (QYLD)</th>
+                                    <td class="px-6 py-4">產生高額月度現金流</td>
+                                    <td class="px-6 py-4 font-bold text-red-600">非常有限</td>
+                                    <td class="px-6 py-4">NAV侵蝕、錯失市場上漲</td>
+                                    <td class="px-6 py-4">極度重視當期現金流、能接受低資本增長及相關風險者。</td>
+                                </tr>
+                                 <tr class="bg-gray-50 border-b">
+                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">台灣高股息ETF</th>
+                                    <td class="px-6 py-4">產生穩定現金流</td>
+                                    <td class="px-6 py-4 font-bold text-yellow-600">有限至中等</td>
+                                    <td class="px-6 py-4">產業集中、利率風險</td>
+                                    <td class="px-6 py-4">尋求境內穩定現金流、對稅務較熟悉者。</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="text-center mt-12 pt-8 border-t border-gray-200">
+             <p class="text-sm text-gray-500">免責聲明：本網頁應用程式內容基於所提供之報告分析，僅供學術研究與資訊參考，不構成任何投資建議。所有數據均為歷史或假設性資料，不保證未來表現。稅務計算為簡化模型，實際情況複雜，投資前請諮詢專業財務顧問或稅務專家。</p>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            // --- Navigation Logic ---
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('main section');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.4
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelector(link.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            // --- Performance Chart Logic ---
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            let performanceChart;
+
+            const bullMarketData = {
+                labels: ['QYLD', 'QQQ'],
+                datasets: [{
+                    label: '2021年總報酬率 (%)',
+                    data: [10.34, 27.24],
+                    backgroundColor: ['rgba(255, 159, 64, 0.6)', 'rgba(75, 192, 192, 0.6)'],
+                    borderColor: ['rgba(255, 159, 64, 1)', 'rgba(75, 192, 192, 1)'],
+                    borderWidth: 1
+                }]
+            };
+
+            const bearMarketData = {
+                labels: ['QYLD', 'QQQ'],
+                datasets: [{
+                    label: '2022年總報酬率 (%)',
+                    data: [-19.00, -32.49],
+                    backgroundColor: ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)'],
+                    borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)'],
+                    borderWidth: 1
+                }]
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: '牛市 (2021) 總報酬率比較',
+                        font: { size: 18 }
+                    },
+                    tooltip: {
+                         callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            };
+            
+            function createOrUpdateChart(data, title) {
+                if (performanceChart) {
+                    performanceChart.data = data;
+                    performanceChart.options.plugins.title.text = title;
+                    performanceChart.update();
+                } else {
+                    chartOptions.plugins.title.text = title;
+                    performanceChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: data,
+                        options: chartOptions
+                    });
+                }
+            }
+
+            createOrUpdateChart(bullMarketData, '牛市 (2021) 總報酬率比較');
+            document.getElementById('bullMarketBtn').classList.add('ring-2', 'ring-green-400');
+
+
+            document.getElementById('bullMarketBtn').addEventListener('click', () => {
+                createOrUpdateChart(bullMarketData, '牛市 (2021) 總報酬率比較');
+                document.getElementById('bullMarketBtn').classList.add('ring-2', 'ring-green-400');
+                document.getElementById('bearMarketBtn').classList.remove('ring-2', 'ring-red-400');
+            });
+
+            document.getElementById('bearMarketBtn').addEventListener('click', () => {
+                createOrUpdateChart(bearMarketData, '熊市 (2022) 總報酬率比較');
+                document.getElementById('bearMarketBtn').classList.add('ring-2', 'ring-red-400');
+                document.getElementById('bullMarketBtn').classList.remove('ring-2', 'ring-green-400');
+            });
+            
+            // --- Tax Calculator Logic ---
+            document.getElementById('calculateTaxBtn').addEventListener('click', () => {
+                const income = parseFloat(document.getElementById('incomeLevel').value) * 10000;
+                const dividend = parseFloat(document.getElementById('dividendAmount').value) * 10000;
+
+                if (isNaN(income) || isNaN(dividend) || income < 0 || dividend < 0) {
+                    alert("請輸入有效的數字。");
+                    return;
+                }
+                
+                // TW Tax Calculation
+                const taxableTwDividend = dividend * 0.6;
+                const twResultDiv = document.getElementById('twTaxResult');
+                let twTax = 0;
+                let nHIFee = 0;
+                
+                // NHI Supplemental Premium
+                if (taxableTwDividend > 20000) {
+                    nHIFee = taxableTwDividend * 0.0211;
+                }
+
+                // Income Tax
+                let incomeTaxRate = 0.05;
+                if (income > 4720000) incomeTaxRate = 0.40;
+                else if (income > 2520000) incomeTaxRate = 0.30;
+                else if (income > 1260000) incomeTaxRate = 0.20;
+                else if (income > 560000) incomeTaxRate = 0.12;
+                
+                let twIncomeTax = 0;
+                let method = "";
+                if (incomeTaxRate >= 0.30) {
+                    // Separate taxation
+                    twIncomeTax = taxableTwDividend * 0.28;
+                    method = "分離課稅 (28%)";
+                } else {
+                    // Combined taxation
+                    const taxCredit = Math.min(taxableTwDividend * 0.085, 80000);
+                    twIncomeTax = taxableTwDividend * incomeTaxRate - taxCredit;
+                    method = `合併計稅 (稅率${incomeTaxRate*100}%, 8.5%抵減)`;
+                }
+                twIncomeTax = Math.max(0, twIncomeTax);
+                twTax = nHIFee + twIncomeTax;
+
+                twResultDiv.innerHTML = `
+                    <p>應稅股利: <span class="font-semibold">${(taxableTwDividend/10000).toFixed(2)} 萬</span></p>
+                    <p>健保補充保費: <span class="font-semibold text-red-600">NT$ ${Math.round(nHIFee).toLocaleString()}</span></p>
+                    <p>綜所稅 (${method}): <span class="font-semibold text-red-600">NT$ ${Math.round(twIncomeTax).toLocaleString()}</span></p>
+                    <hr class="my-1">
+                    <p class="font-bold">預估總稅負: <span class="text-xl text-red-700">NT$ ${Math.round(twTax).toLocaleString()}</span></p>
+                `;
+
+                // US Tax Calculation
+                const taxableUsDividend = dividend * 0.4;
+                const usResultDiv = document.getElementById('usTaxResult');
+                let usTax = 0;
+
+                // BTA (Minimum Tax Burden)
+                let btaTax = 0;
+                let btaNote = "海外所得未達100萬門檻，無需申報。";
+                
+                if (taxableUsDividend >= 1000000) {
+                    const basicIncome = income + taxableUsDividend;
+                    btaNote = `基本所得額約 ${(basicIncome/10000).toFixed(0)} 萬。`;
+                    if (basicIncome > 7500000) {
+                        const taxableBta = basicIncome - 7500000;
+                        const btaAmount = taxableBta * 0.20;
+                        
+                        // Simplified regular tax for comparison
+                        let regularTax = 0;
+                        if(income <= 560000) regularTax = income * 0.05;
+                        else if(income <= 1260000) regularTax = income * 0.12 - 39200;
+                        else if(income <= 2520000) regularTax = income * 0.20 - 140000;
+                        else if(income <= 4720000) regularTax = income * 0.30 - 392000;
+                        else regularTax = income * 0.40 - 864000;
+
+                        regularTax = Math.max(0, regularTax);
+                        
+                        btaTax = Math.max(0, btaAmount - regularTax);
+
+                        if (btaTax > 0) {
+                            btaNote += `超過750萬，需補繳最低稅負差額。`;
+                        } else {
+                            btaNote += `超過750萬，但一般所得稅額較高，無需補繳。`;
+                        }
+                    } else {
+                        btaNote += "未超過750萬免稅額，無需繳納基本稅額。";
+                    }
+                }
+                
+                usTax = btaTax;
+                
+                usResultDiv.innerHTML = `
+                    <p>應稅海外所得: <span class="font-semibold">${(taxableUsDividend/10000).toFixed(2)} 萬</span></p>
+                    <p>最低稅負制(BTA)影響:</p>
+                    <p class="text-sm bg-blue-50 p-2 rounded">${btaNote}</p>
+                    <hr class="my-1">
+                    <p class="font-bold">預估總稅負: <span class="text-xl text-green-700">NT$ ${Math.round(usTax).toLocaleString()}</span></p>
+                `;
+            });
+        });
+    </script>
+
+</body>
+</html>
