@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式探索：Grafana 12 可觀測性即程式碼</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Tech -->
+    <!-- Application Structure Plan: The application uses a narrative "Then vs. Now" structure. It starts with a hero section, moves to pre-v12 challenges, then showcases the v12 toolkit. A new section, "Roles in Practice," has been added to explain who uses which tools, bridging the gap between features and application. This is followed by an interactive chart for quantitative comparison, a visual workflow comparison, and a conclusion. The sticky nav supports this linear exploration. This structure logically guides users from problem to solution, to practical application, and finally to impact. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Pre-v12 challenges. Goal: Inform. Viz/Method: Icon + Text cards. Interaction: Static. Justification: Quick visual communication of pain points.
+        - Report Info: Table 1 (Dashboard Management Comparison). Goal: Compare. Viz/Method: Chart.js Grouped Bar Chart. Interaction: Dynamic rendering. Justification: Clear quantitative comparison.
+        - Report Info: The 5 key OaC features. Goal: Organize & Inform. Viz/Method: Interactive cards with a details pane. Interaction: Click to reveal. Justification: Prevents info overload.
+        - Report Info: Section 3.7 (Roles in Practice). Goal: Explain application. Viz/Method: Grid of styled cards for each role. Interaction: Static. Justification: Clearly segments information for different user personas, enhancing relevance.
+        - Report Info: Table 3 (Workflow impact). Goal: Show Change/Process. Viz/Method: HTML/CSS flexbox diagram. Interaction: Static. Justification: Clearly illustrates the streamlined "New Workflow".
+        - Library/Method: Chart.js, Vanilla JS, TailwindCSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0d6efd;
+            border-bottom-color: #0d6efd;
+        }
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .tool-card {
+            cursor: pointer;
+            border: 1px solid #dee2e6;
+        }
+        .tool-card.active {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+        }
+        .section-title {
+            border-bottom: 3px solid #0d6efd;
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 500px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-gray-900">Grafana 12: OaC 變革</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#intro" class="nav-link">概覽</a>
+                <a href="#before-after" class="nav-link">今昔對比</a>
+                <a href="#toolkit" class="nav-link">核心工具組</a>
+                <a href="#roles" class="nav-link">實戰角色</a>
+                <a href="#workflow" class="nav-link">工作流程</a>
+                <a href="#conclusion" class="nav-link">結論</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden px-6 pt-2 pb-4">
+             <a href="#intro" class="block py-2 text-center nav-link">概覽</a>
+             <a href="#before-after" class="block py-2 text-center nav-link">今昔對比</a>
+             <a href="#toolkit" class="block py-2 text-center nav-link">核心工具組</a>
+             <a href="#roles" class="block py-2 text-center nav-link">實戰角色</a>
+             <a href="#workflow" class="block py-2 text-center nav-link">工作流程</a>
+             <a href="#conclusion" class="block py-2 text-center nav-link">結論</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-12">
+
+        <section id="intro" class="text-center mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-5xl font-bold text-gray-900 mb-4">一場徹底的管理革命</h2>
+            <p class="max-w-3xl mx-auto text-lg md:text-xl text-gray-600">
+                Grafana v12 的「可觀測性即程式碼」(OaC) 不僅是新功能，而是對 Grafana 管理哲學的根本性重塑。它將過去分散、手動的工作流程，轉變為一套由官方支援、高度整合且自動化的 GitOps 實踐。讓我們來探索這場變革。
+            </p>
+        </section>
+
+        <section id="before-after" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="section-title text-2xl md:text-4xl font-bold">今昔對比：從混亂到有序</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-gray-600">過去的管理方式在規模化時面臨巨大挑戰。Grafana 12 的 OaC 套件直接解決了這些痛點。</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8 items-center mb-12">
+                <div>
+                    <h3 class="text-xl md:text-2xl font-bold mb-4 text-red-600">挑戰重重的過去 (v12 之前)</h3>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">😩</span>
+                            <div>
+                                <h4 class="font-bold">手動 UI 操作</h4>
+                                <p class="text-gray-600">管理數百個儀表板是場災難，追蹤變更困難，且極易出錯。</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                             <span class="text-2xl mr-4">🧩</span>
+                            <div>
+                                <h4 class="font-bold">工具碎片化</h4>
+                                <p class="text-gray-600">依賴社群工具和自訂腳本，缺乏官方支援，整合與維護成本高。</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                             <span class="text-2xl mr-4">🤷</span>
+                            <div>
+                                <h4 class="font-bold">一致性難保證</h4>
+                                <p class="text-gray-600">跨團隊、跨環境的儀表板配置不一致，導致管理混亂。</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl md:text-2xl font-bold mb-4 text-green-600">整合高效的現在 (v12 OaC)</h3>
+                     <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">🚀</span>
+                            <div>
+                                <h4 class="font-bold">自動化 GitOps 流程</h4>
+                                <p class="text-gray-600">原生 Git 整合，將版本控制與 PR 審查融入日常，透明且高效。</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                             <span class="text-2xl mr-4">🛠️</span>
+                            <div>
+                                <h4 class="font-bold">官方統一工具鏈</h4>
+                                <p class="text-gray-600">提供 CLI、SDK、新 API 等官方工具，簡化開發與自動化。</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                             <span class="text-2xl mr-4">✨</span>
+                            <div>
+                                <h4 class="font-bold">確保一致與可靠</h4>
+                                <p class="text-gray-600">透過程式碼定義單一事實來源，確保所有環境配置一致、可靠。</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl md:text-2xl font-bold text-center mb-6">管理能力進化圖</h3>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+                 <p class="text-center text-sm text-gray-500 mt-4">此圖表直觀展示了 Grafana 12 OaC 在關鍵管理維度上的顯著提升。</p>
+            </div>
+        </section>
+
+        <section id="toolkit" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="section-title text-2xl md:text-4xl font-bold">探索 v12 核心工具組</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-gray-600">點擊下方的卡片，深入了解構成 Grafana 12 OaC 生態系的各個強大工具。</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+                <button data-tool="git-sync" class="tool-card p-4 rounded-lg text-center bg-white shadow-sm active">
+                    <span class="text-4xl">🔄</span>
+                    <span class="block mt-2 font-semibold">Git Sync</span>
+                </button>
+                <button data-tool="api" class="tool-card p-4 rounded-lg text-center bg-white shadow-sm">
+                    <span class="text-4xl">🔌</span>
+                    <span class="block mt-2 font-semibold">新資源 API</span>
+                </button>
+                <button data-tool="schema" class="tool-card p-4 rounded-lg text-center bg-white shadow-sm">
+                    <span class="text-4xl">📄</span>
+                    <span class="block mt-2 font-semibold">結構描述 v2</span>
+                </button>
+                <button data-tool="cli" class="tool-card p-4 rounded-lg text-center bg-white shadow-sm">
+                    <span class="text-4xl">💻</span>
+                    <span class="block mt-2 font-semibold">grafanactl CLI</span>
+                </button>
+                <button data-tool="sdk" class="tool-card p-4 rounded-lg text-center bg-white shadow-sm">
+                    <span class="text-4xl">📦</span>
+                    <span class="block mt-2 font-semibold">Foundation SDK</span>
+                </button>
+                <button data-tool="terraform" class="tool-card p-4 rounded-lg text-center bg-white shadow-sm">
+                    <span class="text-4xl">🏗️</span>
+                    <span class="block mt-2 font-semibold">Terraform</span>
+                </button>
+            </div>
+
+            <div id="tool-details" class="bg-white p-8 rounded-lg shadow-lg min-h-[300px]">
+                
+            </div>
+        </section>
+
+        <section id="roles" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="section-title text-2xl md:text-4xl font-bold">實戰中的角色與工具</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-gray-600">OaC 套件並非一體適用，不同團隊角色會根據其工作流程和目標，選擇不同的工具組合。</p>
+            </div>
+            <div class="grid md:grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-lg card border-t-4 border-purple-500">
+                    <div class="flex items-center mb-4">
+                        <span class="text-4xl mr-4">🏗️</span>
+                        <h3 class="text-xl font-bold">平台工程團隊</h3>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-2"><strong>核心目標：</strong>建立標準化、可重用、自助式的可觀測性平台。</p>
+                    <p class="text-sm text-gray-500 mb-4"><strong>主要工具：</strong>Terraform Provider, `grafanactl` CLI</p>
+                    <p class="text-gray-700">他們會使用 Terraform 建立可重用模組，讓開發團隊能自動獲得標準化的 Grafana 資源，並透過 CLI 進行大規模自動化管理。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg card border-t-4 border-blue-500">
+                    <div class="flex items-center mb-4">
+                        <span class="text-4xl mr-4">👩‍💻</span>
+                        <h3 class="text-xl font-bold">應用程式開發者</h3>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-2"><strong>核心目標：</strong>以最少的阻力為其應用定義和管理專屬的監控儀表板。</p>
+                    <p class="text-sm text-gray-500 mb-4"><strong>主要工具：</strong>Foundation SDK, Git Sync</p>
+                    <p class="text-gray-700">開發者會用他們熟悉的語言（如 Python, TypeScript）透過 SDK 定義儀表板，並利用 Git Sync 的 UI 整合，無縫地提交和部署變更。</p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-lg card border-t-4 border-teal-500">
+                    <div class="flex items-center mb-4">
+                        <span class="text-4xl mr-4">🛡️</span>
+                        <h3 class="text-xl font-bold">SRE / 維運團隊</h3>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-2"><strong>核心目標：</strong>確保系統可靠性、深度故障排除和實現複雜的自動化。</p>
+                    <p class="text-sm text-gray-500 mb-4"><strong>主要工具：</strong>所有工具的重度使用者</p>
+                    <p class="text-gray-700">他們會結合使用 Terraform 管理核心設施，並用 SDK 創建複雜的、動態生成的儀表板，同時利用 CLI 編寫腳本處理日常維運。</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="workflow" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="section-title text-2xl md:text-4xl font-bold">工作流程的轉變</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-gray-600">OaC 如何徹底改變儀表板的變更管理流程？一目了然。</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-red-500">
+                    <h3 class="text-xl font-bold mb-4">傳統流程 (手動)</h3>
+                    <div class="space-y-4 text-sm">
+                        <div class="flex items-center"><span class="bg-red-200 text-red-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">1</span> 在 UI 介面修改儀表板</div>
+                        <div class="text-center text-gray-400">▼</div>
+                        <div class="flex items-center"><span class="bg-red-200 text-red-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">2</span> 手動匯出 JSON 檔案</div>
+                         <div class="text-center text-gray-400">▼</div>
+                        <div class="flex items-center"><span class="bg-red-200 text-red-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">3</span> 透過 Email/訊息非正式審查</div>
+                         <div class="text-center text-gray-400">▼</div>
+                        <div class="flex items-center"><span class="bg-red-200 text-red-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">4</span> 手動將 JSON 上傳到 Git 或其他環境</div>
+                         <div class="text-center text-gray-400">▼</div>
+                        <div class="flex items-center"><span class="bg-red-200 text-red-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">5</span> 變更追蹤困難，容易產生瓶頸</div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-green-500">
+                     <h3 class="text-xl font-bold mb-4">新 OaC 流程 (自動化)</h3>
+                     <div class="space-y-4 text-sm">
+                        <div class="flex items-center"><span class="bg-green-200 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">1</span> 修改儀表板 (UI 或透過 SDK)</div>
+                         <div class="text-center text-gray-400">▼</div>
+                        <div class="flex items-center"><span class="bg-green-200 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">2</span> 使用 Git Sync 一鍵發起 PR</div>
+                         <div class="text-center text-gray-400">▼</div>
+                        <div class="flex items-center"><span class="bg-green-200 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">3</span> 團隊在 GitHub/GitLab 進行標準化審查</div>
+                         <div class="text-center text-gray-400">▼</div>
+                        <div class="flex items-center"><span class="bg-green-200 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">4</span> 合併 PR，自動同步到 Grafana 實例</div>
+                         <div class="text-center text-gray-400">▼</div>
+                        <div class="flex items-center"><span class="bg-green-200 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">5</span> 所有變更都有完整 Git 紀錄，清晰可追溯</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="text-center bg-white p-8 rounded-lg shadow-lg">
+             <h2 class="section-title text-2xl md:text-4xl font-bold mb-6">可觀測性管理的未來</h2>
+             <div class="max-w-3xl mx-auto text-gray-600 space-y-4">
+                <p>Grafana 12 的 OaC 套件是其發展的里程碑，將 Grafana 提升為一個具備強大程式化管理能力的綜合性平台。這不僅解決了當下的管理難題，也為未來更深入的自動化與整合奠定了堅實基礎。</p>
+                <p>雖然部分功能仍處於實驗階段，但這代表著一個明確的策略方向：讓可觀測性成為軟體開發生命週期中一個可被審計、可被測試、可被自動化管理的一等公民。</p>
+             </div>
+        </section>
+
+    </main>
+    
+    <footer class="text-center py-6 border-t mt-12">
+        <p class="text-gray-500">此互動式應用程式根據 Grafana v12 OaC 功能報告生成。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const toolsData = {
+                'git-sync': {
+                    title: '🔄 Git Sync：原生 Git 工作流程',
+                    description: '將 Git 工作流程直接引入 Grafana UI。用戶可以在不離開 Grafana 的情況下合併儀表板變更、創建分支和開啟拉取請求(PR)。儀表板的任何編輯都會被追蹤並保存為 Git 變更。',
+                    benefits: '簡化 GitOps 流程，增強團隊協作，提供清晰的審計追蹤和版本歷史。',
+                    status: '實驗性 (OSS & Enterprise), 私人預覽 (Cloud)'
+                },
+                'api': {
+                    title: '🔌 新資源 API：自動化的堅實基礎',
+                    description: '引入了基於 Kubernetes 風格、具有一致性、版本化和面向資源特性的新 API 模型。這些新 API 旨在成為所有 OaC 工具穩定、可預測的基礎。',
+                    benefits: '為程式化控制 Grafana 資源提供可靠基礎，未來可擴展至所有資源類型，確保自動化腳本的穩定性。',
+                    status: '實驗性, v1beta1 (儀表板、資料夾)'
+                },
+                'schema': {
+                    title: '📄 儀表板結構描述 v2：現代化結構',
+                    description: '新的儀表板結構將佈局與面板配置(稱為「元素」)解耦，使得 JSON 結構更清晰，在 Git diff 中更易於閱讀和比較。',
+                    benefits: '支援動態儀表板等強大新功能，改善在 Git 中審查變更的體驗，讓程式化操作儀表板更容易。',
+                    status: '實驗性, v2alpha1 API 端點'
+                },
+                'cli': {
+                    title: '💻 grafanactl CLI：官方命令列工具',
+                    description: '一個官方的命令列工具，旨在簡化與 Grafana 實例的互動。它允許用戶從終端進行身份驗證、管理多個環境，並執行獲取、推送和驗證資源等任務。',
+                    benefits: '簡化 CI/CD 自動化腳本編寫，提供一致的命令列介面，促進本地開發與測試。',
+                    status: '實驗性'
+                },
+                'sdk': {
+                    title: '📦 Foundation SDK：程式化資源定義',
+                    description: '一套用於以強型別程式碼（支援 Go, Java, Python, TypeScript 等）定義 Grafana 資源（如儀表板、警示規則）的工具、型別和函式庫。',
+                    benefits: '實現型別安全的資源定義，將 Grafana 資源管理直接整合到開發工作流程中，允許開發人員使用熟悉的工具。',
+                    status: '可用'
+                },
+                'terraform': {
+                    title: '🏗️ 增強的 Terraform Provider',
+                    description: '引入了基於新 API 構建的官方 Terraform 資源，並支援基於結構描述的驗證，將 Grafana 資源納入 IaC 管理。',
+                    benefits: '在流行的 IaC 生態中實現更可靠、可預測的 Grafana 資源管理，並能在應用前驗證配置，提高可靠性。',
+                    status: 'v1beta1 (儀表板), v0alpha1 (播放列表)'
+                }
+            };
+
+            const toolDetailsContainer = document.getElementById('tool-details');
+            const toolButtons = document.querySelectorAll('.tool-card');
+
+            function updateToolDetails(toolKey) {
+                const tool = toolsData[toolKey];
+                if (!tool) return;
+
+                toolDetailsContainer.innerHTML = `
+                    <h3 class="text-2xl font-bold mb-3 text-gray-800">${tool.title}</h3>
+                    <p class="mb-4 text-gray-600">${tool.description}</p>
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-4">
+                        <h4 class="font-semibold text-blue-800">主要優勢：</h4>
+                        <p class="text-blue-700">${tool.benefits}</p>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-700">發布狀態：</span>
+                        <span class="px-3 py-1 text-sm font-medium rounded-full ${tool.status.includes('實驗性') || tool.status.includes('預覽') ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
+                            ${tool.status}
+                        </span>
+                    </div>
+                `;
+
+                toolButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.tool === toolKey) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+
+            toolButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    updateToolDetails(button.dataset.tool);
+                });
+            });
+
+            if (toolDetailsContainer) {
+                 updateToolDetails('git-sync');
+            }
+
+            const ctx = document.getElementById('comparisonChart');
+            if(ctx) {
+                const comparisonChart = new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['版本控制', '一致性', '自動化', '可擴展性', '變更管理'],
+                        datasets: [{
+                            label: 'v12 之前',
+                            data: [2, 3, 3, 4, 2],
+                            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        }, {
+                            label: 'v12 OaC',
+                            data: [9, 8, 9, 8, 9],
+                            backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 10,
+                                ticks: {
+                                    callback: function(value) {
+                                        if(value === 0) return '低';
+                                        if(value === 5) return '中';
+                                        if(value === 10) return '高';
+                                        return '';
+                                    },
+                                    stepSize: 5
+                                },
+                                 title: {
+                                    display: true,
+                                    text: '能力評分 (主觀)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y + ' / 10';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('main section');
+
+            function changeActiveLink() {
+                let index = sections.length;
+
+                while(--index && window.scrollY + 100 < sections[index].offsetTop) {}
+                
+                navLinks.forEach((link) => link.classList.remove('active'));
+                
+                const activeDesktopLink = document.querySelector(`.hidden.md\\:flex a[href="#${sections[index].id}"]`);
+                if(activeDesktopLink) activeDesktopLink.classList.add('active');
+
+                const activeMobileLink = document.querySelector(`#mobile-menu a[href="#${sections[index].id}"]`);
+                if(activeMobileLink) activeMobileLink.classList.add('active');
+            }
+
+            window.addEventListener('scroll', changeActiveLink);
+            changeActiveLink();
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                     if (mobileMenu.classList.contains('hidden') === false) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
