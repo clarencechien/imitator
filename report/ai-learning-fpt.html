@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：AI、學習與第一性原理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Warm neutrals like stone/amber, with muted blue and terracotta accents) -->
+    <!-- Application Structure Plan: A six-section, single-page application navigated via a fixed header. The structure guides the user from the problem (AI & learning), through two thinking models, into an interactive "Thinking Lab" to practice, sees how to reconstruct AI's role, and culminates in actionable recommendations linked to the future of work. This updated structure adds a practical application layer and provides a more balanced view. -->
+    <!-- Visualization & Content Choices:
+    - Section 1 (Dilemma): Goal: Inform. Method: HTML/CSS visual metaphor (A+ vs C- grade). Justification: Grabs attention.
+    - Section 2 (Two Paths): Goal: Compare/Inform. Method: Side-by-side cards. Added a "risks" section to the FPT card for a balanced perspective. Justification: Clear comparison, adds critical depth.
+    - Section 3 (Deconstruction): Goal: Organize/Compare. Method: HTML/CSS comparison table. Justification: Structured analysis.
+    - Section 4 (Lab): Goal: Interact/Practice. Method: New interactive accordion component (HTML/CSS/JS). Justification: Moves user from passive learning to active application, reinforcing the concepts.
+    - Section 5 (Reconstruction): Goal: Relationships. Method: Radar Chart (Chart.js). Justification: Visualizes the shift in AI's role.
+    - Section 6 (Path Forward): Goal: Organize/Synthesize. Method: Tabbed interface, with an added concluding paragraph linking skills to the "Future of Work". Justification: Connects report's concepts to practical, real-world value.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f5f5f4; /* stone-100 */
+            color: #292524; /* stone-800 */
+        }
+        .nav-link {
+            transition: color 0.3s ease, border-bottom-color 0.3s ease;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 4px;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #c2410c; /* orange-600 */
+            border-bottom-color: #c2410c;
+        }
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e7e5e4; /* stone-200 */
+            border-radius: 0.75rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background-color: #0c4a6e; /* sky-800 */
+            color: #ffffff;
+        }
+        .section-title {
+            color: #0c4a6e; /* sky-800 */
+        }
+        .grade-box {
+            border: 2px solid;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .lab-step {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .lab-step:hover {
+            background-color: #fefce8; /* yellow-50 */
+        }
+        .lab-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; 
+            max-height: 500px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="header" class="bg-stone-100/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-xl font-bold text-stone-800">思維模型深度解析</div>
+            <div class="hidden md:flex space-x-6 lg:space-x-8">
+                <a href="#dilemma" class="nav-link">核心悖論</a>
+                <a href="#paths" class="nav-link">兩種路徑</a>
+                <a href="#deconstruction" class="nav-link">拆解挑戰</a>
+                <a href="#lab" class="nav-link">思維實驗室</a>
+                <a href="#reconstruction" class="nav-link">重構角色</a>
+                <a href="#forward" class="nav-link">未來路徑</a>
+            </div>
+             <div class="md:hidden">
+                <select id="mobile-nav" class="bg-white border border-stone-300 rounded-md py-2 px-3 text-stone-700 w-full">
+                    <option value="#dilemma">核心悖論</option>
+                    <option value="#paths">兩種路徑</option>
+                    <option value="#deconstruction">拆解挑戰</option>
+                    <option value="#lab">思維實驗室</option>
+                    <option value="#reconstruction">重構角色</option>
+                    <option value="#forward">未來路徑</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Section 1: The Core Dilemma -->
+        <section id="dilemma" class="min-h-screen flex items-center bg-amber-50">
+            <div class="container mx-auto px-6 py-16 text-center">
+                <h1 class="text-4xl md:text-6xl font-bold section-title mb-4">自動化的悖論</h1>
+                <p class="text-xl md:text-2xl text-stone-700 max-w-3xl mx-auto mb-12">AI對教育的真正威脅，不是作弊，而是它可能在我們不經意間，「欺騙」了學生的學習機會。</p>
+                <div class="max-w-4xl mx-auto grid md:grid-cols-3 gap-8 items-center">
+                    <div class="card p-6 text-center">
+                        <div class="grade-box border-green-500 text-green-600 mx-auto mb-4">A+ <span class="text-lg font-medium">級的報告</span></div>
+                        <p class="text-stone-600">學生利用AI，能輕易產出看似完美的作業與報告。</p>
+                    </div>
+                    <div class="text-5xl font-bold text-orange-600 my-8 md:my-0">→</div>
+                     <div class="card p-6 text-center">
+                        <div class="grade-box border-red-500 text-red-600 mx-auto mb-4">C- <span class="text-lg font-medium">級的能力</span></div>
+                        <p class="text-stone-600">但學習過程被繞過，真實的批判性思維與解決問題的能力卻可能悄然萎縮。</p>
+                    </div>
+                </div>
+                 <p class="mt-12 text-lg text-stone-600 max-w-3xl mx-auto">這種「能力的假象」揭示了一個深刻的挑戰：我們如何確保技術增強而非取代人類的深度思考？這需要我們回歸教育的本質，探尋更根本的思維方法。</p>
+            </div>
+        </section>
+
+        <!-- Section 2: Two Paths of Thinking -->
+        <section id="paths" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold section-title">兩種思維路徑</h2>
+                    <p class="mt-4 text-lg text-stone-600 max-w-2xl mx-auto">面對複雜問題，我們可以採用不同的思維框架。一種是培養日常的理性，另一種是尋求根本性的突破。</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-10 max-w-6xl mx-auto">
+                    <div class="card p-8 flex flex-col">
+                        <h3 class="text-2xl font-bold text-stone-800 mb-4 flex items-center"><span class="text-3xl mr-3">🔍</span>批判性思考習慣</h3>
+                        <p class="text-stone-600 mb-4 flex-grow">一種融入日常的、持續性的思維實踐。它如同思維的「保健體系」，幫助我們在資訊洪流中保持清晰與理性。</p>
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-start"><span class="text-orange-600 font-bold mr-2 mt-1">●</span><div><strong>質疑預設：</strong>對理所當然的觀點提出疑問。</div></li>
+                            <li class="flex items-start"><span class="text-orange-600 font-bold mr-2 mt-1">●</span><div><strong>評估證據：</strong>尋求多方觀點，辨別信息真偽。</div></li>
+                            <li class="flex items-start"><span class="text-orange-600 font-bold mr-2 mt-1">●</span><div><strong>反思自身：</strong>檢視自己的思考過程，避免偏見。</div></li>
+                        </ul>
+                        <div class="mt-auto bg-amber-50 p-4 rounded-lg">
+                            <p class="font-semibold text-amber-800">核心目標：提升普遍的思維品質與判斷的準確性。</p>
+                        </div>
+                    </div>
+                    <div class="card p-8 flex flex-col">
+                        <h3 class="text-2xl font-bold text-stone-800 mb-4 flex items-center"><span class="text-3xl mr-3">🚀</span>第一性原理思維</h3>
+                        <p class="text-stone-600 mb-4 flex-grow">一種針對重大挑戰的、結構化的「攻堅利器」。它要求回歸事物的本質，從而發現顛覆性的創新路徑。</p>
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-start"><span class="text-sky-700 font-bold mr-2 mt-1">●</span><div><strong>徹底解構：</strong>將問題分解至最基本的、不可再分的真理。</div></li>
+                            <li class="flex items-start"><span class="text-sky-700 font-bold mr-2 mt-1">●</span><div><strong>辨識基石：</strong>找到源於物理、數學等不容置疑的定律。</div></li>
+                            <li class="flex items-start"><span class="text-sky-700 font-bold mr-2 mt-1">●</span><div><strong>從頭重建：</strong>基於基本真理，重新構建全新的解決方案。</div></li>
+                        </ul>
+                         <div class="mt-auto space-y-4">
+                            <div class="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
+                                <h4 class="font-semibold text-red-800">挑戰與風險</h4>
+                                <ul class="list-disc list-inside text-red-700 text-sm mt-2">
+                                    <li><strong>高認知負荷：</strong>極度耗費心力，不適用於所有日常問題。</li>
+                                    <li><strong>失敗風險高：</strong>根本性創新常伴隨極高的失敗率。</li>
+                                    <li><strong>知識壁壘：</strong>需要對該領域有深厚專業知識作為基礎。</li>
+                                </ul>
+                            </div>
+                            <div class="bg-sky-100 p-4 rounded-lg">
+                                <p class="font-semibold text-sky-800">核心目標：解決根本問題，實現突破性創新。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Deconstructing the Challenge -->
+        <section id="deconstruction" class="py-20 bg-stone-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold section-title">以第一性原理拆解挑戰</h2>
+                    <p class="mt-4 text-lg text-stone-600 max-w-3xl mx-auto">運用第一性原理的視角，我們可以更清晰地看到AI輔助下的「捷徑」如何偏離了真實學習的核心原則。以下比較了三種學習範式。</p>
+                </div>
+                <div class="grid lg:grid-cols-3 gap-8">
+                    <div class="card p-6">
+                        <h4 class="text-xl font-bold text-center mb-4 text-stone-700">傳統深度學習</h4>
+                        <div class="space-y-4">
+                            <p><strong>資訊參與：</strong><span class="text-stone-600">主動批判性閱讀/研究</span></p>
+                            <p><strong>認知努力：</strong><span class="text-red-500 font-semibold">高</span> (掙扎、綜合、創造)</p>
+                            <p><strong>技能發展：</strong><span class="text-stone-600">透過練習逐步掌握</span></p>
+                            <p><strong>成果性質：</strong><span class="text-stone-600">反映內在學習狀態</span></p>
+                        </div>
+                    </div>
+                    <div class="card p-6 ring-2 ring-red-500">
+                        <h4 class="text-xl font-bold text-center mb-4 text-red-600">AI輔助的捷徑 (隱憂)</h4>
+                        <div class="space-y-4">
+                            <p><strong>資訊參與：</strong><span class="text-stone-600">AI總結/生成內容</span></p>
+                            <p><strong>認知努力：</strong><span class="text-green-600 font-semibold">低</span> (思考過程自動化)</p>
+                            <p><strong>技能發展：</strong><span class="text-stone-600">潛在萎縮/無法養成</span></p>
+                            <p><strong>成果性質：</strong><span class="text-stone-600">AI生成的替代品</span></p>
+                        </div>
+                    </div>
+                     <div class="card p-6 ring-2 ring-green-600">
+                        <h4 class="text-xl font-bold text-center mb-4 text-green-700">第一性原理指導下的學習</h4>
+                         <div class="space-y-4">
+                            <p><strong>資訊參與：</strong><span class="text-stone-600">將資訊解構至核心事實</span></p>
+                            <p><strong>認知努力：</strong><span class="text-red-500 font-semibold">高</span> (根本性質疑、邏輯重建)</p>
+                            <p><strong>技能發展：</strong><span class="text-stone-600">刻意練習核心組件</span></p>
+                            <p><strong>成果性質：</strong><span class="text-stone-600">證明對原理的理解</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Thinking Lab -->
+        <section id="lab" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold section-title">思維實驗室：動手實踐</h2>
+                    <p class="mt-4 text-lg text-stone-600 max-w-3xl mx-auto">理解概念的最佳方式是親身實踐。讓我們以一個常見問題為例，體驗如何運用第一性原理進行思考。</p>
+                </div>
+                <div class="max-w-3xl mx-auto card overflow-hidden">
+                    <div class="p-6 bg-stone-800 text-white">
+                        <h3 class="text-2xl font-bold">案例探討：教科書為什麼這麼昂貴？</h3>
+                    </div>
+                    <div id="lab-accordion">
+                        <div class="border-b border-stone-200">
+                            <div class="lab-step p-5 flex justify-between items-center">
+                                <h4 class="text-xl font-semibold text-stone-700">步驟一：解構問題 (Deconstruct)</h4>
+                                <span class="text-2xl text-orange-500 transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="lab-content px-5">
+                                <p class="text-stone-600 pb-5">首先，我們不接受「教科書本來就很貴」這個類比結論。我們將它分解成最基本的組成部分。一本教科書包含什麼？</p>
+                                <ul class="list-disc list-inside space-y-2 pb-5 text-stone-700">
+                                    <li><strong>物理實體：</strong>紙張、油墨、封面、膠裝。</li>
+                                    <li><strong>知識內容：</strong>作者的研究與寫作、編輯、校對、設計排版。</li>
+                                    <li><strong>商業流程：</strong>印刷、倉儲、物流運輸、行銷、通路利潤（書店）。</li>
+                                    <li><strong>無形資產：</strong>出版社品牌、知識產權（版稅）。</li>
+                                </ul>
+                            </div>
+                        </div>
+                         <div class="border-b border-stone-200">
+                            <div class="lab-step p-5 flex justify-between items-center">
+                                <h4 class="text-xl font-semibold text-stone-700">步驟二：辨識基石 (Identify)</h4>
+                                 <span class="text-2xl text-orange-500 transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="lab-content px-5">
+                                <p class="text-stone-600 pb-5">接下來，探究這些組件最根本的成本。如果我們自己從頭做，成本是多少？</p>
+                                <ul class="list-disc list-inside space-y-2 pb-5 text-stone-700">
+                                    <li>紙張和印刷的市場材料成本是多少？（相對較低）</li>
+                                    <li>版稅的行業標準是多少？（通常是售價的固定比例）</li>
+                                    <li>物流和倉儲的單位成本是多少？（取決於規模）</li>
+                                    <li>我們發現，許多成本來自於傳統、多層次的商業流程，而非內容創作本身。</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="lab-step p-5 flex justify-between items-center">
+                                <h4 class="text-xl font-semibold text-stone-700">步驟三：從頭重建 (Reconstruct)</h4>
+                                <span class="text-2xl text-orange-500 transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="lab-content px-5">
+                                <p class="text-stone-600 pb-5">既然我們知道了根本成本結構，就可以思考全新的解決方案。如果我們的核心目標只是「高效地將高品質知識傳遞給學生」，我們可以怎麼做？</p>
+                                <ul class="list-disc list-inside space-y-2 pb-5 text-stone-700">
+                                    <li><strong>數位化：</strong>完全去除物理印刷、倉儲和物流成本。</li>
+                                    <li><strong>直銷模式：</strong>繞過傳統通路，由作者或平台直接提供內容給學生。</li>
+                                    <li><strong>訂閱制/開源模式：</strong>改變一次性購買的模式，提供持續更新的內容服務，或建立由社群共同維護的開源教材。</li>
+                                    <li><strong>模組化內容：</strong>讓教師和學生可以根據需求組合不同的知識模組，而非購買整本厚重的書。</li>
+                                </ul>
+                                <p class="text-stone-800 font-semibold bg-green-100 p-3 rounded-md mb-5">結論：透過第一性原理，我們發現高昂的價格並非不可避免的「真理」，而是現有商業模式的產物。這為創造更實惠、更高效的教育資源開啟了全新的可能性。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Reconstructing AI's Role -->
+        <section id="reconstruction" class="py-20 bg-stone-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold section-title">重構AI的教育角色</h2>
+                    <p class="mt-4 text-lg text-stone-600 max-w-3xl mx-auto">第一性原理不僅用於分析問題，更用於重建解決方案。我們可以重新構想AI，使其成為增強而非取代人類思考的「認知夥伴」。</p>
+                </div>
+                <div class="chart-container h-[400px] md:h-[500px]">
+                    <canvas id="aiRoleChart"></canvas>
+                </div>
+                 <p class="text-center mt-8 text-stone-600 max-w-2xl mx-auto">此圖表比較了兩種AI應用模式在關鍵學習維度上的表現。理想的AI應用（認知夥伴）應在各方面都顯著優於僅作為捷徑的工具，特別是在促進認知參與和能動性方面。</p>
+            </div>
+        </section>
+
+        <!-- Section 6: The Path Forward -->
+        <section id="forward" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold section-title">規劃原則性路徑</h2>
+                    <p class="mt-4 text-lg text-stone-600 max-w-3xl mx-auto">為塑造一個AI能真正賦能深度學習的未來，不同角色都需要採取有原則的行動。</p>
+                </div>
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex flex-wrap justify-center mb-8 border-b border-stone-300">
+                        <button class="tab-btn px-6 py-3 text-lg font-medium text-stone-600 border-b-2 border-transparent active" data-tab="educators">教育者</button>
+                        <button class="tab-btn px-6 py-3 text-lg font-medium text-stone-600 border-b-2 border-transparent" data-tab="students">學生</button>
+                        <button class="tab-btn px-6 py-3 text-lg font-medium text-stone-600 border-b-2 border-transparent" data-tab="developers">AI開發者</button>
+                        <button class="tab-btn px-6 py-3 text-lg font-medium text-stone-600 border-b-2 border-transparent" data-tab="policymakers">政策制定者</button>
+                    </div>
+                    <div id="tab-content" class="card p-8">
+                        <div id="educators-content" class="tab-pane active">
+                             <h3 class="text-2xl font-bold text-stone-800 mb-4">對教育者的建議</h3>
+                             <ul class="list-disc list-inside space-y-3 text-stone-700">
+                                 <li><strong>培養第一性原理思維：</strong>將其作為核心認知技能，明確納入教學內容。</li>
+                                 <li><strong>重新設計評估方式：</strong>從評估「成果」轉向評估「過程」，如思維策略與論證能力。</li>
+                                 <li><strong>策略性整合AI：</strong>將AI用作深化學習的鷹架，而非捷徑，例如進行蘇格拉底式對話。</li>
+                                 <li><strong>示範批判性使用：</strong>親身展示如何辨識AI輸出的錯誤、偏見與膚淺之處。</li>
+                             </ul>
+                        </div>
+                        <div id="students-content" class="tab-pane hidden">
+                             <h3 class="text-2xl font-bold text-stone-800 mb-4">對學生的建議</h3>
+                             <ul class="list-disc list-inside space-y-3 text-stone-700">
+                                 <li><strong>擁抱「生產性掙扎」：</strong>理解真正的學習需要付出努力，繞過掙扎長遠來看對自己不利。</li>
+                                 <li><strong>發展元認知意識：</strong>主動反思自己如何使用AI，是作為工具還是拐杖？</li>
+                                 <li><strong>將第一性原理應用於AI本身：</strong>學會質疑AI的輸出，理解其局限性，不輕信答案。</li>
+                             </ul>
+                        </div>
+                        <div id="developers-content" class="tab-pane hidden">
+                             <h3 class="text-2xl font-bold text-stone-800 mb-4">對AI開發者的建議</h3>
+                             <ul class="list-disc list-inside space-y-3 text-stone-700">
+                                 <li><strong>為學習而設計：</strong>與教育專家合作，開發在教學法上合理、植根於學習原理的工具。</li>
+                                 <li><strong>優先考慮透明度：</strong>努力創造可解釋的AI系統，讓其推理過程不完全是「黑箱」。</li>
+                                 <li><strong>構建培養能動性的工具：</strong>設計能賦予學生探究精神和批判性思維能力的AI。</li>
+                             </ul>
+                        </div>
+                        <div id="policymakers-content" class="tab-pane hidden">
+                             <h3 class="text-2xl font-bold text-stone-800 mb-4">對政策制定者的建議</h3>
+                             <ul class="list-disc list-inside space-y-3 text-stone-700">
+                                 <li><strong>投資於教育者培訓：</strong>提供關於學習科學與有效運用AI的專業發展機會。</li>
+                                 <li><strong>修訂課程體系：</strong>將第一性原理思維和批判性AI素養融入課程標準。</li>
+                                 <li><strong>推動AI倫理準則：</strong>制定清晰的倫理框架，保障學生認知能動性、數據隱私與公平性。</li>
+                             </ul>
+                        </div>
+                    </div>
+                    <div class="mt-12 p-6 bg-sky-50 rounded-lg border-l-4 border-sky-500">
+                        <h4 class="text-xl font-bold text-sky-800">展望：思維能力與未來工作</h4>
+                        <p class="mt-2 text-stone-700">在AI能處理愈來愈多常規性、模仿性工作的未來，人類的核心價值將更多地體現在那些AI難以企及的領域：<strong>提出正確的問題、進行根本性的創造、以及跨領域的複雜決策</strong>。批判性思考與第一性原理思維，正是培養這些「AI無法輕易取代」能力的關鍵。學會如何與AI協作，利用AI作為探索第一性原理的強大工具，將成為未來人才的核心競爭力。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-stone-800 text-stone-300 py-6">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2025 互動式思維模型報告。基於學術洞察的設計與呈現。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            // Mobile navigation
+            const mobileNav = document.getElementById('mobile-nav');
+            if(mobileNav) {
+                mobileNav.addEventListener('change', function() {
+                    const target = document.querySelector(this.value);
+                    if(target) {
+                       target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            }
+
+            // Active nav link highlighting on scroll
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.id;
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+                        });
+                        if (mobileNav) {
+                           mobileNav.value = `#${id}`;
+                        }
+                    }
+                });
+            }, { rootMargin: '-40% 0px -60% 0px', threshold: 0 });
+
+            sections.forEach(section => observer.observe(section));
+
+            // Tabs for Section 6
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.getAttribute('data-tab');
+
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    tabPanes.forEach(pane => {
+                        pane.classList.toggle('hidden', pane.id !== `${tabId}-content`);
+                    });
+                });
+            });
+
+            // Accordion for Thinking Lab (Section 4)
+            const accordionItems = document.querySelectorAll('#lab-accordion > div');
+            accordionItems.forEach(item => {
+                const header = item.querySelector('.lab-step');
+                const content = item.querySelector('.lab-content');
+                const icon = header.querySelector('span');
+
+                header.addEventListener('click', () => {
+                    const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px';
+
+                    if (isExpanded) {
+                        content.style.maxHeight = '0px';
+                        content.style.paddingTop = '0';
+                        content.style.paddingBottom = '0';
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        content.style.paddingTop = '0'; // We don't need top padding
+                        content.style.paddingBottom = '1.25rem'; // Match pb-5
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                });
+            });
+
+            // Chart.js Radar Chart for Section 5
+            const ctx = document.getElementById('aiRoleChart');
+            if (ctx) {
+                const data = {
+                    labels: [
+                        '認知參與度', '技能養成', '能動性/自主性', 
+                        '過程可見性', '適度困難', '理解深度'
+                    ],
+                    datasets: [
+                        {
+                            label: 'AI作為捷徑 (隱憂)',
+                            data: [2, 1, 1, 2, 1, 3],
+                            fill: true,
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)', // red-500
+                            borderColor: 'rgb(239, 68, 68)',
+                            pointBackgroundColor: 'rgb(239, 68, 68)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(239, 68, 68)'
+                        }, 
+                        {
+                            label: 'AI作為認知夥伴 (理想)',
+                            data: [8, 7, 9, 8, 6, 9],
+                            fill: true,
+                            backgroundColor: 'rgba(2, 132, 199, 0.2)', // sky-600
+                            borderColor: 'rgb(2, 132, 199)',
+                            pointBackgroundColor: 'rgb(2, 132, 199)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(2, 132, 199)'
+                        }
+                    ]
+                };
+
+                const config = {
+                    type: 'radar',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        elements: {
+                            line: {
+                                borderWidth: 3
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 10,
+                                pointLabels: {
+                                    font: {
+                                        size: 14,
+                                        family: "'Noto Sans TC', sans-serif"
+                                    },
+                                    color: '#44403c' // stone-700
+                                },
+                                ticks: {
+                                    backdropColor: 'transparent',
+                                    stepSize: 2
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 14,
+                                        family: "'Noto Sans TC', sans-serif"
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                titleFont: { family: "'Noto Sans TC', sans-serif" },
+                                bodyFont: { family: "'Noto Sans TC', sans-serif" }
+                            }
+                        }
+                    },
+                };
+                
+                new Chart(ctx, config);
+            }
+        });
+    </script>
+</body>
+</html>
