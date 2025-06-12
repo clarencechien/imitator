@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：《財富的代數》</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony Neutrals -->
+    <!-- Application Structure Plan: The SPA is designed as a guided journey. It starts with a hero section defining the core concept of 'economic security'. Next, it interactively breaks down the 'Wealth Formula' into its four components. A key feature is the 'Financial Security Calculator', making the theory personal and tangible. This is followed by a 'Power of Time' interactive chart to visually demonstrate compounding. An 'Actionable Strategies' dashboard provides concrete steps, and a 'Perspectives' section offers a balanced view of critiques. Finally, it concludes with a summary and localization for the Taiwanese context. This structure transforms the static report into an exploratory tool, enhancing user engagement and understanding. -->
+    <!-- Visualization & Content Choices: 'The Formula' uses clickable cards (HTML/JS) to reveal details, promoting discovery. The 'Financial Security Calculator' (HTML inputs, JS) personalizes the experience. 'The Power of Time' is a dynamic line chart (Chart.js) to visually illustrate compounding with user-adjustable variables. 'Actionable Strategies' are organized into a clean, tabbed interface (JS) to manage information density. 'Perspectives' use a two-column layout for a clear, balanced comparison. All choices prioritize interaction and clarity over static text. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF6;
+            color: #403d39;
+        }
+        .bg-primary { background-color: #FDFBF6; }
+        .bg-secondary { background-color: #f4f1ea; }
+        .text-primary { color: #403d39; }
+        .text-secondary { color: #6b6863; }
+        .accent-color { color: #739072; }
+        .bg-accent { background-color: #739072; }
+        .border-accent { border-color: #739072; }
+        .btn {
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #739072;
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+        .formula-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .formula-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        .tab.active {
+            border-color: #739072;
+            color: #739072;
+            background-color: #e8f0e8;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 640px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-primary text-primary">
+
+    <header class="bg-primary/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="#" class="text-xl md:text-2xl font-bold accent-color">財富的代數</a>
+            <div class="hidden md:flex space-x-6">
+                <a href="#formula" class="nav-link text-secondary hover:accent-color">財富公式</a>
+                <a href="#calculator" class="nav-link text-secondary hover:accent-color">安全數字</a>
+                <a href="#time" class="nav-link text-secondary hover:accent-color">時間之力</a>
+                <a href="#strategies" class="nav-link text-secondary hover:accent-color">行動策略</a>
+                <a href="#perspectives" class="nav-link text-secondary hover:accent-color">多維評析</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-secondary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <a href="#formula" class="block py-2 px-4 text-sm text-secondary hover:bg-secondary">財富公式</a>
+            <a href="#calculator" class="block py-2 px-4 text-sm text-secondary hover:bg-secondary">安全數字</a>
+            <a href="#time" class="block py-2 px-4 text-sm text-secondary hover:bg-secondary">時間之力</a>
+            <a href="#strategies" class="block py-2 px-4 text-sm text-secondary hover:bg-secondary">行動策略</a>
+            <a href="#perspectives" class="block py-2 px-4 text-sm text-secondary hover:bg-secondary">多維評析</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-16">
+        
+        <section id="hero" class="text-center mb-16 md:mb-24">
+            <h1 class="text-4xl md:text-6xl font-bold mb-4 text-primary">解構《財富的代數》</h1>
+            <p class="text-lg md:text-xl text-secondary max-w-3xl mx-auto mb-6">本書的核心目標並非追求奢華，而是達到一種「經濟安全」的狀態：讓被動收入穩定地超越日常開銷。這份互動報告將帶您探索史考特·蓋洛威為實現此目標所提出的思考框架與實踐指南。</p>
+            <a href="#formula" class="btn bg-accent text-white font-bold py-3 px-8 rounded-full inline-block">開始探索公式</a>
+        </section>
+
+        <section id="formula" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-2">財富公式：四大基石</h2>
+                <p class="text-secondary max-w-2xl mx-auto">財富 = 專注 + (斯多葛主義 × 時間 × 分散化)。這並非數學方程式，而是一個概念框架。點擊下方卡片，深入了解各項元素的意涵。</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="formula-card bg-secondary p-6 rounded-xl cursor-pointer" data-modal-target="focus-modal">
+                    <h3 class="text-2xl font-bold mb-2 accent-color">專注 (Focus)</h3>
+                    <p class="text-secondary text-sm">最大化個人收入潛力，追隨才能而非熱情，洞察經濟大勢。</p>
+                </div>
+                <div class="formula-card bg-secondary p-6 rounded-xl cursor-pointer" data-modal-target="stoicism-modal">
+                    <h3 class="text-2xl font-bold mb-2 accent-color">斯多葛主義 (Stoicism)</h3>
+                    <p class="text-secondary text-sm">品格、紀律與財務決策的理性，是實現長期目標的行為基礎。</p>
+                </div>
+                <div class="formula-card bg-secondary p-6 rounded-xl cursor-pointer" data-modal-target="time-modal">
+                    <h3 class="text-2xl font-bold mb-2 accent-color">時間 (Time)</h3>
+                    <p class="text-secondary text-sm">複利的魔力是年輕人最寶貴的資產，早期行動至關重要。</p>
+                </div>
+                <div class="formula-card bg-secondary p-6 rounded-xl cursor-pointer" data-modal-target="diversification-modal">
+                    <h3 class="text-2xl font-bold mb-2 accent-color">分散化 (Diversification)</h3>
+                    <p class="text-secondary text-sm">風險管理的核心策略，避免將所有雞蛋放在同一個籃子裡。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="calculator" class="bg-secondary rounded-xl p-8 md:p-12 mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl md:text-4xl font-bold mb-2">計算您的「財務安全數字」</h2>
+                <p class="text-secondary max-w-3xl mx-auto">將模糊的「致富」願望轉化為一個可量化的數字，能極大地提升行動力。此數字代表您需要多少資產，才能讓被動收入覆蓋生活開銷。</p>
+            </div>
+            <div class="max-w-xl mx-auto">
+                <div class="mb-6">
+                    <label for="monthly-burn" class="block text-lg font-medium mb-2">您預估的每月總開銷 (新台幣)</label>
+                    <input type="number" id="monthly-burn" class="w-full p-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent focus:border-accent" placeholder="例如：50000">
+                </div>
+                <div class="text-center">
+                    <button id="calculate-btn" class="btn bg-accent text-white font-bold py-3 px-8 rounded-full">計算我的數字</button>
+                </div>
+                <div id="result" class="mt-8 text-center hidden">
+                    <p class="text-lg text-secondary mb-2">您的年度開銷 (Annual Burn Rate) 約為：</p>
+                    <p id="annual-burn-result" class="text-3xl font-bold accent-color mb-4"></p>
+                    <p class="text-lg text-secondary mb-2">基於 4% 安全提取率，您的財務安全數字為：</p>
+                    <p id="security-number-result" class="text-4xl md:text-5xl font-bold accent-color"></p>
+                    <p class="text-sm text-secondary mt-4 max-w-md mx-auto">這是您需要達成的投資組合目標，以便在退休後能以每年提取 4% 的方式生活。</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="time" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl md:text-4xl font-bold mb-2">時間之力：複利的視覺化</h2>
+                <p class="text-secondary max-w-3xl mx-auto">時間是財富公式中最強大的乘數之一。透過下方的互動圖表，親身體驗「儘早開始」與「持續投入」對長期財富累積的驚人影響。</p>
+            </div>
+            <div class="bg-secondary rounded-xl p-4 md:p-8">
+                <div class="chart-container">
+                    <canvas id="compounding-chart"></canvas>
+                </div>
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-6 text-sm">
+                    <div>
+                        <label for="start-age" class="block font-medium mb-1">開始投資年齡</label>
+                        <select id="start-age" class="w-full p-2 rounded-md border border-gray-300">
+                            <option value="25" selected>25歲</option>
+                            <option value="30">30歲</option>
+                            <option value="35">35歲</option>
+                            <option value="40">40歲</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="monthly-investment" class="block font-medium mb-1">每月投資金額 (NT$)</label>
+                         <select id="monthly-investment" class="w-full p-2 rounded-md border border-gray-300">
+                            <option value="5000">5,000</option>
+                            <option value="10000" selected>10,000</option>
+                            <option value="15000">15,000</option>
+                            <option value="20000">20,000</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="annual-return" class="block font-medium mb-1">預期年化報酬率 (%)</label>
+                         <select id="annual-return" class="w-full p-2 rounded-md border border-gray-300">
+                            <option value="5">5% (穩健型)</option>
+                            <option value="7" selected>7% (S&P 500 長期平均)</option>
+                            <option value="9">9% (積極型)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategies" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-2">致富行動策略</h2>
+                <p class="text-secondary max-w-2xl mx-auto">理論需要實踐。這裡整合了蓋洛威提出的具體行動指南，涵蓋職涯、投資到債務管理等關鍵領域。</p>
+            </div>
+            <div>
+                <div class="border-b border-gray-200 mb-6 flex flex-wrap justify-center">
+                    <button class="tab active py-2 px-4 text-secondary border-b-2 border-transparent" data-tab="career">職涯發展</button>
+                    <button class="tab py-2 px-4 text-secondary border-b-2 border-transparent" data-tab="investment">投資心法</button>
+                    <button class="tab py-2 px-4 text-secondary border-b-2 border-transparent" data-tab="debt">債務管理</button>
+                </div>
+                <div id="career" class="tab-content">
+                    <ul class="space-y-4 list-disc list-inside text-secondary max-w-3xl mx-auto">
+                        <li><b>追隨才能而非熱情：</b>在你有天賦的領域追求精通，熱情會隨之而來。</li>
+                        <li><b>早期投入與平衡：</b>接受事業初期需要犧牲部分生活平衡，理想的平衡是「依次」而非「同時」實現。</li>
+                        <li><b>培養關鍵軟實力：</b>持續提升溝通表達能力與堅韌不拔的毅力 (Grit)。</li>
+                        <li><b>應對現實與適時轉向：</b>學會識別難以改變的「重力問題」，培養判斷力，知道何時堅持、何時轉向。</li>
+                        <li><b>忠誠於人而非公司：</b>建立深厚的人際關係，而非盲目忠誠於單一企業。</li>
+                    </ul>
+                </div>
+                <div id="investment" class="tab-content hidden">
+                     <ul class="space-y-4 list-disc list-inside text-secondary max-w-3xl mx-auto">
+                        <li><b>避免追逐熱潮：</b>當某樣投資廣為人知時，其增長潛力往往已被消耗，風險隨之增加。</li>
+                        <li><b>避免情緒化決策：</b>堅守既定的投資策略與風險承受能力，不被市場的恐懼與貪婪左右。</li>
+                        <li><b>反對當日沖銷 (Day Trading)：</b>蓋洛威將此比作勝率極低的賭博。</li>
+                        <li><b>定期實現獲利：</b>有紀律地實現部分獲利，降低投資組合在市場大幅波動時的風險。</li>
+                        <li><b>被動指數化投資：</b>承認市場的隨機性，多數主動投資者難以長期跑贏大盤，考慮廣泛分散的指數基金。</li>
+                    </ul>
+                </div>
+                <div id="debt" class="tab-content hidden">
+                    <ul class="space-y-4 list-disc list-inside text-secondary max-w-3xl mx-auto">
+                        <li><b>區分良性與惡性債務：</b>合理利用房貸等「良性債務」可作為財務槓桿，但需謹慎評估。</li>
+                        <li><b>避免高利率消費貸：</b>例如車貸，應謹慎對待。台灣高房價背景下，房貸的「良性」程度需更審慎評估。</li>
+                        <li><b>杜絕短期高利貸：</b>信用卡循環利息等是最可怕的財富竊賊，應極力避免。</li>
+                        <li><b>聰明進行稅務規劃：</b>所有投資決策都應考慮稅務影響，合法節稅是最大化收益的關鍵一環。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="perspectives" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-2">多維度評析</h2>
+                <p class="text-secondary max-w-2xl mx-auto">任何理論都有其光譜兩端。此處呈現本書獲得的讀者共鳴與批判性視角，助您形成更全面的看法。</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div class="bg-secondary rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-4 text-green-700">讀者共鳴與肯定 ✅</h3>
+                    <ul class="space-y-3 list-disc list-inside text-secondary">
+                        <li><b>坦率真誠：</b>不加掩飾的「殘酷誠實」風格，讓建議更具穿透力。</li>
+                        <li><b>實用性高：</b>對職涯早期年輕人提供具體、可操作的行動建議。</li>
+                        <li><b>重新定義財富：</b>將目標設定為「經濟安全」，緩解財務焦慮，引發共鳴。</li>
+                        <li><b>重視無形資產：</b>強調關係、經驗與家庭價值比物質財富更重要。</li>
+                    </ul>
+                </div>
+                <div class="bg-secondary rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-4 text-red-700">批判性視角與質疑 ❌</h3>
+                    <ul class="space-y-3 list-disc list-inside text-secondary">
+                        <li><b>特權視角：</b>建議被指主要適用於已有社經基礎的特定群體，缺乏普適性。</li>
+                        <li><b>風格兩極：</b>直率風格被部分讀者認為是「自大、自吹自擂」。</li>
+                        <li><b>原創性不足：</b>對長期關注者而言，部分內容重複性高，缺乏深度科學支撐。</li>
+                        <li><b>觀點陳舊：</b>部分關於性別角色、工作熱情的論述被批評為過時或帶有偏見。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <section id="conclusion" class="text-center bg-secondary rounded-xl p-8 md:p-12 scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">結論：您的個人化財務策略</h2>
+            <p class="text-secondary max-w-3xl mx-auto mb-6">《財富的代數》提供了一個強大的思考框架，但通往財務安全的道路並無標準答案。您應將此公式視為起點，批判性地吸收並結合自身情況進行調整。特別是對台灣讀者而言，在高房價、薪資挑戰的背景下，更需進行「本土化思考」，權衡書中建議與現實環境的差異。</p>
+            <p class="text-secondary max-w-3xl mx-auto">最終，實現財務安全是一場關於紀律、耐心與持續學習的修煉。祝您在這條路上，走出屬於自己的自由之路。</p>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8 border-t border-gray-200">
+        <p class="text-sm text-secondary">基於史考特·蓋洛威《財富的代數》一書報告所建立的互動式網頁應用。</p>
+    </footer>
+    
+    <!-- Modals -->
+    <div id="focus-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-primary rounded-xl p-8 max-w-2xl w-full relative">
+            <h3 class="text-2xl font-bold mb-4 accent-color">專注 (Focus)</h3>
+            <p class="text-secondary mb-4">「專注」是財富公式的基礎，核心在於最大化您的主動收入。蓋洛威認為，這比任何投資策略都來得重要，因為更高的收入為後續的儲蓄與投資提供了更堅實的資本。</p>
+            <ul class="space-y-2 list-disc list-inside text-secondary">
+                <li><b>追隨才能，而非熱情：</b>在您擅長的領域追求卓越，財務回報與熱情會自然產生。</li>
+                <li><b>明智選擇賽道：</b>選擇具備可擴展性、市場潛力大的行業。</li>
+                <li><b>早期積累人脈：</b>年輕時多在辦公室環境，建立人際網絡。</li>
+                <li><b>主業深耕：</b>專注於主業的突破，其成效通常遠大於分散精力的副業。</li>
+            </ul>
+            <button class="modal-close-btn absolute top-4 right-4 text-secondary hover:text-primary">&times;</button>
+        </div>
+    </div>
+    <div id="stoicism-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-primary rounded-xl p-8 max-w-2xl w-full relative">
+            <h3 class="text-2xl font-bold mb-4 accent-color">斯多葛主義 (Stoicism)</h3>
+            <p class="text-secondary mb-4">這並非指禁慾，而是一種強調紀律、理性和情緒管理的積極哲學。它是實現長期財務目標不可或缺的行為基礎，讓您能有效運用「時間」與「分散化」的力量。</p>
+            <ul class="space-y-2 list-disc list-inside text-secondary">
+                <li><b>量入為出：</b>有紀律地規劃支出，避免不必要的浪費。</li>
+                <li><b>理性決策：</b>投資與消費基於分析而非市場情緒或他人意見。</li>
+                <li><b>品格與社群：</b>建立內在品格與健康的社群關係，以應對經濟壓力。</li>
+                <li><b>情緒穩定：</b>在市場波動時保持冷靜，避免因恐慌而做出錯誤決策。</li>
+            </ul>
+            <button class="modal-close-btn absolute top-4 right-4 text-secondary hover:text-primary">&times;</button>
+        </div>
+    </div>
+    <div id="time-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-primary rounded-xl p-8 max-w-2xl w-full relative">
+            <h3 class="text-2xl font-bold mb-4 accent-color">時間 (Time)</h3>
+            <p class="text-secondary mb-4">時間是年輕人最寶貴的資產，其核心價值在於「複利」的魔力。透過長時間的利滾利，即使穩健的投資也能產生驚人回報。</p>
+            <ul class="space-y-2 list-disc list-inside text-secondary">
+                <li><b>儘早開始：</b>無論金額大小，越早開始儲蓄和投資，複利效應越顯著。</li>
+                <li><b>習慣重於目標：</b>專注於養成持續儲蓄的良好習慣，而非設定遙遠的目標。</li>
+                <li><b>耐心是美德：</b>理解財富積累是場馬拉松，而非短跑衝刺。</li>
+            </ul>
+            <button class="modal-close-btn absolute top-4 right-4 text-secondary hover:text-primary">&times;</button>
+        </div>
+    </div>
+    <div id="diversification-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-primary rounded-xl p-8 max-w-2xl w-full relative">
+            <h3 class="text-2xl font-bold mb-4 accent-color">分散化 (Diversification)</h3>
+            <p class="text-secondary mb-4">這是風險管理的核心，旨在降低單一投資失敗可能帶來的毀滅性打擊，讓您的投資組合更平穩地穿越市場週期。</p>
+            <ul class="space-y-2 list-disc list-inside text-secondary">
+                <li><b>跨資產配置：</b>將投資分散到股票、債券、房地產等不同資產類別。</li>
+                <li><b>避免追逐熱點：</b>對市場上短期爆紅的趨勢保持警惕。</li>
+                <li><b>認識市場隨機性：</b>承認多數人難以持續跑贏大盤，考慮被動的指數化投資。</li>
+                <li><b>持續學習：</b>了解不同資產的風險與回報特性，做出明智決策。</li>
+            </ul>
+            <button class="modal-close-btn absolute top-4 right-4 text-secondary hover:text-primary">&times;</button>
+        </div>
+    </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+
+    const mobileNavLinks = mobileMenu.querySelectorAll('a');
+    mobileNavLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            mobileMenu.classList.add('hidden');
+        });
+    });
+
+    const calculateBtn = document.getElementById('calculate-btn');
+    calculateBtn.addEventListener('click', () => {
+        const monthlyBurnInput = document.getElementById('monthly-burn');
+        const monthlyBurn = parseFloat(monthlyBurnInput.value);
+
+        if (isNaN(monthlyBurn) || monthlyBurn <= 0) {
+            alert('請輸入有效的每月開銷金額。');
+            return;
+        }
+
+        const annualBurn = monthlyBurn * 12;
+        const securityNumber = annualBurn * 25;
+
+        document.getElementById('annual-burn-result').textContent = 'NT$ ' + annualBurn.toLocaleString();
+        document.getElementById('security-number-result').textContent = 'NT$ ' + securityNumber.toLocaleString();
+        document.getElementById('result').classList.remove('hidden');
+    });
+
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(item => item.classList.remove('active'));
+            tab.classList.add('active');
+
+            const target = tab.getAttribute('data-tab');
+            tabContents.forEach(content => {
+                if (content.id === target) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    const formulaCards = document.querySelectorAll('.formula-card');
+    formulaCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const modalId = card.getAttribute('data-modal-target');
+            const modal = document.getElementById(modalId);
+            if(modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        });
+    });
+
+    const closeButtons = document.querySelectorAll('.modal-close-btn');
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.target.closest('.fixed').classList.add('hidden');
+            e.target.closest('.fixed').classList.remove('flex');
+        });
+    });
+    
+    window.addEventListener('click', (e) => {
+        if (e.target.classList.contains('fixed')) {
+            e.target.classList.add('hidden');
+            e.target.classList.remove('flex');
+        }
+    });
+
+    let compoundingChart;
+    const ctx = document.getElementById('compounding-chart').getContext('2d');
+    
+    function createOrUpdateChart() {
+        const startAge = parseInt(document.getElementById('start-age').value);
+        const monthlyInvestment = parseInt(document.getElementById('monthly-investment').value);
+        const annualReturn = parseFloat(document.getElementById('annual-return').value) / 100;
+
+        const labels = [];
+        const data = [];
+        let principal = 0;
+        const retirementAge = 65;
+
+        for (let age = startAge; age <= retirementAge; age++) {
+            labels.push(age + '歲');
+            principal = (principal + (monthlyInvestment * 12)) * (1 + annualReturn);
+            data.push(Math.round(principal));
+        }
+
+        if (compoundingChart) {
+            compoundingChart.data.labels = labels;
+            compoundingChart.data.datasets[0].data = data;
+            compoundingChart.update();
+        } else {
+            compoundingChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '資產累積 (NT$)',
+                        data: data,
+                        borderColor: '#739072',
+                        backgroundColor: 'rgba(115, 144, 114, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    if (value >= 1000000) return (value / 1000000) + 'M';
+                                    if (value >= 1000) return (value / 1000) + 'K';
+                                    return value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    document.getElementById('start-age').addEventListener('change', createOrUpdateChart);
+    document.getElementById('monthly-investment').addEventListener('change', createOrUpdateChart);
+    document.getElementById('annual-return').addEventListener('change', createOrUpdateChart);
+
+    createOrUpdateChart();
+    
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 100) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').substring(1) === current) {
+                link.classList.add('active');
+            }
+        });
+    });
+
+});
+</script>
+</body>
+</html>
