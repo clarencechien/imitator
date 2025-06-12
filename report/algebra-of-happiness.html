@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：幸福的代數</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Background: #f8f7f4, Text: #4a4a4a, Primary Accent: #4A90E2, Secondary Accent: #E07A5F) -->
+    <!-- Application Structure Plan: The SPA is structured as an interactive dashboard rather than a linear report to enhance user exploration. The flow is: 1. Hero Introduction. 2. An interactive 'Core Equations' dashboard with filterable cards for Galloway's key lessons. 3. A 'Counterpoint Console' with a toggle and a Chart.js visualization to interactively explore praise and critiques. 4. A 'Galloway in Context' section for a dynamic side-by-side comparison with another author. 5. A visual 'Galloway Universe' map. This structure was chosen to transform the report's analysis into an engaging, multi-faceted exploration, allowing users to compare concepts and form their own conclusions, which is more effective than passive reading. -->
+    <!-- Visualization & Content Choices: Report Info: Core principles table -> Goal: Organize/Inform -> Viz: Interactive HTML cards -> Interaction: JS filtering by theme and click-to-expand details -> Justification: Breaks down dense info into digestible, user-controlled chunks. Report Info: Reader critiques -> Goal: Compare/Analyze -> Viz: Chart.js Horizontal Bar Chart -> Interaction: Hover to show details, JS toggle for praise/critique -> Justification: Quantifies qualitative feedback and makes exploring opposing views interactive. Report Info: Book comparison table -> Goal: Compare -> Viz: Dynamic two-column text layout -> Interaction: Click list item to update both columns -> Justification: More engaging than a static table, encourages direct comparison of ideas. All diagrams (like the 'Galloway Universe') are built with HTML/CSS. Library/Method: Chart.js for canvas-based charts, Vanilla JS for all interactions. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8f7f4;
+            color: #4a4a4a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+        .nav-button.active {
+            background-color: #4A90E2;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .comparison-item.active {
+            background-color: #E07A5F;
+            color: white;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+
+        /* Card Flip Animation Styles - FIX */
+        .equation-card {
+            transition: transform 0.7s;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+        .card-side {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden; /* Safari fix */
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            transition: box-shadow 0.3s ease;
+        }
+        .equation-card:hover .card-front {
+             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+        .equation-card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <header class="text-center mb-16">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-2">幸福的代數</h1>
+            <p class="text-lg text-gray-600">一份史考特·蓋洛威人生哲學的互動式解析</p>
+        </header>
+
+        <nav class="flex justify-center flex-wrap gap-2 mb-12">
+            <button data-target="equations" class="nav-button active py-2 px-5 bg-white rounded-full shadow-sm font-semibold text-gray-700">核心方程式</button>
+            <button data-target="critique" class="nav-button py-2 px-5 bg-white rounded-full shadow-sm font-semibold text-gray-700">多方視角</button>
+            <button data-target="context" class="nav-button py-2 px-5 bg-white rounded-full shadow-sm font-semibold text-gray-700">勵志光譜</button>
+            <button data-target="universe" class="nav-button py-2 px-5 bg-white rounded-full shadow-sm font-semibold text-gray-700">蓋洛威宇宙</button>
+        </nav>
+
+        <main>
+            <section id="equations" class="content-section active">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-2">核心方程式</h2>
+                    <p class="max-w-3xl mx-auto text-gray-600">探索蓋洛威為成功、愛與意義提出的關鍵「公式」。點擊下方的類別進行篩選，或點擊卡片查看更深入的個人軼事與解析。</p>
+                    <div id="filter-container" class="flex justify-center gap-2 mt-6 flex-wrap">
+                         <button data-filter="all" class="filter-btn active bg-blue-500 text-white py-1 px-3 rounded-full text-sm">全部</button>
+                        <button data-filter="事業" class="filter-btn bg-white py-1 px-3 rounded-full text-sm border">事業與財富</button>
+                        <button data-filter="關係" class="filter-btn bg-white py-1 px-3 rounded-full text-sm border">人際關係</button>
+                        <button data-filter="哲學" class="filter-btn bg-white py-1 px-3 rounded-full text-sm border">人生哲學</button>
+                        <button data-filter="身心" class="filter-btn bg-white py-1 px-3 rounded-full text-sm border">身心福祉</button>
+                    </div>
+                </div>
+                <div id="equations-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 perspective-[1000px]">
+                </div>
+            </section>
+            
+            <section id="critique" class="content-section">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-2">多方視角</h2>
+                    <p class="max-w-3xl mx-auto text-gray-600">任何宣言都會引發討論。《幸福的代數》也不例外。此處我們將檢視讀者的讚譽與批評，呈現一個更全面的觀點。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
+                    <div class="chart-container mb-6">
+                        <canvas id="critiqueChart"></canvas>
+                    </div>
+                     <p class="text-center text-sm text-gray-500 mb-4">將滑鼠懸停在圖表上以查看各項批評的具體分析。</p>
+                    <div id="critique-details" class="mt-4 p-4 bg-gray-50 rounded-md min-h-[100px] text-gray-700">
+                        <p class="text-center text-gray-500">將滑鼠懸停在圖表上以查看詳細資訊。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="context" class="content-section">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-2">勵志光譜</h2>
+                    <p class="max-w-3xl mx-auto text-gray-600">蓋洛威的哲學並非獨存。在此，我們將他的觀點與另一位反傳統思想家——馬克·曼森（Mark Manson）進行比較，以突顯當代勵志思想的兩種不同路徑。點擊中間的議題，查看兩位作者的迥異看法。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-start max-w-6xl mx-auto">
+                    <div id="galloway-col" class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="font-bold text-xl mb-4 text-center">《幸福的代數》</h3>
+                        <div id="galloway-content" class="text-gray-700"></div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button data-comparison="definition" class="comparison-item text-left w-full p-3 bg-white rounded-md shadow-sm transition">幸福的核心定義</button>
+                        <button data-comparison="problems" class="comparison-item text-left w-full p-3 bg-white rounded-md shadow-sm transition">對待問題的方式</button>
+                        <button data-comparison="action" class="comparison-item text-left w-full p-3 bg-white rounded-md shadow-sm transition">建議的核心行動</button>
+                        <button data-comparison="tone" class="comparison-item text-left w-full p-3 bg-white rounded-md shadow-sm transition">作者語氣</button>
+                        <button data-comparison="focus" class="comparison-item text-left w-full p-3 bg-white rounded-md shadow-sm transition">主要焦點</button>
+                    </div>
+                    <div id="manson-col" class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="font-bold text-xl mb-4 text-center">《管他的藝術》</h3>
+                         <div id="manson-content" class="text-gray-700"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="universe" class="content-section">
+                 <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-2">蓋洛威宇宙</h2>
+                    <p class="max-w-3xl mx-auto text-gray-600">《幸福的代數》並非獨立作品，而是蓋洛威更廣闊思想體系的一部分。他的書籍、播客和電子報相互關聯，共同構築了一個連貫的「G教授」世界觀。</p>
+                </div>
+
+                <div class="max-w-5xl mx-auto">
+                    <div class="relative p-8">
+                        <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-300"></div>
+                        <div class="absolute left-1/2 top-0 h-full w-0.5 bg-gray-300"></div>
+
+                        <div class="grid grid-cols-3 grid-rows-3 gap-4 h-[450px]">
+                            
+                            <div class="flex items-center justify-center">
+                                <div class="text-center p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-transform">
+                                    <h4 class="font-bold">《四騎士》</h4>
+                                    <p class="text-xs text-gray-500">科技巨頭分析</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-center">
+                                <div class="text-center p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-transform">
+                                    <h4 class="font-bold">Prof G Pod</h4>
+                                    <p class="text-xs text-gray-500">商業與人生建議</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-center">
+                                 <div class="text-center p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-transform">
+                                    <h4 class="font-bold">《失控的美國》</h4>
+                                    <p class="text-xs text-gray-500">宏觀趨勢解讀</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-center">
+                                <div class="text-center p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-transform">
+                                    <h4 class="font-bold">No Mercy/No Malice</h4>
+                                    <p class="text-xs text-gray-500">時事評論電子報</p>
+                                </div>
+                            </div>
+                           
+                            <div class="flex items-center justify-center z-10">
+                                <div class="text-center p-6 bg-blue-500 text-white rounded-full shadow-2xl scale-125">
+                                    <h4 class="font-bold text-lg">《幸福的代數》</h4>
+                                    <p class="text-xs">人生哲學核心</p>
+                                </div>
+                            </div>
+
+                             <div class="flex items-center justify-center">
+                                <div class="text-center p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-transform">
+                                    <h4 class="font-bold">《財富的代數》</h4>
+                                    <p class="text-xs text-gray-500">財務安全公式</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const equationsData = [
+                { title: '年輕時努力工作', summary: '早期職涯的努力是未來成功、財富和幸福的關鍵。', details: '蓋洛威認為，年輕時的辛勤付出具有複利效應。他以自己早年在投資銀行超時工作的經歷為例，說明這段時間的積累，不僅是金錢上的，更是經驗和人脈上的，為他後來的創業奠定了基礎。', category: '事業' },
+                { title: '股權 = 財富', summary: '盡早擁有經濟體系的一部分，實現資產多元化。', details: '蓋洛威強調，工資讓你生存，但股權讓你致富。他建議四十歲以下時，任何單一資產類別不應超過總資產的三分之一，並專注於長期被動收入，這是通往財務自由的道路。', category: '事業' },
+                { title: '證書 + 郵遞區號 = 金錢', summary: '教育/技能加上策略性的地理位置，是財務成功的催化劑。', details: '他鼓勵年輕人「搬到城市去」。他以自己從UCLA到UC Berkeley，再到紐約工作的經歷為證，說明在機會密集的城市，優質的教育背景能發揮最大價值。', category: '事業' },
+                { title: '伴侶是人生最重要的決定', summary: '選擇人生伴侶的重要性超過工作或友誼。', details: '蓋洛威坦承自己第一次婚姻的失敗，讓他深刻體會到不合拍的關係如何消耗精力。他強調伴侶間需在生理吸引力、價值觀和金錢觀上「同步」，這種同步能產生「1+1>2」的巨大能量。', category: '關係' },
+                { title: '重拾情感表達', summary: '擁抱與身體接觸對於幸福感至關重要。', details: '他觀察到現代文化，尤其是對男性，壓抑了情感的表達。他回憶起與母親最後的時光，那些擁抱和親密的互動，成為他最珍貴的記憶，也讓他明白情感連結的力量。', category: '關係' },
+                { title: '不必追隨熱情', summary: '專注於你擅長的事，熱情會隨之而來。', details: '蓋洛威挑戰「追隨熱情」的傳統建議，他認為這是「富人的奢侈品」。他主張，你應該找出自己有天賦的領域，做到卓越，熱情自然會從精通和成就感中產生。他建議可以做一些「無聊」但能讓你致富的工作。', category: '哲學' },
+                { title: '投資於體驗而非物質', summary: '體驗帶來的長期幸福感，遠超過物質的短暫快樂。', details: '他分享說，他買過最貴的車帶來的快樂，遠不如一次與家人難忘的旅行。研究也支持這一點：人們會很快適應物質擁有，但美好體驗的記憶會隨著時間增值。', category: '哲學' },
+                { title: '最後的家 > 第一個家', summary: '生命終點時的人際關係，比年輕時的物質成就更重要。', details: '這個深刻的觀點來自他看著母親在家中、被親人圍繞安詳離世的經歷。他意識到，衡量一生的成功，不是看你第一個家有多大，而是看你最後的家裡有多少愛你的人。', category: '關係' },
+                { title: '保持強健', summary: '規律運動是成功人士的共同特質，身心力量是基礎。', details: '蓋洛威強調，他認識的大多數成功CEO都有規律運動的習慣。他認為身體的強健能帶來精神的堅韌，幫助人應對商業和生活中的高壓挑戰。', category: '身心' },
+                { title: '活在當下，心懷感恩', summary: '欣賞此刻，讚美他人，是通往幸福的簡單途徑。', details: '他提到，在經歷了癌症恐慌後，他才真正學會欣賞每一個健康的「當下」。同時，他發現，真誠地讚美他人不僅讓對方開心，也能極大地提升自己的幸福感。', category: '身心' },
+                { title: '飲酒是預測不幸的有力因素', summary: '蓋洛威引用縱向研究，指出過度飲酒與不幸福高度相關。', details: '他坦率地談論酒精如何影響判斷力、健康和人際關係，並建議節制是維持長期幸福的必要條件。他認為，短期的放縱往往需要長期的幸福作為代價。', category: '身心' },
+            ];
+
+            const equationsGrid = document.getElementById('equations-grid');
+            
+            function createCard(eq) {
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'h-52'; // Container to manage grid space
+
+                const card = document.createElement('div');
+                card.className = 'equation-card w-full h-full cursor-pointer';
+                card.dataset.category = eq.category;
+
+                card.innerHTML = `
+                    <div class="card-side card-front bg-white shadow-md text-center">
+                        <h3 class="text-xl font-bold text-gray-800">${eq.title}</h3>
+                        <p class="text-gray-600 mt-2">${eq.summary}</p>
+                        <span class="absolute bottom-3 right-3 text-xs text-blue-400">點擊翻轉</span>
+                    </div>
+                    <div class="card-side card-back bg-blue-500 text-white shadow-xl text-left items-start">
+                        <div>
+                            <h4 class="font-bold mb-2">軼事與解析：</h4>
+                            <p class="text-sm">${eq.details}</p>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    card.classList.toggle('is-flipped');
+                });
+                
+                cardContainer.appendChild(card);
+                return cardContainer;
+            }
+
+
+            equationsData.forEach(eq => {
+                equationsGrid.appendChild(createCard(eq));
+            });
+
+            const filterContainer = document.getElementById('filter-container');
+            filterContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const filter = e.target.dataset.filter;
+                    
+                    document.querySelectorAll('#filter-container .filter-btn').forEach(btn => {
+                        btn.classList.remove('active', 'bg-blue-500', 'text-white');
+                        btn.classList.add('bg-white');
+                    });
+                    e.target.classList.add('active', 'bg-blue-500', 'text-white');
+                    e.target.classList.remove('bg-white');
+                    
+                    // We filter the parent container now
+                    document.querySelectorAll('#equations-grid > div').forEach(cardContainer => {
+                        const card = cardContainer.querySelector('.equation-card');
+                        if (filter === 'all' || card.dataset.category === filter) {
+                            cardContainer.style.display = 'block';
+                        } else {
+                            cardContainer.style.display = 'none';
+                        }
+                    });
+                }
+            });
+
+            const critiqueData = {
+                labels: ['特權視角', '觀點狹隘 (性別/生活方式)', '風格兩極 (魯莽/自大)', '實用主義 vs. 熱情'],
+                datasets: [{
+                    label: '批評強度',
+                    data: [9, 7.5, 8, 6],
+                    backgroundColor: ['#E07A5F', '#3D405B', '#81B29A', '#F2CC8F'],
+                    borderColor: 'white',
+                    borderWidth: 2
+                }]
+            };
+
+            const critiqueDetails = {
+                '特權視角': "核心批評之一：蓋洛威的建議來自一位「過著高度特權生活的特權人士」，他未能充分意識到並承認這一點。評論者認為，對於沒有相似背景（如名校學歷、生於發達國家）的人來說，他的許多建議（如「搬到城市去」）不切實際，甚至顯得脫離現實。",
+                '觀點狹隘 (性別/生活方式)': "批評指出，書中對「美好生活」的定義似乎牢牢地植根於傳統的異性戀、一夫一妻制婚姻並育有子女的模式。他頻繁使用「妻子」而非中性的「伴侶」，以及對生育子女的強調，讓追求不同生活方式或家庭結構的讀者感到被疏遠。",
+                '風格兩極 (魯莽/自大)': "蓋洛威「不加修飾」的直率風格是一把雙面刃。雖然一些讀者欣賞他的坦誠和「戳破廢話」的勇氣，但另一些人則認為他「居高臨下」、「沾沾自喜」。這種「混蛋」的自我定位，有時會蓋過他試圖傳達的脆弱與真誠，讓建議聽起來像是在說教。",
+                '實用主義 vs. 熱情': "他對「追隨你的熱情」的批判，雖然對某些人來說是一種解放，但也受到質疑。批評者認為，過分強調「做你擅長的事」可能會扼殺在非傳統領域的探索和冒險精神，尤其是對於那些尚未發現自己明確「天賦」的年輕人而言。"
+            };
+
+            const critiqueChartCtx = document.getElementById('critiqueChart').getContext('2d');
+            const critiqueDetailsEl = document.getElementById('critique-details');
+            let critiqueChart = new Chart(critiqueChartCtx, {
+                type: 'bar',
+                data: critiqueData,
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 10,
+                            title: { display: true, text: '批評強度 (主觀評估)' }
+                        },
+                         y: {
+                            ticks: {
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    onHover: (event, chartElement) => {
+                        if (chartElement.length > 0) {
+                           const index = chartElement[0].index;
+                           const label = critiqueData.labels[index];
+                           critiqueDetailsEl.innerHTML = `<h4 class="font-bold mb-2">${label}</h4><p>${critiqueDetails[label]}</p>`;
+                           event.native.target.style.cursor = 'pointer';
+                        } else {
+                           critiqueDetailsEl.innerHTML = `<p class="text-center text-gray-500">將滑鼠懸停在圖表上以查看詳細資訊。</p>`;
+                           event.native.target.style.cursor = 'default';
+                        }
+                    }
+                }
+            });
+
+            const comparisonData = {
+                definition: {
+                    galloway: "將幸福呈現為一個可以通過特定成就（事業、財富）和選擇（伴侶）積極構建的目標。",
+                    manson: "將幸福視為解決有意義問題的副產品，以及策略性地不在乎不重要事物的結果。"
+                },
+                problems: {
+                    galloway: "視為可通過「代數」解決或優化的挑戰，尋求最小化壓力、最大化幸福。",
+                    manson: "視為生活中不可避免的一部分；關鍵在於選擇去面對「好的問題」。"
+                },
+                action: {
+                    galloway: "努力工作、明智選擇伴侶、積累財富、從精通中尋找熱情。",
+                    manson: "選擇在乎的事物、接受困難、為自己的生活承擔全部責任。"
+                },
+                tone: {
+                    galloway: "直接、務實，時而魯莽，基於個人成功軼事，像一位嚴厲的導師。",
+                    manson: "反傳統、使用褻瀆性幽默，更具哲學思辨性，像一位憤世嫉俗的朋友。"
+                },
+                focus: {
+                    galloway: "較側重外部成就（事業、財務）與傳統人際關係結構。",
+                    manson: "較側重內在心態、價值體系以及對掙扎和失敗的接納。"
+                }
+            };
+            
+            const gallowayContent = document.getElementById('galloway-content');
+            const mansonContent = document.getElementById('manson-content');
+            const comparisonItems = document.querySelectorAll('.comparison-item');
+            
+            function updateComparison(topic) {
+                gallowayContent.innerHTML = `<p>${comparisonData[topic].galloway}</p>`;
+                mansonContent.innerHTML = `<p>${comparisonData[topic].manson}</p>`;
+
+                comparisonItems.forEach(item => {
+                    item.classList.remove('active');
+                    if(item.dataset.comparison === topic) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+
+            comparisonItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    updateComparison(item.dataset.comparison);
+                });
+            });
+
+            updateComparison('definition');
+            
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    contentSections.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
