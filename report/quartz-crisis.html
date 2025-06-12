@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動敘事：瑞士鐘錶業的危機與重生 (增強版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Timeless Heritage -->
+    <!-- Application Structure Plan: 採用垂直滾動的敘事性結構，將故事劃分為四個主要時代章節：「黃金時代的頂峰與陰影」、「石英革命：危機與重生」、「智慧浪潮：新的挑戰」及「傳承與未來：瑞士的下一步」。頂部設有固定導航欄，便於使用者在不同時代間跳轉或依序瀏覽。這種結構將複雜的歷史轉化為一個引人入勝的線性故事，同時透過互動圖表和分頁卡片等元素鼓勵使用者主動探索，而非被動閱讀，從而提升了資訊的可消化性與用戶參與度。 -->
+    <!-- Visualization & Content Choices: 1. **危機衝擊** (目標: 變化): 使用互動式長條圖展示石英危機期間企業與就業人數的劇烈下滑，使用者可點擊按鈕切換數據，直觀感受危機的嚴重性 (Chart.js)。 2. **雙軌復興** (目標: 比較): 透過HTML/CSS並排卡片對比Swatch的大眾市場策略與傳統品牌的奢華轉型，清晰呈現兩種截然不同的生存之道。 3. **智慧錶挑戰** (目標: 比較/關係): 採用分組長條圖對比Apple Watch與瑞士鐘錶的銷量，並以HTML/CSS圖示化「槓鈴效應」，揭示市場兩極化的新格局 (Chart.js)。 4. **未來策略** (目標: 組織/告知): 利用JS驅動的分頁卡片系統，將數位化、永續性等未來策略分門別類，使資訊結構清晰、易於探索。所有視覺化選擇均旨在將報告中的關鍵概念轉化為易於理解和互動的視覺元素，且完全基於Canvas和HTML/CSS實現。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8; /* Warm Neutral Background */
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 320px;
+            width: 100%;
+            max-width: 600px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .era-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+            color: #B48C5A; /* Accent Gold */
+        }
+        .stat-card {
+            background-color: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(180, 140, 90, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+        .nav-link {
+            transition: color 0.3s ease, border-color 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #B48C5A;
+            border-bottom-color: #B48C5A;
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .tab-button.active {
+            background-color: #B48C5A;
+            color: #FFFFFF;
+        }
+        .fade-in {
+            animation: fadeIn 1s ease-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="main-header" class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-xl md:text-2xl font-bold text-stone-700">瑞士鐘錶的雙重革命</h1>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#era-mechanical" class="nav-link pb-1">黃金時代</a>
+                    <a href="#era-quartz" class="nav-link pb-1">石英革命</a>
+                    <a href="#era-smartwatch" class="nav-link pb-1">智慧浪潮</a>
+                    <a href="#era-future" class="nav-link pb-1">未來展望</a>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden text-2xl text-stone-600">≡</button>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden flex-col space-y-4 py-4">
+                <a href="#era-mechanical" class="nav-link text-center">黃金時代</a>
+                <a href="#era-quartz" class="nav-link text-center">石英革命</a>
+                <a href="#era-smartwatch" class="nav-link text-center">智慧浪潮</a>
+                <a href="#era-future" class="nav-link text-center">未來展望</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        
+        <section class="text-center min-h-[60vh] flex flex-col justify-center items-center">
+            <h2 class="text-4xl md:text-6xl font-bold text-stone-800 leading-tight">時間的戰爭</h2>
+            <p class="mt-4 md:text-xl max-w-3xl text-stone-600">從機械的榮光，到石英的顛覆，再到智慧的挑戰。這是一部瑞士鐘錶業，關於危機、韌性與華麗轉身的史詩。向下滾動，探索這場跨越半世紀的產業革命。</p>
+            <div class="mt-8 text-2xl text-amber-500 animate-bounce">↓</div>
+        </section>
+
+        <section id="era-mechanical" class="py-16 md:py-24 space-y-12">
+            <header class="text-center max-w-3xl mx-auto">
+                <div class="era-icon">⌛</div>
+                <h3 class="text-3xl md:text-4xl font-bold text-stone-800 mt-2">黃金時代的頂峰與陰影</h3>
+                <p class="mt-4 text-lg text-stone-600">二十世紀中葉，瑞士鐘錶業是無可撼動的全球霸主，其產業結構由眾多品牌（établisseurs）和專業零件商構成。其精湛的機械工藝不僅定義了奢華，更掌握了時間的話語權。然而，在這看似堅不可摧的輝煌之下，對傳統的文化認同和固守，也為即將到來的風暴埋下了伏筆。</p>
+            </header>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="stat-card p-6 rounded-xl text-center">
+                    <div class="text-5xl font-bold text-amber-600">~1,600</div>
+                    <div class="mt-2 text-xl font-semibold text-stone-700">鐘錶企業</div>
+                    <p class="mt-2 text-stone-500">在1970年代初，瑞士鐘錶業達到了巔峰規模。</p>
+                </div>
+                <div class="stat-card p-6 rounded-xl text-center">
+                    <div class="text-5xl font-bold text-amber-600">~90,000</div>
+                    <div class="mt-2 text-xl font-semibold text-stone-700">從業人員</div>
+                    <p class="mt-2 text-stone-500">龐大的專業勞動力是產業的支柱，卻也成為轉型的包袱。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="era-quartz" class="py-16 md:py-24 space-y-12 bg-stone-50 rounded-2xl p-6 md:p-12">
+            <header class="text-center max-w-3xl mx-auto">
+                <div class="era-icon">⚡</div>
+                <h3 class="text-3xl md:text-4xl font-bold text-stone-800 mt-2">石英革命：危機與重生</h3>
+                <p class="mt-4 text-lg text-stone-600">來自東瀛的石英技術，以其無可比擬的精準度與低廉成本，向瑞士的百年基業發起了毀滅性衝擊。這場「石英危機」幾乎摧毀了整個行業，卻也催生了瑞士鐘錶史上最偉大的雙軌反擊戰。</p>
+            </header>
+
+            <article class="space-y-8">
+                <h4 class="text-2xl font-bold text-center text-stone-700">技術的賽跑：一場關於遠見的競賽</h4>
+                <div class="grid md:grid-cols-2 gap-8 mt-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md flex flex-col">
+                        <h5 class="font-bold text-lg text-stone-700">🇨🇭 瑞士的猶豫：Beta 21機芯</h5>
+                        <p class="mt-2 text-stone-600 flex-grow">諷刺的是，瑞士自身也是石英技術的先行者。其研發的Beta 21機芯於1970年亮相。但整個行業普遍將電子錶視為缺乏「靈魂」的潮流，擔心它會貶損機械工藝的崇高傳統，這種文化上的抗拒，導致了戰略上的猶豫。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md flex flex-col">
+                        <h5 class="font-bold text-lg text-stone-700">🇯🇵 精工的決心：Astron與開放策略</h5>
+                        <p class="mt-2 text-stone-600 flex-grow">1969年，精工推出全球首款石英腕錶Astron，並喊出「總有一天，所有手錶都會這樣製造」。更具遠見的是，精工決定公開石英技術專利，加速了技術普及，徹底改變了遊戲規則，堪稱顛覆式創新的典範。</p>
+                    </div>
+                </div>
+            </article>
+            
+            <article class="space-y-8">
+                <h4 class="text-2xl font-bold text-center text-stone-700">災難性衝擊：視覺化數據</h4>
+                <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                    <div class="chart-container">
+                        <canvas id="crisisChart"></canvas>
+                    </div>
+                     <div class="mt-4 text-center">
+                        <button id="showCompanies" class="bg-amber-500 text-white px-4 py-2 rounded-md hover:bg-amber-600 transition">企業數量變化</button>
+                        <button id="showJobs" class="bg-gray-300 text-stone-700 px-4 py-2 rounded-md hover:bg-gray-400 transition ml-2">就業人數變化</button>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-stone-600 max-w-2xl mx-auto">這不僅是品牌的倒閉，更是整個供應鏈生態的系統性崩塌。當對機械錶的需求萎縮，無數專業的零件供應商也隨之破產，曾經作為核心優勢的深度專業化分工，在系統性衝擊面前反成致命弱點。</p>
+                </div>
+            </article>
+
+            <article class="space-y-8">
+                <h4 class="text-2xl font-bold text-center text-stone-700">絕處逢生：雙軌復興之路</h4>
+                <div class="grid md:grid-cols-2 gap-8 mt-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md flex flex-col">
+                        <h5 class="text-xl font-bold text-sky-600">策略一：Swatch 拯救工業基礎</h5>
+                        <p class="mt-2 text-stone-600 flex-grow">在顧問尼可拉斯·海耶克的擘劃下，陷入困境的兩大集團合併為SMH（Swatch集團前身）。他推出的Swatch不僅是時尚宣言，更是產業的救星。它以親民價格和「瑞士製造」光環奪回市場，更重要的是，其龐大訂單<strong>維繫了瑞士的零件供應鏈和工業基礎</strong>，為高端品牌的轉型贏得了寶貴時間。</p>
+                        <div class="mt-4 space-y-3">
+                            <div class="flex items-center"><span class="text-sky-500 mr-2">●</span> <strong>零件數從 91+ 減至 51</strong></div>
+                            <div class="flex items-center"><span class="text-sky-500 mr-2">●</span> 塑膠材質，全自動化生產</div>
+                            <div class="flex items-center"><span class="text-sky-500 mr-2">●</span> 定位為「第二支手錶」的時尚配飾</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md flex flex-col">
+                        <h5 class="text-xl font-bold text-red-600">策略二：傳統品牌擁抱奢華</h5>
+                        <p class="mt-2 text-stone-600 flex-grow">倖存的頂級品牌毅然放棄在功能性上競爭，將機械錶重新定義為藝術品與奢侈品。價值從「精準的工具」轉向「傳世的珠寶」，製錶師也從「工人」昇華為「工匠」甚至「藝術家」。這次轉型極大地催生並滋養了<strong>全球性的腕錶收藏家社群</strong>。</p>
+                         <div class="mt-4 space-y-3">
+                            <div class="flex items-center"><span class="text-red-500 mr-2">●</span> 強調手工藝、歷史傳承與美學</div>
+                            <div class="flex items-center"><span class="text-red-500 mr-2">●</span> <strong>創造稀缺性與專屬感</strong></div>
+                            <div class="flex items-center"><span class="text-red-500 mr-2">●</span> 開創奢華運動錶等新品類</div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <section id="era-smartwatch" class="py-16 md:py-24 space-y-12">
+            <header class="text-center max-w-3xl mx-auto">
+                <div class="era-icon">⌚</div>
+                <h3 class="text-3xl md:text-4xl font-bold text-stone-800 mt-2">智慧浪潮：新的挑戰</h3>
+                <p class="mt-4 text-lg text-stone-600">歷史似乎在重演，但又不盡相同。以Apple Watch為首的智慧手錶，以其強大的「功能性」與「生態系」，再次衝擊鐘錶市場。這一次，瑞士鐘錶業憑藉「情感連結」與「藝術價值」的護城河，學到了教訓嗎？</p>
+            </header>
+            
+            <article class="space-y-8">
+                <h4 class="text-2xl font-bold text-center text-stone-700">銷量 vs. 價值：一場不對稱的戰爭</h4>
+                 <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                    <div class="chart-container">
+                        <canvas id="smartwatchChart"></canvas>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-stone-600 max-w-2xl mx-auto">2023年，Apple Watch銷量（約3700萬支）遠超整個瑞士鐘錶業的出口量（1690萬支）。然而，在「價值」維度，勞力士等頂級品牌的強勁營收，展現了奢侈品市場的強大韌性。</p>
+                </div>
+            </article>
+
+            <article class="space-y-8">
+                <h4 class="text-2xl font-bold text-center text-stone-700">市場的兩極化：「槓鈴效應」</h4>
+                <p class="text-center text-stone-600 max-w-2xl mx-auto">智慧手錶的崛起加劇了市場的兩極分化。一端是功能至上、屬於科技生態圈一部分的智慧設備；另一端是承載藝術與情感的奢侈品。定位模糊的中端市場則面臨巨大壓力。</p>
+                <div class="flex justify-center items-center space-x-4 mt-6 p-6 bg-white rounded-lg shadow-inner">
+                    <div class="text-center">
+                        <div class="text-4xl">📱</div>
+                        <div class="font-bold mt-2">功能與生態</div>
+                        <p class="text-sm text-stone-500">智慧手錶</p>
+                    </div>
+                    <div class="flex-grow h-1 bg-gradient-to-r from-sky-200 via-gray-100 to-red-200 rounded-full"></div>
+                    <div class="text-center">
+                        <div class="text-4xl">💎</div>
+                        <div class="font-bold mt-2">工藝與傳承</div>
+                        <p class="text-sm text-stone-500">高端機械錶</p>
+                    </div>
+                </div>
+            </article>
+
+        </section>
+        
+        <section id="era-future" class="py-16 md:py-24 space-y-12 bg-stone-50 rounded-2xl p-6 md:p-12">
+            <header class="text-center max-w-3xl mx-auto">
+                <div class="era-icon">🚀</div>
+                <h3 class="text-3xl md:text-4xl font-bold text-stone-800 mt-2">傳承與未來：瑞士的下一步</h3>
+                <p class="mt-4 text-lg text-stone-600">歷經兩次重大衝擊，瑞士鐘錶業並未停滯不前。它正積極融合傳統工藝與現代策略，在數位化、永續性與體驗式行銷中，尋找下一個時代的增長曲線，同時也面臨著人才與信任的新挑戰。</p>
+            </header>
+
+            <article class="space-y-8">
+                <h4 class="text-2xl font-bold text-center text-stone-700">當代核心策略</h4>
+                 <div class="max-w-4xl mx-auto">
+                    <div class="flex justify-center border-b border-gray-200 mb-4 overflow-x-auto">
+                        <button data-tab="digital" class="tab-button px-4 py-2 font-semibold text-stone-600 active">數位化轉型</button>
+                        <button data-tab="sustainability" class="tab-button px-4 py-2 font-semibold text-stone-600">永續發展</button>
+                        <button data-tab="experience" class="tab-button px-4 py-2 font-semibold text-stone-600">體驗式行銷</button>
+                        <button data-tab="innovation" class="tab-button px-4 py-2 font-semibold text-stone-600">產品創新</button>
+                    </div>
+                    <div id="tab-content" class="bg-white p-6 rounded-lg shadow-md min-h-[150px]">
+                        <div id="digital-content" class="tab-pane active">
+                            <h5 class="font-bold text-lg">融合實體與數位的「Phygital」體驗</h5>
+                            <p class="mt-2 text-stone-600">品牌大力投資電子商務、虛擬試戴和豐富的數位內容，將線上便利性與線下尊榮感結合，創造無縫的客戶旅程，強化奢侈品的高價值感。</p>
+                        </div>
+                        <div id="sustainability-content" class="tab-pane hidden">
+                            <h5 class="font-bold text-lg">為「瑞士製造」賦予新內涵</h5>
+                            <p class="mt-2 text-stone-600">從使用回收材料到確保道德採購，永續性已成為行業核心戰略。這不僅是企業責任，更是為了迎合現代消費者對透明度和環境倫理的重視，為品牌增加新的競爭優勢。</p>
+                        </div>
+                        <div id="experience-content" class="tab-pane hidden">
+                             <h5 class="font-bold text-lg">將零售空間變為品牌故事館</h5>
+                            <p class="mt-2 text-stone-600">品牌致力於將精品店、展覽等線下場合，從單純的銷售點轉變為品牌故事的講述中心與社群交流的樞紐，以此建立更深層次的客戶關係。</p>
+                        </div>
+                        <div id="innovation-content" class="tab-pane hidden">
+                             <h5 class="font-bold text-lg">高端石英錶的再想像</h5>
+                            <p class="mt-2 text-stone-600">石英不等於廉價。獨立品牌F.P. Journe的Élégante系列，搭載了擁有18年休眠模式的電子機械機芯，證明了石英技術在頂級製錶領域同樣擁有驚人的創新潛力，完美契合了奢華的體驗。</p>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article>
+                <h4 class="text-2xl font-bold text-center text-stone-700 mb-8">2023年主要出口市場 (價值)</h4>
+                 <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="exportChart"></canvas>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-stone-500">美國市場保持強勁領先地位，而中國和香港市場在疫情後也展現出顯著的復甦力道，三大市場合計佔據了總出口額的半壁江山。</p>
+                </div>
+            </article>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-800 text-white mt-16">
+        <div class="container mx-auto px-4 py-8 text-center">
+            <p>這是一個基於歷史報告創建的互動式網頁應用程式。</p>
+            <p class="text-sm text-stone-400 mt-2">所有數據與內容均來自提供的源報告，旨在以教育和資訊性目的進行視覺化呈現。</p>
+        </div>
+    </footer>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const crisisData = {
+                labels: ['危機前 (1970)', '危機後 (1984)'],
+                datasets: {
+                    companies: {
+                        label: '企業數量',
+                        data: [1600, 600],
+                        backgroundColor: 'rgba(234, 179, 8, 0.6)',
+                        borderColor: 'rgba(234, 179, 8, 1)',
+                        borderWidth: 1
+                    },
+                    jobs: {
+                        label: '就業人數',
+                        data: [90000, 30000],
+                        backgroundColor: 'rgba(107, 114, 128, 0.6)',
+                        borderColor: 'rgba(107, 114, 128, 1)',
+                        borderWidth: 1
+                    }
+                }
+            };
+
+            const crisisCtx = document.getElementById('crisisChart').getContext('2d');
+            const crisisChart = new Chart(crisisCtx, {
+                type: 'bar',
+                data: {
+                    labels: crisisData.labels,
+                    datasets: [crisisData.datasets.companies]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '企業數量變化 (約1970 vs 1984)',
+                            font: { size: 16 }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            const showCompaniesBtn = document.getElementById('showCompanies');
+            const showJobsBtn = document.getElementById('showJobs');
+            showCompaniesBtn.addEventListener('click', () => {
+                crisisChart.data.datasets = [crisisData.datasets.companies];
+                crisisChart.options.plugins.title.text = '企業數量變化 (約1970 vs 1984)';
+                crisisChart.update();
+                showCompaniesBtn.classList.add('bg-amber-500', 'text-white');
+                showCompaniesBtn.classList.remove('bg-gray-300', 'text-stone-700');
+                showJobsBtn.classList.add('bg-gray-300', 'text-stone-700');
+                showJobsBtn.classList.remove('bg-amber-500', 'text-white');
+            });
+            showJobsBtn.addEventListener('click', () => {
+                crisisChart.data.datasets = [crisisData.datasets.jobs];
+                crisisChart.options.plugins.title.text = '就業人數變化 (約1970 vs 1984)';
+                crisisChart.update();
+                showJobsBtn.classList.add('bg-amber-500', 'text-white');
+                showJobsBtn.classList.remove('bg-gray-300', 'text-stone-700');
+                showCompaniesBtn.classList.add('bg-gray-300', 'text-stone-700');
+                showCompaniesBtn.classList.remove('bg-amber-500', 'text-white');
+            });
+
+            const smartwatchCtx = document.getElementById('smartwatchChart').getContext('2d');
+            const smartwatchChart = new Chart(smartwatchCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['年銷量/出口量 (萬支)'],
+                    datasets: [
+                        {
+                            label: 'Apple Watch',
+                            data: [3700],
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '瑞士鐘錶業總和',
+                            data: [1690],
+                            backgroundColor: 'rgba(220, 38, 38, 0.6)',
+                            borderColor: 'rgba(220, 38, 38, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '2023年銷量/出口量對比',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return value + '萬'; }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const exportCtx = document.getElementById('exportChart').getContext('2d');
+            const exportChart = new Chart(exportCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['美國', '中國', '香港'],
+                    datasets: [{
+                        label: '出口額 (十億瑞士法郎)',
+                        data: [4.2, 2.6, 2.1], // Updated data based on latest report context
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(255, 206, 86, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 206, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: '2023年主要出口市場 (價值)',
+                            font: { size: 16 }
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + ' 十億';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' B';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.dataset.tab;
+                    tabButtons.forEach(btn => btn.classList.remove('active', 'bg-amber-500', 'text-white'));
+                    button.classList.add('active', 'bg-amber-500', 'text-white');
+                    tabPanes.forEach(pane => {
+                        if (pane.id === `${tabId}-content`) {
+                            pane.classList.remove('hidden');
+                        } else {
+                            pane.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+            // Set initial active state for the first tab
+            document.querySelector('.tab-button[data-tab="digital"]').classList.add('bg-amber-500', 'text-white');
+            document.querySelector('.tab-button[data-tab="digital"]').classList.remove('text-stone-600');
+
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section[id]');
+            
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.4
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('fade-in');
+                        const id = entry.target.getAttribute('id');
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${id}`) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
