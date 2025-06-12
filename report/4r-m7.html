@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: The application uses a dashboard/thematic structure. A primary navigation bar with company logos allows users to select a specific company. The main content area dynamically updates to show the selected company's data in a tabbed interface ("基因解碼", "T型算法評估", "脆弱性分析"). This structure promotes non-linear exploration and focused analysis. Below the dynamic section, a comparative analysis tool with a dropdown and a bar chart enables users to compare all seven companies on a single metric (like a T-Algorithm factor), providing insights that are difficult to grasp from the static report. This design was chosen for usability, transforming the report's linear narrative into an interactive tool for exploration and comparison. -->
+    <!-- Visualization & Content Choices: Report Info: Company-specific analysis (Primal Appeal, Pillars, Moats). -> Goal: Inform. -> Viz/Presentation: Styled cards with icons and text. -> Interaction: Select company via logo. -> Justification: Breaks down complex info into digestible chunks. | Report Info: T-Algorithm scores for each company (Table 2). -> Goal: Compare & Analyze Profile. -> Viz/Presentation: Radar chart (Chart.js) for individual company profiles, Bar chart (Chart.js) for cross-company comparison. -> Interaction: Select company for radar, select T-Algorithm factor from dropdown for bar chart. -> Justification: Radar charts excel at showing multivariate profiles. Bar charts are best for direct comparison on a single variable. | Report Info: Broader themes (Impact, Conclusion). -> Goal: Organize. -> Viz/Presentation: Collapsible accordion sections. -> Interaction: Click to expand/collapse. -> Justification: Keeps secondary, less-interactive content tidy and accessible without cluttering the main dashboard. -> Library/Method: Chart.js (Canvas). -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <title>四騎士與七巨頭：互動式分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8;
+            color: #383838;
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+            filter: grayscale(80%);
+            opacity: 0.6;
+        }
+        .nav-button.active, .nav-button:hover {
+            filter: grayscale(0%);
+            opacity: 1;
+            transform: scale(1.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background-color: #A67B5B;
+            color: #FDFBF8;
+        }
+        .content-card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAE2D9;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .content-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 45vh;
+            max-height: 450px;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#A67B5B] mb-2">四騎士與七巨頭</h1>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">一個基於史考特·蓋洛威理論的互動式分析儀，探索科技巨頭的隱藏基因與未來挑戰。</p>
+        </header>
+
+        <nav id="company-nav" class="mb-12">
+            <p class="text-center text-gray-500 mb-4">點擊下方圖示以選擇公司</p>
+            <div class="flex justify-center items-center flex-wrap gap-4 md:gap-6">
+            </div>
+        </nav>
+
+        <main id="main-content" class="bg-[#F7F1EA] p-4 sm:p-6 md:p-8 rounded-2xl shadow-inner min-h-[50vh]">
+            <div id="company-display" class="hidden">
+                <div class="flex flex-col md:flex-row items-center justify-between mb-6">
+                    <div class="flex items-center mb-4 md:mb-0">
+                         <img id="company-logo-main" src="" alt="Company Logo" class="h-12 w-12 mr-4 object-contain">
+                         <h2 id="company-name" class="text-3xl font-bold"></h2>
+                    </div>
+                    <div id="tabs" class="flex space-x-2 bg-white p-1 rounded-full border border-gray-200">
+                    </div>
+                </div>
+
+                <div id="tab-content">
+                </div>
+            </div>
+            <div id="welcome-message" class="text-center py-20">
+                <p class="text-2xl text-gray-500">請從上方選擇一家公司開始探索。</p>
+            </div>
+        </main>
+        
+        <section class="mt-16">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-[#A67B5B]">橫向比較分析</h2>
+                <p class="text-md text-gray-600 mt-2 max-w-2xl mx-auto">從下方選單中選擇一個指標，比較所有七家公司在該項目的表現。這有助於揭示它們在戰略上的相對優勢與劣勢。</p>
+            </div>
+
+            <div class="max-w-sm mx-auto mb-8">
+                <select id="comparison-metric" class="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#A67B5B]">
+                </select>
+            </div>
+
+            <div class="content-card">
+                 <div class="chart-container h-[50vh] max-h-[500px]">
+                    <canvas id="comparison-chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="mt-16">
+            <div id="accordion-container" class="space-y-4 max-w-4xl mx-auto">
+                 <div class="accordion-item bg-white border border-gray-200 rounded-lg">
+                    <button class="accordion-header w-full text-left p-4 font-bold text-lg flex justify-between items-center text-[#A67B5B]">
+                        <span>科技霸權的宏大影響</span>
+                        <span class="transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="p-4 border-t border-gray-200 text-gray-700 space-y-4">
+                           <p><strong>經濟後果：</strong>M7的崛起造成了巨大的財富集中，並衝擊了傳統就業市場。它們以相對較少的員工創造驚人價值，加劇了財富分配不均的焦慮。同時，它們的表現在很大程度上驅動著整個市場的動態，形成了集中度風險。</p>
+                           <p><strong>社會影響力：</strong>這些公司從根本上改變了人們溝通、購物、獲取資訊和工作的方式。然而，其對海量數據的收集引發了嚴重的隱私擔憂，其平台對公共言論和民主進程的巨大影響力，也使其面臨著關於錯誤資訊和內容審查的持續審視。</p>
+                           <p><strong>創新生態系統：</strong>M7控制著其他企業賴以生存的關鍵平台（如App Store、AWS），賦予它們巨大的權力。它們透過收購策略消除潛在競爭，引發了關於其是扼殺還是促進了創新的激烈辯論。</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="accordion-item bg-white border border-gray-200 rounded-lg">
+                    <button class="accordion-header w-full text-left p-4 font-bold text-lg flex justify-between items-center text-[#A67B5B]">
+                        <span>結論：持久的巨頭抑或轉型時代的序幕？</span>
+                        <span class="transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="p-4 border-t border-gray-200 text-gray-700 space-y-4">
+                            <p>蓋洛威的「四騎士」理論，為理解科技巨頭的成功提供了強大的分析框架。擴展到「七巨頭」後我們發現，雖然訴諸人類原始本能的策略依然有效，但通往霸權的途徑正在多樣化。微軟的「賦能」、輝達的「創造」、特斯拉的「抱負」，都成為了新的、同樣強大的原始吸引力。</p>
+                            <p>這些巨頭擁有巨大的資源和市場力量，使其難以被輕易取代。然而，日益增長的監管壓力、AI的顛覆性潛力、地緣政治的不穩定以及去中心化模式的挑戰，都預示著當前的權力格局並非不可改變。未來，這些巨頭是會繼續其不受約束的權力追求，還是市場與法規將共同塑造一個更加分散和公平的數位未來，這仍是我們時代的關鍵問題。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const companiesData = {
+        amazon: {
+            name: "亞馬遜",
+            logo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+            primalAppeal: { 
+                icon: "�", 
+                title: "消費／狩獵與採集",
+                text: "訴諸人類原始的獲取慾望，提供近乎無限的商品選擇和極速的物流配送。" 
+            },
+            pillars: [
+                { title: "極致的客戶中心", text: "以著名的「飛輪效應」培養用戶忠誠度。" },
+                { title: "物流與履約主導", text: "大規模投資實體分銷網絡，實現垂直整合。" },
+                { title: "AWS雲端巨擘", text: "巨大的利潤引擎和重要的經濟護城河。" },
+                { title: "市集平台力量", text: "第三方賣家擴展了商品庫存，且無需承擔持有成本。" },
+            ],
+            moats: [
+                { title: "成本優勢", text: "規模化運營帶來顯著的成本效益。" },
+                { title: "網絡效應", text: "Prime會員和市集平台創造了強大的用戶和賣家網絡。" },
+                { title: "垂直整合", text: "從雲端基礎設施到最後一哩路配送的全方位控制。" },
+                { title: "數據優勢", text: "利用海量消費數據進行精準推薦和營運優化。" },
+            ],
+            tAlgorithm: { '產品差異化': 4, '願景資本': 4, '全球佈局': 4, '好感度': 2, '垂直整合': 5, 'AI': 4, '加速器': 4, '地理位置': 4 },
+            vulnerabilities: [
+                { title: "反壟斷審查", text: "因其市場主導地位和平台行為在全球面臨訴訟。" },
+                { title: "勞工問題", text: "倉庫工作條件和勞工實踐持續引發公眾批評和審查。" },
+                { title: "競爭加劇", text: "在電商和雲端領域面臨來自各方的激烈競爭。" },
+            ]
+        },
+        apple: {
+            name: "蘋果",
+            logo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
+            primalAppeal: { 
+                icon: "💎", 
+                title: "性／繁衍／地位",
+                text: "將產品定位為奢侈品，用以提升個人魅力、彰顯社會地位，營造接近神性的體驗。"
+            },
+            pillars: [
+                { title: "設計與用戶體驗", text: "強調時尚設計、直觀界面和高品質硬體。" },
+                { title: "垂直整合", text: "掌控硬體、軟體、晶片和零售，確保無縫體驗。" },
+                { title: "生態系統鎖定", text: "設備與服務間的高度協同創造了高昂的轉換成本。" },
+                { title: "品牌力量", text: "全球最具價值的品牌之一，享有高溢價能力。" },
+            ],
+            moats: [
+                { title: "品牌實力", text: "強大的品牌忠誠度和情感連結。" },
+                { title: "高轉換成本", text: "「圍牆花園」使用戶難以離開其生態系統。" },
+                { title: "垂直整合", text: "端到端的控制帶來了無與倫比的優化和體驗。" },
+                { title: "知識產權", text: "在設計和軟體方面擁有大量專利和核心技術。" },
+            ],
+            tAlgorithm: { '產品差異化': 5, '願景資本': 4, '全球佈局': 5, '好感度': 3, '垂直整合': 5, 'AI': 3, '加速器': 5, '地理位置': 5 },
+            vulnerabilities: [
+                { title: "App Store壟斷爭議", text: "因其商店政策和30%的佣金在全球面臨反壟斷訴訟。" },
+                { title: "對中國市場的依賴", text: "供應鏈和收入嚴重依賴中國，使其易受地緣政治影響。" },
+                { title: "創新壓力", text: "市場期待革命性新產品，但近年創新步伐被認為放緩。" },
+            ]
+        },
+        meta: {
+            name: "Meta",
+            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/1024px-Meta_Platforms_Inc._logo.svg.png",
+            primalAppeal: { 
+                icon: "❤️", 
+                title: "愛／連結",
+                text: "抓住人類對社交關係的深層需求，每日連結數十億人，規模堪比宗教。"
+            },
+            pillars: [
+                { title: "強大網絡效應", text: "龐大的用戶基礎讓用戶難以離開，也讓對手難以立足。" },
+                { title: "數據驅動的精準廣告", text: "詳細的用戶數據是其主要收入來源的核心。" },
+                { title: "策略性收購", text: "收購Instagram和WhatsApp，鞏固了其社交領域主導地位。" },
+                { title: "AI驅動的內容與互動", text: "AI算法對動態消息排序和用戶互動至關重要。" },
+            ],
+            moats: [
+                { title: "網絡效應", text: "其價值隨著用戶數量的增加而指數級增長。" },
+                { title: "數據護城河", text: "擁有全球最大規模的社交圖譜和用戶行為數據。" },
+                { title: "高轉換成本", text: "用戶的社交關係和歷史內容被鎖定在平台內。" },
+                { title: "品牌認知", text: "Facebook、Instagram、WhatsApp是全球家喻戶曉的品牌。" },
+            ],
+            tAlgorithm: { '產品差異化': 3, '願景資本': 3, '全球佈局': 5, '好感度': 1, '垂直整合': 3, 'AI': 5, '加速器': 4, '地理位置': 4 },
+            vulnerabilities: [
+                { title: "數據隱私與公眾信任", text: "因劍橋分析等醜聞，公眾信任度降至冰點，面臨嚴格監管。" },
+                { title: "年輕用戶流失", text: "核心平台Facebook面臨年輕用戶向TikTok等新平台流失的挑戰。" },
+                { title: "元宇宙的豪賭", text: "對元宇宙的巨額投資回報不明，引發投資者質疑。" },
+            ]
+        },
+        alphabet: {
+            name: "Alphabet (Google)",
+            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/1920px-Google_2015_logo.svg.png",
+            primalAppeal: {
+                icon: "🧠",
+                title: "上帝／全知",
+                text: "扮演現代社會中「上帝」的角色，成為一個無所不知、廣受信賴的資訊來源。"
+            },
+            pillars: [
+                { title: "搜尋引擎主導地位", text: "卓越的算法和用戶體驗使其在搜尋市場幾乎形成壟斷。" },
+                { title: "數據驅動的廣告帝國", text: "來自多產品的龐大用戶數據為其廣告業務提供了燃料。" },
+                { title: "Android操作系統普及", text: "為全球大部分手機提供動力，確保其服務的優先展示。" },
+                { title: "AI與創新領導力", text: "透過DeepMind等在AI領域進行大量投資和前沿研究。" },
+            ],
+            moats: [
+                { title: "網絡效應", text: "搜尋、Android、YouTube形成強大的生態系統網絡。" },
+                { title: "技術優勢", text: "領先的搜尋算法和AI研發能力。" },
+                { title: "數據護城河", text: "無與倫比的用戶行為數據量。" },
+                { title: "品牌實力", text: "「Google」已成為「搜尋」的代名詞。" },
+            ],
+            tAlgorithm: { '產品差異化': 5, '願景資本': 4, '全球佈局': 5, '好感度': 2, '垂直整合': 4, 'AI': 5, '加速器': 5, '地理位置': 5 },
+            vulnerabilities: [
+                { title: "反壟斷訴訟", text: "因搜尋和廣告技術壟斷在全球面臨最嚴峻的反壟斷挑戰。" },
+                { title: "AI對搜尋的顛覆", text: "生成式AI聊天機器人可能從根本上挑戰其核心的搜尋廣告模式。" },
+                { title: "官僚主義與創新放緩", text: "公司規模龐大可能導致內部流程緩慢，錯失創新機會。" },
+            ]
+        },
+        microsoft: {
+            name: "微軟",
+            logo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
+            primalAppeal: { 
+                icon: "💼", 
+                title: "賦能／生產力",
+                text: "提供工具來運用知識、進行創造並提高生產力，訴諸人類對能力的渴望。" 
+            },
+            pillars: [
+                { title: "Azure雲端快速增長", text: "僅次於AWS的第二大雲端平台，是成功的關鍵驅動力。" },
+                { title: "Office 365與企業軟體主導", text: "普及的生產力套件和深厚的企業市場根基。" },
+                { title: "AI整合", text: "與OpenAI的合作並將Copilot整合至全線產品。" },
+                { title: "收購LinkedIn", text: "佔主導地位的專業社交網絡提供了數據和企業服務機會。" },
+            ],
+            moats: [
+                { title: "高轉換成本", text: "企業客戶深度依賴其軟體和雲端服務，難以轉換。" },
+                { title: "網絡效應", text: "Office、Azure和LinkedIn在各自領域形成強大網絡。" },
+                { title: "規模經濟", text: "巨大的規模使其在雲端和軟體開發上具有成本優勢。" },
+                { title: "品牌信任", text: "在企業市場建立了數十年的信任和合作關係。" },
+            ],
+            tAlgorithm: { '產品差異化': 4, '願景資本': 5, '全球佈局': 5, '好感度': 4, '垂直整合': 3, 'AI': 5, '加速器': 5, '地理位置': 4 },
+            vulnerabilities: [
+                { title: "對OpenAI的依賴", text: "其AI戰略與OpenAI高度綁定，存在單點故障風險。" },
+                { title: "潛在的監管審查", text: "其在AI和雲端領域的主導地位可能引發未來的反壟斷審查。" },
+                { title: "消費市場的弱勢", text: "相較於蘋果和谷歌，其在消費級硬體和系統中的影響力較弱。" },
+            ]
+        },
+        nvidia: {
+            name: "輝達",
+            logo: "https://upload.wikimedia.org/wikipedia/commons/2/21/Nvidia_logo.svg",
+            primalAppeal: { 
+                icon: "💡", 
+                title: "智慧／創造",
+                text: "為AI革命提供「鎬和鏟」，訴諸人類創造、模擬和建構智慧本身的渴望。"
+            },
+            pillars: [
+                { title: "AI與遊戲GPU主導", text: "高性能GPU供應商，對AI訓練和先進遊戲至關重要。" },
+                { title: "CUDA平台與軟體生態", text: "強大的軟體護城河，將開發者鎖定在其硬體之上。" },
+                { title: "全棧AI基礎設施", text: "提供從晶片到系統、網絡和軟體的完整解決方案。" },
+                { title: "創新領導力", text: "持續推動晶片架構和AI軟體的技術邊界。" },
+            ],
+            moats: [
+                { title: "技術優勢", text: "在GPU架構和並行計算領域擁有絕對領先地位。" },
+                { title: "知識產權", text: "CUDA軟體平台是其最深的護城河。" },
+                { title: "高轉換成本", text: "開發者和AI生態系統深度依賴CUDA，轉換成本極高。" },
+                { title: "專利", text: "擁有大量與圖形和AI計算相關的關鍵專利。" },
+            ],
+            tAlgorithm: { '產品差異化': 5, '願景資本': 5, '全球佈局': 4, '好感度': 4, '垂直整合': 4, 'AI': 5, '加速器': 4, '地理位置': 4 },
+            vulnerabilities: [
+                { title: "對AI市場的極端依賴", text: "公司估值和增長高度依賴持續的AI晶片需求熱潮。" },
+                { title: "地緣政治風險", text: "對中國的出口管制限制了其市場，且供應鏈依賴台灣。" },
+                { title: "競爭對手的追趕", text: "雲端巨頭和新創公司都在開發自己的AI晶片以減少對其依賴。" },
+            ]
+        },
+        tesla: {
+            name: "特斯拉",
+            logo: "https://upload.wikimedia.org/wikipedia/commons/e/e8/Tesla_logo.png",
+            primalAppeal: { 
+                icon: "🚀", 
+                title: "抱負／未來",
+                text: "銷售一種可持續、技術先進的未來願景，象徵著開拓精神和進步。"
+            },
+            pillars: [
+                { title: "電動汽車技術領先", text: "在電池技術、動力系統效率和軟體整合方面是先驅。" },
+                { title: "品牌與個人崇拜", text: "馬斯克的個人魅力與品牌密不可分，帶來忠誠度也引發爭議。" },
+                { title: "直銷與服務模式", text: "繞過傳統經銷商，直接控制客戶體驗。" },
+                { title: "自動駕駛雄心", text: "FSD是其主要的差異化賣點和估值的核心部分。" },
+            ],
+            moats: [
+                { title: "品牌實力", text: "與馬斯克個人品牌深度綁定，形成強大粉絲文化。" },
+                { title: "技術優勢", text: "在電動汽車技術和潛在的FSD能力上具有先行優勢。" },
+                { title: "垂直整合", text: "從電池到軟體、AI晶片的全方位控制。" },
+                { title: "網絡效應", text: "超級充電網絡和從車隊收集的行駛數據。" },
+            ],
+            tAlgorithm: { '產品差異化': 4, '願景資本': 5, '全球佈局': 4, '好感度': 2, '垂直整合': 5, 'AI': 4, '加速器': 3, '地理位置': 4 },
+            vulnerabilities: [
+                { title: "對馬斯克的依賴", text: "公司的聲譽和股價與其CEO反覆無常的行為高度相關。" },
+                { title: "日益激烈的競爭", text: "傳統車廠和中國新勢力在電動汽車市場的競爭日益激烈。" },
+                { title: "FSD承諾未能兌現", text: "完全自動駕駛的實現時間一再推遲，面臨技術和監管挑戰。" },
+            ]
+        },
+    };
+
+    const companyNav = document.getElementById('company-nav').querySelector('div');
+    const companyDisplay = document.getElementById('company-display');
+    const welcomeMessage = document.getElementById('welcome-message');
+    const companyNameEl = document.getElementById('company-name');
+    const companyLogoMainEl = document.getElementById('company-logo-main');
+    const tabsContainer = document.getElementById('tabs');
+    const tabContentContainer = document.getElementById('tab-content');
+    const comparisonSelect = document.getElementById('comparison-metric');
+
+    let activeCompany = null;
+    let tAlgorithmChart = null;
+    let comparisonChart = null;
+
+    const tAlgorithmLabels = ['產品差異化', '願景資本', '全球佈局', '好感度', '垂直整合', 'AI', '加速器', '地理位置'];
+    const tAlgorithmScoreMap = { "非常低": 1, "中等偏下": 2, "中等": 3, "兩極化": 2, "中等偏高": 4, "強": 4, "高": 4, "非常強": 5, "非常強但波動": 5, "核心業務": 5};
+    
+    function init() {
+        populateNav();
+        populateComparisonSelect();
+        createComparisonChart(comparisonSelect.value);
+        setupAccordions();
+    }
+    
+    function populateNav() {
+        Object.keys(companiesData).forEach(key => {
+            const company = companiesData[key];
+            const button = document.createElement('button');
+            button.className = 'nav-button p-2 bg-white rounded-full shadow-md';
+            button.dataset.company = key;
+            button.innerHTML = `<img src="${company.logo}" alt="${company.name}" class="h-12 w-12 md:h-14 md:w-14 object-contain">`;
+            button.addEventListener('click', () => selectCompany(key));
+            companyNav.appendChild(button);
+        });
+    }
+    
+    function populateComparisonSelect() {
+        tAlgorithmLabels.forEach(metric => {
+            const option = document.createElement('option');
+            option.value = metric;
+            option.textContent = metric;
+            comparisonSelect.appendChild(option);
+        });
+        comparisonSelect.addEventListener('change', (e) => createComparisonChart(e.target.value));
+    }
+
+    function selectCompany(companyKey) {
+        activeCompany = companyKey;
+        welcomeMessage.classList.add('hidden');
+        companyDisplay.classList.remove('hidden');
+
+        document.querySelectorAll('.nav-button').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.company === companyKey);
+        });
+
+        const company = companiesData[companyKey];
+        companyNameEl.textContent = company.name;
+        companyLogoMainEl.src = company.logo;
+        
+        setupTabs(companyKey);
+        renderTabContent(companyKey, 'dna');
+    }
+    
+    function setupTabs(companyKey) {
+        tabsContainer.innerHTML = '';
+        const tabs = [
+            { id: 'dna', name: '基因解碼' },
+            { id: 't-algo', name: 'T型算法' },
+            { id: 'vulnerabilities', name: '脆弱性' },
+        ];
+        tabs.forEach(tab => {
+            const button = document.createElement('button');
+            button.className = 'tab-button px-4 py-2 rounded-full text-sm font-medium';
+            button.textContent = tab.name;
+            button.dataset.tabId = tab.id;
+            button.addEventListener('click', () => renderTabContent(companyKey, tab.id));
+            tabsContainer.appendChild(button);
+        });
+    }
+
+    function renderTabContent(companyKey, tabId) {
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tabId === tabId);
+        });
+
+        const company = companiesData[companyKey];
+        let content = '';
+        switch(tabId) {
+            case 'dna':
+                content = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="content-card lg:col-span-3 bg-[#fff9f2]">
+                            <div class="flex items-center">
+                                <span class="text-4xl mr-4">${company.primalAppeal.icon}</span>
+                                <div>
+                                    <h3 class="font-bold text-xl text-[#A67B5B]">${company.primalAppeal.title}</h3>
+                                    <p class="text-gray-600">${company.primalAppeal.text}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="content-card">
+                            <h3 class="font-bold text-lg mb-3 border-b pb-2">主要戰略支柱</h3>
+                            <ul class="space-y-3">
+                                ${company.pillars.map(p => `<li><strong>${p.title}:</strong> ${p.text}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="content-card">
+                            <h3 class="font-bold text-lg mb-3 border-b pb-2">主要經濟護城河</h3>
+                             <ul class="space-y-3">
+                                ${company.moats.map(m => `<li><strong>${m.title}:</strong> ${m.text}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                tabContentContainer.innerHTML = content;
+                if (tAlgorithmChart) {
+                    tAlgorithmChart.destroy();
+                    tAlgorithmChart = null;
+                }
+                break;
+            case 't-algo':
+                 content = `
+                    <div>
+                        <p class="text-center text-gray-600 mb-4 max-w-2xl mx-auto">T型演算法是評估公司萬億美元潛力的框架。下圖展示了 ${company.name} 在八個關鍵維度上的表現，分數越高代表在該維度上越強。</p>
+                        <div class="content-card">
+                            <div class="chart-container">
+                                <canvas id="t-algorithm-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                tabContentContainer.innerHTML = content;
+                createTAlgorithmChart(companyKey);
+                break;
+            case 'vulnerabilities':
+                 content = `
+                    <div>
+                        <p class="text-center text-gray-600 mb-4 max-w-2xl mx-auto">即使是巨頭也有其弱點。以下是 ${company.name} 當前及未來可能面臨的主要挑戰和脆弱性。</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${company.vulnerabilities.map(v => `
+                                <div class="content-card">
+                                    <h3 class="font-bold text-lg mb-2">${v.title}</h3>
+                                    <p class="text-gray-600">${v.text}</p>
+                                </div>`).join('')}
+                        </div>
+                    </div>
+                `;
+                tabContentContainer.innerHTML = content;
+                if (tAlgorithmChart) {
+                    tAlgorithmChart.destroy();
+                    tAlgorithmChart = null;
+                }
+                break;
+        }
+    }
+    
+    function createTAlgorithmChart(companyKey) {
+        const company = companiesData[companyKey];
+        const ctx = document.getElementById('t-algorithm-chart').getContext('2d');
+        const data = tAlgorithmLabels.map(label => company.tAlgorithm[label] || 0);
+
+        if (tAlgorithmChart) {
+            tAlgorithmChart.destroy();
+        }
+
+        tAlgorithmChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: tAlgorithmLabels,
+                datasets: [{
+                    label: company.name,
+                    data: data,
+                    backgroundColor: 'rgba(166, 123, 91, 0.2)',
+                    borderColor: 'rgba(166, 123, 91, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(166, 123, 91, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(166, 123, 91, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(56, 56, 56, 0.1)' },
+                        grid: { color: 'rgba(56, 56, 56, 0.1)' },
+                        pointLabels: { 
+                            font: { size: 12 },
+                            color: '#383838'
+                        },
+                        ticks: {
+                            backdropColor: 'transparent',
+                            stepSize: 1,
+                            max: 5,
+                            min: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.raw}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createComparisonChart(metric) {
+        const ctx = document.getElementById('comparison-chart').getContext('2d');
+        const labels = Object.values(companiesData).map(c => c.name);
+        const data = Object.values(companiesData).map(c => c.tAlgorithm[metric] || 0);
+        
+        if (comparisonChart) {
+            comparisonChart.destroy();
+        }
+
+        comparisonChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: metric,
+                    data: data,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 206, 86, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                        'rgba(255, 159, 64, 0.5)',
+                        'rgba(199, 199, 199, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(199, 199, 199, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                         max: 5,
+                        ticks: {
+                           stepSize: 1,
+                           callback: function(value) {
+                                const labels = {0: '0', 1:'非常低', 2:'低', 3:'中等', 4:'高', 5:'非常高'};
+                                return labels[value];
+                           }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    title: {
+                        display: true,
+                        text: `T型算法指標比較: ${metric}`,
+                        font: { size: 18 },
+                        padding: {
+                            top: 10,
+                            bottom: 20
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function setupAccordions() {
+        const accordionItems = document.querySelectorAll('.accordion-item');
+        accordionItems.forEach(item => {
+            const header = item.querySelector('.accordion-header');
+            const content = item.querySelector('.accordion-content');
+            const icon = header.querySelector('span:last-child');
+            
+            header.addEventListener('click', () => {
+                const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+                
+                document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = '0px');
+                document.querySelectorAll('.accordion-header span:last-child').forEach(i => i.style.transform = 'rotate(0deg)');
+
+                if (!isOpen) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    icon.style.transform = 'rotate(180deg)';
+                }
+            });
+        });
+    }
+
+    init();
+
+});
+</script>
+</body>
+</html>
+�
