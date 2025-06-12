@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動儀表板：AI 時代的作家新賽局</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Ochre -->
+    <!-- Application Structure Plan: A single-page, vertically scrolling application designed to guide the user through a compelling argument. It starts with a bold hero statement, moves to an interactive chart for direct comparison of financial models, presents the new business models using clear cards, explains the underlying logic, and concludes with a look at the future landscape of writing. This structure transforms a linear article into an exploratory experience, making the core thesis more impactful and memorable. -->
+    <!-- Visualization & Content Choices: The central piece is an interactive bar chart (Chart.js/Canvas) comparing potential earnings from different models (Book vs. SaaS vs. IP Sale). This is chosen for its power in instantly conveying vast numerical differences. New business models are presented in a grid of cards (HTML/Tailwind) for scannability. Author types are laid out in a simple 3-column format for easy comparison. Unicode icons are used for visual cues without relying on images. The goal is to make data and concepts digestible and engaging through interaction. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF6;
+            color: #3d3d3d;
+        }
+        .highlight-text {
+            color: #B08968;
+        }
+        .nav-link {
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #B08968;
+        }
+        .btn {
+            transition: all 0.3s ease;
+            border: 1px solid #DDB892;
+        }
+        .btn:hover, .btn.active {
+            background-color: #B08968;
+            color: #FFFFFF;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #EDE0D4;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200/50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-xl font-bold text-gray-800">作家的新賽局</div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#comparison" class="nav-link text-gray-600">價值比較</a>
+                <a href="#playbook" class="nav-link text-gray-600">新商業模式</a>
+                <a href="#future" class="nav-link text-gray-600">寫作的未來</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="text-center py-20 md:py-32 px-6 bg-white">
+            <div class="container mx-auto">
+                <h1 class="text-4xl md:text-6xl font-bold text-gray-800 leading-tight">
+                    當 AI 提示詞的價值<br>是傳統書本的 <span class="highlight-text">100 倍</span>
+                </h1>
+                <p class="mt-6 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+                    在 AI 時代，非文學作家的價值正在被重新定義。你嘔心瀝血的文字，不再只是一本 30 美元的書，而是價值連城的「智慧資產」。讓我們來探索這個顛覆性的轉變。
+                </p>
+            </div>
+        </section>
+
+        <section id="comparison" class="py-20 px-6">
+            <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800">價值比較：一本「書」的潛力</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">傳統的出版模式與新興的 AI 驅動模式，在商業價值上有著天壤之別。點擊下方按鈕，親眼見證這巨大的差異。</p>
+                </div>
+
+                <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+                    <div class="w-full lg:w-3/5">
+                        <div class="chart-container">
+                            <canvas id="valueChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="w-full lg:w-2/5">
+                        <div class="space-x-2 text-center mb-6">
+                            <button id="btn-book" class="btn px-4 py-2 rounded-full text-sm font-medium text-gray-700">傳統出書</button>
+                            <button id="btn-saas" class="btn px-4 py-2 rounded-full text-sm font-medium text-gray-700">SaaS 模式</button>
+                            <button id="btn-ip" class="btn px-4 py-2 rounded-full text-sm font-medium text-gray-700">企業 IP 銷售</button>
+                        </div>
+                        <div id="model-description" class="bg-white p-6 rounded-lg border border-gray-200/80 min-h-[200px]">
+                            <h3 id="desc-title" class="font-bold text-xl mb-2 highlight-text"></h3>
+                            <p id="desc-content" class="text-gray-600"></p>
+                            <div class="mt-4">
+                                <span class="text-sm text-gray-500">潛在年收入</span>
+                                <p id="desc-revenue" class="text-3xl font-bold text-gray-800"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="playbook" class="py-20 px-6 bg-white">
+            <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800">作家的 AI 變現手冊</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">你的知識不再局限於紙張。以下是幾種將你的「書」轉化為高價值智慧資產的全新商業模式。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="card p-6 text-center">
+                        <div class="text-4xl mb-4">💡</div>
+                        <h3 class="font-bold text-xl mb-2">高價提示詞</h3>
+                        <p class="text-gray-600 text-sm">將整本書的精華濃縮成一個「超級提示詞」，作為高價數位產品販售，提供通往專家級成果的捷徑。</p>
+                        <div class="mt-4 text-lg font-bold highlight-text">$300 - $3,000+ / 次</div>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <div class="text-4xl mb-4">⚙️</div>
+                        <h3 class="font-bold text-xl mb-2">微型 SaaS 工具</h3>
+                        <p class="text-gray-600 text-sm">將你的獨特框架包裝成軟體服務，提供持續性的解決方案，將一次性收入轉為每月訂閱。 </p>
+                        <div class="mt-4 text-lg font-bold highlight-text">$30+ / 月</div>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <div class="text-4xl mb-4">🏢</div>
+                        <h3 class="font-bold text-xl mb-2">企業級 IP</h3>
+                        <p class="text-gray-600 text-sm">將你的知識體系作為獨家 IP 授權給大型企業，用於內部訓練或客戶解決方案，實現價值的最大化。</p>
+                        <div class="mt-4 text-lg font-bold highlight-text">$1M - $10M+</div>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <div class="text-4xl mb-4">🎓</div>
+                        <h3 class="font-bold text-xl mb-2">高階課程/教練</h3>
+                        <p class="text-gray-600 text-sm">將提示詞與 AI 工具作為高階課程或教練服務的核心資產，提供可規模化的個人化指導。</p>
+                        <div class="mt-4 text-lg font-bold highlight-text">$5,000+ / 人</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="future" class="py-20 px-6">
+            <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800">寫作的未來：三種作家類型</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">隨著典範轉移，非文學作家的生態將產生分化。聰明的創作者將會意識到，傳統書籍的機會成本已變得難以承受。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="card p-8">
+                        <h3 class="font-bold text-xl mb-3">🤖 AI 內容農夫</h3>
+                        <p class="text-gray-600">利用 AI 快速生成大量品質平庸的內容，旨在抓住利基市場的搜尋流量，追求數量而非品質，賺取被動收入。</p>
+                    </div>
+                    <div class="card p-8">
+                        <h3 class="font-bold text-xl mb-3">📜 傳統作家</h3>
+                        <p class="text-gray-600">緊抓著對「作家」的傳統想像，抗拒新技術與新模式。他們將賺到遠低於其知識價值的金錢，並感嘆懷才不遇。</p>
+                    </div>
+                    <div class="card p-8">
+                        <h3 class="font-bold text-xl mb-3">🚀 智慧創業家</h3>
+                        <p class="text-gray-600">將自己視為「思維系統的架構師」，擁抱新模式，把知識轉化為高價值的智慧資產，獲得指數級的回報。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200/50">
+        <div class="container mx-auto text-center py-12 px-6">
+            <h2 class="text-2xl md:text-4xl font-bold text-gray-800">你的下一本書...<br><span class="highlight-text">真的非得是一本書嗎？</span></h2>
+            <p class="mt-4 text-gray-500 text-sm">&copy; 2025 作家的新賽局. 靈感源於對數位寫作未來的思考。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const models = {
+                book: {
+                    label: '傳統出書',
+                    revenue: 100000,
+                    description: '將書籍作為商品一次性販售，或作為跳板換取演講、顧問機會。收入穩定，但天花板較低。',
+                    color: '#DDB892'
+                },
+                saas: {
+                    label: 'SaaS 模式',
+                    revenue: 360000,
+                    description: '將核心知識包裝成訂閱制軟體服務，創造持續性現金流。此處以 1000 位用戶、月費 $30 計算年收入。',
+                    color: '#B08968'
+                },
+                ip: {
+                    label: '企業 IP 銷售',
+                    revenue: 10000000,
+                    description: '將知識體系作為獨家智慧財產權，一次性授權給大型企業，實現價值的最大化，創造驚人的回報。',
+                    color: '#795548'
+                }
+            };
+
+            const ctx = document.getElementById('valueChart').getContext('2d');
+            const valueChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '潛在年收入 (美金)',
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            type: 'logarithmic',
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    if (value === 10000000) return '$10M';
+                                    if (value === 1000000) return '$1M';
+                                    if (value === 100000) return '$100K';
+                                    if (value === 10000) return '$10K';
+                                    return null;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const btnBook = document.getElementById('btn-book');
+            const btnSaas = document.getElementById('btn-saas');
+            const btnIp = document.getElementById('btn-ip');
+            const allBtns = [btnBook, btnSaas, btnIp];
+
+            const descTitle = document.getElementById('desc-title');
+            const descContent = document.getElementById('desc-content');
+            const descRevenue = document.getElementById('desc-revenue');
+
+            function updateChart(modelKey) {
+                const modelData = models[modelKey];
+                
+                valueChart.data.labels = [modelData.label];
+                valueChart.data.datasets[0].data = [modelData.revenue];
+                valueChart.data.datasets[0].backgroundColor = [modelData.color];
+                valueChart.update();
+
+                descTitle.textContent = modelData.label;
+                descContent.textContent = modelData.description;
+                descRevenue.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(modelData.revenue);
+
+                allBtns.forEach(btn => btn.classList.remove('active'));
+                document.getElementById(`btn-${modelKey}`).classList.add('active');
+            }
+
+            btnBook.addEventListener('click', () => updateChart('book'));
+            btnSaas.addEventListener('click', () => updateChart('saas'));
+            btnIp.addEventListener('click', () => updateChart('ip'));
+
+            updateChart('book');
+        });
+    </script>
+</body>
+</html>
