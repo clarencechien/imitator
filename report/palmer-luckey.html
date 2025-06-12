@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palmer Luckey 深度訪談 | 互動式全解析 V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Subtle Tech (Warm neutrals bg-stone-100/bg-white, with a muted teal/blue accent) -->
+    <!-- Application Structure Plan: V2 enhances the thematic hub with narrative elements. A new quotes carousel provides an immediate hook. A career timeline adds historical context. "Related Topics" links at the end of each section create a guided, non-linear exploration path, encouraging deeper engagement by connecting related concepts across different parts of the interview. -->
+    <!-- Visualization & Content Choices:
+    - Report Info: Career milestones. -> Goal: Organize/Inform. -> Viz: Vertical HTML/CSS timeline. -> Interaction: Hover effects on items. -> Justification: Provides crucial context for his motivations and decisions in a visually scannable format. -> Library/Method: HTML/Tailwind.
+    - Report Info: Cross-thematic connections. -> Goal: Guide/Organize. -> Viz: Linked buttons at the end of content sections. -> Interaction: Click to navigate to a new theme. -> Justification: Transforms a static reading experience into a dynamic exploration, revealing the interplay of his ideas. -> Library/Method: Vanilla JS.
+    - Report Info: Most impactful quotes. -> Goal: Inform/Highlight. -> Viz: Auto-playing carousel. -> Interaction: Click to pause/play. -> Justification: Delivers the core essence of his philosophy upfront in a dynamic, attention-grabbing format. -> Library/Method: Vanilla JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f5f5f4; /* stone-100 */
+        }
+        .theme-card, .related-topic-btn {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .theme-card:hover, .related-topic-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .theme-card.active {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            border-color: #0d9488; /* teal-600 */
+        }
+        #content-display {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .content-hidden { display: none; }
+        .quote-slide { display: none; }
+        .quote-slide.active { display: block; }
+        .timeline-item { position: relative; }
+        .timeline-item:not(:last-child) { padding-bottom: 2rem; }
+        .timeline-item:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            top: 1rem;
+            left: 0.4rem;
+            width: 2px;
+            height: 100%;
+            background-color: #d6d3d1; /* stone-300 */
+        }
+        .timeline-dot {
+            position: absolute;
+            top: 0.5rem;
+            left: 0;
+            width: 0.875rem;
+            height: 0.875rem;
+            border-radius: 9999px;
+            background-color: #f5f5f4; /* stone-100 */
+            border: 2px solid #0d9488; /* teal-600 */
+        }
+        .prose {
+            max-width: none;
+        }
+    </style>
+</head>
+<body class="text-stone-800">
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-900">Palmer Luckey 深度訪談</h1>
+            <p class="mt-4 text-lg text-stone-600 max-w-3xl mx-auto">從虛擬實境先驅到國防科技顛覆者，再到復古遊戲傳教士。我們將長篇訪談內容解構成五大核心主題，帶您探索 Palmer Luckey 的多重宇宙。</p>
+        </header>
+
+        <section id="quotes-carousel" class="relative max-w-3xl mx-auto mb-12 bg-white p-6 rounded-lg shadow-md h-40 flex items-center justify-center">
+            <div id="quotes-container" class="text-center"></div>
+            <div class="absolute bottom-2 right-3 text-xs text-stone-400">點擊暫停/播放</div>
+        </section>
+
+        <nav id="theme-hub" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
+            <div data-theme="anduril" class="theme-card cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent text-center">
+                <div class="text-4xl mb-3">🚀</div><h2 class="text-xl font-bold text-stone-900">Anduril 的誕生</h2><p class="text-stone-500 mt-1 text-sm">為何創立一間挑戰傳統的國防公司？</p>
+            </div>
+            <div data-theme="software" class="theme-card cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent text-center">
+                <div class="text-4xl mb-3">💻</div><h2 class="text-xl font-bold text-stone-900">軟體定義硬體</h2><p class="text-stone-500 mt-1 text-sm">Anduril 的核心戰略：Lattice 作業系統。</p>
+            </div>
+            <div data-theme="design" class="theme-card cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent text-center">
+                <div class="text-4xl mb-3">💡</div><h2 class="text-xl font-bold text-stone-900">逆向思考的設計</h2><p class="text-stone-500 mt-1 text-sm">從「方形魚雷」看見的第一性原理。</p>
+            </div>
+            <div data-theme="modretro" class="theme-card cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent text-center">
+                <div class="text-4xl mb-3">🎮</div><h2 class="text-xl font-bold text-stone-900">ModRetro 的懷舊革命</h2><p class="text-stone-500 mt-1 text-sm">不只複製產品，而是重現「感覺」。</p>
+            </div>
+            <div data-theme="worldview" class="theme-card cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent text-center">
+                <div class="text-4xl mb-3">🌏</div><h2 class="text-xl font-bold text-stone-900">創辦人的世界觀</h2><p class="text-stone-500 mt-1 text-sm">科幻、動漫與對科技未來的樂觀。</p>
+            </div>
+        </nav>
+        
+        <section id="content-display" class="content-hidden bg-white p-6 sm:p-8 rounded-lg shadow-lg min-h-[300px]">
+        </section>
+
+        <section id="timeline-section" class="max-w-4xl mx-auto mt-16">
+            <h3 class="text-3xl font-bold text-center mb-10 text-stone-900">職業生涯時間軸</h3>
+            <div class="relative pl-6">
+                <div class="timeline-item"><div class="timeline-dot"></div><div class="ml-4"><time class="font-semibold text-teal-700">2009</time><h4 class="font-bold text-lg">創立 ModRetro 社群</h4><p class="text-stone-600">與朋友創立線上社群，專注於改造復古遊戲機，這是他對軟硬體整合熱情的起點。</p></div></div>
+                <div class="timeline-item"><div class="timeline-dot"></div><div class="ml-4"><time class="font-semibold text-teal-700">2012</time><h4 class="font-bold text-lg">創立 Oculus VR</h4><p class="text-stone-600">在 Kickstarter 上為 Oculus Rift 成功募資，開啟了現代消費級 VR 的浪潮。</p></div></div>
+                <div class="timeline-item"><div class="timeline-dot"></div><div class="ml-4"><time class="font-semibold text-teal-700">2014</time><h4 class="font-bold text-lg">Oculus 被 Facebook 收購</h4><p class="text-stone-600">以約 20 億美元的價格被收購，使 VR 技術進入主流科技巨頭的視野。</p></div></div>
+                <div class="timeline-item"><div class="timeline-dot"></div><div class="ml-4"><time class="font-semibold text-teal-700">2017</time><h4 class="font-bold text-lg">離開 Facebook，創辦 Anduril</h4><p class="text-stone-600">離開 Facebook 後，立即創辦 Anduril Industries，旨在用軟體思維顛覆傳統國防工業。</p></div></div>
+                <div class="timeline-item"><div class="timeline-dot"></div><div class="ml-4"><time class="font-semibold text-teal-700">2024</time><h4 class="font-bold text-lg">ModRetro 發表 Chromatic</h4><p class="text-stone-600">歷時多年的專案開花結果，推出致敬 Game Boy Color 的頂級復刻版，實現兒時夢想。</p></div></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const themeHub = document.getElementById('theme-hub');
+        const contentDisplay = document.getElementById('content-display');
+        const themeCards = document.querySelectorAll('.theme-card');
+        const quotesContainer = document.getElementById('quotes-container');
+        const quotesCarousel = document.getElementById('quotes-carousel');
+
+        const quotes = [
+            { quote: "我們的目標不是複製使用 Game Boy Color 的體驗，而是複製你小時候使用 Game Boy Color 的『感覺』。", author: "談 ModRetro 核心理念" },
+            { quote: "你就是得動手去做，最終大家會意識到你一直都是對的。你必須獲得大眾的採用，一旦採用的人夠多，它就變成了常態。", author: "談如何應對科技悲觀主義" },
+            { quote: "我們的準則就是『只在硬體上做軟體做不到的事』。", author: "談 Anduril 的軟體優先策略" },
+            { quote: "武器只是你用來達成地緣政治目標的其中一種工具。有時候它們可以被合乎道德地使用，有時候則不然。", author: "談國防與道德" }
+        ];
+
+        let currentQuoteIndex = 0;
+        let quoteInterval;
+
+        function showQuote() {
+            const item = quotes[currentQuoteIndex];
+            quotesContainer.innerHTML = `
+                <div class="quote-slide active animate-fade-in">
+                    <p class="text-lg italic text-stone-700">“${item.quote}”</p>
+                    <footer class="text-right text-sm text-stone-500 mt-2">— ${item.author}</footer>
+                </div>
+            `;
+        }
+        
+        function nextQuote() {
+            currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+            showQuote();
+        }
+
+        function startCarousel() {
+            stopCarousel();
+            quoteInterval = setInterval(nextQuote, 5000);
+        }
+
+        function stopCarousel() {
+            clearInterval(quoteInterval);
+        }
+
+        quotesCarousel.addEventListener('click', () => {
+            if (quoteInterval) {
+                stopCarousel();
+                quoteInterval = null;
+            } else {
+                startCarousel();
+            }
+        });
+
+        const contentData = {
+            anduril: {
+                title: "Anduril 的誕生：看見問題，親手解決",
+                introduction: "Anduril 的創立並非一時興起，而是 Palmer Luckey 長期觀察到美國國防科技落後，且科技業與政府脫節的雙重危機感下的產物。當傳統的投資路徑走不通，而自己又因緣際會離開臉書時，他決定親手打造那間他一直在尋找的公司。",
+                content: `<blockquote class="border-l-4 border-teal-600 pl-4 italic text-stone-700 my-6"><p>"我思考這個問題很久了，也一直在找可以投資的公司...我們一直試圖找別人來做這件事，看來我們得自己動手了。"</p><footer class="text-right text-sm text-stone-500 mt-2">— Palmer Luckey</footer></blockquote><p class="text-stone-800 leading-relaxed">他提到，在 Oculus 被 Facebook 收購後，他深刻體會到大型科技公司因商業考量（如不想得罪中國市場）而拒絕與政府合作的困境。同時，他透過創投基金的朋友 Trae Stephens 的經驗，發現市場上缺乏真正有潛力、能規模化的新型態國防公司。2016年，在他被 Facebook 解僱的那一刻，他立刻致電夥伴們，宣告「西方之焰」（Flame of the West）的時刻來臨，決心捍衛西方式的自由價值。</p>`,
+                related: [{key: 'software', text: '探索核心戰略'}, {key: 'worldview', text: '了解創辦動機'}]
+            },
+            software: {
+                title: "軟體定義硬體：Anduril 的乘數效應",
+                introduction: "Anduril 與傳統國防承包商最大的不同，在於其「軟體優先」的核心哲學。他們打造了名為 Lattice 的 AI 作業系統作為通用平台，所有硬體產品都建立於其上。這個策略讓 Anduril 能以驚人的速度開發多樣化的產品，並實現價值最大化。",
+                content: `<blockquote class="border-l-4 border-teal-600 pl-4 italic text-stone-700 my-6"><p>"我們的準則就是『只在硬體上做軟體做不到的事』...如果你能打造出那種「軟體定義，硬體實現」的產品...你就可以進展得快很多。"</p><footer class="text-right text-sm text-stone-500 mt-2">— Palmer Luckey</footer></blockquote><p class="text-stone-800 leading-relaxed mb-6">這個概念的威力在於「乘數效應」。對軟體平台投入的每一分資源，其改進成果都能免費擴散到所有使用該平台的硬體上。相較於硬體改進的效益往往僅限於單一產品，軟體的投資效益會隨著產品線的擴大而呈指數級增長。</p><div class="diagram-container flex items-center justify-center p-4 bg-stone-50 rounded-lg border border-stone-200"><div class="text-center"><div class="bg-teal-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg">Lattice AI 作業系統</div><div class="w-px h-8 bg-stone-400 mx-auto my-2"></div><div class="grid grid-cols-2 gap-4"><div class="border border-stone-300 rounded p-2 text-sm bg-white">🚀 Roadrunner</div><div class="border border-stone-300 rounded p-2 text-sm bg-white">🗼 Sentry Tower</div><div class="border border-stone-300 rounded p-2 text-sm bg-white">👻 Ghost</div><div class="border border-stone-300 rounded p-2 text-sm bg-white">🌊 DiveLD</div></div><p class="text-xs text-stone-500 mt-4">一個平台，驅動所有硬體，實現快速迭代與能力擴散。</p></div></div>`,
+                related: [{key: 'design', text: '看策略如何體現實作'}, {key: 'anduril', text: '回到創立故事'}]
+            },
+            design: {
+                title: "逆向思考的設計：方形魚雷的啟示",
+                introduction: "「形式追隨功能」是設計的基本原則，但 Palmer Luckey 將其推向極致。他挑戰了「魚雷就該是圓的」這個百年來的刻板印象，從根本問題出發，最終為 Anduril 的水下無人載具（UUV）設計出更高效的方形外觀。",
+                content: `<blockquote class="border-l-4 border-teal-600 pl-4 italic text-stone-700 my-6"><p>"你得問自己，為什麼魚雷長成那個樣子？答案是因為魚雷發射管就是那個樣子...問題是，管狀其實不是一個能密集填充東西的形狀。"</p><footer class="text-right text-sm text-stone-500 mt-2">— Palmer Luckey</footer></blockquote><p class="text-stone-800 leading-relaxed mb-6">他分析，傳統魚雷的圓柱形是為了適應潛艇發射管抵抗巨大水壓的需求。但 Anduril 的 UUV 無需從內部發射，因此不受此限制。他用「汽水罐 vs. 果汁盒」的比喻生動地說明了方形在空間封裝效率上的絕對優勢。這個看似簡單的改變，讓載具能在同樣體積內裝入更多電池與矩形電子元件，最大化作戰效能。</p><div class="diagram-container grid grid-cols-2 gap-6 items-center p-4"><div class="text-center"><h4 class="font-bold mb-2">傳統圓柱體</h4><div class="w-40 h-40 border-2 border-stone-400 mx-auto p-1 flex flex-wrap gap-1 items-center justify-center"><div class="w-10 h-10 bg-stone-300 rounded-full"></div><div class="w-10 h-10 bg-stone-300 rounded-full"></div><div class="w-10 h-10 bg-stone-300 rounded-full"></div><div class="w-10 h-10 bg-stone-300 rounded-full"></div></div><p class="text-xs text-stone-500 mt-2">空間浪費顯著</p></div><div class="text-center"><h4 class="font-bold mb-2">優化後的方形</h4><div class="w-40 h-40 border-2 border-teal-600 bg-teal-50 mx-auto p-1 flex flex-wrap gap-1"><div class="w-[45px] h-[45px] bg-teal-300 rounded"></div><div class="w-[45px] h-[45px] bg-teal-300 rounded"></div><div class="w-[45px] h-[45px] bg-teal-300 rounded"></div><div class="w-[45px] h-[45px] bg-teal-300 rounded"></div></div><p class="text-xs text-stone-500 mt-2">封裝效率最大化</p></div></div>`,
+                related: [{key: 'software', text: '了解背後的軟體思維'}, {key: 'modretro', text: '看另一種設計哲學'}]
+            },
+            modretro: {
+                title: "ModRetro 的懷舊革命：重現兒時的感覺",
+                introduction: "除了尖端的國防科技，Palmer 的另一個熱情所在是 ModRetro——一個致力於將復古遊戲體驗提升至「傳家寶」等級的專案。其核心理念並非單純複製舊產品，而是要用現代工藝，重現玩家記憶中那份無可取代的、被美化了的「感覺」。",
+                content: `<blockquote class="border-l-4 border-teal-600 pl-4 italic text-stone-700 my-6"><p>"我們的目標不是複製使用 Game Boy Color 的體驗，而是複製你小時候使用 Game Boy Color 的『感覺』...是為了在今天，重現你記憶中當時的感覺，這兩者非常不同。"</p><footer class="text-right text-sm text-stone-500 mt-2">— Palmer Luckey</footer></blockquote><p class="text-stone-800 leading-relaxed">他解釋，如果今天直接拿一台原版 Game Boy 來玩，現代的玩家只會覺得螢幕昏暗、做工廉價。但這並非我們兒時的感受。因此，ModRetro 的產品如 Chromatic，採用了鎂合金外殼、藍寶石螢幕等頂級材料，打造出「如果成本不成問題，任天堂會怎麼做」的終極版本。這個專案不僅是對經典的致敬，更是一種對逝去時光的情感修復工程。他們未來的計畫還包括 N64、GBA，甚至要開發全新的「量子射線管」（QRT）來完美重現 CRT 螢幕的視覺體驗。</p>`,
+                related: [{key: 'design', text: '對比 Anduril 的設計'}, {key: 'worldview', text: '探索他的多元興趣'}]
+            },
+            worldview: {
+                title: "創辦人的世界觀：在反烏托邦的時代保持樂觀",
+                introduction: "Palmer Luckey 認為，當今社會，尤其是美國，科幻作品普遍趨向反烏托邦，這導致大眾對新科技抱持恐懼與敵意。他以歷史為鑑，堅信科技始終是推動人類進步的核心力量，而創業者唯一能做的，就是用實際成果去證明悲觀主義者的錯誤。",
+                content: `<blockquote class="border-l-4 border-teal-600 pl-4 italic text-stone-700 my-6"><p>"你就是得動手去做，最終大家會意識到你一直都是對的。你必須獲得大眾的採用，一旦採用的人夠多，它就變成了常態。"</p><footer class="text-right text-sm text-stone-500 mt-2">— Palmer Luckey</footer></blockquote><p class="text-stone-800 leading-relaxed mb-6">他列舉了從自動化製造、航空旅行到數位音樂等例子，說明歷史上每一項偉大創新都曾面臨「毀掉一切」的指控。他認為與其浪費時間和悲觀者爭論，不如專注於打造未來。這種務實的樂觀主義也體現在 Anduril 的行銷策略上：他們從不發布產品渲染圖，只展示真實運作的影片，因為「行動」本身就是最有力的宣言。</p><p class="text-stone-800 leading-relaxed">有趣的是，他對日本動漫的熱愛也影響了公司。當需要以非寫實的方式呈現複雜作戰概念時，他們選擇製作動漫風格的影片，因為這既能清晰傳達理念，又明確表示這是一種「風格化呈現」，而非虛假的渲染圖，完美契合了公司「只展示真實」的原則。</p>`,
+                related: [{key: 'anduril', text: '看世界觀如何催生Anduril'}]
+            }
+        };
+
+        function displayContent(theme) {
+            const data = contentData[theme];
+            if (!data) return;
+            
+            let relatedTopicsHTML = '';
+            if (data.related && data.related.length > 0) {
+                relatedTopicsHTML = '<hr class="my-8 border-stone-200"><h4 class="text-lg font-bold text-center mb-4 text-stone-800">相關主題探索</h4><div id="related-topics-container" class="flex flex-wrap justify-center gap-4">';
+                data.related.forEach(item => {
+                    relatedTopicsHTML += `<button data-theme="${item.key}" class="related-topic-btn bg-teal-50 text-teal-700 font-semibold py-2 px-4 rounded-full text-sm shadow-sm">${item.text} →</button>`;
+                });
+                relatedTopicsHTML += '</div>';
+            }
+
+            contentDisplay.innerHTML = `
+                <h3 class="text-2xl md:text-3xl font-bold text-center mb-4 text-stone-900">${data.title}</h3>
+                <p class="text-center text-stone-600 max-w-2xl mx-auto mb-8">${data.introduction}</p>
+                <div class="prose prose-stone">${data.content}</div>
+                ${relatedTopicsHTML}
+            `;
+
+            contentDisplay.classList.remove('content-hidden');
+            
+            themeCards.forEach(card => card.classList.toggle('active', card.dataset.theme === theme));
+
+            if (!document.startViewTransition) {
+                contentDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
+            document.startViewTransition(() => {
+                contentDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
+        themeHub.addEventListener('click', (e) => {
+            const card = e.target.closest('.theme-card');
+            if (card) displayContent(card.dataset.theme);
+        });
+
+        contentDisplay.addEventListener('click', (e) => {
+            const button = e.target.closest('.related-topic-btn');
+            if (button) displayContent(button.dataset.theme);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showQuote();
+            startCarousel();
+        });
+
+    </script>
+
+</body>
+</html>
