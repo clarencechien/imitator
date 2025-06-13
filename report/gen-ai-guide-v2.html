@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenAI 開發環境互動指南</title>
+    <!-- Chosen Palette: Calm Tech - Background: slate-50, Text: slate-800, Primary Accent: sky-600, Secondary Accent: teal-500 -->
+    <!-- Application Structure Plan: The application is designed as an interactive decision-making tool, guiding users from a high-level choice to specific details. It starts with a hero section, followed by a side-by-side comparison of the core AI tools (Cursor vs. Cline). The central interactive element is the choice between "Local" and "Cloud" development paths, which dynamically updates the main content area. This area uses tabs for OS-specific local setups and interactive cards for different cloud solutions, ensuring information is organized and not overwhelming. The structure concludes with a powerful radar chart summarizing the trade-offs, transforming the static summary table into an actionable visual insight. This non-linear, task-oriented structure prioritizes user exploration and understanding over the report's original linear format. -->
+    <!-- Visualization & Content Choices: 
+- Report Info: Comparison of development environments across multiple criteria. Goal: Compare & Synthesize. Viz/Presentation: Interactive Radar Chart. Interaction: Hover tooltips show scores. Justification: A radar chart excels at visually comparing multiple options across various quantitative/qualitative axes, providing a quick, high-impact summary that is more effective than a simple table. Library/Method: Chart.js/Canvas.
+- Report Info: OS-specific setup commands. Goal: Organize & Inform. Viz/Presentation: Tabbed Interface. Interaction: Click to switch content panes. Justification: Tabs are a standard, space-saving UI pattern for presenting mutually exclusive information, making it easy for users to find instructions for their specific OS. Library/Method: Vanilla JS + Tailwind CSS.
+- Report Info: Four distinct cloud development methods. Goal: Compare & Detail. Viz/Presentation: Interactive Grid of Cards. Interaction: Clicking a card reveals a detailed section with workflow and pros/cons. Justification: This pattern allows for a high-level overview while providing easy access to in-depth information on demand, preventing information overload. Library/Method: Vanilla JS + Tailwind CSS.
+-->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 60vh;
+            width: 90vw;
+            max-width: 700px;
+            max-height: 500px;
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+        .nav-button.active {
+            background-color: #0284c7;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .tab-button.active {
+            border-color: #0ea5e9;
+            color: #0ea5e9;
+            background-color: #f0f9ff;
+        }
+        .cloud-card.active {
+            border-color: #0ea5e9;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transform: scale(1.03);
+        }
+        .wizard-card {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
+        <header class="text-center mb-16">
+            <h1 class="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">GenAI 時代開發環境全方位指南</h1>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto">從本機到雲端，為您的 AI 開發夥伴 (Cursor & Cline) 打造最強大的開發環境。這份互動指南將幫助您做出最佳選擇。</p>
+        </header>
+
+        <main>
+            <!-- Section 1: Core AI Tools -->
+            <section id="tools" class="mb-20">
+                <h2 class="text-3xl font-bold text-center mb-10 text-slate-800">第一部分：您的核心 AI 開發夥伴</h2>
+                <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <h3 class="text-2xl font-bold mb-3 text-sky-600">Cursor</h3>
+                        <p class="mb-4 text-slate-600">一個<strong class="font-semibold text-slate-700">獨立的、AI 優先的程式碼編輯器</strong>。它本身就是一個修改過的 VS Code (Fork)，將 AI 功能深度整合到編輯器的核心。</p>
+                        <p class="italic text-slate-500">比喻：「以 AI 為作業系統」的開發工具。</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <h3 class="text-2xl font-bold mb-3 text-teal-600">Cline</h3>
+                        <p class="mb-4 text-slate-600">一個<strong class="font-semibold text-slate-700">自主編碼代理 (Autonomous Coding Agent)</strong>，以 VS Code 擴充功能的形式存在，能自主規劃並執行多步驟的複雜任務。</p>
+                        <p class="italic text-slate-500">比喻：「與您結對程式設計的虛擬 AI 工程師」。</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Section 2: Big Choice Navigation -->
+            <section id="choice" class="text-center mb-16">
+                 <h2 class="text-3xl font-bold text-center mb-6 text-slate-800">第二部分：關鍵決策點</h2>
+                 <p class="text-lg text-slate-600 max-w-2xl mx-auto mb-8">您的開發環境要建立在本機，還是放在雲端？透過下方的導覽，探索最適合您的方案。</p>
+                <div class="flex justify-center gap-4 flex-wrap">
+                    <button id="btn-flowchart" data-target="flowchart" class="nav-button active text-lg font-semibold py-3 px-8 bg-white rounded-lg shadow-md hover:shadow-xl hover:bg-slate-100">決策嚮導</button>
+                    <button id="btn-local" data-target="local" class="nav-button text-lg font-semibold py-3 px-8 bg-white rounded-lg shadow-md hover:shadow-xl hover:bg-slate-100">本機開發</button>
+                    <button id="btn-cloud" data-target="cloud" class="nav-button text-lg font-semibold py-3 px-8 bg-white rounded-lg shadow-md hover:shadow-xl hover:bg-slate-100">雲端開發</button>
+                    <button id="btn-mcp" data-target="mcp" class="nav-button text-lg font-semibold py-3 px-8 bg-white rounded-lg shadow-md hover:shadow-xl hover:bg-slate-100">進階設定 (MCP)</button>
+                     <button id="btn-security" data-target="security" class="nav-button text-lg font-semibold py-3 px-8 bg-white rounded-lg shadow-md hover:shadow-xl hover:bg-slate-100">安全與成本</button>
+                    <button id="btn-summary" data-target="summary" class="nav-button text-lg font-semibold py-3 px-8 bg-white rounded-lg shadow-md hover:shadow-xl hover:bg-slate-100">總覽比較</button>
+                </div>
+            </section>
+
+            <!-- Content Area -->
+            <div id="content-area">
+
+                <!-- Flowchart Section (Interactive Wizard) -->
+                <section id="flowchart-section" class="content-section active">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <h2 class="text-3xl font-bold text-center mb-10 text-slate-800">第三部分：互動式決策嚮導</h2>
+                        <div id="decision-wizard" class="max-w-xl mx-auto min-h-[250px] flex flex-col justify-center items-center">
+                           
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Local Dev Section -->
+                <section id="local-section" class="content-section">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <h2 class="text-3xl font-bold text-center mb-8 text-slate-800">第四部分：傳統本機開發環境設定</h2>
+                        <div class="max-w-4xl mx-auto">
+                            <h3 class="text-xl font-semibold mb-4 text-slate-700">三大基石：現代開發環境的必備項目</h3>
+                            <div class="space-y-4 mb-8">
+                                <div class="p-4 bg-slate-50 rounded-lg"><strong>1. 版本控制 (Git):</strong> AI 生成的程式碼可能不完美。Git 能讓您輕鬆比較、審核並在必要時撤銷 AI 的修改，是與 AI 協作的<strong>安全網</strong>。</div>
+                                <div class="p-4 bg-slate-50 rounded-lg"><strong>2. 執行環境 (Runtimes):</strong> AI 工具能幫您寫程式，但最終仍需在對應的環境中執行和測試。建議使用版本管理器（如 `nvm`, `pyenv`）來隔離專案環境。</div>
+                                <div class="p-4 bg-slate-50 rounded-lg"><strong>3. 容器化 (Containerization):</strong> 確保 AI 專案的開發與部署環境完全一致，解決「在我電腦上可以跑」的經典問題。</div>
+                            </div>
+
+                            <div id="local-tabs">
+                                <div class="border-b border-slate-200 mb-6">
+                                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                                        <button data-tab="windows" class="tab-button active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">❖ Windows</button>
+                                        <button data-tab="macos" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">✉️ macOS</button>
+                                        <button data-tab="linux" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">🐧 Linux</button>
+                                    </nav>
+                                </div>
+                                <div id="tab-content">
+                                    <div id="windows-content" class="tab-pane active">
+                                        <p class="mb-4">強烈推薦使用 <strong>WSL 2 (Windows Subsystem for Linux)</strong> 進行開發。</p>
+                                        <div class="bg-slate-800 text-white p-4 rounded-lg font-mono text-sm">
+                                            <p class="mb-2"># 1. 啟用 WSL 2</p>
+                                            <p>wsl --install</p>
+                                            <p class="mt-4 mb-2"># 2. 安裝基礎工具 (在 WSL 內)</p>
+                                            <p>sudo apt update && sudo apt install git python3-pip nodejs npm</p>
+                                            <p class="mt-4"># 3. 在 Windows 端安裝 Cursor，或安裝 VS Code 並在其中安裝 Cline 擴充功能。</p>
+                                        </div>
+                                    </div>
+                                    <div id="macos-content" class="tab-pane hidden">
+                                        <p class="mb-4">推薦使用 <strong>Homebrew</strong> 作為套件管理器。</p>
+                                        <div class="bg-slate-800 text-white p-4 rounded-lg font-mono text-sm">
+                                            <p class="mb-2"># 1. 安裝 Homebrew (若尚未安裝)</p>
+                                            <p>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</p>
+                                            <p class="mt-4 mb-2"># 2. 使用 Homebrew 安裝開發工具</p>
+                                            <p>brew install git python node</p>
+                                            <p class="mt-4"># 3. 安裝 Cursor，或安裝 VS Code 並在其中安裝 Cline 擴充功能。</p>
+                                        </div>
+                                    </div>
+                                    <div id="linux-content" class="tab-pane hidden">
+                                        <p class="mb-4">以 Ubuntu 為例，使用 apt 套件管理器。</p>
+                                        <div class="bg-slate-800 text-white p-4 rounded-lg font-mono text-sm">
+                                            <p class="mb-2"># 1. 安裝基礎工具</p>
+                                            <p>sudo apt update && sudo apt install git python3-pip nodejs npm</p>
+                                            <p class="mt-4"># 2. 安裝 Cursor，或安裝 VS Code 並在其中安裝 Cline 擴充功能。</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cloud Dev Section -->
+                <section id="cloud-section" class="content-section">
+                     <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <h2 class="text-3xl font-bold text-center mb-10 text-slate-800">第五部分：遠端開發環境：告別本機限制</h2>
+                        <div id="cloud-cards" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                            <div data-cloud-target="cloud-ide" class="cloud-card cursor-pointer p-6 border-2 border-transparent rounded-lg hover:bg-slate-50 transition-all duration-300">
+                                <h4 class="font-bold text-lg text-slate-800">全託管雲端 IDE</h4>
+                                <p class="text-sm text-slate-600 mt-1">如 GitHub Codespaces，在瀏覽器中提供完整的開發環境。</p>
+                            </div>
+                            <div data-cloud-target="remote-ssh" class="cloud-card cursor-pointer p-6 border-2 border-transparent rounded-lg hover:bg-slate-50 transition-all duration-300">
+                                <h4 class="font-bold text-lg text-slate-800">遠端主機 + SSH</h4>
+                                <p class="text-sm text-slate-600 mt-1">使用本機編輯器，透過 SSH 連線到雲端主機進行開發。</p>
+                            </div>
+                            <div data-cloud-target="dev-containers" class="cloud-card cursor-pointer p-6 border-2 border-transparent rounded-lg hover:bg-slate-50 transition-all duration-300">
+                                <h4 class="font-bold text-lg text-slate-800">遠端容器化開發</h4>
+                                <p class="text-sm text-slate-600 mt-1">用 Docker 定義環境，在遠端以容器形式運行，實現完美複製。</p>
+                            </div>
+                             <div data-cloud-target="remote-desktop" class="cloud-card cursor-pointer p-6 border-2 border-transparent rounded-lg hover:bg-slate-50 transition-all duration-300">
+                                <h4 class="font-bold text-lg text-slate-800">雲端虛擬桌面</h4>
+                                <p class="text-sm text-slate-600 mt-1">透過遠端桌面連線到雲端，獲取完整的圖形化操作介面。</p>
+                            </div>
+                        </div>
+
+                        <div id="cloud-content-area" class="bg-slate-50 p-6 rounded-lg min-h-[200px]">
+                            <p id="cloud-placeholder" class="text-slate-500 text-center py-10">點擊上方卡片查看各種雲端方案的詳細工作流程、優缺點與 AI 工具整合方式。</p>
+                            <div id="cloud-ide-content" class="cloud-content hidden">
+                                <h3 class="text-2xl font-semibold mb-4">全託管雲端 IDE (如 GitHub Codespaces)</h3>
+                                <p class="mb-4"><strong>工作流程:</strong> 點擊 GitHub 專案的按鈕，幾分鐘內即可在瀏覽器獲得一個功能齊全、已設定好的 VS Code 開發環境。</p>
+                                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                    <div class="bg-green-100 text-green-800 p-3 rounded-lg"><strong>優點:</strong> ✅ 零設定、✅ 環境一致性、✅ 強大後端、✅ 隨處存取</div>
+                                    <div class="bg-red-100 text-red-800 p-3 rounded-lg"><strong>缺點:</strong> ❌ 成本 (按時計費)、❌ 網路依賴、❌ 客製化限制</div>
+                                </div>
+                                <p class="mt-4 p-3 bg-blue-100 text-blue-800 rounded-lg text-sm"><strong>AI 工具整合:</strong> 可直接安裝 <strong>Cline</strong> 等 VS Code 擴充功能。<strong>無法</strong>運行獨立的 <strong>Cursor</strong> 編輯器。</p>
+                            </div>
+                            <div id="remote-ssh-content" class="cloud-content hidden">
+                                <h3 class="text-2xl font-semibold mb-4">遠端主機 + 本機編輯器 (Remote SSH)</h3>
+                                <p class="mb-4"><strong>工作流程:</strong> 在雲端平台(AWS, GCP, Azure)建立一台虛擬主機，自行安裝所需工具，然後使用本機的 VS Code 或 Cursor 透過 SSH 擴充功能連線開發。</p>
+                                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                    <div class="bg-green-100 text-green-800 p-3 rounded-lg"><strong>優點:</strong> ✅ 完全控制、✅ 使用熟悉工具、✅ 成本效益</div>
+                                    <div class="bg-red-100 text-red-800 p-3 rounded-lg"><strong>缺點:</strong> ❌ 設定複雜、❌ 自行維護</div>
+                                </div>
+                                <p class="mt-4 p-3 bg-blue-100 text-blue-800 rounded-lg text-sm"><strong>AI 工具整合:</strong> <strong>最佳整合模式</strong>。您在本機運行流暢的 UI，而所有運算和檔案操作都在遠端主機上進行。</p>
+                            </div>
+                            <div id="dev-containers-content" class="cloud-content hidden">
+                                <h3 class="text-2xl font-semibold mb-4">遠端容器化開發 (Dev Containers)</h3>
+                                <p class="mb-4"><strong>工作流程:</strong> 在專案中撰寫 Dockerfile 來定義環境，VS Code 會在遠端主機上啟動此容器，並將介面連接到容器內部。</p>
+                                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                    <div class="bg-green-100 text-green-800 p-3 rounded-lg"><strong>優點:</strong> ✅ 極致的一致性、✅ 專案隔離、✅ 可攜性高</div>
+                                    <div class="bg-red-100 text-red-800 p-3 rounded-lg"><strong>缺點:</strong> ❌ 學習曲線最高、❌ 初始設定繁瑣</div>
+                                </div>
+                                <p class="mt-4 p-3 bg-blue-100 text-blue-800 rounded-lg text-sm"><strong>AI 工具整合:</strong> <strong>最佳整合模式</strong>，理由同上。環境可被完美複製，是專業團隊的首選。</p>
+                            </div>
+                             <div id="remote-desktop-content" class="cloud-content hidden">
+                                <h3 class="text-2xl font-semibold mb-4">雲端虛擬桌面 (Remote Desktop)</h3>
+                                <p class="mb-4"><strong>工作流程:</strong> 在雲端建立一台帶有 Windows 或 Linux 圖形化桌面的虛擬主機，然後用 RDP 或 VNC 等軟體連線進去操作。</p>
+                                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                    <div class="bg-green-100 text-green-800 p-3 rounded-lg"><strong>優點:</strong> ✅ 體驗最接近本機、✅ 零本機依賴、✅ 集中管理</div>
+                                    <div class="bg-red-100 text-red-800 p-3 rounded-lg"><strong>缺點:</strong> ❌ 對網路品質要求最高、❌ 成本較高</div>
+                                </div>
+                                <p class="mt-4 p-3 bg-blue-100 text-blue-800 rounded-lg text-sm"><strong>AI 工具整合:</strong> <strong>唯一可以在遠端直接運行 Cursor 的方式</strong>。</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- MCP Section -->
+                <section id="mcp-section" class="content-section">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <h2 class="text-3xl font-bold text-center mb-4 text-slate-800">第六部分：進階設定 (MCP)</h2>
+                        <p class="text-center text-slate-600 max-w-3xl mx-auto mb-8">MCP (模型情境協定) 是一個開放協定，它允許 AI 代理連接並使用外部的工具和數據源（如 GitHub, Jira 等）。啟用 MCP 是釋放 AI 代理全部潛力的關鍵。</p>
+                        <div class="max-w-2xl mx-auto bg-slate-800 text-white p-6 rounded-lg font-mono text-sm">
+                            <p class="text-slate-300 mb-4">// 在 .cursor/mcp.json 或 cline_mcp_settings.json 中設定</p>
+                            <pre><code>{
+  "mcpServers": {
+    "github": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "mcp/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
+      }
+    }
+  }
+}</code></pre>
+                            <p class="text-slate-400 mt-4">這是透過 Docker 運行 GitHub MCP Server 的推薦設定方式，穩定且隔離性好。</p>
+                        </div>
+                    </div>
+                </section>
+
+                 <!-- Security and Cost Section -->
+                <section id="security-section" class="content-section">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <h2 class="text-3xl font-bold text-center mb-10 text-slate-800">第七部分：安全性與成本考量</h2>
+                        <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                            <div class="bg-amber-50 p-6 rounded-lg">
+                                <h3 class="text-xl font-bold text-amber-800 mb-3">🔒 安全性須知</h3>
+                                <ul class="list-disc list-inside space-y-2 text-slate-700">
+                                    <li><strong>API 金鑰管理:</strong> 絕不將您的 API Key (OpenAI, Claude 等) 硬編碼在程式碼中。使用環境變數或雲端金鑰管理服務。</li>
+                                    <li><strong>網路安全:</strong> 對於雲端主機，務必設定防火牆 (安全群組)，僅開放必要的連接埠 (如 SSH 的 22, RDP 的 3389)。</li>
+                                    <li><strong>程式碼隱私:</strong> 使用雲端 AI 工具時，您的程式碼片段可能會被傳送到服務商進行分析。請詳閱其隱私政策，對於高度敏感的專案，考慮使用提供自架方案的工具。</li>
+                                </ul>
+                            </div>
+                            <div class="bg-indigo-50 p-6 rounded-lg">
+                                <h3 class="text-xl font-bold text-indigo-800 mb-3">💰 成本考量</h3>
+                                <ul class="list-disc list-inside space-y-2 text-slate-700">
+                                    <li><strong>隨用隨付:</strong> 全託管 IDE 和雲端主機大多是按使用時間計費。記得在不使用時關閉或暫停實例以節省費用。</li>
+                                    <li><strong>固定成本 vs. 變動成本:</strong> 租用一台固定的雲端虛擬主機是可預測的月費，而全託管服務的費用則根據您的使用量浮動。</li>
+                                    <li><strong>資源配置:</strong> 按需選擇 VM 的規格。開發初期可選用較低配置，需要高效能運算時再升級。善用雲端平台的彈性。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                 <!-- Summary Section -->
+                <section id="summary-section" class="content-section">
+                    <h2 class="text-3xl font-bold text-center mb-2 text-slate-800">最終部分：環境決策總覽</h2>
+                    <p class="text-center text-slate-600 mb-8">使用下方的雷達圖與表格，在了解所有細節後，進行最終的權衡比較。</p>
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <div class="chart-container">
+                            <canvas id="summary-chart"></canvas>
+                        </div>
+                        <div class="mt-8 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-200">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">特性</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">本機開發</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">全託管 IDE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">遠端 SSH</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">遠端容器</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">雲端虛擬桌面</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-slate-200">
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">設定難易度</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">控制與彈性</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐⭐⭐</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">環境一致性</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐⭐⭐⭐</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">⭐⭐</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">UI 延遲</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">極低</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">低</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">極低</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">極低</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">中至高</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">Cursor 整合</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">✅</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">❌</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">✅</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">✅</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">✅ (可遠端運行)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            const cloudCards = document.querySelectorAll('.cloud-card');
+            const cloudContents = document.querySelectorAll('.cloud-content');
+            const wizardContainer = document.getElementById('decision-wizard');
+
+            const activateSection = (targetId) => {
+                if (!targetId) return;
+                navButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.target === targetId);
+                });
+                contentSections.forEach(section => {
+                    section.classList.toggle('active', section.id === `${targetId}-section`);
+                });
+                window.scrollTo({ top: document.getElementById('choice').offsetTop - 80, behavior: 'smooth' });
+            };
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    activateSection(button.dataset.target);
+                });
+            });
+
+            // Interactive Wizard Logic
+            const decisionTree = {
+                start: {
+                    question: "需要運行圖形介面(GUI)的應用嗎？ (例如 Cursor)",
+                    options: [
+                        { text: "是", nextId: "result_remote_desktop" },
+                        { text: "否", nextId: "q_consistency" }
+                    ]
+                },
+                q_consistency: {
+                    question: "追求極致的環境一致性與可複製性？",
+                    options: [
+                        { text: "是 (專業團隊)", nextId: "result_dev_containers" },
+                        { text: "否 (更重彈性或簡易)", nextId: "q_control" }
+                    ]
+                },
+                q_control: {
+                    question: "想快速開始，還是要完全控制？",
+                    options: [
+                        { text: "快速開始", nextId: "result_cloud_ide" },
+                        { text: "完全控制", nextId: "result_remote_ssh" }
+                    ]
+                },
+                result_remote_desktop: { isResult: true, recommendation: "雲端虛擬桌面", details: "或 本機開發", navTarget: 'cloud' },
+                result_dev_containers: { isResult: true, recommendation: "遠端容器開發", details: "(Dev Containers)", navTarget: 'cloud' },
+                result_cloud_ide: { isResult: true, recommendation: "全託管雲端 IDE", details: "(GitHub Codespaces)", navTarget: 'cloud' },
+                result_remote_ssh: { isResult: true, recommendation: "遠端主機+SSH", details: "或 本機開發", navTarget: 'cloud' },
+            };
+
+            const renderWizardNode = (nodeId) => {
+                const node = decisionTree[nodeId];
+                wizardContainer.innerHTML = '';
+                
+                const card = document.createElement('div');
+                card.className = 'wizard-card bg-white border border-slate-200 rounded-lg shadow-md p-6 w-full text-center';
+
+                if (node.isResult) {
+                    card.innerHTML = `
+                        <p class="text-slate-600 mb-2">根據您的選擇，推薦方案是：</p>
+                        <h3 class="text-2xl font-bold text-sky-600">${node.recommendation}</h3>
+                        <p class="text-slate-500 mt-1">${node.details}</p>
+                        <div class="mt-6">
+                            <button class="wizard-nav-btn text-white bg-sky-600 hover:bg-sky-700 font-semibold py-2 px-4 rounded-lg" data-nav="${node.navTarget}">查看詳情</button>
+                            <button class="wizard-restart-btn ml-4 text-slate-600 hover:text-slate-800 font-semibold py-2 px-4 rounded-lg">重新開始</button>
+                        </div>
+                    `;
+                } else {
+                    const questionHtml = `<h4 class="text-xl font-semibold text-slate-800 mb-6">${node.question}</h4>`;
+                    const optionsHtml = node.options.map(opt => 
+                        `<button data-next="${opt.nextId}" class="decision-option bg-slate-100 hover:bg-sky-100 text-slate-700 font-semibold py-2 px-6 rounded-lg transition-colors">${opt.text}</button>`
+                    ).join('');
+                    card.innerHTML = questionHtml + `<div class="flex justify-center gap-4">${optionsHtml}</div>`;
+                }
+                
+                wizardContainer.appendChild(card);
+                
+                // Add event listeners for the newly created buttons
+                wizardContainer.querySelectorAll('.decision-option').forEach(button => {
+                    button.addEventListener('click', (e) => renderWizardNode(e.target.dataset.next));
+                });
+                const restartBtn = wizardContainer.querySelector('.wizard-restart-btn');
+                if(restartBtn) {
+                    restartBtn.addEventListener('click', () => renderWizardNode('start'));
+                }
+                const navBtn = wizardContainer.querySelector('.wizard-nav-btn');
+                if(navBtn) {
+                    navBtn.addEventListener('click', (e) => activateSection(e.target.dataset.nav));
+                }
+            };
+            
+            renderWizardNode('start');
+
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    const targetId = button.dataset.tab;
+                    tabPanes.forEach(pane => {
+                        pane.classList.toggle('hidden', pane.id !== `${targetId}-content`);
+                        pane.classList.toggle('active', pane.id === `${targetId}-content`);
+                    });
+                });
+            });
+
+            cloudCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    cloudCards.forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+                    
+                    document.getElementById('cloud-placeholder').classList.add('hidden');
+
+                    const targetId = card.dataset.cloudTarget;
+                    cloudContents.forEach(content => {
+                        content.classList.toggle('hidden', content.id !== `${targetId}-content`);
+                    });
+                });
+            });
+
+
+            const createSummaryChart = () => {
+                const ctx = document.getElementById('summary-chart');
+                if (!ctx) return;
+                const existingChart = Chart.getChart(ctx);
+                if(existingChart) {
+                    existingChart.destroy();
+                }
+                
+                const data = {
+                    labels: ['設定難易度', '控制與彈性', '環境一致性', 'UI 效能', 'Cursor整合度'],
+                    datasets: [
+                        {
+                            label: '本機開發',
+                            data: [3, 5, 1, 5, 5],
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                        },
+                        {
+                            label: '全託管 IDE',
+                            data: [5, 2, 4, 3, 0],
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                             pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                        },
+                        {
+                            label: '遠端 SSH',
+                            data: [2, 5, 2, 5, 5],
+                            borderColor: 'rgba(255, 206, 86, 1)',
+                            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                            pointBackgroundColor: 'rgba(255, 206, 86, 1)',
+                        },
+                        {
+                            label: '遠端容器',
+                            data: [1, 4, 5, 5, 5],
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                        },
+                         {
+                            label: '雲端虛擬桌面',
+                            data: [3, 5, 2, 2, 5],
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                            pointBackgroundColor: 'rgba(153, 102, 255, 1)',
+                        }
+                    ]
+                };
+                const config = {
+                    type: 'radar',
+                    data: data,
+                    options: {
+                        maintainAspectRatio: false,
+                        responsive: true,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 5,
+                                pointLabels: {
+                                    font: {
+                                        size: 14,
+                                        family: "'Noto Sans TC', sans-serif"
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                angleLines: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                ticks: {
+                                    stepSize: 1,
+                                    backdropColor: 'rgba(255, 255, 255, 0.6)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                     font: {
+                                        size: 12,
+                                        family: "'Noto Sans TC', sans-serif"
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.r !== null) {
+                                            label += '⭐'.repeat(context.parsed.r);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                };
+                new Chart(ctx, config);
+            };
+
+            const summarySection = document.getElementById('summary-section');
+            if (summarySection) {
+                 const summaryObserver = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.attributeName === 'class' && mutation.target.classList.contains('active')) {
+                            createSummaryChart();
+                        }
+                    });
+                });
+                 summaryObserver.observe(summarySection, { attributes: true });
+            }
+        });
+    </script>
+</body>
+</html>
