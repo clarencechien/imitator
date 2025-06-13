@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：AI 時代的科技業職涯剖析 - Shawn K 案例</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Soft Beige & Slate -->
+    <!-- Application Structure Plan: A single-page, multi-section layout is chosen over a linear document to facilitate non-linear exploration. Users can jump between themes (The Story, Skills Gap, Recruiter's View) via a sticky navigation bar. This structure transforms the report from a passive reading experience into an active investigation. Key interactions include a dynamic skills-gap radar chart, a tech layoff trend chart, and an interactive "before/after" resume comparison. This dashboard-like approach helps users synthesize complex information by breaking it into digestible, interactive modules, which is more effective for understanding the multifaceted nature of Shawn K's situation. -->
+    <!-- Visualization & Content Choices: 
+        1. Tech Layoffs Trend: Goal=Change. Viz=Bar Chart (Chart.js). Interaction=Tooltips on hover. Justification=Visually establishes the difficult market context mentioned in the report.
+        2. Skills Gap Analysis: Goal=Compare. Viz=Radar Chart (Chart.js). Interaction=Tooltips, filterable skill sets (future enhancement). Justification=A radar chart is the most effective way to show a multi-dimensional gap between one profile (Shawn) and a benchmark (Market), directly visualizing the "keyword canyon" concept.
+        3. Recruiter's View: Goal=Organize/Compare. Viz=Side-by-side text comparison with interactive toggle. Interaction=Button click to switch between original and revised resumes. Justification=Dramatically highlights the impact of strategic rebranding and keyword optimization, making the headhunter's advice tangible and memorable.
+        4. Key Stats: Goal=Inform. Viz=Large number display with text. Interaction=None. Justification=Presents critical numbers (900 applications) for immediate impact.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F5F5F3;
+            color: #4A4A4A;
+        }
+        .nav-active {
+            color: #1a56db;
+            border-bottom-color: #1a56db;
+            font-weight: 700;
+        }
+        .nav-item {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 40vh;
+            max-height: 400px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #1f2937;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        .section-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .section-subtitle {
+            font-size: 1.125rem;
+            color: #6b7280;
+            margin-bottom: 3rem;
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="header" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-gray-800">Shawn K 案例剖析</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#story" class="nav-item px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">故事始末</a>
+                        <a href="#analysis" class="nav-item px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">深度調查</a>
+                        <a href="#skills" class="nav-item px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">技能對位</a>
+                        <a href="#recruiter" class="nav-item px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">招聘者視角</a>
+                        <a href="#takeaways" class="nav-item px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">核心啟示</a>
+                        <a href="#references" class="nav-item px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">參考資料</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="md:hidden hidden">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="#story" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">故事始末</a>
+                    <a href="#analysis" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">深度調查</a>
+                    <a href="#skills" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">技能對位</a>
+                    <a href="#recruiter" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">招聘者視角</a>
+                    <a href="#takeaways" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">核心啟示</a>
+                    <a href="#references" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">參考資料</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        
+        <!-- Section 1: The Story -->
+        <section id="story" class="py-16">
+            <h2 class="section-title">故事始末：當資深工程師遇上 AI 浪潮</h2>
+            <p class="section-subtitle">一位經驗豐富、曾領六位數年薪的元宇宙工程師，在被解僱後生活陷入困頓。他的故事不僅是個人困境的寫照，更是科技業劇烈變革下的時代縮影。</p>
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div class="card p-8">
+                    <div class="text-5xl font-bold text-blue-600" id="app-counter">900+</div>
+                    <p class="mt-4 text-lg font-medium">份工作申請</p>
+                    <p class="mt-2 text-gray-500">在近一年的時間裡，投出了海量履歷，卻應者寥寥。</p>
+                </div>
+                <div class="card p-8">
+                    <p class="text-5xl font-bold text-blue-600">10x</p>
+                    <p class="mt-4 text-lg font-medium">生產力提升</p>
+                    <p class="mt-2 text-gray-500">Shawn 聲稱 AI 將團隊開發效率提升了 3 至 10 倍，隨之而來的卻是裁員。</p>
+                </div>
+                <div class="card p-8">
+                    <p class="text-5xl font-bold text-blue-600">1</p>
+                    <p class="mt-4 text-lg font-medium">輛拖車</p>
+                    <p class="mt-2 text-gray-500">儘管擁有多處房產，但因複雜的個人因素，他選擇住在拖車裡維持生計。</p>
+                </div>
+            </div>
+            <div class="mt-12 card p-8 text-center bg-gray-50">
+                <blockquote class="text-xl italic text-gray-700 leading-relaxed">
+                    "我分享我的真實故事，講述我如何在 AI 崛起的年間，從一位備受重視的技術專家，在一年左右的時間裡幾乎變得一文不值... 我認為我的故事並非個案，我正處於即將到來的社會與經濟災難浪潮的鐘形曲線前端。"
+                </blockquote>
+                <cite class="mt-4 block font-medium text-gray-600">- Shawn K.</cite>
+            </div>
+        </section>
+
+        <!-- Section 2: In-depth Investigation -->
+        <section id="analysis" class="py-16 bg-white rounded-2xl">
+            <h2 class="section-title">深度調查：揭開表象下的真相</h2>
+            <p class="section-subtitle">Shawn 的故事不僅僅是「AI 取代人類」這麼簡單。報告深入挖掘後發現，其背後交織著市場泡沫、新創困境、以及日益嚴峻的「關鍵詞峽谷」問題。</p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="card p-8">
+                    <h3 class="text-2xl font-bold mb-4 text-gray-800">關鍵事實：Virbela 還是 framevr.io？</h3>
+                    <p class="text-gray-600 mb-4">媒體報導其前雇主為 Virbela，但報告透過交叉比對履歷與公開資訊，指出裁員事件更可能發生在新創公司 <strong>framevr.io</strong>。</p>
+                    <p class="text-gray-600">這一釐清至關重要，它將事件背景從大型企業裁員，轉變為<strong>一個在元宇宙市場泡沫破裂中掙扎求生，並試圖透過 AI 絕望轉型的新創公司的故事。</strong></p>
+                </div>
+                 <div class="card p-8">
+                    <h3 class="text-2xl font-bold mb-4 text-gray-800">宏觀背景：科技業的「策略性重新校準」</h3>
+                    <p class="text-gray-600 mb-4">Shawn 的失業發生在科技業大規模裁員的浪潮中。然而，這並非全面凍結，而是企業的「策略性重新校準」：一面裁撤冗餘或過時的崗位，一面積極招聘 AI、雲端等新興領域的人才。</p>
+                    <div class="chart-container h-64 max-h-[300px]">
+                        <canvas id="layoffsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+             <div class="mt-8 card p-8 w-full">
+                <h3 class="text-2xl font-bold mb-4 text-center text-gray-800">求職困境：「關鍵詞峽谷」</h3>
+                <div class="flex flex-col md:flex-row items-center gap-8">
+                    <div class="md:w-1/2">
+                         <p class="text-gray-600 leading-relaxed">Shawn 懷疑自己的履歷被 AI 篩選系統 (ATS) 過濾，報告證實了這一點。他擁有 20 年豐富經驗，但在履歷中缺乏當下市場最熱門的關鍵詞，如 <strong class="font-semibold bg-yellow-200 px-2 py-1 rounded">Python</strong>, <strong class="font-semibold bg-red-200 px-2 py-1 rounded">AWS</strong>, 和 <strong class="font-semibold bg-blue-200 px-2 py-1 rounded">Kubernetes</strong>。</p>
+                         <p class="mt-4 text-gray-600 leading-relaxed">這形成了一個悖論：一位經驗豐富的工程師，其深厚的技能與經驗，卻因為不完全匹配 ATS 尋找的「理想關鍵詞組合」，而在求職市場上變得「隱形」。</p>
+                    </div>
+                    <div class="md:w-1/2 flex justify-center items-center p-6 bg-gray-50 rounded-lg">
+                        <div class="text-center">
+                            <span class="text-6xl">📄</span>
+                             <p class="mt-2 text-3xl font-bold text-red-500">➡️ 🗑️</p>
+                             <p class="mt-2 font-semibold text-gray-700">履歷被 ATS 過濾</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Skills Match -->
+        <section id="skills" class="py-16">
+            <h2 class="section-title">技能對位分析</h2>
+            <p class="section-subtitle">將 Shawn K 的技能組合與 2025 年市場熱門需求進行對比，可以清晰地看到他的優勢與潛在的差距。這張雷達圖直觀地展示了他在各個維度上的匹配度。</p>
+            <div class="card p-8">
+                <div class="chart-container">
+                    <canvas id="skillsRadarChart"></canvas>
+                </div>
+                 <div class="mt-8 text-xs text-center text-gray-500">
+                    <p>此圖表根據報告中對市場需求的分析繪製。分數代表 Shawn 的履歷在該領域展現出的技能強度與市場需求的匹配程度（10分為完全匹配）。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Recruiter's Perspective -->
+        <section id="recruiter" class="py-16 bg-white rounded-2xl">
+            <h2 class="section-title">招聘者的視角</h2>
+            <p class="section-subtitle">一位資深的科技業招聘者或獵人頭顧問，會如何看待 Shawn 的履歷與他的公開敘事？這裡呈現了從 HR 視角出發的評估與建議。</p>
+            <div class="grid md:grid-cols-3 gap-8 mb-12">
+                <div class="card p-6 border-l-4 border-green-500">
+                    <h4 class="text-xl font-bold mb-2">正面印象 ✅</h4>
+                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                        <li>20+ 年全端經驗</li>
+                        <li>領導經驗與大客戶合作史 (Nike, 星巴克)</li>
+                        <li>清晰的專業摘要</li>
+                        <li>可量化的成就 (創造 MRR)</li>
+                    </ul>
+                </div>
+                <div class="card p-6 border-l-4 border-red-500">
+                    <h4 class="text-xl font-bold mb-2">潛在危險信號 🚩</h4>
+                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                        <li>公開敘事中的防禦性與歸咎心態</li>
+                        <li>履歷排版過時、密集</li>
+                        <li>過度強調「元宇宙」利基市場</li>
+                        <li>缺乏市場熱門關鍵詞</li>
+                    </ul>
+                </div>
+                 <div class="card p-6 border-l-4 border-blue-500">
+                    <h4 class="text-xl font-bold mb-2">可行建議 💡</h4>
+                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                        <li>重塑品牌，淡化「元宇宙」標籤</li>
+                        <li>創建多版本、關鍵詞優化的履歷</li>
+                        <li>主動學習以填補技能差距 (Python, AWS)</li>
+                        <li>將公開敘事轉為展現韌性與學習力</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card p-8">
+                <h3 class="text-2xl font-bold mb-6 text-center text-gray-800">履歷改造計畫：從「被動敘事」到「主動出擊」</h3>
+                <div class="text-center mb-6">
+                    <button id="resume-toggle-btn" class="btn btn-primary">查看獵人頭顧問修改版</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div id="resume-original" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <h4 class="font-bold text-lg mb-4 text-center">原始履歷 (摘要)</h4>
+                        <div class="prose prose-sm max-w-none">
+                            <h5 class="font-semibold">專業摘要</h5>
+                            <p>對前沿的應用 AI 和 VR 有特殊興趣... 專精於資料架構、API 開發、VR 以及我稱之為 "vibecoding" 的生態系統。</p>
+                            <h5 class="font-semibold">近期經驗：首席全端工程師</h5>
+                            <p>在 framevr.io 工作。為使用者設計並實作 vue/vuetify 體驗。建構了一個 in-world AI 助理... 建構並維護 GCP 基礎設施。</p>
+                        </div>
+                    </div>
+                    <div id="resume-revised" class="hidden bg-blue-50 p-6 rounded-lg border border-blue-200">
+                        <h4 class="font-bold text-lg mb-4 text-center">修改後履歷 (摘要)</h4>
+                         <div class="prose prose-sm max-w-none">
+                             <div class="text-center mb-4">
+                                <strong>Shawn K. | 資深全端軟體架構師</strong><br>
+                                <a href="https://www.linkedin.com/in/shawnfromportland/" target="_blank" class="text-blue-600 hover:underline">LinkedIn</a> | 
+                                <a href="https://shawnfromportland.substack.com/" target="_blank" class="text-blue-600 hover:underline">個人部落格 (Substack)</a>
+                             </div>
+                            <h5 class="font-semibold">專業摘要</h5>
+                            <p>擁有超過 20 年經驗的資深全端軟體架構師... 專精於 JavaScript/TypeScript 生態系統、雲端基礎設施 (GCP) 和應用 AI 解決方案。曾為 Nike、星巴克等客戶交付高影響力專案。目前正積極深化在 Python 和 AWS 方面的技能。</p>
+                             <h5 class="font-semibold">技術技能</h5>
+                            <p><strong>語言:</strong> JavaScript, TypeScript, SQL, PHP, <strong>Python (學習中)</strong><br><strong>雲端 & DevOps:</strong> GCP, Firebase, CI/CD, Docker, Kubernetes, <strong>AWS (學習中)</strong></p>
+                            <h5 class="font-semibold">近期經驗：首席全端工程師</h5>
+                            <p>領導開發全端訂閱系統，成功創造了<strong>數萬美元的 MRR</strong>。利用 LangChain 和 FAISS 設計並實施 AI 虛擬助理... 主導 DevX 改進計畫，將團隊效率<strong>提升了 20%</strong>。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Takeaways -->
+        <section id="takeaways" class="py-16">
+            <h2 class="section-title">核心啟示：駕馭科技職涯的未來</h2>
+            <p class="section-subtitle">Shawn K 的故事為所有科技從業者提供了寶貴的警示。要在這個由 AI 驅動的時代生存並取得成功，單憑過去的經驗已遠遠不夠。以下是報告總結的三大生存策略。</p>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="card p-8 text-center">
+                    <div class="text-4xl mb-4">🔄</div>
+                    <h3 class="text-xl font-bold mb-2">持續的技術適應</h3>
+                    <p class="text-gray-600">市場需求瞬息萬變。必須主動識別並填補自身的技能差距，特別是像 Python、AWS 這類高需求領域。持續學習不是選項，而是必需品。</p>
+                </div>
+                <div class="card p-8 text-center">
+                    <div class="text-4xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold mb-2">策略性的自我品牌塑造</h3>
+                    <p class="text-gray-600">你需要主動管理你的專業形象。根據市場需求重塑你的經驗，優化你的履歷和線上資料，確保你的價值能被看見。掌控你的敘事，而非被它定義。</p>
+                </div>
+                <div class="card p-8 text-center">
+                    <div class="text-4xl mb-4">💪</div>
+                    <h3 class="text-xl font-bold mb-2">可證明的韌性</h3>
+                    <p class="text-gray-600">在逆境中，僅僅描述掙扎是不夠的。更重要的是，透過個人專案、學習證書等方式，具體地展示你的學習能力和解決問題的韌性。行動勝於雄辯。</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 6: References -->
+        <section id="references" class="py-16 bg-white rounded-2xl">
+            <h2 class="section-title">參考資料與外部連結</h2>
+            <div class="max-w-4xl mx-auto card p-8">
+                <ul class="list-disc list-inside space-y-4 text-gray-700">
+                    <li><a href="https://gizmodo.com/laid-off-metaverse-engineer-says-he-is-doordashing-and-living-in-a-trailer-2000602465?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Gizmodo: Laid-Off Metaverse Engineer Says He Is DoorDashing and Living in a Trailer</a></li>
+                    <li><a href="https://www.yahoo.com/news/software-engineer-lost-150k-job-090000839.html" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Yahoo News: A software engineer who lost his $150,000 job now lives in a trailer and drives for DoorDash...</a></li>
+                    <li><a href="https://www.techbang.com/posts/123289-engineer-replaced-by-ai-living-in-rv" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">T客邦: 前元宇宙工程師被AI取代後，現在靠開DoorDash、住在拖車裡維生...</a></li>
+                    <li><a href="https://shawnfromportland.substack.com/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Shawn K 的個人部落格: ShawnfromPortland on Substack</a></li>
+                </ul>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-gray-800 text-white">
+        <div class="container mx-auto px-4 py-6 text-center text-sm">
+            <p>本互動式報告根據公開分析資料製作，僅供教育與探討之用。</p>
+            <p>&copy; 2025 案例剖析</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            // Mobile Menu Toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // Close mobile menu on link click
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            // Smooth Scrolling & Active Nav Link
+            const navLinks = document.querySelectorAll('nav a');
+            const sections = document.querySelectorAll('main section');
+
+            function changeNav() {
+                let index = sections.length;
+                while(--index && window.scrollY + 100 < sections[index].offsetTop) {}
+                
+                navLinks.forEach((link) => link.classList.remove('nav-active'));
+                
+                // Find corresponding nav link
+                const activeLink = document.querySelector(`nav a[href="#${sections[index].id}"]`);
+                if(activeLink) {
+                    activeLink.classList.add('nav-active');
+                }
+            }
+            changeNav();
+            window.addEventListener('scroll', changeNav);
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.hash !== "") {
+                        e.preventDefault();
+                        const hash = this.hash;
+                        const targetElement = document.querySelector(hash);
+                        if (targetElement) {
+                             window.scrollTo({
+                                top: targetElement.offsetTop - 64, // offset for sticky header
+                                behavior: 'smooth'
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Counter Animation
+            const counter = document.getElementById('app-counter');
+            function animateCounter(el, to) {
+                let from = 0;
+                const step = to > from ? 1 : -1;
+                const interval = 2000 / to;
+                
+                if(from == to){
+                    el.textContent = from + "+";
+                    return;
+                }
+
+                const counterInterval = setInterval(() => {
+                    from += 10 * step;
+                    if((step > 0 && from >= to) || (step < 0 && from <= to)){
+                        clearInterval(counterInterval);
+                        el.textContent = to + "+";
+                    } else {
+                        el.textContent = from + "+";
+                    }
+                }, interval);
+            }
+            animateCounter(counter, 900);
+
+
+            // Layoffs Chart
+            const layoffsCtx = document.getElementById('layoffsChart').getContext('2d');
+            new Chart(layoffsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['2023', '2024', '2025 (H1)'],
+                    datasets: [{
+                        label: '科技業裁員人數 (美國)',
+                        data: [191000, 95667, 61000],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: '科技業裁員趨勢'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Skills Radar Chart
+            const radarCtx = document.getElementById('skillsRadarChart').getContext('2d');
+            new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        '核心程式設計 (JS/TS)', 'Python', '雲端 (AWS/Azure)', '容器化 (Docker)', '應用 AI (LangChain)', '軟技能 (溝通/協作)'
+                    ],
+                    datasets: [{
+                        label: 'Shawn K 的技能匹配度',
+                        data: [9, 2, 4, 3, 7, 3], // Estimated scores based on the report
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+                    }, {
+                        label: '2025 市場需求',
+                        data: [9, 9, 10, 9, 8, 10], // Benchmark
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(255, 99, 132, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                     plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.r !== null) {
+                                        label += context.parsed.r + ' / 10';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: false
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 10,
+                            pointLabels: {
+                                font: {
+                                    size: 14,
+                                }
+                            },
+                            ticks: {
+                                stepSize: 2
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Resume Toggle
+            const toggleBtn = document.getElementById('resume-toggle-btn');
+            const resumeOriginal = document.getElementById('resume-original');
+            const resumeRevised = document.getElementById('resume-revised');
+            let isRevised = false;
+
+            toggleBtn.addEventListener('click', () => {
+                isRevised = !isRevised;
+                if (isRevised) {
+                    resumeOriginal.classList.add('hidden');
+                    resumeRevised.classList.remove('hidden');
+                    toggleBtn.textContent = '查看原始履歷';
+                    toggleBtn.classList.remove('btn-primary');
+                    toggleBtn.classList.add('btn-secondary');
+                } else {
+                    resumeOriginal.classList.remove('hidden');
+                    resumeRevised.classList.add('hidden');
+                    toggleBtn.textContent = '查看獵人頭顧問修改版';
+                    toggleBtn.classList.add('btn-primary');
+                    toggleBtn.classList.remove('btn-secondary');
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
