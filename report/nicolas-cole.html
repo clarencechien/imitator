@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>解構 Nicolas Cole：從寫手到數位帝國的煉金術</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as a tab-based single-page experience to transform the dense report into an engaging exploration. The structure is thematic rather than linear: 1. **崛起之路 (The Ascent):** A visual timeline to show his career progression. 2. **核心哲學 (Core Philosophy):** Interactive cards to explain his key ideas. 3. **商業版圖 (Business Empire):** A dashboard with a revenue chart and details on his ventures. 4. **著作與心法 (Works & Strategies):** An interactive library of his books and frameworks. 5. **影響力與反思 (Impact & Critique):** A balanced view of his contributions and the ethical discussions. This structure allows users to navigate based on interest, making the complex information more digestible and engaging than a simple scrollable report. -->
+    <!-- Visualization & Content Choices: 1. **Timeline (崛起之路):** Goal: Show change. Method: HTML/CSS vertical timeline. Interaction: Click to expand details. Justification: Visually compelling way to narrate a career journey. 2. **Bar Chart (商業版圖):** Goal: Compare. Method: Chart.js Canvas. Interaction: Tooltips on hover. Justification: Effectively quantifies the financial success of his ventures. 3. **Interactive Cards (核心哲學/商業版圖):** Goal: Organize & Inform. Method: HTML/CSS grid. Interaction: Click to show detailed info. Justification: Breaks down complex ideas into manageable, explorable chunks. 4. **Dynamic Content Panels (著作與心法):** Goal: Inform. Method: JS-driven content switching. Interaction: Click a "book" to populate details. Justification: Creates a clean, focused "library" experience without clutter. All choices prioritize interaction and clarity, using Chart.js for data viz and structured HTML/CSS for diagrams. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .tab-active {
+            border-color: #A0522D;
+            color: #A0522D;
+            font-weight: 700;
+        }
+        .tab-inactive {
+            border-color: transparent;
+            color: #6B7280;
+        }
+        .content-section {
+            display: none;
+        }
+        .active-section {
+            display: block;
+        }
+        .book-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .book-card-active {
+             border-color: #A0522D;
+             transform: translateY(-5px);
+             box-shadow: 0 10px 15px -3px rgba(160, 82, 45, 0.2), 0 4px 6px -2px rgba(160, 82, 45, 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <!-- Header -->
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-3xl md:text-5xl font-bold text-gray-800 mb-2">解構 Nicolas Cole</h1>
+            <p class="text-lg md:text-xl text-gray-600">從寫手到數位帝國的煉金術</p>
+            <div class="mt-4 text-sm text-gray-500">一份將深度報告轉化為互動體驗的分析</div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="flex justify-center border-b border-gray-200 mb-8">
+            <div class="flex flex-wrap justify-center -mb-px">
+                <button data-tab="tab-ascent" class="nav-tab tab-active text-sm md:text-base py-3 px-3 md:px-6 border-b-2 font-medium">崛起之路</button>
+                <button data-tab="tab-philosophy" class="nav-tab tab-inactive text-sm md:text-base py-3 px-3 md:px-6 border-b-2 font-medium">核心哲學</button>
+                <button data-tab="tab-empire" class="nav-tab tab-inactive text-sm md:text-base py-3 px-3 md:px-6 border-b-2 font-medium">商業版圖</button>
+                <button data-tab="tab-works" class="nav-tab tab-inactive text-sm md:text-base py-3 px-3 md:px-6 border-b-2 font-medium">著作與心法</button>
+                <button data-tab="tab-impact" class="nav-tab tab-inactive text-sm md:text-base py-3 px-3 md:px-6 border-b-2 font-medium">影響力與反思</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Section: Ascent -->
+            <section id="tab-ascent" class="content-section active-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800">從谷底到巔峰的旅程</h2>
+                    <p class="text-gray-600 mt-2 max-w-2xl mx-auto">本區塊以時間軸呈現 Nicolas Cole 如何從一位住在漏水公寓、窮困潦倒的寫手，憑藉在 Quora 平台的崛起，逐步轉型為高價代筆作家，最終建立起自己的數位帝國。點擊各個節點，探索他職業生涯中的關鍵轉捩點。</p>
+                </div>
+                <div class="relative border-l-2 border-amber-800/30 ml-6 md:ml-0 md:mx-auto md:w-full md:max-w-3xl">
+                    <!-- Timeline Item -->
+                    <div class="mb-8 pl-8 md:pl-12 relative timeline-item cursor-pointer">
+                        <div class="absolute -left-[11px] top-1.5 w-5 h-5 bg-white border-4 border-amber-700 rounded-full"></div>
+                        <h3 class="font-bold text-lg text-amber-900">早期掙扎 (2010s 初期)</h3>
+                        <p class="text-sm text-gray-500">主修小說，副修健美</p>
+                        <div class="details hidden mt-2 p-4 bg-amber-50 rounded-lg border border-amber-200 text-gray-700">
+                            大學時期，Cole 因其健美運動員的身份在寫作課堂上顯得格格不入。他曾因未被診斷的乳糜瀉而營養不良，充滿不安全感。畢業後，他過著辛苦接案、低薪且超時工作的窮苦生活，住在洛杉磯的便宜小套房，天花板上還有個巨大的漏水水球。
+                        </div>
+                    </div>
+                    <!-- Timeline Item -->
+                    <div class="mb-8 pl-8 md:pl-12 relative timeline-item cursor-pointer">
+                        <div class="absolute -left-[11px] top-1.5 w-5 h-5 bg-white border-4 border-amber-700 rounded-full"></div>
+                        <h3 class="font-bold text-lg text-amber-900">Quora 崛起 (2015-2018)</h3>
+                        <p class="text-sm text-gray-500">成為平台頂級寫手</p>
+                        <div class="details hidden mt-2 p-4 bg-amber-50 rounded-lg border border-amber-200 text-gray-700">
+                            Cole 在問答平台 Quora 上大量、高頻率地寫作，連續四年被評為「頂級寫手」，內容瀏覽量達數千萬次。Quora 成為他數位寫作理念的試煉場，讓他透過數據反饋快速迭代，找到最能引起讀者共鳴的主題與風格。
+                        </div>
+                    </div>
+                     <!-- Timeline Item -->
+                    <div class="mb-8 pl-8 md:pl-12 relative timeline-item cursor-pointer">
+                        <div class="absolute -left-[11px] top-1.5 w-5 h-5 bg-white border-4 border-amber-700 rounded-full"></div>
+                        <h3 class="font-bold text-lg text-amber-900">代筆之路 (Ghostwriting)</h3>
+                        <p class="text-sm text-gray-500">從「地下作者」到領域之王</p>
+                        <div class="details hidden mt-2 p-4 bg-amber-50 rounded-lg border border-amber-200 text-gray-700">
+                           因在 Quora 的成功，他收到為高階主管代筆的請求。他將此定位為「地下作者」，並專注於這個利基市場。他發現報價越高，客戶反而越多，因為他的客戶是不缺錢但缺時間的菁英。透過為菁英代筆，他不僅賺取高額報酬，更從客戶身上學習到寶貴的知識與人脈。
+                        </div>
+                    </div>
+                    <!-- Timeline Item -->
+                    <div class="mb-8 pl-8 md:pl-12 relative timeline-item cursor-pointer">
+                        <div class="absolute -left-[11px] top-1.5 w-5 h-5 bg-white border-4 border-amber-700 rounded-full"></div>
+                        <h3 class="font-bold text-lg text-amber-900">創辦 Digital Press (2016)</h3>
+                        <p class="text-sm text-gray-500">建立首家代筆服務機構</p>
+                        <div class="details hidden mt-2 p-4 bg-amber-50 rounded-lg border border-amber-200 text-gray-700">
+                            Cole 創辦 Digital Press，專為高階主管及矽谷創辦人/投資者提供服務。這個機構成為他實踐代筆理念、測試商業模式的場域，為他日後創辦 Premium Ghostwriting Academy (PGA) 課程奠定了實務基礎。
+                        </div>
+                    </div>
+                    <!-- Timeline Item -->
+                    <div class="mb-8 pl-8 md:pl-12 relative timeline-item cursor-pointer">
+                        <div class="absolute -left-[11px] top-1.5 w-5 h-5 bg-white border-4 border-amber-700 rounded-full"></div>
+                        <h3 class="font-bold text-lg text-amber-900">出版奠基之作 (2020)</h3>
+                        <p class="text-sm text-gray-500">《線上寫作的藝術與商業》</p>
+                        <div class="details hidden mt-2 p-4 bg-amber-50 rounded-lg border border-amber-200 text-gray-700">
+                            出版《The Art and Business of Online Writing》，系統性地闡述了他在數位時代的寫作哲學與成功法則。這本書成為數位創作者的「聖經」，奠定了他在該領域的思想領袖地位。
+                        </div>
+                    </div>
+                    <!-- Timeline Item -->
+                    <div class="mb-8 pl-8 md:pl-12 relative timeline-item cursor-pointer">
+                        <div class="absolute -left-[11px] top-1.5 w-5 h-5 bg-white border-4 border-amber-700 rounded-full"></div>
+                        <h3 class="font-bold text-lg text-amber-900">開創教育事業 (2020s)</h3>
+                        <p class="text-sm text-gray-500">Ship 30 for 30 & PGA</p>
+                        <div class="details hidden mt-2 p-4 bg-amber-50 rounded-lg border border-amber-200 text-gray-700">
+                            與 Dickie Bush 共同創辦「Ship 30 for 30」寫作營，並推出「Premium Ghostwriting Academy」(PGA)，將他的知識與經驗產品化，教導成千上萬的寫作者建立寫作事業，建立起橫跨課程、社群、電子報的龐大商業版圖。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Philosophy -->
+            <section id="tab-philosophy" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800">數位時代的寫作革命</h2>
+                    <p class="text-gray-600 mt-2 max-w-2xl mx-auto">此區塊深入探討 Nicolas Cole 的核心寫作哲學。他徹底顛覆了傳統寫作觀念，提倡一種更務實、更具策略性的數位寫作方式。探索以下關鍵理念，了解他如何重新定義21世紀的作家。</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">絕不自稱「寫手」</h3>
+                        <p class="text-gray-600">Cole 認為，「寫手」一詞常與低薪掛鉤，願意接任何案子，導致無法在特定領域積累經驗。他主張作家應自創一個無人競爭的專屬領域，成為該領域的王者。他自己的王位就是「地下作者 (Ghostwriter)」。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">量、一致性與速度</h3>
+                        <p class="text-gray-600">「量是成功的新秘訣。」他堅信在數位時代，多產是所有人的基本門檻。高產量不僅是追求數量，更是快速提升技能、收集讀者數據的策略。不完美但已發表，勝過完美但未發表。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">為現有讀者群寫作</h3>
+                        <p class="text-gray-600">他建議初學者不要一開始就自建部落格，而是利用 Quora、Medium 等現有平台，那裡已經有讀者群，可以獲得即時反饋，快速測試什麼內容有效，從而加速學習曲線。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">創造自己的分類 (Category of One)</h3>
+                        <p class="text-gray-600">與其在現有市場中成為「更好」的，不如創造一個讓自己「與眾不同」的新領域。這是他與 Category Pirates 合作的核心思想。作家應定義、命名並宣稱一個新問題/領域，從而擺脫競爭。</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">代筆：邊領錢邊學習</h3>
+                        <p class="text-gray-600">他將代筆視為一種「數位時代的學徒制」。寫手不僅能賺取高額報酬，更能直接向各行業的菁英客戶學習頂級知識、商業頭腦與人脈，是一條加速成長的捷徑。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">作家即企業家</h3>
+                        <p class="text-gray-600">他主張作家應擁有多元化的收入組合，而不僅僅依賴書籍銷售。透過將知識產品化，經營課程、電子報、SaaS 產品，作家可以將自己從「飢餓的藝術家」轉變為「蓬勃發展的數位企業家」。</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Section: Empire -->
+            <section id="tab-empire" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800">數位寫作帝國版圖</h2>
+                    <p class="text-gray-600 mt-2 max-w-2xl mx-auto">Nicolas Cole 不僅是作家，更是一位成功的連續創業家。他將自己的寫作理念轉化為多個成功的商業項目，形成了一個以寫作為核心的生態系統。本區塊將展示他主要事業體的概況與其驚人的營收表現。</p>
+                </div>
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-center text-gray-700 mb-4">部分事業年營收 (預估)</h3>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">Ship 30 for 30</h3>
+                        <p class="text-gray-600">與 Dickie Bush 共同創辦的30天線上寫作課程，要求參與者每日發表。它透過行為心理學原理（承諾、社群、習慣養成）幫助超過7000名學生建立寫作習慣，是寫作者「從0到1」的入門磚。 (課程定價: $800)</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">Premium Ghostwriting Academy (PGA)</h3>
+                        <p class="text-gray-600">一個高級代筆作家實戰培訓計畫。它提供一個完整的商業系統，教導寫作者如何將服務產品化、進行高價值定位和定價，將自由撰稿人轉變為專業服務企業主。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">Category Pirates</h3>
+                        <p class="text-gray-600">與 Christopher Lochhead 等人合著的「領域設計」權威品牌。透過付費電子報和書籍，教導企業家和創作者如何創造並主導新的市場利基，擺脫競爭，成為與眾不同。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-xl mb-2 text-gray-800">其他事業</h3>
+                        <p class="text-gray-600">Cole 的版圖還包括：專為高階主管服務的代筆機構 Digital Press (已結束)、SaaS 寫作平台 Typeshare，以及探討 AI 寫作的付費電子報 Write With AI，展現了他多元化的創業觸角。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Works -->
+            <section id="tab-works" class="content-section">
+                 <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800">著作與實戰心法</h2>
+                    <p class="text-gray-600 mt-2 max-w-2xl mx-auto">Nicolas Cole 的著作系統性地闡述了他的哲學，而他提供的實戰心法則將這些理念轉化為可操作的步驟。本區塊將像一個小型圖書館，您可以點選左側的書籍或心法，在右側查看其核心內容摘要。</p>
+                </div>
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="md:w-1/3">
+                        <div id="book-list" class="space-y-4">
+                           <div data-id="online-writing" class="book-card p-4 border-2 border-transparent rounded-lg cursor-pointer bg-white shadow-sm">
+                               <h3 class="font-bold text-gray-800">線上寫作的藝術與商業</h3>
+                               <p class="text-sm text-gray-500">The Art and Business of Online Writing</p>
+                           </div>
+                           <div data-id="ghostwriting" class="book-card p-4 border-2 border-transparent rounded-lg cursor-pointer bg-white shadow-sm">
+                               <h3 class="font-bold text-gray-800">代筆的藝術與商業</h3>
+                               <p class="text-sm text-gray-500">The Art & Business Of Ghostwriting</p>
+                           </div>
+                           <div data-id="snow-leopard" class="book-card p-4 border-2 border-transparent rounded-lg cursor-pointer bg-white shadow-sm">
+                               <h3 class="font-bold text-gray-800">雪豹 (Snow Leopard)</h3>
+                               <p class="text-sm text-gray-500">How Legendary Writers Create A Category Of One</p>
+                           </div>
+                           <div data-id="frameworks" class="book-card p-4 border-2 border-transparent rounded-lg cursor-pointer bg-white shadow-sm">
+                               <h3 class="font-bold text-gray-800">核心創作框架</h3>
+                               <p class="text-sm text-gray-500">Content Creation Frameworks</p>
+                           </div>
+                        </div>
+                    </div>
+                    <div class="md:w-2/3">
+                        <div id="book-details" class="p-6 bg-white rounded-lg shadow-sm border border-gray-200 min-h-[300px]">
+                           <!-- Details will be populated here by JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Section: Impact -->
+            <section id="tab-impact" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800">影響力與批判性反思</h2>
+                    <p class="text-gray-600 mt-2 max-w-2xl mx-auto">任何具影響力的人物及其方法論，都應從多個角度進行審視。本區塊旨在平衡呈現 Nicolas Cole 對創作者經濟的巨大貢獻，以及其理念可能引發的相關討論與道德思辨。</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-green-50 p-6 rounded-lg border border-green-200">
+                        <h3 class="font-bold text-xl mb-3 text-green-800">正面影響與貢獻</h3>
+                        <ul class="space-y-4 text-green-900 list-disc list-inside">
+                            <li><strong class="font-semibold">賦能創作者：</strong>他將線上寫作的成功要素系統化、可複製化，降低了無數寫作者進入市場並實現變現的門檻。</li>
+                            <li><strong class="font-semibold">普及「作家企業家」思維：</strong>他將作家的形象從孤獨的藝術家，轉變為能掌握自身命運的企業主，普及了多元化收入和商業頭腦的重要性。</li>
+                             <li><strong class="font-semibold">打破浪漫化想像：</strong>他提出的「殘酷真相」雖然直接，卻為作家們在競爭激烈的數位環境中實現財務成功，提供了一條務實、可行的道路。</li>
+                        </ul>
+                    </div>
+                     <div class="bg-red-50 p-6 rounded-lg border border-red-200">
+                        <h3 class="font-bold text-xl mb-3 text-red-800">批判性思考與道德維度</h3>
+                        <ul class="space-y-4 text-red-900 list-disc list-inside">
+                            <li><strong class="font-semibold">真實性 vs. 演算法：</strong>過度強調獲取注意力與數據優化，可能導致內容趨向「點閱誘餌」，犧牲了寫作的深度與真實性，讓讀者感覺「被操弄」。</li>
+                            <li><strong class="font-semibold">代筆的倫理問題：</strong>代筆本身存在道德討論空間，例如透明度、建立不實專家形象的風險等。雖然他的模式試圖專業化，但根本問題依然存在。</li>
+                            <li><strong class="font-semibold">個人責任的重壓：</strong>他將成功的責任完全置於個人身上，這種「嚴厲的愛」可能激勵某些人，但對另一些尋求溫和鼓勵的人來說，可能是一種壓力。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.nav-tab');
+            const sections = document.querySelectorAll('.content-section');
+            const timelineItems = document.querySelectorAll('.timeline-item');
+            const bookList = document.getElementById('book-list');
+            const bookDetailsContainer = document.getElementById('book-details');
+
+            const bookData = {
+                'online-writing': {
+                    title: '《線上寫作的藝術與商業》核心觀點',
+                    content: `
+                        <p class="mb-4">此書是 Cole 的奠基之作，系統化闡述了數位寫作的成功法則。它本身就是其方法論的生動範例。</p>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>為現有讀者群寫作：</strong>不要自建部落格，去讀者聚集的平台 (Quora, Medium)。</li>
+                            <li><strong>七個成功層次：</strong>從選擇分類、定義風格，到為速度優化、打造可信度。</li>
+                            <li><strong>注意力法則：</strong>教授如何撰寫引人入勝的標題、採用易於瀏覽的排版，以在注意力爭奪戰中勝出。</li>
+                            <li><strong>自我參照：</strong>書本身就運用了其所教授的技巧，讓讀者在閱讀中體驗其方法的有效性。</li>
+                        </ul>
+                    `
+                },
+                'ghostwriting': {
+                    title: '《代筆的藝術與商業》核心觀點',
+                    content: `
+                        <p class="mb-4">此書將代筆從文字服務，提升為一種策略性夥伴關係與高價值技能。</p>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>思想的提煉：</strong>代筆的核心是幫助客戶提煉思考，而非僅僅撰寫文字。</li>
+                            <li><strong>數位時代的學徒制：</strong>透過為菁英代筆，寫作者可以「邊領錢邊學習」，快速獲得行業知識與人脈。</li>
+                            <li><strong>利基市場專業化：</strong>專注於特定領域能帶來更高的價值與報酬。</li>
+                            <li><strong>重新定義價值：</strong>將代筆從可能被視為「隱藏」或「剝削性」的技藝，轉變為加速成長的策略性職業選擇。</li>
+                        </ul>
+                    `
+                },
+                'snow-leopard': {
+                    title: '《雪豹》核心觀點',
+                    content: `
+                        <p class="mb-4">這本與 Category Pirates 合著的書，是針對作家進行「領域設計」的關鍵讀本。</p>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>創造你自己的分類：</strong>與其成為「更好」，不如追求「與眾不同」。</li>
+                            <li><strong>摒棄「更好陷阱」：</strong>在現有領域競爭是一場註定失敗的遊戲。</li>
+                            <li><strong>語言改造 (Languaging)：</strong>透過界定、命名和宣稱一個新的問題或領域，來主導市場。</li>
+                            <li><strong>差異化就是一切：</strong>這本書為作家如何擺脫競爭、定義自己的市場，提供了強大的策略框架。</li>
+                        </ul>
+                    `
+                },
+                'frameworks': {
+                    title: '核心創作框架',
+                    content: `
+                        <p class="mb-4">Cole 提供了一系列具體框架，旨在將創意發想系統化，揭開內容創作的神秘面紗。</p>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            <li><strong>無限創意產生器 (Endless Idea Generator):</strong> 系統化地解決寫作者「不知道寫什麼」的困境。</li>
+                            <li><strong>4A 框架 (Actionable, Analytical, Aspirational, Anthropological):</strong> 將一個想法以多種不同角度表達，實現內容的再利用。</li>
+                            <li><strong>黃金交叉點 (The Golden Intersection):</strong> 指導寫作者在個人興趣與讀者需求之間找到平衡，寫出既真實又有市場的內容。</li>
+                            <li><strong>內容桶 (Content Buckets):</strong> 將內容分為大眾、利基和公司/行業型，以清晰地劃分內容方向。</li>
+                        </ul>
+                    `
+                }
+            };
+            
+            function updateBookDetails(bookId) {
+                const data = bookData[bookId];
+                if (data) {
+                    bookDetailsContainer.innerHTML = `
+                        <h3 class="font-bold text-xl mb-4 text-gray-800">${data.title}</h3>
+                        <div>${data.content}</div>
+                    `;
+                }
+                
+                document.querySelectorAll('.book-card').forEach(card => {
+                    card.classList.remove('book-card-active');
+                });
+                document.querySelector(`.book-card[data-id="${bookId}"]`).classList.add('book-card-active');
+            }
+
+            bookList.addEventListener('click', function(e) {
+                const card = e.target.closest('.book-card');
+                if(card) {
+                    const bookId = card.dataset.id;
+                    updateBookDetails(bookId);
+                }
+            });
+
+            // Init first book
+            updateBookDetails('online-writing');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.dataset.tab;
+
+                    tabs.forEach(t => {
+                        t.classList.remove('tab-active');
+                        t.classList.add('tab-inactive');
+                    });
+                    tab.classList.add('tab-active');
+                    tab.classList.remove('tab-inactive');
+
+                    sections.forEach(section => {
+                        section.classList.remove('active-section');
+                        if (section.id === target) {
+                            section.classList.add('active-section');
+                        }
+                    });
+                });
+            });
+            
+            timelineItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const details = item.querySelector('.details');
+                    details.classList.toggle('hidden');
+                });
+            });
+
+            // Chart.js implementation
+            const ctx = document.getElementById('revenueChart');
+            if(ctx) {
+                const revenueData = {
+                    labels: ['Write With AI (付費電子報)', 'Category Pirates (電子報)'],
+                    datasets: [{
+                        label: '預估年營收 (美元)',
+                        data: [300000, 200000],
+                        backgroundColor: [
+                            'rgba(160, 82, 45, 0.6)',
+                            'rgba(120, 120, 120, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(160, 82, 45, 1)',
+                            'rgba(120, 120, 120, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: revenueData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value, index, values) {
+                                        return '$' + (value / 1000) + 'k';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.x !== null) {
+                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.x);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
