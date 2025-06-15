@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>肌少症對策：七大水果互動指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Amber & Stone -->
+    <!-- Application Structure Plan: A single-page, vertical-scrolling application designed for clarity and ease of use by an older audience. The structure is thematic: Introduction -> Interactive Fruit Explorer (grid of clickable cards opening a focused modal) -> Comparative Nutrient Chart -> Conclusion. This non-linear exploration via modals prevents overwhelming the user with a long page, while the chart provides a high-level synthesis of the key benefits, enhancing understanding beyond a simple list. -->
+    <!-- Visualization & Content Choices: Report Info: Seven fruits and their benefits. Goal: Inform & Compare. Viz/Presentation: 1. Fruit Details: Presented in a modal dialog (HTML/JS) for focused learning. Interaction: Click a fruit card to open. Justification: Avoids information overload. 2. Nutrient Comparison: Presented as an interactive horizontal bar chart (Chart.js/Canvas). Interaction: Tooltips on hover provide details. Justification: Synthesizes qualitative data into a quantitative-like comparison, revealing patterns (e.g., which fruits are best for inflammation). CONFIRMATION: NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #FFFCF5; /* A very light warm cream */
+            color: #44403c; /* Stone 700 */
+        }
+        .fruit-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .fruit-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        dialog::backdrop {
+            background-color: rgba(40, 38, 35, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-3xl md:text-5xl font-bold text-amber-900 mb-2">肌少症對策</h1>
+            <p class="text-lg md:text-xl text-stone-600">探索七種強效水果，為您的肌肉注入力量</p>
+        </header>
+
+        <!-- Introduction Section -->
+        <section id="intro" class="max-w-4xl mx-auto mb-16">
+            <div class="bg-white/70 backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-sm border border-stone-200">
+                <h2 class="text-2xl font-bold text-amber-800 mb-4">什麼是肌少症？</h2>
+                <p class="text-stone-700 leading-relaxed">
+                    隨著年齡增長，您是否感覺體力下降、更容易疲勞？這可能不僅僅是「變老了」，而是一種稱為「肌少症」的健康挑戰，也就是肌肉量和力量的流失。這個互動指南將帶您認識七種營養豐富的水果，它們是您對抗肌肉流失、保持活力的天然盟友。讓我們一起用美味的方式，為健康打下堅實基礎。
+                </p>
+            </div>
+        </section>
+        
+        <!-- Fruit Explorer Section -->
+        <section id="explorer" class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl md:text-3xl font-bold text-amber-800 mb-2">水果探索家</h2>
+                <p class="text-stone-600">點擊下方任一水果卡片，深入了解它的神奇功效。</p>
+            </div>
+            <div id="fruit-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
+                <!-- Fruit cards will be populated by JavaScript -->
+            </div>
+        </section>
+        
+        <!-- Comparison Chart Section -->
+        <section id="comparison" class="mb-16">
+            <div class="text-center mb-8">
+                 <h2 class="text-2xl md:text-3xl font-bold text-amber-800 mb-2">功效速覽比較</h2>
+                <p class="text-stone-600">快速比較不同水果的主要營養貢獻。</p>
+            </div>
+            <div class="bg-white/70 backdrop-blur-sm p-4 md:p-8 rounded-2xl shadow-sm border border-stone-200">
+                <p class="text-center text-sm text-stone-500 mb-4">這是一個基於報告內容的相對貢獻圖。分數越高，代表該水果在該項益處上被特別強調。</p>
+                <div class="chart-container">
+                    <canvas id="fruitChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Conclusion Section -->
+        <section id="conclusion" class="max-w-4xl mx-auto">
+             <div class="bg-white/70 backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-sm border border-stone-200">
+                <h2 class="text-2xl font-bold text-amber-800 mb-4">從今天開始的小改變</h2>
+                <p class="text-stone-700 leading-relaxed mb-4">
+                    對抗肌肉流失並不需要徹底改變生活，而是從每天的飲食中做出微小而有力的選擇。我們介紹的這七種水果，不僅美味，更是您保護肌肉力量、維持獨立生活與享受活力的好幫手。
+                </p>
+                <p class="text-stone-700 leading-relaxed">
+                    試著在早餐加入一把漿果，或在下午茶時享用幾顆黑棗乾。當這些健康的習慣累積起來，您會感覺更強壯、行動更輕鬆，並更有精力去享受您所熱愛的事物。
+                </p>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Modal Dialog -->
+    <dialog id="fruit-modal" class="p-0 rounded-2xl shadow-xl max-w-2xl w-11/12 bg-amber-50 border border-stone-200">
+        <div id="modal-content" class="p-6 md:p-8">
+            <!-- Modal content will be populated by JavaScript -->
+        </div>
+    </dialog>
+
+    <footer class="text-center py-6 mt-8">
+        <p class="text-sm text-stone-500">互動指南由 AI 根據提供之報告生成</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fruitData = [
+                {
+                    id: 'prunes',
+                    name: '黑棗乾',
+                    emoji: '🍇',
+                    tagline: '肌肉健康的「小型發電廠」',
+                    bgColor: 'bg-indigo-100',
+                    textColor: 'text-indigo-800',
+                    nutrients: [
+                        { name: '鉀', detail: '含量比香蕉還高，有助於肌肉正常收縮，預防抽筋。' },
+                        { name: '酚類化合物', detail: '強效的天然抗氧化劑，能對抗導致肌肉流失的慢性發炎。' },
+                        { name: '維他命K', detail: '支持骨骼健康，與強健的肌肉相輔相成。' }
+                    ],
+                    suggestion: '每天3至4顆，可直接吃、加入燕麥片或沙拉。將其泡水隔夜後食用，更能幫助營養吸收。',
+                    chartScores: { '肌肉功能': 3, '抗發炎': 2, '骨骼健康': 3, '膠原蛋白': 0, '蛋白質吸收': 0 }
+                },
+                {
+                    id: 'red-grapes',
+                    name: '紅葡萄',
+                    emoji: '🍇',
+                    tagline: '維持肌肉耐力的強大盟友',
+                    bgColor: 'bg-purple-100',
+                    textColor: 'text-purple-800',
+                    nutrients: [
+                        { name: '白藜蘆醇', detail: '主要存在於果皮和籽中，能保護肌肉、促進血液循環，並活化細胞能量引擎，減少疲勞。' },
+                        { name: '類黃酮', detail: '協助降低慢性發炎，減緩肌肉無力。' }
+                    ],
+                    suggestion: '選擇皮較厚的紅葡萄，連同籽一起咀嚼或打入冰沙，以獲取最大效益。',
+                    chartScores: { '肌肉功能': 2, '抗發炎': 3, '骨骼健康': 0, '膠原蛋白': 0, '蛋白質吸收': 0 }
+                },
+                {
+                    id: 'padron-peppers',
+                    name: '西班牙小青椒',
+                    emoji: '🌶️',
+                    tagline: '意想不到的肌肉強大助益',
+                    bgColor: 'bg-green-100',
+                    textColor: 'text-green-800',
+                    nutrients: [
+                        { name: '維他命C', detail: '含量極高，是製造膠原蛋白的關鍵，能維持肌肉和肌腱的健康與彈性。' },
+                        { name: '辣椒素', detail: '含量溫和不刺激，有助於放鬆血管、改善血液流動，將更多氧氣與養分送至肌肉。' }
+                    ],
+                    suggestion: '用少許橄欖油清炒，可再撒上少許薑黃粉，加乘抗發炎效果。',
+                    chartScores: { '肌肉功能': 1, '抗發炎': 1, '骨骼健康': 0, '膠原蛋白': 3, '蛋白質吸收': 0 }
+                },
+                {
+                    id: 'arbutus',
+                    name: '楊梅',
+                    emoji: '🍓',
+                    tagline: '維持肌肉力量的隱藏寶藏',
+                    bgColor: 'bg-red-100',
+                    textColor: 'text-red-800',
+                    nutrients: [
+                        { name: '維他命C', detail: '含量是柳橙的兩倍，能有效製造膠原蛋白，並作為抗氧化劑保護肌肉。' },
+                        { name: '類黃酮與單寧酸', detail: '能對抗發炎並改善血液循環。' }
+                    ],
+                    suggestion: '若能取得，可直接生吃，或製作成果醬塗抹於全麥麵包上。',
+                    chartScores: { '肌肉功能': 0, '抗發炎': 2, '骨骼健康': 0, '膠原蛋白': 3, '蛋白質吸收': 0 }
+                },
+                {
+                    id: 'gold-kiwi',
+                    name: '黃金奇異果',
+                    emoji: '🥝',
+                    tagline: '支持肌肉健康的超級水果',
+                    bgColor: 'bg-yellow-100',
+                    textColor: 'text-yellow-800',
+                    nutrients: [
+                        { name: '維他命C', detail: '含量極高，一顆就能滿足每日建議攝取量的180%，有助於膠原蛋白生成。' },
+                        { name: '奇異果酵素', detail: '獨特的天然酵素，能幫助身體更有效地分解與吸收蛋白質，讓營養真正被肌肉利用。' }
+                    ],
+                    suggestion: '建議早上空腹吃一顆，或搭配核桃與蜂蜜，作為強效的早餐或點心。',
+                    chartScores: { '肌肉功能': 0, '抗發炎': 0, '骨骼健康': 0, '膠原蛋白': 3, '蛋白質吸收': 3 }
+                },
+                {
+                    id: 'loquat',
+                    name: '枇杷',
+                    emoji: '🍑',
+                    tagline: '對抗肌肉流失的秘密武器',
+                    bgColor: 'bg-orange-100',
+                    textColor: 'text-orange-800',
+                    nutrients: [
+                        { name: '熊果酸', detail: '經研究發現，這種獨特的化合物有助於減緩甚至逆轉肌肉流失。' },
+                        { name: '類胡蘿蔔素', detail: '強效的抗氧化劑，能保護細胞免於老化傷害。' },
+                        { name: '鉀', detail: '維持肌肉正常功能。' }
+                    ],
+                    suggestion: '直接剝皮食用，或自製無糖果醬，搭配優格或燕麥片。',
+                    chartScores: { '肌肉功能': 3, '抗發炎': 1, '骨骼健康': 0, '膠原蛋白': 0, '蛋白質吸收': 0 }
+                },
+                {
+                    id: 'blackberries',
+                    name: '野生黑莓',
+                    emoji: '🫐',
+                    tagline: '強健肌肉與大腦的深色漿果',
+                    bgColor: 'bg-gray-200',
+                    textColor: 'text-gray-800',
+                    nutrients: [
+                        { name: '花青素', detail: '強效的抗氧化劑，能有效對抗發炎，這是導致肌肉無力與關節疼痛的主因之一。' },
+                        { name: '維他命C與錳', detail: '維他命C幫助組織修復，錳則支持骨骼健康與能量代謝。' }
+                    ],
+                    suggestion: '加入燕麥或優格，或打成冰沙。冷凍後加入氣泡水也是清爽的選擇。',
+                    chartScores: { '肌肉功能': 0, '抗發炎': 3, '骨骼健康': 1, '膠原蛋白': 1, '蛋白質吸收': 0 }
+                }
+            ];
+
+            const fruitGrid = document.getElementById('fruit-grid');
+            const modal = document.getElementById('fruit-modal');
+            const modalContent = document.getElementById('modal-content');
+
+            fruitData.forEach(fruit => {
+                const card = document.createElement('button');
+                card.className = `fruit-card p-4 rounded-2xl text-center shadow-sm border border-stone-200 ${fruit.bgColor} ${fruit.textColor}`;
+                card.dataset.id = fruit.id;
+                card.innerHTML = `
+                    <div class="text-5xl mb-3">${fruit.emoji}</div>
+                    <h3 class="font-bold text-lg">${fruit.name}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    const data = fruitData.find(f => f.id === card.dataset.id);
+                    if (data) {
+                        modalContent.innerHTML = `
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <p class="text-sm ${data.textColor} font-semibold">${data.tagline}</p>
+                                    <h2 class="text-3xl font-bold ${data.textColor}">${data.name} <span class="text-4xl">${data.emoji}</span></h2>
+                                </div>
+                                <button id="close-modal" class="text-2xl text-stone-500 hover:text-stone-800 transition-colors">&times;</button>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h3 class="font-bold text-xl text-amber-900 mb-3 border-b-2 border-amber-200 pb-1">關鍵營養</h3>
+                                <ul class="space-y-3">
+                                    ${data.nutrients.map(n => `
+                                        <li class="flex items-start">
+                                            <span class="mr-3 mt-1 text-amber-600">✨</span>
+                                            <div>
+                                                <strong class="text-stone-800">${n.name}：</strong>
+                                                <span class="text-stone-600">${n.detail}</span>
+                                            </div>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-xl text-amber-900 mb-3 border-b-2 border-amber-200 pb-1">食用建議</h3>
+                                <div class="flex items-start">
+                                    <span class="mr-3 mt-1 text-amber-600">💡</span>
+                                    <p class="text-stone-600">${data.suggestion}</p>
+                                </div>
+                            </div>
+                        `;
+                        modal.showModal();
+                        document.getElementById('close-modal').addEventListener('click', () => modal.close());
+                    }
+                });
+                fruitGrid.appendChild(card);
+            });
+            
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.close();
+                }
+            });
+            
+            const ctx = document.getElementById('fruitChart').getContext('2d');
+            const chartLabels = fruitData.map(f => f.name);
+            const benefitCategories = ['肌肉功能', '抗發炎', '膠原蛋白', '蛋白質吸收', '骨骼健康'];
+            const chartDatasets = benefitCategories.map((benefit, index) => {
+                const colors = ['#f59e0b', '#84cc16', '#3b82f6', '#8b5cf6', '#ec4899'];
+                return {
+                    label: benefit,
+                    data: fruitData.map(f => f.chartScores[benefit]),
+                    backgroundColor: colors[index % colors.length],
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    borderWidth: 1,
+                };
+            });
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: chartDatasets
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: '#57534e' // stone-600
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#57534e' // stone-600
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#44403c' // stone-700
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += `貢獻度 ${context.parsed.x}`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
