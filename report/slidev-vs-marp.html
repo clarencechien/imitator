@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slidev vs. Marp | 互動決策指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Stone, Amber, with Blue/Green accents) -->
+    <!-- Application Structure Plan: A task-oriented SPA featuring an interactive 'Decision Helper' at the top. This guides users to a recommendation based on their primary use case (Vibe Coding, Simplicity, PPTX). The core content is a side-by-side comparison of Slidev and Marp using expandable cards and data visualizations (Radar/Bar charts) to simplify complex trade-offs. This structure prioritizes quick decision-making over the linear format of the source report, making the information more accessible and actionable for a technical audience. -->
+    <!-- Visualization & Content Choices:
+    - Report Info: Comparing interactivity features (Vibe Coding, components). Goal: Show Slidev's superiority. Viz: Radar Chart (Chart.js/Canvas). Interaction: Static visualization for at-a-glance comparison. Justification: A radar chart effectively shows multi-dimensional strengths/weaknesses in a single graphic.
+    - Report Info: Comparing PPTX export trade-offs. Goal: Illustrate the "Fidelity vs. Editability" problem. Viz: Grouped Bar Chart (Chart.js/Canvas). Interaction: Static visualization. Justification: A bar chart is the clearest way to compare these two competing metrics across the three export options.
+    - Report Info: Detailed feature lists and tables. Goal: Provide deep-dive information. Viz: Styled HTML tables and accordion cards. Interaction: Click to expand sections. Justification: Manages information density, allowing users to progressively disclose details without being overwhelmed.
+    - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fdfcfb;
+            color: #2d3748;
+        }
+        .decision-btn {
+            transition: all 0.3s ease;
+        }
+        .decision-btn.selected {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .smooth-scroll {
+            scroll-behavior: smooth;
+        }
+        .recommendation-card {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .recommendation-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="smooth-scroll">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <!-- Header -->
+        <header class="text-center mb-10 md:mb-16">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-2">Slidev vs. Marp</h1>
+            <p class="text-lg md:text-xl text-slate-600">互動式決策指南：為您的團隊選擇最佳簡報工具</p>
+        </header>
+
+        <!-- Interactive Decision Helper -->
+        <section class="mb-12 md:mb-16">
+            <h2 class="text-2xl font-bold text-center mb-2 text-slate-700">您的首要需求是？</h2>
+            <p class="text-center text-slate-500 mb-8">點擊最符合您需求的場景，我們將為您提供個人化建議。</p>
+            <div class="flex flex-wrap justify-center gap-4 md:gap-6">
+                <button id="btn-vibe" data-case="vibe" class="decision-btn bg-white border-2 border-blue-400 text-blue-500 font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-50">
+                    🚀 極致互動與現場程式碼演示
+                </button>
+                <button id="btn-speed" data-case="speed" class="decision-btn bg-white border-2 border-green-400 text-green-500 font-bold py-3 px-6 rounded-lg shadow-md hover:bg-green-50">
+                    ⚡️ 追求速度與簡潔，內容至上
+                </button>
+                <button id="btn-ppt" data-case="ppt" class="decision-btn bg-white border-2 border-orange-400 text-orange-500 font-bold py-3 px-6 rounded-lg shadow-md hover:bg-orange-50">
+                    📎 必須產出可編輯的 PowerPoint
+                </button>
+            </div>
+        </section>
+
+        <!-- Recommendation Section -->
+        <section id="recommendation-section" class="mb-12 md:mb-20">
+            <!-- Content will be injected by JS -->
+        </section>
+
+        <!-- Side-by-Side Comparison -->
+        <section class="mb-12 md:mb-16">
+            <h2 class="text-3xl font-bold text-center mb-10 text-slate-800">全方位功能比較</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+                <!-- Slidev Column -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                    <h3 class="text-3xl font-bold text-blue-600 mb-4">Slidev</h3>
+                    <p class="text-slate-600 mb-6">將簡報視為一個功能豐富、可高度客製化的<strong class="text-blue-700">互動式網頁應用</strong>。</p>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 bg-blue-50 rounded-lg">
+                            <h4 class="font-bold text-lg text-blue-800">核心理念</h4>
+                            <p class="text-slate-700">基於 Vue 3 + Vite，賦予開發者網頁應用的全部潛能，提供極致的靈活性與互動性。</p>
+                        </div>
+                         <div class="p-4 bg-blue-50 rounded-lg">
+                            <h4 class="font-bold text-lg text-blue-800">專案結構</h4>
+                            <p class="text-slate-700">類似一個完整的 JS 專案，包含 `package.json` 和 `node_modules`，複雜度較高但擴充性強。</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 rounded-lg">
+                            <h4 class="font-bold text-lg text-blue-800">程式碼呈現</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>✅ <strong class="font-semibold">Shiki Magic Move</strong>：程式碼變更的平滑動畫。</li>
+                                <li>✅ <strong class="font-semibold">TwoSlash</strong>：TypeScript 類型提示。</li>
+                                <li>✅ <strong class="font-semibold">Monaco Editor</strong>：整合 VS Code 級別的現場編輯與執行。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Marp Column -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                    <h3 class="text-3xl font-bold text-green-600 mb-4">Marp</h3>
+                    <p class="text-slate-600 mb-6">追求極致的<strong class="text-green-700">簡潔與便攜性</strong>，讓使用者專注於用純 Markdown 寫作。</p>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-green-50 rounded-lg">
+                            <h4 class="font-bold text-lg text-green-800">核心理念</h4>
+                            <p class="text-slate-700">基於 Marpit 框架，輕量級、遵循 CommonMark 標準，將 Markdown 快速轉換為投影片。</p>
+                        </div>
+                        <div class="p-4 bg-green-50 rounded-lg">
+                            <h4 class="font-bold text-lg text-green-800">專案結構</h4>
+                            <p class="text-slate-700">通常為單一 `.md` 檔案，極低的學習曲線與專案管理負擔，簡單快速。</p>
+                        </div>
+                         <div class="p-4 bg-green-50 rounded-lg">
+                            <h4 class="font-bold text-lg text-green-800">圖片處理</h4>
+                            <p class="text-slate-700">擁有強大且簡潔的圖片語法，可直接在 Markdown 中控制圖片尺寸和佈局。</p>
+                             <p class="text-slate-700 mt-2 font-mono bg-slate-100 p-2 rounded">`![bg left:35%](image.jpg)`</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Visualization Section -->
+        <section class="mb-12 md:mb-20">
+             <h2 class="text-3xl font-bold text-center mb-10 text-slate-800">視覺化權衡分析</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                    <h3 class="text-xl font-bold text-center mb-4 text-slate-700">互動能力雷達圖</h3>
+                    <div class="chart-container">
+                        <canvas id="interactivityChart"></canvas>
+                    </div>
+                    <p class="text-center text-sm text-slate-500 mt-4">此圖表顯示 Slidev 在互動功能上具有壓倒性優勢，特別是在現場程式碼演示等高級場景中。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                    <h3 class="text-xl font-bold text-center mb-4 text-slate-700">PowerPoint 匯出權衡</h3>
+                     <div class="chart-container h-80 md:h-96">
+                        <canvas id="exportChart"></canvas>
+                    </div>
+                    <p class="text-center text-sm text-slate-500 mt-4">此圖表揭示了匯出為可編輯 PPTX 的固有挑戰：Marp 的實驗性功能犧牲了視覺保真度來換取編輯能力。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Detailed Table Section -->
+        <section>
+            <h2 class="text-3xl font-bold text-center mb-10 text-slate-800">PowerPoint (.pptx) 匯出能力矩陣</h2>
+            <div class="overflow-x-auto bg-white p-4 rounded-xl shadow-lg border border-slate-200">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-3 font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200 hidden lg:table-cell">能力</th>
+                            <th class="p-3 font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200 text-center">Slidev (預設)</th>
+                            <th class="p-3 font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200 text-center">Marp (預設)</th>
+                            <th class="p-3 font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200 text-center">Marp (實驗性可編輯)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="flex lg:table-row flex-row lg:flex-row flex-wrap lg:flex-no-wrap mb-10 lg:mb-0">
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static">
+                               <span class="lg:hidden absolute top-0 left-0 bg-slate-100 px-2 py-1 text-xs font-bold uppercase">能力</span>
+                               文字/物件可編輯性
+                            </td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-red-500 font-bold">否</span> (渲染為圖片)</td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-red-500 font-bold">否</span> (渲染為圖片)</td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-green-500 font-bold">是</span> (實驗性)</td>
+                        </tr>
+                        <tr class="flex lg:table-row flex-row lg:flex-row flex-wrap lg:flex-no-wrap mb-10 lg:mb-0">
+                             <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static">
+                               <span class="lg:hidden absolute top-0 left-0 bg-slate-100 px-2 py-1 text-xs font-bold uppercase">能力</span>
+                               視覺保真度
+                            </td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-green-500 font-semibold">高</span> (近 100%)</td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-green-500 font-semibold">高</span> (近 100%)</td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-orange-500 font-semibold">低至中</span></td>
+                        </tr>
+                        <tr class="flex lg:table-row flex-row lg:flex-row flex-wrap lg:flex-no-wrap mb-10 lg:mb-0">
+                             <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static">
+                               <span class="lg:hidden absolute top-0 left-0 bg-slate-100 px-2 py-1 text-xs font-bold uppercase">能力</span>
+                               外部軟體依賴
+                            </td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static">瀏覽器</td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static">瀏覽器</td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="font-semibold">瀏覽器 + LibreOffice</span></td>
+                        </tr>
+                         <tr class="flex lg:table-row flex-row lg:flex-row flex-wrap lg:flex-no-wrap mb-10 lg:mb-0">
+                             <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static">
+                               <span class="lg:hidden absolute top-0 left-0 bg-slate-100 px-2 py-1 text-xs font-bold uppercase">能力</span>
+                               穩定性
+                            </td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-green-500 font-semibold">高</span></td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-green-500 font-semibold">高</span></td>
+                            <td class="w-full lg:w-auto p-3 text-slate-800 text-center border border-b block lg:table-cell relative lg:static"><span class="text-red-500 font-semibold">低 (實驗性)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+    
+    <footer class="text-center py-6 bg-slate-100 mt-16">
+        <p class="text-slate-500">此互動應用程式根據「開發者的兩難：Slidev 與 Marp 比較分析報告」製作。</p>
+    </footer>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const recommendationData = {
+                vibe: {
+                    tool: 'Slidev',
+                    color: 'blue',
+                    title: '建議：Slidev 是 Vibe Coding 的無可爭議的選擇',
+                    reason: '其對 Vue 元件的原生支援，以及至關重要的、用於現場程式碼編輯和執行的整合式 Monaco 編輯器，完全滿足了「Vibe Coding」的需求。Marp 沒有任何可比的功能。Slidev 卓越的動畫效果（Magic Move）和程式碼智慧提示（TwoSlash）進一步鞏固了其在創建引人入勝、高保真技術演示方面的地位。',
+                    notice: '團隊必須接受 PowerPoint 匯出將是不可編輯的圖片。工作流程應為：直接從網頁進行簡報，並將其匯出為 PDF 或基於圖片的 PPTX，僅用於歸檔或分發。'
+                },
+                speed: {
+                    tool: 'Marp',
+                    color: 'green',
+                    title: '建議：Marp 是務實主義者的更優越選擇',
+                    reason: 'Marp 的核心哲學正是為此而生。其簡單、專注於內容的 Markdown 語法、最少的專案設定和快速的 CLI，讓開發者能夠以最高效率製作出乾淨、專業的投影片。它避免了為了一場簡報而管理一個完整網頁開發專案的認知負擔。',
+                    notice: '團隊必須滿足於較為基礎的佈局和有限的互動性。客製化需要 CSS 知識，且簡報將比 Slidev 的更為靜態。'
+                },
+                ppt: {
+                    tool: 'Marp',
+                    color: 'orange',
+                    title: '建議：Marp 是唯一選項，但需極度謹慎',
+                    reason: '兩種工具都沒有提供一個強大、生產就緒的解決方案來創建可編輯的 PPTX 檔案。然而，Marp 是唯一提供直接（儘管是實驗性）途徑的工具。Slidev 沒有提供任何此類替代方案。',
+                    notice: '強制性進行概念驗證 (PoC)，評估匯出品質與修復成本，並同意管理 LibreOffice 的依賴。這是一條充滿妥協的路徑。'
+                }
+            };
+
+            const decisionButtons = document.querySelectorAll('.decision-btn');
+            const recommendationSection = document.getElementById('recommendation-section');
+            let currentChart = null;
+            let currentExportChart = null;
+
+            function updateRecommendation(useCase) {
+                const data = recommendationData[useCase];
+                if (!data) return;
+
+                recommendationSection.innerHTML = `
+                    <div class="recommendation-card max-w-4xl mx-auto bg-white rounded-xl shadow-xl border border-${data.color}-200 p-6 md:p-8">
+                        <div class="text-center mb-4">
+                            <span class="text-sm font-bold uppercase text-${data.color}-500 bg-${data.color}-100 px-3 py-1 rounded-full">推薦選擇</span>
+                            <h3 class="text-4xl font-bold text-${data.color}-600 mt-2">${data.tool}</h3>
+                        </div>
+                        <div class="prose max-w-none text-slate-700">
+                           <h4 class="text-xl font-bold text-slate-800">${data.title}</h4>
+                           <p>${data.reason}</p>
+                           <div class="mt-4 p-4 border-l-4 border-${data.color}-300 bg-${data.color}-50 rounded-r-lg">
+                                <h5 class="font-bold text-slate-800">⚠️ 注意事項</h5>
+                                <p class="text-sm">${data.notice}</p>
+                           </div>
+                        </div>
+                    </div>
+                `;
+
+                // Trigger animation
+                setTimeout(() => {
+                    const card = recommendationSection.querySelector('.recommendation-card');
+                    if (card) {
+                        card.classList.add('visible');
+                    }
+                }, 100);
+
+                recommendationSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+
+            decisionButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const selectedCase = button.dataset.case;
+
+                    decisionButtons.forEach(btn => {
+                        btn.classList.remove('selected', 'bg-blue-500', 'text-white', 'bg-green-500', 'bg-orange-500');
+                        // Restore default style
+                        if(btn.dataset.case === 'vibe') btn.classList.add('border-blue-400', 'text-blue-500');
+                        if(btn.dataset.case === 'speed') btn.classList.add('border-green-400', 'text-green-500');
+                        if(btn.dataset.case === 'ppt') btn.classList.add('border-orange-400', 'text-orange-500');
+                    });
+                    
+                    button.classList.add('selected');
+                    const color = recommendationData[selectedCase].color;
+                    button.classList.remove(`border-${color}-400`, `text-${color}-500`);
+                    button.classList.add(`bg-${color}-500`, 'text-white');
+
+
+                    updateRecommendation(selectedCase);
+                });
+            });
+
+            // Interactivity Radar Chart
+            const interactivityCtx = document.getElementById('interactivityChart').getContext('2d');
+            const interactivityData = {
+                labels: ['現場程式碼演示', '互動元件', '複雜動畫', '程式碼高亮', '擴充性'],
+                datasets: [{
+                    label: 'Slidev',
+                    data: [5, 5, 4, 5, 5],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+                }, {
+                    label: 'Marp',
+                    data: [1, 2, 1, 4, 3],
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(16, 185, 129, 1)'
+                }]
+            };
+            if(currentChart) currentChart.destroy();
+            currentChart = new Chart(interactivityCtx, {
+                type: 'radar',
+                data: interactivityData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                            pointLabels: { font: { size: 12 } },
+                            ticks: {
+                                backdropColor: 'rgba(255, 255, 255, 0.75)',
+                                stepSize: 1
+                            },
+                            min: 0,
+                            max: 5
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+
+            // Export Bar Chart
+            const exportCtx = document.getElementById('exportChart').getContext('2d');
+            const exportData = {
+                labels: ['Slidev (預設)', 'Marp (預設)', 'Marp (實驗性)'],
+                datasets: [
+                {
+                    label: '視覺保真度',
+                    data: [95, 95, 60],
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: '可編輯性',
+                    data: [5, 5, 80],
+                    backgroundColor: 'rgba(249, 115, 22, 0.6)',
+                    borderColor: 'rgba(249, 115, 22, 1)',
+                    borderWidth: 1
+                }
+            ]
+            };
+            if(currentExportChart) currentExportChart.destroy();
+            currentExportChart = new Chart(exportCtx, {
+                type: 'bar',
+                data: exportData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) { return value + "%" }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                         tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
