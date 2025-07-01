@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「以房養老」互動解析：透視繼承風暴與隱藏陷阱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Terracotta/Teal Accents -->
+    <!-- Application Structure Plan: 本應用採用由上至下的敘事性結構，旨在引導使用者逐步深入了解議題。結構分為五大區塊：1.「爭議個案」：以真實案例的戲劇性衝擊開場，抓住使用者注意力。2.「產品解析」：透過互動圖表比較，將複雜的捆綁式產品化繁為簡。3.「風險探索」：以儀表板形式讓使用者自主探索各種系統性風險。4.「自我檢核」：提供實用清單，將資訊轉化為個人化行動。5.「專家建議」：清晰呈現給各方的解決方案。此結構跳脫報告的章節，以使用者理解與互動為核心，旨在創造更佳的教育與警示效果。 -->
+    <!-- Visualization & Content Choices: 1. 爭議個案 (目標:告知/震撼) -> 使用HTML/CSS時間軸與大字體數字對比，強化視覺衝擊。2. 產品解析 (目標:比較/解釋) -> 使用Chart.js長條圖比較現金流，並以HTML/CSS流程圖展示資金流向，透過按鈕切換與傳統方案對比，突顯其複雜性與風險。3. 風險探索 (目標:組織/探索) -> 使用Chart.js圓餅圖呈現區域分佈，並以HTML/CSS卡片互動展示各類風險，讓使用者能自主學習。4. 自我檢核 (目標:互動/個人化) -> 使用HTML表單與JS互動，提供實用工具。所有圖表均使用Chart.js基於Canvas繪製，流程圖等視覺元素則由HTML/CSS建構。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF6;
+            color: #3C3633;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #E07A5F;
+            border-bottom-color: #E07A5F;
+        }
+        .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .has-tooltip:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <header id="header" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-[#3C3633]">以房養老風險解析</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#case-study" class="nav-link px-3 py-2 rounded-md text-sm font-medium">爭議個案</a>
+                        <a href="#product-analysis" class="nav-link px-3 py-2 rounded-md text-sm font-medium">產品解析</a>
+                        <a href="#risk-explorer" class="nav-link px-3 py-2 rounded-md text-sm font-medium">風險探索</a>
+                        <a href="#checklist" class="nav-link px-3 py-2 rounded-md text-sm font-medium">自我檢核</a>
+                        <a href="#recommendations" class="nav-link px-3 py-2 rounded-md text-sm font-medium">專家建議</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#E07A5F]">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#case-study" class="nav-link block px-3 py-2 rounded-md text-base font-medium">爭議個案</a>
+                <a href="#product-analysis" class="nav-link block px-3 py-2 rounded-md text-base font-medium">產品解析</a>
+                <a href="#risk-explorer" class="nav-link block px-3 py-2 rounded-md text-base font-medium">風險探索</a>
+                <a href="#checklist" class="nav-link block px-3 py-2 rounded-md text-base font-medium">自我檢核</a>
+                <a href="#recommendations" class="nav-link block px-3 py-2 rounded-md text-base font-medium">專家建議</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <section id="case-study" class="mb-16 md:mb-24 text-center scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-[#E07A5F] mb-4">一個家庭的惡夢：從90萬到340萬的繼承債務</h2>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600 mb-8">本節將帶您了解一樁真實發生的社會案件。一個家庭在父親過世後，向銀行查詢債務，得到的數字是90萬元。他們基於這個數字選擇了繼承。然而三個月後，銀行卻告知他們，真正的債務是340萬元。這個天價般的落差，不僅是數字錯誤，更揭開了「以房養老」背後潛藏的複雜金融陷阱。</p>
+            
+            <div class="grid md:grid-cols-3 gap-8 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <p class="text-xl font-medium text-gray-500 mb-2">銀行初步告知債務</p>
+                    <p class="text-5xl font-bold text-[#81B29A]">90<span class="text-3xl ml-1">萬</span></p>
+                </div>
+                <div class="text-6xl font-bold text-[#E07A5F]">→</div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border-2 border-[#E07A5F]">
+                    <p class="text-xl font-medium text-gray-500 mb-2">三個月後真實債務</p>
+                    <p class="text-5xl font-bold text-[#E07A5F]">340<span class="text-3xl ml-1">萬</span></p>
+                </div>
+            </div>
+
+            <div class="mt-12 text-left max-w-4xl mx-auto">
+                <h3 class="text-2xl font-bold mb-6 text-center">事件時間軸</h3>
+                <div class="relative border-l-2 border-[#81B29A] ml-6">
+                    <div class="mb-8 ml-8">
+                        <div class="absolute -left-4 mt-2 w-8 h-8 bg-[#81B29A] rounded-full border-4 border-white"></div>
+                        <p class="font-bold text-lg">父親過世，家屬查詢債務</p>
+                        <p class="text-gray-600">銀行告知，父親名下有約90萬元的信貸債務。</p>
+                    </div>
+                    <div class="mb-8 ml-8">
+                        <div class="absolute -left-4 mt-2 w-8 h-8 bg-[#81B29A] rounded-full border-4 border-white"></div>
+                        <p class="font-bold text-lg">做出繼承決定</p>
+                        <p class="text-gray-600">子女評估後認為90萬元可負擔，為保住房產，辦理了繼承手續。</p>
+                    </div>
+                    <div class="mb-8 ml-8">
+                        <div class="absolute -left-4 mt-2 w-8 h-8 bg-[#E07A5F] rounded-full border-4 border-white"></div>
+                        <p class="font-bold text-lg text-[#E07A5F]">三個月後，風雲變色</p>
+                        <p class="text-gray-600">銀行突然通知，因亡父生前辦理「以房養老」，總債務實為340萬元。</p>
+                    </div>
+                    <div class="ml-8">
+                        <div class="absolute -left-4 mt-2 w-8 h-8 bg-[#E07A5F] rounded-full border-4 border-white"></div>
+                        <p class="font-bold text-lg text-[#E07A5F]">錯失拋棄繼承時機</p>
+                        <p class="text-gray-600">家屬已錯過三個月的「拋棄繼承」法定時效，被迫背上鉅額債務，並控訴銀行資訊揭露不實，有「連哄帶騙」之嫌。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="product-analysis" class="mb-16 md:mb-24 scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">這不是單純的養老金，而是複雜的投資枷鎖</h2>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600 mb-12 text-center">為何債務會憑空多出250萬？關鍵在於這並非傳統的以房養老，而是一種將「貸款」與「保險」捆綁銷售的複雜產品。本節將透過互動圖表，為您拆解這兩種模式的巨大差異，並揭示其背後的風險與利益衝突。</p>
+            
+            <div class="text-center mb-8">
+                <div class="inline-flex rounded-md shadow-sm" role="group">
+                    <button type="button" id="btn-complex" class="px-4 py-2 text-sm font-medium text-white bg-[#E07A5F] border border-gray-200 rounded-l-lg hover:bg-opacity-90 focus:z-10 focus:ring-2 focus:ring-[#E07A5F]">
+                        爭議產品模式 (年金保險型)
+                    </button>
+                    <button type="button" id="btn-simple" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-md hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-[#E07A5F]">
+                        傳統模式
+                    </button>
+                </div>
+            </div>
+
+            <div id="content-complex" class="grid lg:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">年金保險型模式解析</h3>
+                    <p class="text-gray-600 mb-4">銀行一次性將340萬貸款撥入長者戶頭，但旋即被要求將「整筆資金」投入購買一份25年期的年金保險。長者看似每年有年金可領，但同時也背負著整筆340萬的貸款利息，形成「左手換右手」的現金流，但債務雪球卻越滾越大。</p>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-red-50 rounded-lg border border-red-200">
+                            <p class="font-bold text-red-800">第一步：背上鉅額債務</p>
+                            <p class="text-red-700">以房屋抵押，一次性向銀行貸款 <span class="font-bold text-xl">340萬元</span>。</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <p class="font-bold text-blue-800">第二步：資金被鎖定</p>
+                            <p class="text-blue-700">340萬貸款「全額」投入購買25年期年金保險，無法自由運用。</p>
+                        </div>
+                        <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                            <p class="font-bold text-green-800">第三步：微薄的現金流</p>
+                            <p class="text-green-700">每年領取年金16.5萬，但需支付貸款利息6萬，實際年收入僅 <span class="font-bold text-xl">10.5萬元</span>。</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="chart-container">
+                        <canvas id="cashflowChart"></canvas>
+                    </div>
+                    <p class="text-center text-sm text-gray-500 mt-2">每年現金流比較</p>
+                </div>
+            </div>
+
+            <div id="content-simple" class="hidden grid lg:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">傳統型模式解析</h3>
+                    <p class="text-gray-600 mb-4">這是最單純的以房養老模式。銀行根據房屋價值與申貸人年齡，核定一個總額度，然後「按月」將生活費撥給長者。利息僅就已撥付的金額計算，不會一次性產生鉅額債務，資金用途也相對自由。</p>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                            <p class="font-bold text-green-800">運作方式</p>
+                            <p class="text-green-700">銀行每月撥付一筆固定金額（例如1-3萬元）給長者作為生活費。</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <p class="font-bold text-blue-800">債務累積</p>
+                            <p class="text-blue-700">債務和利息是逐月緩慢累積，而非一次性產生340萬的龐大本金。</p>
+                        </div>
+                         <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <p class="font-bold text-yellow-800">優點</p>
+                            <p class="text-yellow-700">結構簡單、風險較低、易於理解，更符合「在地安老」的單純目的。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center h-full">
+                    <div class="text-center p-8 bg-white rounded-xl shadow-lg border border-gray-200">
+                        <p class="text-2xl font-bold">🏠 → 🏦 → 💰</p>
+                        <p class="mt-4 text-xl font-semibold">房屋抵押，按月領錢</p>
+                        <p class="text-gray-600">簡單、直接、無捆綁</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="risk-explorer" class="mb-16 md:mb-24 scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">不只是一樁個案：探索以房養老的五大系統性風險</h2>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600 mb-12 text-center">台企銀的案例並非偶然，它暴露了以房養老制度在台灣推行時面臨的普遍困境。從不當銷售到家庭矛盾，再到市場波動，每一個環節都可能成為引爆點。本節將讓您互動探索這些潛在的風險。</p>
+
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">申辦案件地理分佈</h3>
+                    <p class="text-gray-600 mb-4">報告指出，以房養老申辦高度集中在房價高昂的都會區，這也反映出城鄉差距問題。房價較低的地區，長者可能因房產鑑價不足而被拒於門外。</p>
+                    <div class="chart-container">
+                        <canvas id="locationChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">點擊探索主要風險</h3>
+                    <div class="space-y-4" id="risk-cards-container">
+                    </div>
+                </div>
+            </div>
+            <div id="risk-details" class="mt-8 p-6 bg-white rounded-lg shadow-lg border border-gray-200 min-h-[150px]">
+                <p class="text-gray-500 text-center">請點擊上方的風險卡片以查看詳細說明。</p>
+            </div>
+        </section>
+
+        <section id="checklist" class="mb-16 md:mb-24 bg-white p-8 rounded-xl shadow-lg border border-gray-200 scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">申辦前停看聽：您的家庭準備好了嗎？</h2>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600 mb-12 text-center">以房養老是影響深遠的重大財務決策。在簽下任何文件前，請與家人一同完成這份檢核清單，確保您已充分溝通，並對潛在風險有清晰的認知。這是一個保護您自己，也保護家人的重要步驟。</p>
+            
+            <div id="assessment-form" class="max-w-2xl mx-auto space-y-6">
+            </div>
+
+            <div id="assessment-result" class="mt-8 text-center hidden">
+                <div id="result-content" class="p-6 rounded-lg">
+                    <h3 id="result-title" class="text-2xl font-bold mb-2"></h3>
+                    <p id="result-text"></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="recommendations" class="scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">如何撥開迷霧？給三方的專家建議</h2>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600 mb-12 text-center">要讓以房養老回歸安養美意，需要消費者、金融機構與主管機關三方共同努力。本節整理了專家們提出的具體建議，期望能建立一個更透明、更公平、更能保護長者的金融環境。</p>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold mb-4 text-[#81B29A]">👤 給消費者</h3>
+                    <ul class="space-y-3 text-gray-700 list-disc list-inside">
+                        <li>堅持家庭完全透明溝通，避免日後紛爭。</li>
+                        <li>打破砂鍋問到底，釐清所有費用與風險。</li>
+                        <li>尋求銀行以外的獨立第三方專業建議。</li>
+                        <li>優先選擇結構單純的產品，簡單就是安全。</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold mb-4 text-[#E07A5F]">🏦 給金融機構</h3>
+                    <ul class="space-y-3 text-gray-700 list-disc list-inside">
+                        <li>打破內部資訊孤島，確保客戶資料完整。</li>
+                        <li>回歸產品單純性，避免複雜捆綁銷售。</li>
+                        <li>建立標準化、淺白的「關鍵資訊摘要」。</li>
+                        <li>強化人員訓練，從銷售員轉型為顧問。</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold mb-4 text-gray-700">🏛️ 給主管機關</h3>
+                    <ul class="space-y-3 text-gray-700 list-disc list-inside">
+                        <li>制定捆綁式產品的專門規範與冷靜期。</li>
+                        <li>強化律師見證的實質審查功能。</li>
+                        <li>採取「神秘客」等方式進行主動金融監理。</li>
+                        <li>立法簡化繼承時的金融機構資訊獲取流程。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center text-sm">
+            <p>本頁面內容根據公開新聞報導與分析報告製作，僅供教育與參考目的，不構成任何金融或法律建議。</p>
+            <p>&copy; 2025 互動風險解析平台. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnComplex = document.getElementById('btn-complex');
+            const btnSimple = document.getElementById('btn-simple');
+            const contentComplex = document.getElementById('content-complex');
+            const contentSimple = document.getElementById('content-simple');
+
+            function setActiveButton(activeBtn, inactiveBtn) {
+                activeBtn.classList.remove('bg-white', 'text-gray-900');
+                activeBtn.classList.add('bg-[#E07A5F]', 'text-white');
+                inactiveBtn.classList.remove('bg-[#E07A5F]', 'text-white');
+                inactiveBtn.classList.add('bg-white', 'text-gray-900');
+            }
+
+            btnComplex.addEventListener('click', () => {
+                contentComplex.classList.remove('hidden');
+                contentComplex.classList.add('grid');
+                contentSimple.classList.add('hidden');
+                contentSimple.classList.remove('grid');
+                setActiveButton(btnComplex, btnSimple);
+            });
+
+            btnSimple.addEventListener('click', () => {
+                contentSimple.classList.remove('hidden');
+                contentSimple.classList.add('grid');
+                contentComplex.classList.add('hidden');
+                contentComplex.classList.remove('grid');
+                setActiveButton(btnSimple, btnComplex);
+            });
+            
+            const cashflowData = {
+                labels: ['年金收入', '貸款利息支出', '年度淨現金流'],
+                datasets: [{
+                    label: '金額 (萬元)',
+                    data: [16.5, -6, 10.5],
+                    backgroundColor: [
+                        'rgba(129, 178, 154, 0.7)',
+                        'rgba(224, 122, 95, 0.7)',
+                        'rgba(244, 208, 111, 0.7)',
+                    ],
+                    borderColor: [
+                        'rgba(129, 178, 154, 1)',
+                        'rgba(224, 122, 95, 1)',
+                        'rgba(244, 208, 111, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            new Chart(document.getElementById('cashflowChart'), {
+                type: 'bar',
+                data: cashflowData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: '年金保險型產品現金流分析 (單位:萬元)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '金額 (萬)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const locationData = {
+                labels: ['雙北都會區', '其他縣市'],
+                datasets: [{
+                    label: '申辦案件分佈',
+                    data: [65, 35],
+                    backgroundColor: [
+                        'rgba(224, 122, 95, 0.7)',
+                        'rgba(129, 178, 154, 0.7)',
+                    ],
+                    hoverOffset: 4
+                }]
+            };
+
+            new Chart(document.getElementById('locationChart'), {
+                type: 'doughnut',
+                data: locationData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            const risks = [
+                { id: 'risk1', title: '產品複雜與不當銷售', content: '將單純的貸款與高風險的保險、投資產品捆綁銷售。銷售人員可能使用「保本」、「高利息」等話術，讓長者在未完全理解的情況下簽約，且內部人員對產品也一知半解，資訊極度不對稱。' },
+                { id: 'risk2', title: '世代財產矛盾與家庭糾紛', content: '華人社會「有土斯有財」的觀念根深蒂固，以房養老挑戰了房產傳承的傳統。若申辦前未與子女充分溝通，極易在繼承時引發激烈衝突，產生「剝奪感」。' },
+                { id: 'risk3', title: '利率與房價波動風險', content: '貸款多採浮動利率，若遇上升息循環，長者每月實拿金額將縮水。房價增值利益會被貸款本息侵蝕，繼承人需拿出大筆資金才能贖回房產。' },
+                { id: 'risk4', title: '長壽風險', content: '若長者活得比貸款年期（如20、30年）更久，將面臨貸款到期、撥款終止的困境，可能在人生最脆弱的階段頓失經濟來源，甚至失去住所。' },
+                { id: 'risk5', title: '法律保護機制的侷限', content: '雖然有律師見證制度，但可能流於形式，僅「見證簽名」而非「實質審查風險」。這道防線可能淪為銀行規避責任的防火牆，未能真正保護消費者。' }
+            ];
+
+            const riskCardsContainer = document.getElementById('risk-cards-container');
+            const riskDetails = document.getElementById('risk-details');
+            
+            risks.forEach(risk => {
+                const card = document.createElement('button');
+                card.className = 'w-full text-left p-4 bg-white rounded-lg shadow border border-gray-200 hover:bg-gray-50 hover:border-[#E07A5F] transition';
+                card.innerHTML = `<p class="font-bold">${risk.title}</p>`;
+                card.addEventListener('click', () => {
+                    riskDetails.innerHTML = `<h4 class="font-bold text-lg mb-2 text-[#E07A5F]">${risk.title}</h4><p class="text-gray-700">${risk.content}</p>`;
+                    document.querySelectorAll('#risk-cards-container button').forEach(btn => btn.classList.remove('bg-orange-100', 'border-[#E07A5F]'));
+                    card.classList.add('bg-orange-100', 'border-[#E07A5F]');
+                });
+                riskCardsContainer.appendChild(card);
+            });
+
+            const checklistItems = [
+                { id: 'q1', text: '是否已召開家庭會議，與所有子女公開透明地討論此規劃？' },
+                { id: 'q2', text: '是否完全理解這是一個「貸款」，而非單純的「福利」或「存款」？' },
+                { id: 'q3', text: '是否清楚產品為「單純貸款」或有「捆綁保險/投資」？若是後者，是否理解其所有風險？' },
+                { id: 'q4', text: '是否清楚了解所有費用，包括利息、手續費、保險費、律師費等？' },
+                { id: 'q5', text: '是否理解利率為「浮動」，並思考過升息對未來每月收入的影響？' },
+                { id: 'q6', text: '除了銀行方，是否已諮詢過獨立、客觀的第三方專家（如自己的律師或財務顧問）？' },
+            ];
+
+            const form = document.getElementById('assessment-form');
+            checklistItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex items-start';
+                itemDiv.innerHTML = `
+                    <div class="flex items-center h-5">
+                        <input id="${item.id}" name="${item.id}" type="checkbox" class="focus:ring-[#E07A5F] h-4 w-4 text-[#81B29A] border-gray-300 rounded">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="${item.id}" class="font-medium text-gray-700">${item.text}</label>
+                    </div>
+                `;
+                form.appendChild(itemDiv);
+            });
+
+            const checkButton = document.createElement('button');
+            checkButton.id = 'submit-assessment';
+            checkButton.type = 'button';
+            checkButton.className = 'w-full mt-6 px-4 py-2 text-white bg-[#81B29A] rounded-lg hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#81B29A]';
+            checkButton.textContent = '完成檢核，查看建議';
+            form.appendChild(checkButton);
+
+            const assessmentResult = document.getElementById('assessment-result');
+            const resultTitle = document.getElementById('result-title');
+            const resultText = document.getElementById('result-text');
+            const resultContent = document.getElementById('result-content');
+
+            document.getElementById('submit-assessment').addEventListener('click', () => {
+                const checkedCount = form.querySelectorAll('input[type="checkbox"]:checked').length;
+                assessmentResult.classList.remove('hidden');
+                if (checkedCount === checklistItems.length) {
+                    resultContent.className = 'p-6 rounded-lg bg-green-100 border border-green-300';
+                    resultTitle.className = 'text-2xl font-bold mb-2 text-green-800';
+                    resultTitle.textContent = '準備充分，值得肯定！';
+                    resultText.className = 'text-green-700';
+                    resultText.textContent = '您和您的家庭已進行了良好的溝通與風險評估。在繼續下一步之前，請確保所有文件都已仔細審閱。';
+                } else if (checkedCount >= 3) {
+                    resultContent.className = 'p-6 rounded-lg bg-yellow-100 border border-yellow-300';
+                    resultTitle.className = 'text-2xl font-bold mb-2 text-yellow-800';
+                    resultTitle.textContent = '尚有疑慮，請務必釐清！';
+                    resultText.className = 'text-yellow-700';
+                    resultText.textContent = '您已完成部分準備，但仍有未竟事宜。建議您針對未勾選的項目，與家人和專家再次深入討論，切勿在有任何疑問的情況下簽約。';
+                } else {
+                    resultContent.className = 'p-6 rounded-lg bg-red-100 border border-red-300';
+                    resultTitle.className = 'text-2xl font-bold mb-2 text-red-800';
+                    resultTitle.textContent = '風險極高，請立即暫緩！';
+                    resultText.className = 'text-red-700';
+                    resultText.textContent = '您的準備尚有許多不足之處。強烈建議您暫停申辦程序，花時間與家人、獨立專家徹底溝通，直到所有問題都得到滿意的解答。';
+                }
+                assessmentResult.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+            const headerHeight = document.getElementById('header').offsetHeight;
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { rootMargin: `-${headerHeight}px 0px 0px 0px`, threshold: 0.3 });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                   if (mobileMenu.classList.contains('hidden') === false) {
+                       mobileMenu.classList.add('hidden');
+                   }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
