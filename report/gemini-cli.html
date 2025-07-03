@@ -1,1 +1,685 @@
 
+<!DOCTYPE html>
+<html lang="zh-Hant" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini CLI 代理人開發全攻略</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .code-block {
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #4a5568;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .code-block:hover .copy-btn {
+            opacity: 1;
+        }
+        .copy-btn:active {
+            background-color: #2d3748;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 p-6 overflow-y-auto flex-shrink-0">
+            <h1 class="text-2xl font-bold text-white mb-6">Gemini CLI 全攻略</h1>
+            <nav id="nav-menu">
+                <ul>
+                    <li class="mb-2"><a href="#intro" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg bg-gray-700"><i class="fas fa-home mr-2"></i>課程簡介</a></li>
+                    <li class="mb-2"><a href="#install" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-download mr-2"></i>安裝與設定</a></li>
+                    <li class="mb-2"><a href="#basic" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-terminal mr-2"></i>基本指令與互動</a></li>
+                    <li class="mb-2"><a href="#config" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-cogs mr-2"></i>深入講解設定</a></li>
+                    <li class="mb-2"><a href="#tools" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-tools mr-2"></i>工具調用</a></li>
+                    <li class="mb-2"><a href="#memory" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-memory mr-2"></i>記憶與上下文</a></li>
+                    <li class="mb-2"><a href="#sandbox" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-shield-alt mr-2"></i>沙盒與安全</a></li>
+                    <li class="mb-2"><a href="#cost" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-dollar-sign mr-2"></i>成本估算</a></li>
+                    <li class="mb-2"><a href="#issues" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-bug mr-2"></i>已知問題</a></li>
+                    <li class="mb-2"><a href="#qa" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-question-circle mr-2"></i>Q&A 與資源</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8 overflow-y-auto">
+            <!-- Introduction Section -->
+            <section id="intro" class="content-section active">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">Gemini CLI 代理人開發全攻略</h2>
+                
+                <h3 class="text-2xl font-semibold mb-3 mt-6">歡迎來到 Gemini CLI 的世界！</h3>
+                <p class="mb-4 text-lg leading-relaxed">
+                    Gemini CLI (Command-Line Interface) 是一個功能強大的工具，它讓開發者、系統管理員和所有技術愛好者，都能直接在終端機中與 Google 的 Gemini 模型進行互動。想像一下，您可以直接在熟悉的黑底白字視窗中，完成程式碼生成、腳本除錯、文章撰寫、資料分析，甚至是執行系統命令等複雜任務。
+                </p>
+                <p class="mb-4 text-lg leading-relaxed">
+                    它不僅僅是一個問答機器人，更是一個可以整合到您日常工作流程中的智慧代理人 (Agent)。透過工具調用、上下文管理和沙盒機制，Gemini CLI 能為您打造一個自動化、高效率且安全的開發環境。
+                </p>
+                
+                <div class="grid md:grid-cols-2 gap-6 mt-8">
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-green-400">這份教材適合誰？</h4>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>想將 AI 整合進開發流程的軟體工程師。</li>
+                            <li>希望自動化腳本撰寫與系統管理的 DevOps/SRE。</li>
+                            <li>對 AI 技術充滿好奇，想探索命令列新玩法的學生與技術愛好者。</li>
+                            <li>任何希望能提升工作效率的文字工作者或研究人員。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-blue-400">您將學到什麼？</h4>
+                         <ul class="list-disc list-inside space-y-2">
+                            <li>從零開始安裝並設定 Gemini CLI。</li>
+                            <li>掌握與 Gemini 互動的各種指令與模式。</li>
+                            <li>客製化您的 Gemini CLI，讓它更符合您的需求。</li>
+                            <li>賦予 Gemini CLI 調用外部工具和執行程式碼的能力。</li>
+                            <li>理解並管理 AI 的記憶，實現更連貫的對話。</li>
+                            <li>在安全的沙盒環境中執行 AI 生成的程式碼。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Installation Section -->
+            <section id="install" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">安裝與設定</h2>
+                <p class="mb-6">在開始之前，我們需要先將 Gemini CLI 安裝到您的電腦上，並完成必要的身份驗證。這一步是所有魔法的起點。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">安裝 Gemini CLI</h3>
+                <p class="mb-2">Gemini CLI 是用 Go 語言編寫的，官方推薦使用 `go install` 來安裝，這能確保您總是能獲取到最新的版本。請先確認您已經安裝了 Go (建議 1.21 或以上版本)。</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash">go install github.com/google/gemini-cli@latest</code></pre>
+                </div>
+                <p class="mb-4">安裝完成後，請確認 `gemini` 指令已經在您的系統路徑 (PATH) 中。您可以執行以下指令來檢查：</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash">gemini -v</code></pre>
+                </div>
+                <p class="mb-6">如果能看到版本號，代表安裝成功！</p>
+
+                <h3 class="text-2xl font-semibold mb-3">選擇您的驗證方式</h3>
+                <p class="mb-4">Gemini CLI 提供了多種驗證方式，以適應不同的使用情境。您只需要選擇其中一種即可。</p>
+
+                <div class="space-y-6">
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-green-400">1. Login with Google (推薦)</h4>
+                        <p class="mb-3">這是最簡單、最推薦的方式，特別適合在個人電腦上使用。它會透過瀏覽器引導您登入 Google 帳號，並自動處理憑證的取得與更新。</p>
+                        <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                            <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                            <pre><code class="language-bash">gemini auth login</code></pre>
+                        </div>
+                        <p>執行後，您的瀏覽器會被打開，登入您的 Google 帳號並授權後即可。這種方式使用的是 OAuth 2.0，安全性高，且不需要手動管理 API Key。</p>
+                    </div>
+
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-blue-400">2. Gemini API Key</h4>
+                        <p class="mb-3">如果您需要在沒有圖形介面的伺服器環境，或是 CI/CD 流程中使用，API Key 是一個好選擇。您需要先到 Google AI Studio 取得您的 API Key。</p>
+                        <p class="mb-3">前往 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-400 hover:underline">Google AI Studio</a> 點擊 "Create API key"。</p>
+                        <p class="mb-3">取得 Key 之後，有兩種方式可以使用：</p>
+                        <p class="font-semibold">A) 透過環境變數 (推薦):</p>
+                        <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                            <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                            <pre><code class="language-bash">export GEMINI_API_KEY="YOUR_API_KEY_HERE"</code></pre>
+                        </div>
+                        <p class="font-semibold">B) 透過命令列參數 (不推薦，有洩漏風險):</p>
+                        <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                            <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                            <pre><code class="language-bash">gemini -k "YOUR_API_KEY_HERE" "你的問題"</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-yellow-400">3. Vertex AI</h4>
+                        <p class="mb-3">對於企業級應用或需要更精細權限管理的場景，推薦使用 Vertex AI。這需要您已經設定好 Google Cloud 專案，並透過 `gcloud` CLI 進行驗證。</p>
+                        <p class="mb-3">首先，請確保您已安裝並登入 `gcloud`：</p>
+                        <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                            <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                            <pre><code class="language-bash">gcloud auth application-default login</code></pre>
+                        </div>
+                        <p class="mb-3">然後，在使用 `gemini` 指令時，透過 `--vertex-project-id` 和 `--vertex-location` 參數指定您的專案資訊：</p>
+                        <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                            <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                            <pre><code class="language-bash">gemini --vertex-project-id "your-gcp-project-id" \
+       --vertex-location "us-central1" \
+       "你的問題"</code></pre>
+                        </div>
+                        <p>這種方式利用了 Google Cloud 的 IAM 進行權限控管，最適合在生產環境中使用。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Basic Usage Section -->
+            <section id="basic" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">基本指令與互動</h2>
+                <p class="mb-6">學會安裝後，讓我們來看看如何與 Gemini CLI 進行互動。它提供了多種模式，讓您在不同情境下都能得心應手。</p>
+                
+                <h3 class="text-2xl font-semibold mb-3">互動模式 (Interactive Mode)</h3>
+                <p class="mb-4">這是最常用的模式。直接執行 `gemini` 指令，不帶任何問題，即可進入一個對話循環。在這裡，您可以像聊天一樣與 Gemini 持續對話。</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash">gemini</code></pre>
+                </div>
+                <p class="mb-4">進入後，您會看到一個提示符 `»`，在此輸入您的問題即可。想結束對話，可以輸入 `exit` 或 `quit`，或者按下 `Ctrl+C`。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">特殊指令</h3>
+                <p class="mb-4">在互動模式中，有一些以特殊符號開頭的指令，可以讓您執行更豐富的操作。</p>
+
+                <div class="bg-gray-800 p-6 rounded-lg mb-6">
+                    <h4 class="text-xl font-bold mb-2 text-green-400">/ 斜線指令 (Slash Commands)</h4>
+                    <p class="mb-3">斜線指令用於控制 Gemini CLI 的本身行為，例如管理對話歷史、設定參數等。</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">/help</code>: 顯示所有可用的斜線指令。</li>
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">/history</code>: 查看當前的對話歷史。</li>
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">/clear</code>: 清除當前的對話歷史，開始一個全新的對話。</li>
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">/set model gemini-2.5-flash</code>: 切換使用的模型。</li>
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">/redo</code>: 重新生成上一次的回答。</li>
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">/exit</code> 或 <code class="bg-gray-700 px-2 py-1 rounded">/quit</code>: 退出互動模式。</li>
+                    </ul>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-lg mb-6">
+                    <h4 class="text-xl font-bold mb-2 text-blue-400">@ 符號指令 (At-symbol Commands)</h4>
+                    <p class="mb-3">@ 符號用於將檔案或 URL 的內容加入到對話的上下文中，讓 Gemini 可以基於這些資訊來回答問題。</p>
+                    <p class="font-semibold">範例：分析一個程式碼檔案</p>
+                    <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                        <pre><code class="language-bash">» @./my_script.py 請幫我解釋這段 Python 程式碼的功能</code></pre>
+                    </div>
+                    <p class="font-semibold">範例：總結一個網頁內容</p>
+                     <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                        <pre><code class="language-bash">» @https://www.ithome.com.tw/news/163530 幫我總結這篇新聞的重點</code></pre>
+                    </div>
+                    <p>您也可以同時提供多個檔案：`@file1.txt @file2.log 比較這兩個檔案的差異`</p>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-lg mb-6">
+                    <h4 class="text-xl font-bold mb-2 text-yellow-400">! Shell 模式 (Shell Mode)</h4>
+                    <p class="mb-3">驚嘆號可以讓您在不離開 Gemini CLI 的情況下，直接執行本地的 Shell 指令。這在需要查詢本機資訊時非常方便。</p>
+                    <p class="font-semibold">範例：查看當前目錄的檔案</p>
+                    <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                        <pre><code class="language-bash">» !ls -l</code></pre>
+                    </div>
+                     <p class="font-semibold">範例：結合 Shell 指令與提問</p>
+                     <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
+                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                        <pre><code class="language-bash">» !cat /etc/os-release | gemini "這是什麼作業系統？"</code></pre>
+                    </div>
+                    <p>更強大的是，你可以將 shell 指令的輸出直接作為上下文提供給 Gemini。</p>
+                </div>
+
+                <h3 class="text-2xl font-semibold mb-3">非互動模式 (CI Mode)</h3>
+                <p class="mb-4">當您想在腳本或 CI/CD 流程中使用 Gemini CLI 時，可以使用非互動模式。只需在執行 `gemini` 時直接附上您的問題即可。</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash">gemini "用 python 寫一個 http server" > server.py</code></pre>
+                </div>
+                <p class="mb-4">您也可以透過管道 (pipe) 將其他指令的輸出傳遞給 Gemini：</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash">cat error.log | gemini "分析這個 log，告訴我錯誤的根本原因是什麼？"</code></pre>
+                </div>
+
+                <h3 class="text-2xl font-semibold mb-3">檢查點 (Checkpointing)</h3>
+                <p class="mb-4">Gemini CLI 會自動儲存您的對話歷史。如果您意外中斷了對話，下次直接執行 `gemini` 時，它會詢問您是否要從上次的檢查點恢復。這是一個非常貼心的功能，可以防止您的對話內容遺失。</p>
+            </section>
+            
+            <section id="config" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">深入講解 Gemini CLI 設定</h2>
+                <p class="mb-6">為了讓 Gemini CLI 更符合您的個人習慣與專案需求，理解其設定檔的運作方式至關重要。Gemini CLI 提供了非常有彈性的設定方式，讓您能從多個層級進行客製化。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">理解設定檔的層級結構</h3>
+                <p class="mb-4">Gemini CLI 的設定採用了層級覆蓋的策略，優先級由高到低分別是：</p>
+                <ol class="list-decimal list-inside space-y-2 mb-4 bg-gray-800 p-6 rounded-lg">
+                    <li><strong>命令列參數 (Command-line Flags)</strong>: 例如 `--model gemini-2.5-pro`。這是最高優先級，會覆蓋所有其他設定。</li>
+                    <li><strong>環境變數 (Environment Variables)</strong>: 例如 `export GEMINI_MODEL="gemini-2.5-pro"`。</li>
+                    <li><strong>當前目錄設定 (`.gemini.yaml`)</strong>: 在您執行指令的目錄下的設定檔。適合用於專案級別的設定。</li>
+                    <li><strong>使用者家目錄設定 (`~/.config/gemini-cli/gemini.yaml`)</strong>: 全域設定，適用於您所有的專案。</li>
+                    <li><strong>系統預設值</strong>: 如果以上都沒有設定，則使用程式內建的預設值。</li>
+                </ol>
+                <p>這種設計讓您可以設定一個通用的全域設定，然後在特定專案中用 `.gemini.yaml` 覆蓋它，甚至在單次執行時用命令列參數做臨時修改。</p>
+
+                <h4 class="text-xl font-semibold my-4">範例設定檔 (`gemini.yaml`)</h4>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-yaml"># 使用的模型，可以是 gemini-2.5-pro-latest, gemini-2.5-flash-latest 等
+model: gemini-2.5-flash-latest
+
+# 預設的上下文檔案
+context_file: GEMINI.md
+
+# 是否啟用沙盒模式
+sandbox: true
+
+# 預設的工具清單
+tools:
+  - exec
+  - prompt
+
+# 設定輸出格式
+output:
+  format: json
+
+# 設定溫度，值越高回答越有創意，越低越精確
+temperature: 0.8
+</code></pre>
+                </div>
+
+                <h3 class="text-2xl font-semibold mb-3">環境變數與 `.env` 檔案</h3>
+                <p class="mb-4">除了直接在 Shell 中設定環境變數，Gemini CLI 也支援讀取 `.env` 檔案。如果您在執行指令的目錄下建立一個 `.env` 檔案，CLI 會自動載入其中的變數。</p>
+                <p class="font-semibold">範例 `.env` 檔案:</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash"># .env
+GEMINI_API_KEY="your_secret_api_key"
+GEMINI_MODEL="gemini-2.5-pro-latest"
+</code></pre>
+                </div>
+                <p>這對於管理敏感資訊 (如 API Key) 或在團隊中共享專案設定非常有用，因為您可以將 `.env` 檔案加入到 `.gitignore` 中，避免將密鑰提交到版本控制系統。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">命令列參數的使用時機</h3>
+                <p class="mb-4">命令列參數最適合用於臨時、一次性的修改。當您只是想針對某個特定問題使用不同的模型，或是臨時需要 JSON 輸出時，使用參數是最方便的。</p>
+                <p class="font-semibold">範例：臨時使用 Pro 模型並要求 JSON 輸出</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash">gemini --model gemini-2.5-pro-latest --output-format json "列出三個台灣的旅遊景點"</code></pre>
+                </div>
+                <p>善用這三種設定方式的組合，您可以打造出一個高度客製化且效率極高的 AI 工作環境。</p>
+            </section>
+            
+            <section id="tools" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">深入理解 Gemini CLI 工具調用</h2>
+                <p class="mb-6">工具調用 (Tool Calling) 是 Gemini CLI 最強大的功能之一。它讓 Gemini 模型不再只是一個語言模型，而是一個能夠與您的本地環境、外部服務互動的智慧代理人。透過工具，Gemini 可以執行程式碼、讀寫檔案、呼叫 API，完成更複雜的任務。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">工具核心概念</h3>
+                <p class="mb-4">工具調用的運作方式如下：</p>
+                <ol class="list-decimal list-inside space-y-2 mb-4 bg-gray-800 p-6 rounded-lg">
+                    <li>您向 Gemini 提出一個需要外部工具才能完成的請求 (例如：「幫我列出當前目錄下所有的 .go 檔案」)。</li>
+                    <li>Gemini 模型理解您的意圖後，不會直接回答，而是生成一個包含「工具調用請求」的 JSON 物件。這個物件會指明要使用哪個工具 (例如 `exec`) 以及需要傳遞給該工具的參數 (例如 `ls *.go`)。</li>
+                    <li>Gemini CLI 接收到這個請求後，執行對應的本地工具 (例如執行 `ls *.go` 這個 Shell 指令)。</li>
+                    <li>CLI 將工具執行的結果 (檔案列表) 回傳給 Gemini 模型。</li>
+                    <li>Gemini 模型在獲得工具的執行結果後，生成最終的、人類可讀的回答 (例如：「好的，當前目錄下的 .go 檔案有：main.go, utils.go」)。</li>
+                </ol>
+                <p>整個過程是全自動的，讓您感覺就像是 Gemini 直接幫您完成了操作。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">內建工具 (Built-in Tools)</h3>
+                <p class="mb-4">Gemini CLI 內建了幾個非常實用的工具，您可以在設定檔或命令列中透過 `--tool` 參數來啟用它們。</p>
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <ul class="space-y-4">
+                        <li>
+                            <h4 class="text-xl font-bold text-green-400">`exec`</h4>
+                            <p>允許 Gemini 執行本地的 Shell 指令。這是最常用也最強大的工具。啟用後，您可以要求 Gemini 幫您操作檔案、執行腳本、查詢系統狀態等。<br><strong>範例請求：</strong>`"幫我計算一下目前資料夾有多少個檔案"`</p>
+                        </li>
+                        <li>
+                            <h4 class="text-xl font-bold text-blue-400">`prompt`</h4>
+                            <p>允許 Gemini 在需要更多資訊時向您提問。當您的指令不夠清晰時，模型可以利用這個工具來澄清需求，而不是猜測您的意圖。<br><strong>範例請求：</strong>`"幫我寫一封信"` (模型可能會反問：`"信要寫給誰？主題是什麼？"`) </p>
+                        </li>
+                         <li>
+                            <h4 class="text-xl font-bold text-yellow-400">`read`</h4>
+                            <p>明確地允許 Gemini 讀取您透過 `@` 符號提供的檔案。雖然 `@` 本身就能提供上下文，但啟用此工具能讓模型的意圖更清晰。<br><strong>範例請求：</strong>`@config.yaml "這個設定檔中的資料庫主機是什麼？"`</p>
+                        </li>
+                    </ul>
+                </div>
+                <p class="mt-4 font-semibold">如何啟用工具？</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash"># 啟用 exec 和 prompt 工具
+gemini --tool exec --tool prompt "幫我找出所有大於 1MB 的日誌檔，然後壓縮它們"</code></pre>
+                </div>
+
+                <h3 class="text-2xl font-semibold mb-3 mt-6">設定 MCP 伺服器 (Model-Controlled Program)</h3>
+                <p class="mb-4">除了內建工具，您還可以定義自己的客製化工具！Gemini CLI 透過一種稱為 MCP (Model-Controlled Program) 的伺服器協議來實現這一點。您可以編寫一個簡單的 HTTP 伺服器，向 Gemini CLI "註冊" 您自訂的工具。</p>
+                <p class="mb-4">這個 MCP 伺服器需要做兩件事：</p>
+                <ol class="list-decimal list-inside space-y-2 mb-4">
+                    <li>提供一個工具列表的端點 (endpoint)，讓 Gemini CLI 知道您有哪些工具可用，以及每個工具的用途和參數。</li>
+                    <li>提供一個執行工具的端點，接收 Gemini CLI 的調用請求並執行相應的邏輯。</li>
+                </ol>
+                <p>雖然這屬於進階用法，但它開啟了無限的可能性。您可以建立一個工具來：</p>
+                <ul class="list-disc list-inside space-y-2">
+                    <li>查詢公司內部的資料庫。</li>
+                    <li>在 Jira 上建立一個新的 issue。</li>
+                    <li>觸發一個 Jenkins 的建置任務。</li>
+                </ul>
+                <p class="mt-4">官方 GitHub Repo 中有提供 MCP 伺服器的範例，您可以參考它們來打造自己的客製化工具生態系。</p>
+            </section>
+
+            <section id="memory" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">掌控 Gemini CLI 的記憶能力</h2>
+                <p class="mb-6">一個好的對話體驗，關鍵在於 AI 是否能「記住」我們之前說過的話。Gemini CLI 提供了強大的上下文管理機制，讓您可以精準地控制模型的「記憶」，其中最重要的核心就是 `GEMINI.md` 檔案。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">認識 `GEMINI.md` 上下文檔案</h3>
+                <p class="mb-4">`GEMINI.md` 是一個神奇的檔案。當您在某個目錄下執行 `gemini` 指令時，它會自動尋找並載入該目錄下的 `GEMINI.md` 檔案，將其內容作為每一次對話的「前置提示 (pre-prompt)」或「系統指令 (system instruction)」。</p>
+                <p class="mb-4">這意味著，您可以在這個檔案中為 Gemini 設定角色、提供背景知識、定義輸出格式，或給予任何您希望它在整個對話過程中都遵守的指示。這就像是為您的 AI 代理人植入了一個永久的記憶晶片。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">掌握 `GEMINI.md` 的實務應用技巧</h3>
+                <p class="mb-4">`GEMINI.md` 的用途非常廣泛，以下是一些實用的範例：</p>
+
+                <div class="space-y-6">
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-green-400">1. 角色扮演與個性設定</h4>
+                        <p class="mb-3">您可以讓 Gemini 扮演特定的專家角色，讓它的回答更具針對性。</p>
+                        <p class="font-semibold">範例 `GEMINI.md` (資深 Go 開發者):</p>
+                        <div class="code-block bg-gray-700 rounded-lg p-4 my-4">
+                            <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                            <pre><code class="language-markdown"># System Instruction
+
+You are an expert Go programmer with 10 years of experience building scalable and concurrent systems.
+Provide clean, idiomatic Go code.
+Always include error handling and add comments to explain complex logic.
+Your tone should be professional and helpful.</code></pre>
+                        </div>
+                        <p>有了這個檔案，您在這個目錄下提出的任何問題，Gemini 都會以資深 Go 開發者的身份來回答。</p>
+                    </div>
+
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-blue-400">2. 提供專案背景知識</h4>
+                        <p class="mb-3">當您在一個特定的專案上工作時，可以將專案的架構、規範、重要 API 等資訊放入 `GEMINI.md`。</p>
+                        <p class="font-semibold">範例 `GEMINI.md` (專案背景):</p>
+                        <div class="code-block bg-gray-700 rounded-lg p-4 my-4">
+                            <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                            <pre><code class="language-markdown"># Project Context: My Awesome App
+
+- **Framework:** Gin
+- **Database:** PostgreSQL with GORM
+- **Key API Endpoint:** `/api/v1/users`
+- **Coding Style:** All function names must be in camelCase.
+- **Goal:** When I ask for new features, please generate code that fits this existing architecture.
+</code></pre>
+                        </div>
+                        <p>這樣一來，當您說「幫我新增一個取得使用者訂單的 API」時，Gemini 就會知道要使用 Gin 框架，並遵循您設定的規範。</p>
+                    </div>
+
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-yellow-400">3. 統一輸出格式</h4>
+                        <p class="mb-3">如果您需要 Gemini 的回答總是遵循某種特定格式 (例如 JSON 或 Markdown 表格)，`GEMINI.md` 是最佳的設定地點。</p>
+                        <p class="font-semibold">範例 `GEMINI.md` (JSON 輸出):</p>
+                        <div class="code-block bg-gray-700 rounded-lg p-4 my-4">
+                            <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                            <pre><code class="language-markdown"># Output Format
+
+Your response MUST be a valid JSON object.
+Do not include any explanations or text outside of the JSON block.
+The JSON object should have two keys: "summary" (a string) and "details" (an array of strings).
+</code></pre>
+                        </div>
+                        <p>透過靈活運用 `GEMINI.md`，您可以為不同的任務和專案建立專屬的 AI 環境，大幅提升互動的效率和準確性。這也是從「把 AI 當玩具」晉升到「把 AI 當工具」的關鍵一步。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sandbox" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">理解 Gemini CLI 的沙盒機制</h2>
+                <p class="mb-6">當我們賦予 AI 執行程式碼的能力時 (透過 `exec` 工具)，安全就成了首要考量。您不會希望 AI 在誤解您的指令時，執行了像 `rm -rf /` 這樣的毀滅性命令。為此，Gemini CLI 提供了強大的沙盒機制 (Sandboxing) 來保護您的系統。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">認識 AI Coding 帶來的潛在資安風險</h3>
+                <p class="mb-4">讓 AI 執行程式碼可能帶來以下風險：</p>
+                <ul class="list-disc list-inside space-y-2 mb-4 bg-gray-800 p-6 rounded-lg">
+                    <li><strong>意外的檔案操作</strong>: AI 可能會錯誤地修改、移動或刪除重要檔案。</li>
+                    <li><strong>惡意程式碼執行</strong>: 如果 AI 的訓練資料中包含了惡意程式碼，或者被攻擊者透過提示注入 (Prompt Injection) 的方式誘騙，它可能會生成並執行有害的腳本。</li>
+                    <li><strong>資訊洩漏</strong>: AI 可能會執行讀取敏感檔案 (如 `/etc/passwd`, `~/.ssh/id_rsa`) 或環境變數的指令，並將內容洩漏出去。</li>
+                    <li><strong>網路濫用</strong>: AI 可能會執行 `curl` 或 `wget` 等指令，從不受信任的來源下載檔案，或對外發動網路攻擊。</li>
+                </ul>
+
+                <h3 class="text-2xl font-semibold mb-3">沙盒機制如何運作？</h3>
+                <p class="mb-4">當您啟用沙盒模式後，Gemini CLI 會使用容器化技術 (例如 Docker) 創建一個隔離的執行環境。所有由 `exec` 工具執行的 Shell 指令都會在這個沙盒容器內運行，而不是直接在您的主機 (Host) 上運行。</p>
+                <p class="mb-4">這個沙盒環境有以下特點：</p>
+                <ul class="list-disc list-inside space-y-2 mb-4">
+                    <li><strong>檔案系統隔離</strong>: 沙盒內部有自己獨立的檔案系統。預設情況下，它無法存取您主機上的任何檔案。</li>
+                    <li><strong>網路隔離</strong>: 可以設定沙盒的網路存取權限，例如完全禁止對外連線。</li>
+                    <li><strong>權限限制</strong>: 在沙盒內執行的指令通常是以非 root 使用者身份運行，權限受到嚴格限制。</li>
+                </ul>
+                <p>您可以透過 `--sandbox-dir` 參數，選擇性地將主機的某個目錄掛載 (mount) 到沙盒中，讓 AI 只能在這個指定的「工作區」內操作檔案，兼顧了安全與實用性。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">理解啟用沙盒機制的時機</h3>
+                <p class="mb-4">那麼，什麼時候應該啟用沙盒呢？這裡有一些指導原則：</p>
+                <div class="grid md:grid-cols-2 gap-6 mt-8">
+                    <div class="bg-green-900/50 p-6 rounded-lg border border-green-500">
+                        <h4 class="text-xl font-bold mb-2 text-green-400">✅ 建議啟用沙盒的時機</h4>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>處理不熟悉的程式碼或專案時。</li>
+                            <li>執行由 AI 生成的複雜腳本或自動化任務時。</li>
+                            <li>當您的提示可能產生歧義，或 AI 需要執行檔案操作 (創建、修改、刪除) 時。</li>
+                            <li>在任何您對指令的潛在影響沒有 100% 把握的情況下。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-red-900/50 p-6 rounded-lg border border-red-500">
+                        <h4 class="text-xl font-bold mb-2 text-red-400">❌ 可以考慮不啟用沙盒的時機</h4>
+                         <ul class="list-disc list-inside space-y-2">
+                            <li>執行簡單、唯讀的指令時 (例如 `ls`, `cat`, `grep`)。</li>
+                            <li>您完全信任 AI 要執行的指令，並已在腦中預演過其結果。</li>
+                            <li>需要與主機環境深度互動，且掛載目錄無法滿足需求時 (需謹慎評估)。</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="mt-6 font-semibold">如何啟用沙盒？</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash"># 啟用沙盒，並將當前目錄掛載到沙盒的 /workspace 中
+gemini --sandbox --sandbox-dir=. "幫我分析這個目錄下的檔案結構"</code></pre>
+                </div>
+                <p class="mt-4">總結來說，<strong>預設啟用沙盒是一個良好的安全習慣</strong>。它提供了一層重要的保護，讓您在探索 AI 強大能力的同時，不必擔心對系統造成無法挽回的損害。</p>
+            </section>
+
+            <section id="cost" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">詳細估算 Gemini CLI 的導入成本</h2>
+                <p class="mb-6">將 Gemini CLI 整合到工作流程中非常強大，但理解其背後的 API 使用成本也同樣重要。費用主要基於您與模型互動時所消耗的「Token」數量來計算。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">什麼是 Token？</h3>
+                <p class="mb-4">Token 是模型處理文字的基本單位。您可以把它想像成是單詞的片段。對於英文來說，1 個 token 大約是 4 個字元；對於中文來說，計算方式較複雜，但大致上 1 個漢字可能對應 1 到 2 個 token。</p>
+                <p class="mb-4">每次您向 Gemini 發送請求，成本由兩部分組成：</p>
+                <ul class="list-disc list-inside space-y-2 mb-4 bg-gray-800 p-6 rounded-lg">
+                    <li><strong>輸入 Tokens (Input Tokens)</strong>: 您發送給模型的所有文字，包括您的問題、對話歷史、`GEMINI.md` 的內容，以及透過 `@` 符號傳入的檔案內容。</li>
+                    <li><strong>輸出 Tokens (Output Tokens)</strong>: 模型生成並回傳給您的回答。</li>
+                </ul>
+                <p>不同的模型 (如 Gemini 2.5 Pro 和 Gemini 2.5 Flash) 對於輸入和輸出 token 的定價也不同。通常，能力更強的模型價格更高。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">如何估算成本？</h3>
+                <p class="mb-4">雖然無法做到 100% 精確預測，但您可以透過以下步驟來大致估算：</p>
+                <ol class="list-decimal list-inside space-y-3 mb-4">
+                    <li><strong>了解模型定價</strong>: 前往 <a href="https://cloud.google.com/vertex-ai/generative-ai/pricing" target="_blank" class="text-cyan-400 hover:underline">Google Cloud Vertex AI 定價頁面</a> 或 <a href="https://ai.google.dev/pricing" target="_blank" class="text-cyan-400 hover:underline">Google AI for Developers 定價頁面</a>，查找您常用模型的最新價格。價格通常以「每 1000 個 token」或「每 1 百萬個 token」為單位。</li>
+                    <li><strong>分析您的輸入</strong>:
+                        <ul class="list-disc list-inside ml-6 mt-2 space-y-2">
+                            <li><strong>提示 (Prompt)</strong>: 您的問題有多長？</li>
+                            <li><strong>上下文 (Context)</strong>: 您的 `GEMINI.md` 檔案有多大？您是否經常使用 `@` 傳入大型檔案？對話歷史有多長？</li>
+                            <li><strong>工具調用</strong>: 工具的定義和執行結果也會被計為 token。</li>
+                        </ul>
+                    </li>
+                    <li><strong>預估您的輸出</strong>: 您期望 Gemini 回答的長度是多少？是簡短的指令還是詳細的報告？</li>
+                    <li><strong>使用 `--count-tokens` 參數</strong>: Gemini CLI 提供了一個非常有用的參數 `--count-tokens`。它不會真的發送請求給 API，而是計算出這次請求將會消耗多少輸入 token，讓您在實際花費前心裡有數。</li>
+                </ol>
+
+                <p class="font-semibold">使用 `--count-tokens` 的範例：</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash"># 估算分析一個檔案會用掉多少輸入 token
+gemini --count-tokens @./large_log_file.log "幫我分析這個日誌檔"</code></pre>
+                </div>
+
+                <h3 class="text-2xl font-semibold mb-3">成本控制技巧</h3>
+                <div class="grid md:grid-cols-2 gap-6 mt-8">
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-green-400">💡 節省成本的技巧</h4>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>選擇合適的模型</strong>: 對於簡單任務 (如格式轉換、簡單問答)，使用成本較低的 `gemini-2.5-flash-latest` 通常就足夠了。只有在處理複雜推理時才切換到 `gemini-2.5-pro-latest`。</li>
+                            <li><strong>精簡您的輸入</strong>: 保持 `GEMINI.md` 內容精要。只傳入問題相關的檔案，而不是整個專案。</li>
+                            <li><strong>及時清理對話</strong>: 在切換不同主題時，使用 `/clear` 指令來清除對話歷史，避免不相關的舊對話內容被持續計費。</li>
+                            <li><strong>設定預算提醒</strong>: 在您的 Google Cloud Billing 帳戶中設定預算和提醒，當費用接近上限時能及時收到通知。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold mb-2 text-yellow-400">💰 成本陷阱提醒</h4>
+                         <ul class="list-disc list-inside space-y-2">
+                            <li><strong>大型檔案上下文</strong>: 使用 `@` 傳入一個數 MB 的大檔案，會瞬間消耗大量輸入 token。</li>
+                            <li><strong>冗長的對話</strong>: 沒有清理的長對話，每一次請求都會把全部歷史記錄發送出去，成本會滾雪球式增長。</li>
+                            <li><strong>無限制的工具循環</strong>: 如果工具設計不當，可能會導致 AI 不斷地、無意義地調用工具，產生大量 token 消耗。</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="mt-6">透過有意識地管理 Token 使用，您可以放心地將 Gemini CLI 應用於各種任務，而無需擔心收到意料之外的帳單。</p>
+            </section>
+            
+            <section id="issues" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">已知問題 (Known Issues)</h2>
+                <p class="mb-6">任何軟體都有其不完美之處，Gemini CLI 也不例外。了解目前社群回報的已知問題，可以幫助您避免踩坑，或在遇到問題時知道這並不是您個人的問題。以下內容是根據官方 <a href="https://github.com/google/gemini-cli/issues" target="_blank" class="text-cyan-400 hover:underline">GitHub Issues</a> 頁面匯總的一些常見回報問題類型。</p>
+                <p class="mb-6 text-sm text-gray-400">請注意：這些問題的狀態可能會隨時更新，最準確的資訊請以 GitHub 為準。</p>
+
+                <div class="space-y-6">
+                    <div class="bg-gray-800 p-6 rounded-lg border-l-4 border-yellow-500">
+                        <h4 class="text-xl font-bold mb-2">問題：在 Windows 上使用 `!` 執行某些指令時可能卡住</h4>
+                        <p class="mb-3"><strong>狀況描述</strong>: 部分使用者回報，在 Windows (特別是使用 cmd.exe 或 PowerShell) 的互動模式中，使用 `!` 執行某些需要使用者輸入 (或會長時間運行的) Shell 指令時，終端機可能會沒有回應或卡住。</p>
+                        <p class="mb-3"><strong>可能影響</strong>: 在 Windows 環境下使用 `!` 執行複雜指令的體驗可能不佳。</p>
+                        <p class="mb-3"><strong>臨時解法</strong>: 盡量使用非互動式的 Shell 指令，或在另一個終端機視窗中執行複雜命令，再將結果貼回 Gemini CLI。</p>
+                        <p class="text-sm text-gray-400"><strong>相關 Issue</strong>: (此處為示意，實際應連結到具體 issue) <a href="https://github.com/google/gemini-cli/issues" class="text-cyan-500 hover:underline">在 GitHub 上搜尋相關問題</a></p>
+                    </div>
+
+                    <div class="bg-gray-800 p-6 rounded-lg border-l-4 border-blue-500">
+                        <h4 class="text-xl font-bold mb-2">問題：`@` 符號無法正確處理包含特殊字元的檔名</h4>
+                        <p class="mb-3"><strong>狀況描述</strong>: 當使用 `@` 符號來載入檔名包含空格、括號或其他特殊 Shell 字元的檔案時，CLI 可能會解析失敗或找不到檔案。</p>
+                        <p class="mb-3"><strong>可能影響</strong>: 如果您的檔案命名習慣比較自由，可能會在使用 `@` 指令時遇到困難。</p>
+                        <p class="mb-3"><strong>臨時解法</strong>: 將檔案重新命名，使用底線 `_` 或橫線 `-` 來代替空格和特殊字元。或者，使用 `cat "my file name.txt" | gemini "..."` 的方式透過管道傳入檔案內容。</p>
+                        <p class="text-sm text-gray-400"><strong>相關 Issue</strong>: (此處為示意) <a href="https://github.com/google/gemini-cli/issues" class="text-cyan-500 hover:underline">在 GitHub 上搜尋相關問題</a></p>
+                    </div>
+
+                    <div class="bg-gray-800 p-6 rounded-lg border-l-4 border-red-500">
+                        <h4 class="text-xl font-bold mb-2">問題：在沙盒模式下，工具對網路的存取權限控制不夠精細</h4>
+                        <p class="mb-3"><strong>狀況描述</strong>: 目前的沙盒模式主要是對檔案系統進行隔離。對於網路存取，通常是全開或全關，缺乏更精細的控制，例如「只允許存取特定的網域」。</p>
+                        <p class="mb-3"><strong>可能影響</strong>: 當您希望 AI 工具只能呼叫某個指定的內部 API 時，目前的沙盒機制可能無法完全滿足此類安全需求。</p>
+                        <p class="mb-3"><strong>臨時解法</strong>: 這是一個較底層的限制。目前的解法是在主機層級使用防火牆規則來限制容器的對外連線，但這已超出 Gemini CLI 本身的設定範圍。</p>
+                        <p class="text-sm text-gray-400"><strong>相關 Issue</strong>: (此處為示意) <a href="https://github.com/google/gemini-cli/issues" class="text-cyan-500 hover:underline">在 GitHub 上搜尋相關問題</a></p>
+                    </div>
+                </div>
+                <p class="mt-6">再次提醒，軟體開發是一個持續迭代的過程。關注官方 GitHub Repo 是獲取最新資訊和參與社群討論的最佳方式。</p>
+            </section>
+            
+            <section id="qa" class="content-section">
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">Q&A 與學習資源</h2>
+                <p class="mb-6">學習的路上總會遇到問題，別擔心，您不是一個人。這裡整理了一些常見問題與非常有用的官方資源，希望能幫助您解決疑惑。</p>
+
+                <h3 class="text-2xl font-semibold mb-3">常見問題 (FAQ)</h3>
+                <div class="space-y-4">
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h4 class="font-semibold text-lg">Q: 我應該用 Gemini API Key 還是 `gcloud` 登入？</h4>
+                        <p class="text-gray-300">A: <strong>個人日常使用</strong>: 強烈推薦 `gemini auth login`，它最簡單方便。<strong>伺服器/CI/CD</strong>: 如果您的環境是 Google Cloud，優先使用 `gcloud` 驗證 (Vertex AI 模式)，安全性最高。如果是在其他雲端平台或本地伺服器，使用 `GEMINI_API_KEY` 環境變數是標準做法。</p>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h4 class="font-semibold text-lg">Q: 為什麼我的對話感覺 Gemini 「忘記」了之前的內容？</h4>
+                        <p class="text-gray-300">A: 這通常是 Token 數量限制導致的。當對話歷史變得太長，超過了模型的上下文窗口 (Context Window) 大小時，最早的對話內容就會被捨棄。您可以嘗試：1. 使用 `/clear` 開始新對話。 2. 將重要的、需要長期記憶的資訊寫入 `GEMINI.md`。</p>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h4 class="font-semibold text-lg">Q: 我可以讓 Gemini CLI 輸出圖片嗎？</h4>
+                        <p class="text-gray-300">A: 目前的 Gemini CLI 主要專注於文字和程式碼的互動，尚不直接支援生成或顯示圖片。您可以使用它來生成能夠創建圖片的程式碼 (例如 Python 的 Matplotlib 或網頁的 SVG)，然後再手動執行這些程式碼來看到結果。</p>
+                    </div>
+                </div>
+
+                <h3 class="text-2xl font-semibold mb-3 mt-8">官方學習資源</h3>
+                <p class="mb-4">遇到任何本教材未涵蓋的深入問題，或想追蹤最新的功能更新，以下是您的最佳資訊來源：</p>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <a href="https://github.com/google/gemini-cli" target="_blank" class="block bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold mb-2 text-white"><i class="fab fa-github mr-2"></i> 官方 GitHub Repo</h4>
+                        <p class="text-gray-300">所有問題的最終歸宿。您可以在這裡找到原始碼、回報 Bug、提交功能請求，並查看最權威的 README 文件。</p>
+                    </a>
+                    <a href="https://github.com/google/gemini-cli/blob/main/docs/manual.md" target="_blank" class="block bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold mb-2 text-white"><i class="fas fa-book mr-2"></i> Gemini CLI 官方手冊</h4>
+                        <p class="text-gray-300">這份官方手冊詳細介紹了每一個指令和參數的用法，是深入學習和查詢特定功能時不可或缺的參考資料。</p>
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('.content-section');
+
+            function updateActiveLink(targetId) {
+                navLinks.forEach(link => {
+                    link.classList.remove('bg-gray-700', 'text-white');
+                    link.classList.add('text-gray-300');
+                    if (link.getAttribute('href') === `#${targetId}`) {
+                        link.classList.add('bg-gray-700', 'text-white');
+                        link.classList.remove('text-gray-300');
+                    }
+                });
+            }
+
+            function showSection(targetId) {
+                sections.forEach(section => {
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+                updateActiveLink(targetId);
+            }
+
+            // Handle navigation clicks
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    window.location.hash = targetId;
+                });
+            });
+            
+            // Handle hash changes (for direct linking and back/forward buttons)
+            function handleHashChange() {
+                const hash = window.location.hash.substring(1) || 'intro';
+                showSection(hash);
+            }
+
+            window.addEventListener('hashchange', handleHashChange);
+            
+            // Initial load
+            handleHashChange();
+        });
+
+        function copyCode(button) {
+            const pre = button.nextElementSibling;
+            const code = pre.querySelector('code');
+            const text = code.innerText;
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const originalText = button.innerText;
+            button.innerText = '已複製!';
+            setTimeout(() => {
+                button.innerText = originalText;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
