@@ -58,7 +58,7 @@
                     <li class="mb-2"><a href="#basic" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-terminal mr-2"></i>基本指令與互動</a></li>
                     <li class="mb-2"><a href="#config" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-cogs mr-2"></i>深入講解設定</a></li>
                     <li class="mb-2"><a href="#tools" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-tools mr-2"></i>工具調用</a></li>
-                    <li class="mb-2"><a href="#memory" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-memory mr-2"></i>記憶與上下文</a></li>
+                    <li class="mb-2"><a href="#memory" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-brain mr-2"></i>對話上下文管理</a></li>
                     <li class="mb-2"><a href="#sandbox" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-shield-alt mr-2"></i>沙盒與安全</a></li>
                     <li class="mb-2"><a href="#cost" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-dollar-sign mr-2"></i>成本估算</a></li>
                     <li class="mb-2"><a href="#issues" class="nav-link text-gray-300 hover:text-white block p-2 rounded-lg"><i class="fas fa-bug mr-2"></i>已知問題</a></li>
@@ -98,7 +98,7 @@
                             <li>掌握與 Gemini 互動的各種指令與模式。</li>
                             <li>客製化您的 Gemini CLI，讓它更符合您的需求。</li>
                             <li>賦予 Gemini CLI 調用外部工具和執行程式碼的能力。</li>
-                            <li>理解並管理 AI 的記憶，實現更連貫的對話。</li>
+                            <li>理解並管理 AI 的對話上下文，實現更連貫的互動。</li>
                             <li>在安全的沙盒環境中執行 AI 生成的程式碼。</li>
                         </ul>
                     </div>
@@ -205,18 +205,18 @@
 
                 <div class="bg-gray-800 p-6 rounded-lg mb-6">
                     <h4 class="text-xl font-bold mb-2 text-blue-400">@ 符號指令 (At-symbol Commands)</h4>
-                    <p class="mb-3">@ 符號用於將檔案或 URL 的內容加入到對話的上下文中，讓 Gemini 可以基於這些資訊來回答問題。</p>
-                    <p class="font-semibold">範例：分析一個程式碼檔案</p>
-                    <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
-                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
-                        <pre><code class="language-bash">» @./my_script.py 請幫我解釋這段 Python 程式碼的功能</code></pre>
-                    </div>
-                    <p class="font-semibold">範例：總結一個網頁內容</p>
+                    <p class="mb-3">`@` 符號用於將**外部內容**加入到提問的上下文中，讓 Gemini 可以基於這些資訊來回答問題。它支援多種類型的來源：</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>本地檔案</strong>: `@./my_script.py`</li>
+                        <li><strong>網頁 URL</strong>: `@https://www.example.com`</li>
+                        <li><strong>標準輸入 (stdin)</strong>: `@-` 這是一個特別有用的技巧，可以將管道 (pipe) 的輸出作為上下文。</li>
+                    </ul>
+                    <p class="font-semibold mt-4">範例：結合 `cat` 和 `@-`</p>
                      <div class="code-block bg-gray-800 rounded-lg p-4 my-4 border border-gray-700">
                         <button class="copy-btn" onclick="copyCode(this)">複製</button>
-                        <pre><code class="language-bash">» @https://www.ithome.com.tw/news/163530 幫我總結這篇新聞的重點</code></pre>
+                        <pre><code class="language-bash">cat report.txt | gemini "@- 請總結這份報告"</code></pre>
                     </div>
-                    <p>您也可以同時提供多個檔案：`@file1.txt @file2.log 比較這兩個檔案的差異`</p>
+                    <p>您也可以在一次提問中提供多個 `@` 來源，例如：`@file1.txt @file2.log 比較這兩個檔案的差異`</p>
                 </div>
 
                 <div class="bg-gray-800 p-6 rounded-lg mb-6">
@@ -241,23 +241,27 @@
                     <button class="copy-btn" onclick="copyCode(this)">複製</button>
                     <pre><code class="language-bash">gemini "用 python 寫一個 http server" > server.py</code></pre>
                 </div>
-                <p class="mb-4">您也可以透過管道 (pipe) 將其他指令的輸出傳遞給 Gemini：</p>
+
+                <h3 class="text-2xl font-semibold mb-3">檢查點 (Checkpointing): 手動的對話版本控制</h3>
+                <p class="mb-4">這是一個強大的手動功能，讓您可以像玩遊戲存檔一樣，為您的對話建立「存檔點」。當您覺得目前的對話狀態非常重要，或即將進行一個可能「玩壞」對話的實驗性提問時，就可以建立一個檢查點。</p>
+                <p class="mb-4">要使用此功能，必須在啟動時加上 `-c` 或 `--checkpointing` 旗標：</p>
                 <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
                     <button class="copy-btn" onclick="copyCode(this)">複製</button>
-                    <pre><code class="language-bash">cat error.log | gemini "分析這個 log，告訴我錯誤的根本原因是什麼？"</code></pre>
+                    <pre><code class="language-bash">gemini --checkpointing</code></pre>
                 </div>
-
-                <h3 class="text-2xl font-semibold mb-3">檢查點 (Checkpointing)</h3>
-                <p class="mb-4">Gemini CLI 會自動儲存您的對話歷史。如果您意外中斷了對話 (例如，不小心關閉終端機或按下 `Ctrl+C`)，下次在同一個目錄下直接執行 `gemini` 時，它會偵測到上次的對話記錄，並詢問您是否要恢復：</p>
-                <div class="code-block bg-gray-800 rounded-lg p-4 my-4 text-sm">
-                    <pre><code>A recovery checkpoint was found.
-Would you like to restore it? [Y/n]</code></pre>
-                </div>
-                <ul class="list-disc list-inside space-y-2">
-                    <li>輸入 <code class="bg-gray-700 px-2 py-1 rounded">Y</code> 或直接按 Enter，即可從上次中斷的地方繼續對話。</li>
-                    <li>輸入 <code class="bg-gray-700 px-2 py-1 rounded">n</code>，則會忽略檢查點，開始一個全新的對話。</li>
+                <p class="mb-4">進入互動模式後，您可以使用以下指令：</p>
+                <ul class="list-disc list-inside space-y-3 bg-gray-800 p-6 rounded-lg">
+                    <li>
+                        <code class="bg-gray-700 px-2 py-1 rounded">/checkpoint [名稱]</code>: 建立一個檢查點。您可以為它取一個好記的名字，例如 `/checkpoint before_refactor`。
+                    </li>
+                    <li>
+                        <code class="bg-gray-700 px-2 py-1 rounded">/restore</code>: 列出所有已建立的檢查點。
+                    </li>
+                    <li>
+                        <code class="bg-gray-700 px-2 py-1 rounded">/restore [名稱]</code>: 恢復到您指定的檢查點，整個對話歷史將會回溯到該時間點。
+                    </li>
                 </ul>
-                <p class="mt-4">這是一個非常貼心的功能，可以有效防止您的對話思路和有價值的上下文意外遺失。</p>
+                <p class="mt-4">這個功能對於進行複雜的、多步驟的任務非常有用，它給了您一顆「後悔藥」，讓您可以大膽嘗試，而不必擔心無法回到之前的狀態。</p>
             </section>
             
             <section id="config" class="content-section">
@@ -339,7 +343,7 @@ GEMINI_MODEL="gemini-2.5-pro-latest"
                 <p>整個過程是全自動的，讓您感覺就像是 Gemini 直接幫您完成了操作。</p>
 
                 <h3 class="text-2xl font-semibold mb-3">內建工具 (Built-in Tools)</h3>
-                <p class="mb-4">Gemini CLI 內建了幾個非常實用的工具，您可以在設定檔或命令列中透過 `--tool` 參數來啟用它們。</p>
+                <p class="mb-4">Gemini CLI 內建了幾個非常實用的工具，您可以在設定檔或命令列中透過 `--tool` 參數來啟用它們。此參數可以多次使用以啟用多個工具。</p>
                 <div class="bg-gray-800 p-6 rounded-lg">
                     <ul class="space-y-4">
                         <li>
@@ -351,16 +355,16 @@ GEMINI_MODEL="gemini-2.5-pro-latest"
                             <p>允許 Gemini 在需要更多資訊時向您提問。當您的指令不夠清晰時，模型可以利用這個工具來澄清需求，而不是猜測您的意圖。<br><strong>範例請求：</strong>`"幫我寫一封信"` (模型可能會反問：`"信要寫給誰？主題是什麼？"`) </p>
                         </li>
                          <li>
-                            <h4 class="text-xl font-bold text-yellow-400">`read`</h4>
-                            <p>明確地允許 Gemini 讀取您透過 `@` 符號提供的檔案。雖然 `@` 本身就能提供上下文，但啟用此工具能讓模型的意圖更清晰。<br><strong>範例請求：</strong>`@config.yaml "這個設定檔中的資料庫主機是什麼？"`</p>
+                            <h4 class="text-xl font-bold text-yellow-400">`http`</h4>
+                            <p>允許 Gemini 向指定的 URL 發送 HTTP 請求。這可以用於與任何具有 API 的網路服務進行互動。<br><strong>範例請求：</strong>`"幫我查詢 'gemini-cli' 在 GitHub API 的資訊"`</p>
                         </li>
                     </ul>
                 </div>
                 <p class="mt-4 font-semibold">如何啟用工具？</p>
                 <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
                     <button class="copy-btn" onclick="copyCode(this)">複製</button>
-                    <pre><code class="language-bash"># 啟用 exec 和 prompt 工具
-gemini --tool exec --tool prompt "幫我找出所有大於 1MB 的日誌檔，然後壓縮它們"</code></pre>
+                    <pre><code class="language-bash"># 同時啟用 exec 和 http 工具
+gemini --tool exec --tool http "幫我找出所有大於 1MB 的日誌檔，然後壓縮它們"</code></pre>
                 </div>
 
                 <h3 class="text-2xl font-semibold mb-3 mt-6">設定 MCP 伺服器 (Model-Controlled Program)</h3>
@@ -402,8 +406,8 @@ gemini --tool exec --tool prompt "幫我找出所有大於 1MB 的日誌檔，�
             </section>
 
             <section id="memory" class="content-section">
-                <h2 class="text-3xl font-bold mb-4 text-cyan-400">掌控 Gemini CLI 的記憶能力</h2>
-                <p class="mb-6">一個好的對話體驗，關鍵在於 AI 是否能「記住」我們之前說過的話。Gemini CLI 提供了強大的上下文管理機制，讓您可以精準地控制模型的「記憶」，其中最重要的核心就是 `GEMINI.md` 檔案。</p>
+                <h2 class="text-3xl font-bold mb-4 text-cyan-400">對話上下文管理</h2>
+                <p class="mb-6">一個好的對話體驗，關鍵在於 AI 是否能「記住」我們之前說過的話。Gemini CLI 提供了強大的上下文 (Context) 管理機制，讓您可以精準地控制模型的「記憶」，其中最重要的核心就是 `GEMINI.md` 檔案。</p>
 
                 <h3 class="text-2xl font-semibold mb-3">認識 `GEMINI.md` 上下文檔案</h3>
                 <p class="mb-4">`GEMINI.md` 是一個神奇的檔案。當您在某個目錄下執行 `gemini` 指令時，它會自動尋找並載入該目錄下的 `GEMINI.md` 檔案，將其內容作為每一次對話的「前置提示 (pre-prompt)」或「系統指令 (system instruction)」。</p>
@@ -469,33 +473,31 @@ The JSON object should have two keys: "summary" (a string) and "details" (an arr
                 <h2 class="text-3xl font-bold mb-4 text-cyan-400">理解 Gemini CLI 的沙盒機制</h2>
                 <p class="mb-6">當我們賦予 AI 執行程式碼的能力時 (透過 `exec` 工具)，安全就成了首要考量。您不會希望 AI 在誤解您的指令時，執行了像 `rm -rf /` 這樣的毀滅性命令。為此，Gemini CLI 提供了強大的沙盒機制 (Sandboxing) 來保護您的系統。</p>
 
-                <h3 class="text-2xl font-semibold mb-3">認識 AI Coding 帶來的潛在資安風險</h3>
-                <p class="mb-4">讓 AI 執行程式碼可能帶來以下風險：</p>
-                <ul class="list-disc list-inside space-y-2 mb-4 bg-gray-800 p-6 rounded-lg">
-                    <li><strong>意外的檔案操作</strong>: AI 可能會錯誤地修改、移動或刪除重要檔案。</li>
-                    <li><strong>惡意程式碼執行</strong>: 如果 AI 的訓練資料中包含了惡意程式碼，或者被攻擊者透過提示注入 (Prompt Injection) 的方式誘騙，它可能會生成並執行有害的腳本。</li>
-                    <li><strong>資訊洩漏</strong>: AI 可能會執行讀取敏感檔案 (如 `/etc/passwd`, `~/.ssh/id_rsa`) 或環境變數的指令，並將內容洩漏出去。</li>
-                    <li><strong>網路濫用</strong>: AI 可能會執行 `curl` 或 `wget` 等指令，從不受信任的來源下載檔案，或對外發動網路攻擊。</li>
-                </ul>
-
                 <h3 class="text-2xl font-semibold mb-3">沙盒機制如何運作？</h3>
-                <p class="mb-4">當您啟用沙盒模式後，Gemini CLI 會使用容器化技術 (例如 Docker) 創建一個隔離的執行環境。所有由 `exec` 工具執行的 Shell 指令都會在這個沙盒容器內運行，而不是直接在您的主機 (Host) 上運行。</p>
+                <p class="mb-4">當您啟用沙盒模式後 (透過 `--sandbox` 旗標)，Gemini CLI 會使用容器化技術 (預設為 Docker) 創建一個隔離的執行環境。所有由 `exec` 工具執行的 Shell 指令都會在這個沙盒容器內運行，而不是直接在您的主機 (Host) 上運行。</p>
                 <p class="mb-4">這個沙盒環境有以下特點：</p>
                 <ul class="list-disc list-inside space-y-2 mb-4">
                     <li><strong>檔案系統隔離</strong>: 沙盒內部有自己獨立的檔案系統。預設情況下，它無法存取您主機上的任何檔案。</li>
                     <li><strong>網路隔離</strong>: 可以設定沙盒的網路存取權限，例如完全禁止對外連線。</li>
                     <li><strong>權限限制</strong>: 在沙盒內執行的指令通常是以非 root 使用者身份運行，權限受到嚴格限制。</li>
+                    <li><strong>掛載工作區</strong>: 您可以透過 `--sandbox-dir` 參數，選擇性地將主機的某個目錄掛載 (mount) 到沙盒的 `/workspace` 目錄下，讓 AI 只能在這個指定的「工作區」內操作檔案。</li>
                 </ul>
-                <p>您可以透過 `--sandbox-dir` 參數，選擇性地將主機的某個目錄掛載 (mount) 到沙盒中，讓 AI 只能在這個指定的「工作區」內操作檔案，兼顧了安全與實用性。</p>
+                <p class="font-semibold">進階用法：自訂沙盒映像檔</p>
+                <p class="mb-4">如果預設的沙盒環境不滿足您的需求 (例如，缺少某些您需要的工具)，您可以使用 `--docker-image` 參數來指定一個您自己建立的 Docker Image 作為沙盒環境。</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-bash">gemini --sandbox --docker-image my-custom-env:latest "執行我的客製化腳本"</code></pre>
+                </div>
+
 
                 <h3 class="text-2xl font-semibold mb-3">理解啟用沙盒機制的時機</h3>
                 <p class="mb-4">那麼，什麼時候應該啟用沙盒呢？這裡有一些指導原則：</p>
                 <div class="grid md:grid-cols-2 gap-6 mt-8">
                     <div class="bg-green-900/50 p-6 rounded-lg border border-green-500">
-                        <h4 class="text-xl font-bold mb-2 text-green-400">✅ 建議啟用沙盒的時機</h4>
+                        <h4 class="text-xl font-bold mb-2 text-green-400">✅ 強烈建議啟用沙盒的時機</h4>
                         <ul class="list-disc list-inside space-y-2">
+                            <li>執行任何由 AI 生成的、可能修改檔案系統的指令時。</li>
                             <li>處理不熟悉的程式碼或專案時。</li>
-                            <li>執行由 AI 生成的複雜腳本或自動化任務時。</li>
                             <li>當您的提示可能產生歧義，或 AI 需要執行檔案操作 (創建、修改、刪除) 時。</li>
                             <li>在任何您對指令的潛在影響沒有 100% 把握的情況下。</li>
                         </ul>
@@ -503,17 +505,11 @@ The JSON object should have two keys: "summary" (a string) and "details" (an arr
                     <div class="bg-red-900/50 p-6 rounded-lg border border-red-500">
                         <h4 class="text-xl font-bold mb-2 text-red-400">❌ 可以考慮不啟用沙盒的時機</h4>
                          <ul class="list-disc list-inside space-y-2">
-                            <li>執行簡單、唯讀的指令時 (例如 `ls`, `cat`, `grep`)。</li>
+                            <li>執行簡單、純唯讀的指令時 (例如 `ls`, `cat`, `grep`)。</li>
                             <li>您完全信任 AI 要執行的指令，並已在腦中預演過其結果。</li>
                             <li>需要與主機環境深度互動，且掛載目錄無法滿足需求時 (需謹慎評估)。</li>
                         </ul>
                     </div>
-                </div>
-                <p class="mt-6 font-semibold">如何啟用沙盒？</p>
-                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
-                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
-                    <pre><code class="language-bash"># 啟用沙盒，並將當前目錄掛載到沙盒的 /workspace 中
-gemini --sandbox --sandbox-dir=. "幫我分析這個目錄下的檔案結構"</code></pre>
                 </div>
                 <p class="mt-4">總結來說，<strong>預設啟用沙盒是一個良好的安全習慣</strong>。它提供了一層重要的保護，讓您在探索 AI 強大能力的同時，不必擔心對系統造成無法挽回的損害。</p>
             </section>
@@ -636,9 +632,9 @@ gemini --count-tokens @./large_log_file.log "幫我分析這個日誌檔"</code>
                         <h4 class="text-xl font-bold mb-2 text-white"><i class="fab fa-github mr-2"></i> 官方 GitHub Repo</h4>
                         <p class="text-gray-300">所有問題的最終歸宿。您可以在這裡找到原始碼、回報 Bug、提交功能請求，並查看最權威的 README 文件。</p>
                     </a>
-                    <a href="https://github.com/google/gemini-cli/blob/main/docs/manual.md" target="_blank" class="block bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors">
-                        <h4 class="text-xl font-bold mb-2 text-white"><i class="fas fa-book mr-2"></i> Gemini CLI 官方手冊</h4>
-                        <p class="text-gray-300">這份官方手冊詳細介紹了每一個指令和參數的用法，是深入學習和查詢特定功能時不可或缺的參考資料。</p>
+                    <a href="https://github.com/google/gemini-cli/tree/main/docs" target="_blank" class="block bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold mb-2 text-white"><i class="fas fa-book-open mr-2"></i> Gemini CLI 官方文件庫</h4>
+                        <p class="text-gray-300">這份官方文件庫包含了所有功能的詳細介紹，是深入學習和查詢特定功能時不可或缺的參考資料。</p>
                     </a>
                 </div>
             </section>
