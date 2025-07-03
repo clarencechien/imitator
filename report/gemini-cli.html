@@ -248,7 +248,16 @@
                 </div>
 
                 <h3 class="text-2xl font-semibold mb-3">檢查點 (Checkpointing)</h3>
-                <p class="mb-4">Gemini CLI 會自動儲存您的對話歷史。如果您意外中斷了對話，下次直接執行 `gemini` 時，它會詢問您是否要從上次的檢查點恢復。這是一個非常貼心的功能，可以防止您的對話內容遺失。</p>
+                <p class="mb-4">Gemini CLI 會自動儲存您的對話歷史。如果您意外中斷了對話 (例如，不小心關閉終端機或按下 `Ctrl+C`)，下次在同一個目錄下直接執行 `gemini` 時，它會偵測到上次的對話記錄，並詢問您是否要恢復：</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4 text-sm">
+                    <pre><code>A recovery checkpoint was found.
+Would you like to restore it? [Y/n]</code></pre>
+                </div>
+                <ul class="list-disc list-inside space-y-2">
+                    <li>輸入 <code class="bg-gray-700 px-2 py-1 rounded">Y</code> 或直接按 Enter，即可從上次中斷的地方繼續對話。</li>
+                    <li>輸入 <code class="bg-gray-700 px-2 py-1 rounded">n</code>，則會忽略檢查點，開始一個全新的對話。</li>
+                </ul>
+                <p class="mt-4">這是一個非常貼心的功能，可以有效防止您的對話思路和有價值的上下文意外遺失。</p>
             </section>
             
             <section id="config" class="content-section">
@@ -355,19 +364,41 @@ gemini --tool exec --tool prompt "幫我找出所有大於 1MB 的日誌檔，�
                 </div>
 
                 <h3 class="text-2xl font-semibold mb-3 mt-6">設定 MCP 伺服器 (Model-Controlled Program)</h3>
-                <p class="mb-4">除了內建工具，您還可以定義自己的客製化工具！Gemini CLI 透過一種稱為 MCP (Model-Controlled Program) 的伺服器協議來實現這一點。您可以編寫一個簡單的 HTTP 伺服器，向 Gemini CLI "註冊" 您自訂的工具。</p>
+                <p class="mb-4">除了內建工具，您還可以定義自己的客製化工具！Gemini CLI 透過一種稱為 MCP (Model-Controlled Program) 的伺服器協議來實現。您可以編寫一個簡單的 HTTP 伺服器，向 Gemini CLI "註冊" 您自訂的工具。</p>
                 <p class="mb-4">這個 MCP 伺服器需要做兩件事：</p>
                 <ol class="list-decimal list-inside space-y-2 mb-4">
-                    <li>提供一個工具列表的端點 (endpoint)，讓 Gemini CLI 知道您有哪些工具可用，以及每個工具的用途和參數。</li>
-                    <li>提供一個執行工具的端點，接收 Gemini CLI 的調用請求並執行相應的邏輯。</li>
+                    <li><strong>宣告工具</strong>: 提供一個工具列表的端點 (endpoint)，通常是 `/tools`。當 Gemini CLI 啟動時，會向這個端點發送請求，以獲取您所有自訂工具的 JSON Schema 定義。這個 Schema 描述了工具的名稱、用途和參數。</li>
+                    <li><strong>執行工具</strong>: 提供一個執行工具的端點，通常是 `/execute`。當 Gemini 模型決定要使用您的某個工具時，CLI 會將包含工具名稱和參數的請求發送到這個端點。您的伺服器執行相應的邏輯後，將結果回傳給 CLI。</li>
                 </ol>
-                <p>雖然這屬於進階用法，但它開啟了無限的可能性。您可以建立一個工具來：</p>
-                <ul class="list-disc list-inside space-y-2">
-                    <li>查詢公司內部的資料庫。</li>
-                    <li>在 Jira 上建立一個新的 issue。</li>
-                    <li>觸發一個 Jenkins 的建置任務。</li>
-                </ul>
-                <p class="mt-4">官方 GitHub Repo 中有提供 MCP 伺服器的範例，您可以參考它們來打造自己的客製化工具生態系。</p>
+                <p class="font-semibold">範例：宣告一個查詢天氣的工具</p>
+                <p>您的 MCP 伺服器在 `/tools` 端點需要回傳類似下方的 JSON：</p>
+                <div class="code-block bg-gray-800 rounded-lg p-4 my-4">
+                    <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    <pre><code class="language-json">{
+  "tools": [
+    {
+      "function_declarations": [
+        {
+          "name": "get_current_weather",
+          "description": "取得指定地點的即時天氣資訊",
+          "parameters": {
+            "type": "OBJECT",
+            "properties": {
+              "location": {
+                "type": "STRING",
+                "description": "城市名稱，例如：'Taipei'"
+              }
+            },
+            "required": ["location"]
+          }
+        }
+      ]
+    }
+  ]
+}</code></pre>
+                </div>
+                <p class="mt-4">這個結構告訴了 Gemini，有一個名為 `get_current_weather` 的工具，它需要一個叫做 `location` 的字串參數。有了這個定義，您就可以對 Gemini 說：「幫我查一下台北現在的天氣」，它就知道該如何調用您的工具了。</p>
+                <p class="mt-4">雖然這屬於進階用法，但它開啟了無限的可能性。官方 GitHub Repo 中有提供 MCP 伺服器的範例，您可以參考它們來打造自己的客製化工具生態系。</p>
             </section>
 
             <section id="memory" class="content-section">
