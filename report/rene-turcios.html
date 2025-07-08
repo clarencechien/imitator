@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式調查報告：Rene Turcios 真相儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Investigative Neutral (Warm Grays, Off-White, Muted Gold Accent) -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive "Fact-Check Dashboard" to investigate the claims about Rene Turcios. Instead of a linear report, it uses a thematic, section-based structure with a central navigation. The user flow starts with a high-level overview of the key claims visualized in a radar chart. Users can then dive deeper into specific themes—Persona, Technology (Vibe Coding), Business, and Media Ecosystem—via dedicated interactive sections. This non-linear, task-oriented structure empowers users to explore the information based on their interests, making the dense report content more digestible and engaging. The goal is to transform the user from a passive reader into an active investigator. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Overall assessment of Turcios's key claims. -> Goal: Compare claims against reality. -> Viz/Presentation: Interactive Radar Chart (Chart.js/Canvas). -> Interaction: Hovering over points on the chart reveals the summary assessment for each claim. -> Justification: Provides a quick, comparative, and visually impactful overview of the report's core findings at a glance.
+        - Report Info: Specific claims about persona and business ventures. -> Goal: Organize and detail evidence. -> Viz/Presentation: Interactive "Dossier Cards" (HTML/CSS/Tailwind). -> Interaction: Clicking a card reveals detailed findings and evidence, contrasting the claim with the investigation's conclusion. -> Justification: Breaks down complex information into manageable chunks and encourages user interaction to reveal more data, creating a sense of discovery.
+        - Report Info: The concept of "Vibe Coding" and the media ecosystem. -> Goal: Explain a process and a network. -> Viz/Presentation: Process/Network Diagrams (HTML/CSS/Tailwind Flexbox/Grid). -> Interaction: Static diagrams with clear labels and flow. -> Justification: Visually simplifies complex relationships and processes without requiring graphics, making abstract concepts easier to grasp.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 320px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        .dossier-card { transition: all 0.3s ease-in-out; }
+        .dossier-card .details {
+            display: none;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .dossier-card.open .details { display: block; max-height: 1000px; }
+        .nav-link { transition: color 0.2s; }
+        .nav-link.active, .nav-link:hover { color: #ca8a04; }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="text-xl font-bold text-stone-700">調查報告: Rene Turcios</div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#hero" class="nav-link active">總覽</a>
+                    <a href="#persona" class="nav-link">人設解構</a>
+                    <a href="#vibe-coding" class="nav-link">Vibe Coding</a>
+                    <a href="#business" class="nav-link">商業版圖</a>
+                    <a href="#ecosystem" class="nav-link">炒作生態系</a>
+                    <a href="#verdict" class="nav-link">最終裁決</a>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav" class="bg-white border border-stone-300 rounded-md p-2">
+                        <option value="#hero">總覽</option>
+                        <option value="#persona">人設解構</option>
+                        <option value="#vibe-coding">Vibe Coding</option>
+                        <option value="#business">商業版圖</option>
+                        <option value="#ecosystem">炒作生態系</option>
+                        <option value="#verdict">最終裁決</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-stone-900">舊金山的「駭客松之王」</h1>
+                <p class="mt-4 text-lg md:text-xl text-stone-600 max-w-3xl mx-auto">Rene Turcios，一個不懂程式卻屢戰屢勝的傳奇人物。但... 傳奇背後的真相為何？</p>
+                <p class="mt-8 text-base text-stone-500 max-w-3xl mx-auto">這份互動式報告旨在超越媒體頭條，對圍繞 Rene Turcios 的各種說法進行嚴謹、基於證據的調查。下方的「主張真實性雷達圖」是我們調查結果的總覽，呈現了他各項關鍵主張的驗證評估。您可以將滑鼠懸停在圖表的各個節點上，快速了解我們的分析結論，並在後續章節中深入探索每個主張的細節。</p>
+                <div class="mt-12">
+                    <div class="chart-container">
+                        <canvas id="claimsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="persona" class="py-16 md:py-24">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold tracking-tight text-stone-900">人設解構：事實與品牌操作</h2>
+                    <p class="mt-3 text-lg text-stone-600 max-w-3xl mx-auto">Rene Turcios 的公眾形象建立在幾個關鍵敘事上：獨特的出身、駭客松的主宰記錄，以及「非程式設計師」的矛盾身份。本節將系統性地檢視這些說法，並與現有證據進行比對，以區分事實與策略性品牌操作。點擊下方卡片以展開詳細調查結果。</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="dossier-card bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1">
+                        <h3 class="text-xl font-bold">職業《遊戲王》玩家</h3>
+                        <p class="text-stone-500 mt-2">主張：曾為職業卡牌遊戲玩家，靠比賽維生，並達到值得付費簽名的程度。</p>
+                        <div class="details mt-4 pt-4 border-t border-stone-200">
+                            <p class="font-semibold text-yellow-600">驗證評估：部分證實／誇大</p>
+                            <p class="mt-2 text-stone-700">他可能是一位活躍的玩家，YouTube 影片標題曾提及他，但公開競賽檔案中並無頂尖排名記錄。其「職業」身份和高水準成功並無實證，此經歷更像是一種敘事手法，用以塑造其策略天才的形象。</p>
+                        </div>
+                    </div>
+                    <div class="dossier-card bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1">
+                        <h3 class="text-xl font-bold">參加超過 200 場駭客松</h3>
+                        <p class="text-stone-500 mt-2">主張：自 2023 年以來，參加了超過 200 場駭客松，是圈內最活躍的人物。</p>
+                        <div class="details mt-4 pt-4 border-t border-stone-200">
+                            <p class="font-semibold text-green-600">驗證評估：可信</p>
+                            <p class="mt-2 text-stone-700">駭客松組織者 Collin Lowenburg 證實他頻繁出席各大活動。雖然「超過 200 場」的確切數字無法獨立驗證，但他高度活躍的參與度得到可信第三方證實。</p>
+                        </div>
+                    </div>
+                    <div class="dossier-card bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1">
+                        <h3 class="text-xl font-bold">「駭客松之王」</h3>
+                        <p class="text-stone-500 mt-2">主張：在駭客松競賽中持續獲勝，是舊金山無可爭議的王者。</p>
+                        <div class="details mt-4 pt-4 border-t border-stone-200">
+                             <p class="font-semibold text-yellow-600">驗證評估：部分證實</p>
+                            <p class="mt-2 text-stone-700">他確有數次記錄在案且經部分證實的獲獎經歷 (如 Lofi4All)。然而，由於缺乏全面的獲獎名單，「之王」的稱號更應被視為媒體賦予的綽號，反映其高能見度而非經統計證實的制霸記錄。</p>
+                        </div>
+                    </div>
+                     <div class="dossier-card bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1 md:col-span-2 lg:col-span-3">
+                        <h3 class="text-xl font-bold">「不懂寫程式」的矛盾</h3>
+                        <p class="text-stone-500 mt-2">主張：在不懂傳統程式設計的情況下，擊敗了眾多頂尖工程師。</p>
+                        <div class="details mt-4 pt-4 border-t border-stone-200">
+                            <p class="font-semibold text-blue-600">驗證評估：策略性品牌操作</p>
+                            <p class="mt-2 text-stone-700">這是一個強大的行銷工具，而非對他能力的真實反映。他並非缺乏技術知識，而是採用「Vibe Coding」的方法，專注於使用高階 AI 工具協調和部署應用程式。他的 LinkedIn 資料列出了多項技術技能，GitHub 也顯示他能建構系統。他不是傳統的程式設計師，而是一位「後程式碼時代」的創辦人。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="vibe-coding" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold tracking-tight text-stone-900">Vibe Coding：創造的引擎</h2>
+                     <p class="mt-3 text-lg text-stone-600 max-w-3xl mx-auto">Rene Turcios 的成功與「Vibe Coding」這個概念密不可分。此方法由 AI 研究員 Andrej Karpathy 定義，強調開發者與 AI 之間快速、即興的協作，專注於用自然語言表達「想法」，而將「實作」的重擔交給 AI。這不僅是技術趨勢，更是一種文化符號，代表著對傳統工程紀律的顛覆。</p>
+                </div>
+                <div class="max-w-4xl mx-auto bg-stone-100 p-8 rounded-lg shadow-inner">
+                    <h4 class="text-2xl font-semibold text-center mb-6">Vibe Coding 流程示意圖</h4>
+                    <div class="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="text-center p-4 bg-white rounded-lg shadow w-full md:w-1/4">
+                            <div class="text-4xl">💡</div>
+                            <h5 class="font-bold mt-2">1. 產生想法</h5>
+                            <p class="text-sm text-stone-600">開發者用自然語言（如純英文）描述應用程式的目標與功能。</p>
+                        </div>
+                        <div class="text-2xl text-stone-400 font-mono hidden md:block">&rarr;</div>
+                        <div class="text-2xl text-stone-400 font-mono md:hidden">&darr;</div>
+                        <div class="text-center p-4 bg-white rounded-lg shadow w-full md:w-1/4">
+                            <div class="text-4xl">🤖</div>
+                            <h5 class="font-bold mt-2">2. 提示 AI</h5>
+                            <p class="text-sm text-stone-600">將想法作為提示輸入大型語言模型（LLM），如 ChatGPT 或 Gemini。</p>
+                        </div>
+                        <div class="text-2xl text-stone-400 font-mono hidden md:block">&rarr;</div>
+                         <div class="text-2xl text-stone-400 font-mono md:hidden">&darr;</div>
+                        <div class="text-center p-4 bg-white rounded-lg shadow w-full md:w-1/4">
+                            <div class="text-4xl">📄</div>
+                            <h5 class="font-bold mt-2">3. 生成程式碼</h5>
+                            <p class="text-sm text-stone-600">AI 模型生成功能性程式碼，開發者不需逐行審查或完全理解。</p>
+                        </div>
+                        <div class="text-2xl text-stone-400 font-mono hidden md:block">&rarr;</div>
+                         <div class="text-2xl text-stone-400 font-mono md:hidden">&darr;</div>
+                        <div class="text-center p-4 bg-white rounded-lg shadow w-full md:w-1/4">
+                             <div class="text-4xl">🚀</div>
+                            <h5 class="font-bold mt-2">4. 部署應用</h5>
+                            <p class="text-sm text-stone-600">快速部署應用程式並進行迭代，專注於高層次的協調與流程。</p>
+                        </div>
+                    </div>
+                     <p class="mt-8 text-center text-stone-600">Turcios 正是這種方法的早期實踐者與公眾化身。他被朋友稱為「最初的 Vibe Coder」，其成功故事讓這個抽象概念變得具體且令人興奮，體現了 Karpathy 所說的「最熱門的新程式語言是英語」。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="business" class="py-16 md:py-24">
+             <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold tracking-tight text-stone-900">Vibe 的商業模式：盡職調查分析</h2>
+                    <p class="mt-3 text-lg text-stone-600 max-w-3xl mx-auto">一位創辦人的信譽與其商業事業的可行性密不可分。本節將對 Rene Turcios 聲稱創辦的公司進行盡職調查，審視其營運的真實性，並評估其在敘事之外的實質內容。點擊下方卡片以展開詳細調查結果。</p>
+                </div>
+                 <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div class="dossier-card bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1">
+                        <h3 class="text-xl font-bold">Agentcies.co</h3>
+                        <p class="text-stone-500 mt-2">主張：創辦人兼執行長，為中小企業提供 AI 代理人框架的旗艦新創公司。</p>
+                        <div class="details mt-4 pt-4 border-t border-stone-200">
+                             <p class="font-semibold text-red-600">驗證評估：無法驗證為正式實體</p>
+                             <p class="mt-2 text-stone-700">顯著缺乏獨立網站、公司註冊等足跡。其名稱與一家資金雄厚的競爭對手 `Agency` (`agen.cy`) 極易混淆。它似乎主要作為 Turcios 接案和工作坊的個人品牌，而非一個結構化的新創公司。</p>
+                        </div>
+                    </div>
+                    <div class="dossier-card bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1">
+                        <h3 class="text-xl font-bold">AI-migos</h3>
+                        <p class="text-stone-500 mt-2">主張：與 RJ Moscardon 共同創辦的 AI 顧問公司。</p>
+                        <div class="details mt-4 pt-4 border-t border-stone-200">
+                             <p class="font-semibold text-green-600">驗證評估：已驗證活動</p>
+                            <p class="mt-2 text-stone-700">有共同舉辦工作坊的活動列表可證實。這似乎是一個合法但規模較小的合作夥伴關係，專注於顧問和社群教育。</p>
+                        </div>
+                    </div>
+                     <div class="dossier-card bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1">
+                        <h3 class="text-xl font-bold">其他事業 (01Hestia, VerseXR)</h3>
+                        <p class="text-stone-500 mt-2">主張：創辦訂閱制教育平台與元宇宙基礎設施公司。</p>
+                        <div class="details mt-4 pt-4 border-t border-stone-200">
+                             <p class="font-semibold text-red-600">驗證評估：無法驗證或僅具敘事目的</p>
+                             <p class="mt-2 text-stone-700">01Hestia 缺乏營運證據，可能僅是專案構想。VerseXR 則已倒閉，其關閉的故事主要用來強化他支持 AI、反傳統的品牌形象。</p>
+                        </div>
+                    </div>
+                     <div class="dossier-card bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1">
+                        <h3 class="text-xl font-bold">副業：轉售 Labubu 娃娃</h3>
+                        <p class="text-stone-500 mt-2">報導提及他轉售潮流玩具 Labubu 來補貼收入。</p>
+                        <div class="details mt-4 pt-4 border-t border-stone-200">
+                             <p class="font-semibold text-blue-600">驗證評估：商業模式的縮影</p>
+                             <p class="mt-2 text-stone-700">這個副業是他科技主業的完美比喻。在這兩個領域，他都辨識出一個高需求的流行資產，透過策略性努力獲得它，然後利用其文化資本獲利。這表明他根本的商業模式是「炒作套利者」。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ecosystem" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4">
+                 <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold tracking-tight text-stone-900">影響力生態系：人脈、媒體與炒作</h2>
+                    <p class="mt-3 text-lg text-stone-600 max-w-3xl mx-auto">沒有哪個公眾形象是在真空中建立的。Turcios 的崛起是由一個特定的媒體平台和個人人脈網絡所促成和加速的，這個生態系驗證並放大了他的敘事。這個高效的公關飛輪展示了現代個人品牌是如何被建構的。</p>
+                </div>
+                <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
+                    <div class="md:col-span-2 bg-stone-100 p-6 rounded-lg shadow-inner">
+                        <h4 class="font-bold text-lg">關鍵角色</h4>
+                        <ul class="mt-4 space-y-3 text-stone-700">
+                            <li><strong>Rene Turcios:</strong> 敘事主角，提供引人入勝的故事。</li>
+                            <li><strong>Rya Jetha (記者):</strong> 在《舊金山標準報》上發表關鍵報導，提供合法性的初始發射台。</li>
+                             <li><strong>RJ Moscardon:</strong> 朋友兼商業夥伴，提供內部佐證。</li>
+                            <li><strong>Collin Lowenburg:</strong> 駭客松組織者，提供看似獨立的第三方驗證。</li>
+                        </ul>
+                    </div>
+                    <div class="md:col-span-3">
+                         <h4 class="text-2xl font-semibold text-center mb-6">炒作飛輪模型</h4>
+                         <div class="space-y-4">
+                            <div class="flex items-center">
+                                <div class="bg-yellow-400 text-yellow-800 rounded-full h-10 w-10 flex items-center justify-center font-bold">1</div>
+                                <p class="ml-4 font-medium">發展一個獨特、充滿矛盾且令人難忘的個人敘事。</p>
+                            </div>
+                             <div class="flex items-center">
+                                <div class="bg-yellow-400 text-yellow-800 rounded-full h-10 w-10 flex items-center justify-center font-bold">2</div>
+                                <p class="ml-4 font-medium">在小眾社群中取得可驗證的成功，獲得圈內人士背書。</p>
+                            </div>
+                             <div class="flex items-center">
+                                <div class="bg-yellow-400 text-yellow-800 rounded-full h-10 w-10 flex items-center justify-center font-bold">3</div>
+                                <p class="ml-4 font-medium">將故事推銷給報導領域相符的可信記者，確保媒體曝光。</p>
+                            </div>
+                             <div class="flex items-center">
+                                <div class="bg-yellow-400 text-yellow-800 rounded-full h-10 w-10 flex items-center justify-center font-bold">4</div>
+                                <p class="ml-4 font-medium">利用新聞聚合器和部落格的放大效應，形成報導瀑布。</p>
+                            </div>
+                             <div class="flex items-center">
+                                <div class="bg-yellow-400 text-yellow-800 rounded-full h-10 w-10 flex items-center justify-center font-bold">5</div>
+                                <p class="ml-4 font-medium">在個人品牌中引用媒體報導，創造自我強化的信譽循環。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="verdict" class="py-16 md:py-24">
+            <div class="container mx-auto px-4">
+                 <div class="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-lg shadow-2xl border border-yellow-500">
+                    <h2 class="text-3xl font-bold tracking-tight text-center text-stone-900">最終裁決：綜合與評估</h2>
+                    <div class="mt-6 prose prose-lg text-stone-700 max-w-none">
+                        <p>本次調查揭示了一個複雜的人物，他既非一個簡單的騙子，也非其媒體敘事所暗示的革命性天才。Rene Turcios 是一個真實存在的人物，他在舊金山 AI 駭客松社群中非常活躍、知名度高。他是一位技術嫻熟的「Vibe Coding」早期實踐者。</p>
+                        <p>然而，他的<strong>人設</strong>是一個精心建構的敘事，策略性地重塑並誇大了現實。他駭客松勝利的規模、職業生涯的實質內容，以及其公司的營運現實都存在誇大或無法驗證之處。「非程式設計師」的稱號是一個強力的品牌塑造工具。</p>
+                        <p class="font-semibold text-stone-800">最終判斷，Rene Turcios 不是一個騙徒，而是一位高效的表演者、行銷人員和「炒作套利者」。</p>
+                        <p>他的故事是 AI 淘金熱時代的產物，象徵著三大趨勢：</p>
+                        <ol>
+                            <li><strong>創造的民主化：</strong>AI 工具確實降低了軟體開發的門檻。</li>
+                            <li><strong>敘事的至高無上：</strong>在嘈雜的科技領域，一個引人入勝的故事可能比產品更有價值。</li>
+                            <li><strong>技能界線的模糊化：</strong>「開發者」的定義正在被重寫，協調 AI 的能力變得至關重要。</li>
+                        </ol>
+                        <p>他的故事是理解當代科技、媒體和炒作之間複雜交集的一個至關重要的案例研究。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8">
+        <div class="container mx-auto px-4 text-center text-sm">
+            <p>&copy; 2025 互動式調查報告。本應用程式根據公開報導進行分析與視覺化呈現。</p>
+            <p class="mt-1">僅供教育與資訊參考目的。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dossierCards = document.querySelectorAll('.dossier-card');
+            dossierCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    card.classList.toggle('open');
+                });
+            });
+
+            const claimsData = {
+                labels: [
+                    '職業《遊戲王》玩家',
+                    '參加 200+ 場駭客松',
+                    '「駭客松之王」',
+                    '商業實體 (Agentcies.co)',
+                    '「不懂寫程式」'
+                ],
+                datasets: [{
+                    label: '主張真實性評估 (分數越低越接近誇大/無法證實)',
+                    data: [2, 4, 3, 1, 2],
+                    fill: true,
+                    backgroundColor: 'rgba(202, 138, 4, 0.2)',
+                    borderColor: 'rgb(202, 138, 4)',
+                    pointBackgroundColor: 'rgb(202, 138, 4)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(202, 138, 4)'
+                }]
+            };
+
+            const claimsTooltips = [
+                '部分證實／誇大',
+                '可信',
+                '部分證實',
+                '無法驗證為正式實體',
+                '策略性品牌操作'
+            ];
+
+            const config = {
+                type: 'radar',
+                data: claimsData,
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#44403c'
+                            },
+                            ticks: {
+                                backdropColor: 'rgba(255, 255, 255, 0.75)',
+                                stepSize: 1,
+                                max: 5,
+                                min: 0,
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.r !== null) {
+                                        label += claimsTooltips[context.dataIndex];
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            const ctx = document.getElementById('claimsChart');
+            if(ctx) {
+                new Chart(ctx, config);
+            }
+            
+            const mobileNav = document.getElementById('mobile-nav');
+            if(mobileNav) {
+                mobileNav.addEventListener('change', (e) => {
+                    window.location.href = e.target.value;
+                });
+            }
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('main section');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { rootMargin: "-50% 0px -50% 0px" });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
