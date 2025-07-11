@@ -162,6 +162,8 @@
                             <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">年初資產</th>
                             <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">實際提領</th>
                             <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">CWR</th>
+                            <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">0050報酬率</th>
+                            <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">通膨率(CPI)</th>
                             <th class="py-2 px-3 border-b text-center text-sm font-semibold text-stone-600">規則觸發</th>
                             <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">年末資產</th>
                         </tr>
@@ -326,10 +328,12 @@
                     portfolioHistory.push(currentPortfolio);
 
                     const prevYear = year - 1;
-                    const prevYearReturn = DATA.RETURNS[prevYear] / 100 || 0; // For the first year (2004), there's no 2003 return in the data
+                    const prevYearReturn = DATA.RETURNS[prevYear] / 100 || 0;
+                    const currentYearReturn = DATA.RETURNS[year] / 100;
                     const inflation = DATA.CPI[prevYear] / 100 || 0;
+                    const displayInflation = DATA.CPI[prevYear] !== undefined ? DATA.CPI[prevYear] : 0;
 
-                    let ruleTriggered = '無';
+                    let ruleMessages = [];
                     
                     let plannedWithdrawal;
                     if (i === 0) {
@@ -337,7 +341,7 @@
                     } else {
                         if (prevYearReturn < 0) {
                             plannedWithdrawal = lastYearWithdrawal;
-                            ruleTriggered = '<span class="text-orange-500 font-semibold">凍結</span>';
+                            ruleMessages.push('<span class="text-orange-500 font-semibold">凍結</span>');
                         } else {
                             plannedWithdrawal = lastYearWithdrawal * (1 + inflation);
                         }
@@ -348,20 +352,22 @@
 
                     if (cwr > iwr * 1.2 && !isFinal15Years) {
                         actualWithdrawal = plannedWithdrawal * 0.9;
-                        ruleTriggered = '<span class="text-red-600 font-bold">削減10%</span>';
+                        ruleMessages.push('<span class="text-red-600 font-bold">削減</span>');
                         cutsCount++;
                     } else if (cwr < iwr * 0.8) {
                         actualWithdrawal = plannedWithdrawal * 1.1;
-                        ruleTriggered = '<span class="text-green-600 font-bold">增加10%</span>';
+                        ruleMessages.push('<span class="text-green-600 font-bold">增額</span>');
                         gainsCount++;
                     }
                     
+                    const ruleTriggered = ruleMessages.length > 0 ? ruleMessages.join(' & ') : '無';
+
                     withdrawalHistory.push(actualWithdrawal);
                     if (actualWithdrawal < minWithdrawal) {
                         minWithdrawal = actualWithdrawal;
                     }
                     
-                    const yearEndPortfolio = (currentPortfolio - actualWithdrawal) * (1 + (DATA.RETURNS[year] / 100));
+                    const yearEndPortfolio = (currentPortfolio - actualWithdrawal) * (1 + currentYearReturn);
 
                     logHtml += `
                         <tr class="text-sm">
@@ -369,6 +375,8 @@
                             <td class="py-2 px-3 border-b text-right">${formatCurrency(currentPortfolio)}</td>
                             <td class="py-2 px-3 border-b text-right font-semibold ${actualWithdrawal < lastYearWithdrawal * 0.95 ? 'text-red-600' : 'text-stone-800'}">${formatCurrency(actualWithdrawal)}</td>
                             <td class="py-2 px-3 border-b text-right">${(cwr * 100).toFixed(2)}%</td>
+                            <td class="py-2 px-3 border-b text-right ${currentYearReturn < 0 ? 'text-red-500' : 'text-green-500'}">${(currentYearReturn * 100).toFixed(2)}%</td>
+                            <td class="py-2 px-3 border-b text-right">${displayInflation.toFixed(2)}%</td>
                             <td class="py-2 px-3 border-b text-center">${ruleTriggered}</td>
                             <td class="py-2 px-3 border-b text-right">${formatCurrency(yearEndPortfolio)}</td>
                         </tr>
