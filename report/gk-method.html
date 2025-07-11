@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GK 動態提領策略互動模擬器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: The application is structured as an interactive educational journey, not a direct report replica. It starts with a hook (Introduction), teaches the mechanics (The GK Rulebook), allows hands-on experimentation (Interactive Simulator), provides a critical warning (The Reality Check), and ends with a conclusion. This user flow is designed to guide the user from simple concepts to complex interactions and finally to a nuanced understanding of the strategy's risks, which is the report's main goal. -->
+    <!-- Visualization & Content Choices: GK Rules -> Goal: Educate -> Method: Interactive HTML cards -> Justification: Breaks down complexity. Backtest Data -> Goal: Demonstrate consequences -> Method: Interactive Chart.js simulator -> Justification: Transforms static tables into a dynamic "what-if" tool. Asset Allocation Critique -> Goal: Warn of risk -> Method: Highlighted HTML table comparison -> Justification: Direct visual contrast is most effective for a warning. All visualizations use Canvas or HTML/CSS, adhering to constraints. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            background-color: #fdfcfb;
+            color: #44403c;
+            font-family: 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif';
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 350px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .rule-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .rule-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #0369a1;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type='range']::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #0369a1;
+            cursor: pointer;
+            border-radius: 50%;
+            margin-top: -8px; 
+        }
+        input[type='range']::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #0369a1;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl sm:text-5xl font-bold text-sky-900 mb-2">GK 動態提領策略</h1>
+            <h2 class="text-2xl sm:text-3xl font-bold text-sky-800 mb-4">互動模擬器</h2>
+            <p class="max-w-3xl mx-auto text-lg text-stone-600">
+                一個強大的退休提領工具，也可能是一個危險的陷阱。本模擬器將帶您深入了解 Guyton-Klinger 策略的真實樣貌，親手測試不同參數下的結果，揭示其成功與失敗的關鍵。
+            </p>
+        </header>
+
+        <section id="rules" class="mb-16">
+            <h2 class="text-3xl font-bold text-center mb-8 text-sky-900">GK 策略的四大核心規則</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="rule-card bg-white p-6 rounded-lg shadow-md border-t-4 border-amber-400">
+                    <h3 class="font-bold text-xl mb-2 text-stone-900">1. 通膨調整規則</h3>
+                    <p class="text-stone-600">年度提領金額是否增加，取決於前一年的投資績效。若前一年投資組合虧損，則<strong class="text-red-600">凍結</strong>當年度的提領金額，不隨通膨上調，以減輕資產壓力。</p>
+                </div>
+                <div class="rule-card bg-white p-6 rounded-lg shadow-md border-t-4 border-red-500">
+                    <h3 class="font-bold text-xl mb-2 text-stone-900">2. 資本保全規則 (下方護城河)</h3>
+                    <p class="text-stone-600">當市場下跌導致「當前實際提領率」比「初始提領率」高出 20% 時，代表資產消耗過快。此時必須將當年度的提領金額<strong class="text-red-600">削減 10%</strong>，以保護本金。</p>
+                </div>
+                <div class="rule-card bg-white p-6 rounded-lg shadow-md border-t-4 border-green-500">
+                    <h3 class="font-bold text-xl mb-2 text-stone-900">3. 繁榮規則 (上方護城河)</h3>
+                    <p class="text-stone-600">當市場上漲導致「當前實際提領率」比「初始提領率」低了 20% 時，代表資產增長良好。此時可以將當年度的提領金額<strong class="text-green-600">增加 10%</strong>，享受投資成果。</p>
+                </div>
+                <div class="rule-card bg-white p-6 rounded-lg shadow-md border-t-4 border-sky-600">
+                    <h3 class="font-bold text-xl mb-2 text-stone-900">4. 投資組合管理規則</h3>
+                    <p class="text-stone-600">提領資金有優先順序：優先動用<strong class="text-sky-700">現金與債券</strong>部位。這條規則的目的是避免在股市低點時被迫賣出股票，是 GK 策略的關鍵安全緩衝。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="simulator" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg mb-16">
+            <h2 class="text-3xl font-bold text-center mb-2 text-sky-900">互動回測模擬器 (2004-2024)</h2>
+            <p class="text-center text-stone-600 mb-8 max-w-4xl mx-auto">請調整下方參數，模擬在過去 21 年的真實市場中，您的退休金計畫將會如何演變。此模擬基於 100% 投資於 0050 ETF 的極端情境，以凸顯其潛在風險。</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-center">
+                <div>
+                    <label for="initialPrincipal" class="block text-lg font-medium text-stone-700">初始本金 (新台幣)</label>
+                    <input type="text" id="initialPrincipal" value="10,000,000" class="mt-1 block w-full px-3 py-2 bg-stone-100 border border-stone-300 rounded-md text-lg text-right font-mono">
+                    <input type="range" id="initialPrincipalSlider" min="1000000" max="30000000" step="1000000" value="10000000" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer mt-2 slider-thumb">
+                </div>
+                <div>
+                    <label for="initialWithdrawalRate" class="block text-lg font-medium text-stone-700">初始提領率 (IWR)</label>
+                    <span id="iwrValue" class="text-2xl font-bold text-sky-700 ml-2">5.0%</span>
+                    <input type="range" id="initialWithdrawalRate" min="3" max="12" step="0.1" value="5" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer mt-2 slider-thumb">
+                </div>
+            </div>
+             <div class="text-center mb-8">
+                <button id="runSimulation" class="bg-sky-700 hover:bg-sky-800 text-white font-bold py-3 px-8 rounded-lg text-xl transition-transform transform hover:scale-105">
+                    開始模擬
+                </button>
+            </div>
+
+            <div id="results" class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-2xl font-bold text-center mb-4 text-stone-800">資產總值變化</h3>
+                    <div class="chart-container">
+                        <canvas id="portfolioChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-center mb-4 text-stone-800">年度提領金額變化</h3>
+                    <div class="chart-container">
+                        <canvas id="withdrawalChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div id="summary" class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="bg-stone-100 p-4 rounded-lg">
+                    <p class="text-sm text-stone-500">最終資產</p>
+                    <p id="finalBalance" class="text-2xl font-bold text-sky-800">--</p>
+                </div>
+                <div class="bg-stone-100 p-4 rounded-lg">
+                    <p class="text-sm text-stone-500">最低年度提領</p>
+                    <p id="minWithdrawal" class="text-2xl font-bold text-red-600">--</p>
+                </div>
+                 <div class="bg-stone-100 p-4 rounded-lg">
+                    <p class="text-sm text-stone-500">觸發削減次數</p>
+                    <p id="cutsTriggered" class="text-2xl font-bold text-red-600">--</p>
+                </div>
+                <div class="bg-stone-100 p-4 rounded-lg">
+                    <p class="text-sm text-stone-500">觸發增額次數</p>
+                    <p id="gainsTriggered" class="text-2xl font-bold text-green-600">--</p>
+                </div>
+            </div>
+
+             <div class="mt-12 overflow-x-auto">
+                <h3 class="text-2xl font-bold text-center mb-4 text-stone-800">年度回測日誌</h3>
+                <table class="min-w-full bg-white border">
+                    <thead class="bg-stone-100">
+                        <tr>
+                            <th class="py-2 px-3 border-b text-left text-sm font-semibold text-stone-600">年度</th>
+                            <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">年初資產</th>
+                            <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">實際提領</th>
+                            <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">CWR</th>
+                            <th class="py-2 px-3 border-b text-center text-sm font-semibold text-stone-600">規則觸發</th>
+                            <th class="py-2 px-3 border-b text-right text-sm font-semibold text-stone-600">年末資產</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+        <section id="reality-check" class="mb-16">
+            <h2 class="text-3xl font-bold text-center mb-8 text-sky-900">現實檢驗：關鍵的風險緩衝</h2>
+            <p class="text-center text-stone-600 mb-8 max-w-4xl mx-auto">GK 策略的安全性並非只來自提領規則，更仰賴其<strong class="text-red-600">多元化的資產配置</strong>。原始研究中的投資組合包含了大量的債券與現金作為緩衝。以下是原始研究與本模擬器中 100% 0050 配置的巨大差異：</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-red-50 border-2 border-red-200 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-red-800 mb-4 text-center">⚠️ 高風險的模擬器配置</h3>
+                    <p class="text-center text-red-700 mb-4"> (違反第四條規則)</p>
+                     <div class="w-full bg-stone-200 rounded-full h-8">
+                        <div class="bg-red-600 h-8 rounded-full text-center text-white font-bold leading-8" style="width: 100%">100% 股票 (0050)</div>
+                    </div>
+                    <p class="mt-4 text-stone-700">這種全股票配置移除了所有安全緩衝，意味著在市場下跌時，您<strong class="text-red-700">被迫必須賣出虧損的股票</strong>來支付生活費，這會嚴重侵蝕您的本金，導致「報酬順序風險」最大化。</p>
+                </div>
+                 <div class="bg-green-50 border-2 border-green-200 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-green-800 mb-4 text-center">✅ Guyton-Klinger 原始穩健配置</h3>
+                    <p class="text-center text-green-700 mb-4">(65% 股票組合)</p>
+                     <div class="w-full bg-stone-200 rounded-full h-8 flex">
+                        <div class="bg-green-600 h-8 text-center text-white font-bold leading-8" style="width: 65%">65% 股票</div>
+                        <div class="bg-sky-600 h-8 text-center text-white font-bold leading-8" style="width: 25%">25% 債券</div>
+                        <div class="bg-amber-500 h-8 rounded-r-full text-center text-white font-bold leading-8" style="width: 10%">10% 現金</div>
+                    </div>
+                     <p class="mt-4 text-stone-700">原始研究中的配置包含了<strong class="text-green-700">35%的非股票資產</strong>。在市場下跌時，您可以優先從債券和現金提領，讓股票資產有時間恢復，這正是第四條「投資組合管理規則」的精髓，也是策略成功的關鍵。</p>
+                </div>
+            </div>
+        </section>
+        
+        <footer class="text-center pt-8 border-t border-stone-200">
+             <h2 class="text-3xl font-bold text-center mb-4 text-sky-900">結論與最終建議</h2>
+             <p class="max-w-3xl mx-auto text-lg text-stone-600 mb-4">
+                Guyton-Klinger 策略是一個強大的工具，但它絕非能夠無腦執行的「終極秘技」。本模擬已清晰地揭示，過高的初始提領率（如 10%），結合一個高風險的全股票配置，將導致劇烈的現金流波動與潛在的資產侵蝕，與「安穩退休」的目標背道而馳。
+            </p>
+            <p class="max-w-3xl mx-auto text-lg text-stone-600 font-semibold">
+                一個成功的退休計畫，來自於<strong class="text-sky-800">合理的提領率</strong>、<strong class="text-sky-800">多元化的資產配置</strong>，以及最重要的——<strong class="text-sky-800">堅持紀律</strong>。請將 GK 策略視為一個需要謹慎使用的精密儀器，而非一勞永逸的解決方案。
+            </p>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const DATA = {
+                RETURNS: { 
+                    2004: 3.99, 2005: 9.07, 2006: 23.44, 2007: 9.02, 2008: -43.27, 2009: 74.88, 2010: 14.19, 2011: -17.58, 2012: 13.91, 2013: 14.47, 2014: 12.06, 2015: -7.21, 2016: 17.54, 2017: 18.23, 2018: -7.78, 2019: 33.52, 2020: 31.08, 2021: 21.97, 2022: -21.34, 2023: 27.40, 2024: 18.50 
+                },
+                CPI: { 
+                    2003: -0.28, 2004: 1.61, 2005: 2.31, 2006: 0.60, 2007: 1.80, 2008: 3.52, 2009: -0.87, 2010: 0.97, 2011: 1.42, 2012: 1.93, 2013: 0.79, 2014: 1.20, 2015: -0.30, 2016: 1.39, 2017: 0.62, 2018: 1.35, 2019: 0.56, 2020: -0.23, 2021: 1.97, 2022: 2.95, 2023: 2.49 
+                },
+                YEARS: Array.from({length: 21}, (_, i) => 2004 + i)
+            };
+
+            const initialPrincipalInput = document.getElementById('initialPrincipal');
+            const initialPrincipalSlider = document.getElementById('initialPrincipalSlider');
+            const iwrSlider = document.getElementById('initialWithdrawalRate');
+            const iwrValueSpan = document.getElementById('iwrValue');
+            const runBtn = document.getElementById('runSimulation');
+            const logTableBody = document.getElementById('logTableBody');
+            
+            const finalBalanceEl = document.getElementById('finalBalance');
+            const minWithdrawalEl = document.getElementById('minWithdrawal');
+            const cutsTriggeredEl = document.getElementById('cutsTriggered');
+            const gainsTriggeredEl = document.getElementById('gainsTriggered');
+
+            let portfolioChart, withdrawalChart;
+
+            const formatCurrency = (num) => new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 }).format(num);
+            const parseCurrency = (str) => Number(str.replace(/,/g, ''));
+
+            initialPrincipalSlider.addEventListener('input', (e) => {
+                initialPrincipalInput.value = formatCurrency(e.target.value);
+            });
+            initialPrincipalInput.addEventListener('change', (e) => {
+                let val = parseCurrency(e.target.value);
+                val = Math.max(1000000, Math.min(30000000, val));
+                initialPrincipalSlider.value = val;
+                initialPrincipalInput.value = formatCurrency(val);
+            });
+
+            iwrSlider.addEventListener('input', (e) => {
+                iwrValueSpan.textContent = `${parseFloat(e.target.value).toFixed(1)}%`;
+            });
+            
+            function createCharts() {
+                const chartConfig = (label) => ({
+                    type: 'line',
+                    data: {
+                        labels: DATA.YEARS,
+                        datasets: [{
+                            label: label,
+                            data: [],
+                            fill: false,
+                            borderWidth: 3,
+                            pointRadius: 3,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                ticks: {
+                                    callback: function(value) {
+                                        return (value / 10000).toLocaleString() + '萬';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${formatCurrency(context.raw)} TWD`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+                portfolioChart = new Chart(portfolioCtx, chartConfig('資產總值'));
+                portfolioChart.data.datasets[0].borderColor = '#075985'; // sky-800
+                portfolioChart.data.datasets[0].backgroundColor = '#0ea5e9'; // sky-500
+                
+                const withdrawalCtx = document.getElementById('withdrawalChart').getContext('2d');
+                withdrawalChart = new Chart(withdrawalCtx, chartConfig('年度提領金額'));
+                withdrawalChart.data.datasets[0].borderColor = '#f59e0b'; // amber-500
+                withdrawalChart.data.datasets[0].backgroundColor = '#fbbf24'; // amber-400
+            }
+
+            function runSimulation() {
+                const principal = parseCurrency(initialPrincipalInput.value);
+                const iwr = parseFloat(iwrSlider.value) / 100;
+
+                let portfolioHistory = [];
+                let withdrawalHistory = [];
+                let logHtml = '';
+
+                let currentPortfolio = principal;
+                let lastYearWithdrawal = principal * iwr;
+                
+                let cutsCount = 0;
+                let gainsCount = 0;
+                let minWithdrawal = Infinity;
+
+                for (let i = 0; i < DATA.YEARS.length; i++) {
+                    const year = DATA.YEARS[i];
+                    const retirementYear = i + 1;
+                    const isFinal15Years = retirementYear > (40 - 15);
+
+                    portfolioHistory.push(currentPortfolio);
+
+                    const prevYear = year - 1;
+                    const prevYearReturn = DATA.RETURNS[prevYear] / 100 || 0; // For the first year (2004), there's no 2003 return in the data
+                    const inflation = DATA.CPI[prevYear] / 100 || 0;
+
+                    let ruleTriggered = '無';
+                    
+                    let plannedWithdrawal;
+                    if (i === 0) {
+                        plannedWithdrawal = lastYearWithdrawal;
+                    } else {
+                        if (prevYearReturn < 0) {
+                            plannedWithdrawal = lastYearWithdrawal;
+                            ruleTriggered = '<span class="text-orange-500 font-semibold">凍結</span>';
+                        } else {
+                            plannedWithdrawal = lastYearWithdrawal * (1 + inflation);
+                        }
+                    }
+
+                    const cwr = plannedWithdrawal / currentPortfolio;
+                    let actualWithdrawal = plannedWithdrawal;
+
+                    if (cwr > iwr * 1.2 && !isFinal15Years) {
+                        actualWithdrawal = plannedWithdrawal * 0.9;
+                        ruleTriggered = '<span class="text-red-600 font-bold">削減10%</span>';
+                        cutsCount++;
+                    } else if (cwr < iwr * 0.8) {
+                        actualWithdrawal = plannedWithdrawal * 1.1;
+                        ruleTriggered = '<span class="text-green-600 font-bold">增加10%</span>';
+                        gainsCount++;
+                    }
+                    
+                    withdrawalHistory.push(actualWithdrawal);
+                    if (actualWithdrawal < minWithdrawal) {
+                        minWithdrawal = actualWithdrawal;
+                    }
+                    
+                    const yearEndPortfolio = (currentPortfolio - actualWithdrawal) * (1 + (DATA.RETURNS[year] / 100));
+
+                    logHtml += `
+                        <tr class="text-sm">
+                            <td class="py-2 px-3 border-b">${year}</td>
+                            <td class="py-2 px-3 border-b text-right">${formatCurrency(currentPortfolio)}</td>
+                            <td class="py-2 px-3 border-b text-right font-semibold ${actualWithdrawal < lastYearWithdrawal * 0.95 ? 'text-red-600' : 'text-stone-800'}">${formatCurrency(actualWithdrawal)}</td>
+                            <td class="py-2 px-3 border-b text-right">${(cwr * 100).toFixed(2)}%</td>
+                            <td class="py-2 px-3 border-b text-center">${ruleTriggered}</td>
+                            <td class="py-2 px-3 border-b text-right">${formatCurrency(yearEndPortfolio)}</td>
+                        </tr>
+                    `;
+
+                    currentPortfolio = yearEndPortfolio;
+                    lastYearWithdrawal = actualWithdrawal;
+                }
+
+                logTableBody.innerHTML = logHtml;
+                
+                finalBalanceEl.textContent = formatCurrency(currentPortfolio);
+                minWithdrawalEl.textContent = formatCurrency(minWithdrawal);
+                cutsTriggeredEl.textContent = `${cutsCount} 次`;
+                gainsTriggeredEl.textContent = `${gainsCount} 次`;
+
+                updateCharts(portfolioHistory, withdrawalHistory);
+            }
+
+            function updateCharts(portfolioData, withdrawalData) {
+                portfolioChart.data.datasets[0].data = portfolioData;
+                withdrawalChart.data.datasets[0].data = withdrawalData;
+                portfolioChart.update();
+                withdrawalChart.update();
+            }
+            
+            runBtn.addEventListener('click', runSimulation);
+
+            createCharts();
+            runSimulation();
+        });
+    </script>
+
+</body>
+</html>
