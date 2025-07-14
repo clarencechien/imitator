@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：AI 的電力革命 - 為何高壓直流電是未來</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Tech Neutral -->
+    <!-- Application Structure Plan: The application is designed as a single-page, scrollable narrative. It guides the user from understanding the core problem (AI power crisis) to the proposed solution (HVDC), comparing it with the old method (AC). It then showcases real-world adoption through industry movements (NVIDIA & OCP) and a detailed case study (Delta Electronics), concluding with future prospects. This storytelling approach, using interactive diagrams and charts, is chosen over a static report structure to make complex technical concepts intuitive, engaging, and easier to digest for a broader audience. Key interactions include a power loss simulator, clickable diagrams, and tabbed content sections to manage information density. -->
+    <!-- Visualization & Content Choices: 
+        1. Rack Power Growth (Chart.js Line Chart): Goal is to show the exponential increase in power demand. A line chart is ideal for visualizing change over time/generations. Interaction: Hover tooltips for specific data points.
+        2. AC vs. HVDC Path (HTML/CSS Diagrams): Goal is to compare process complexity. Custom diagrams with clickable nodes provide a simple, visual explanation of each step, revealing inefficiencies without overwhelming the user. Interaction: Click to show info pop-ups.
+        3. Power Loss Simulator (JS Slider): Goal is to demonstrate the I²R loss principle. An interactive slider makes this abstract physics concept tangible and memorable. Interaction: User drags slider to see loss change.
+        4. Efficiency & TCO Comparison (Chart.js Bar Charts): Goal is to provide a clear, quantitative comparison. Bar charts are perfect for direct comparisons of key metrics like efficiency and cost savings. Interaction: Hover tooltips.
+        5. Delta's Solutions (Tabbed Interface): Goal is to organize detailed product information cleanly. Tabs allow users to explore different aspects of Delta's offerings (OCP, NVIDIA, Cooling) without cluttering the page. Interaction: Click tabs to switch content.
+        This combination of interactive elements and standard charts provides a multi-layered learning experience.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* Tailwind's gray-50 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .tooltip {
+            display: none;
+            position: absolute;
+            z-index: 10;
+        }
+        .has-tooltip:hover .tooltip {
+            display: block;
+        }
+        .path-step {
+            transition: all 0.3s ease-in-out;
+        }
+        .path-step:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .nav-link.active {
+            color: #2563eb; /* Tailwind's blue-600 */
+            font-weight: 700;
+        }
+        .tab-btn.active {
+            border-color: #2563eb;
+            background-color: #eff6ff; /* blue-50 */
+            color: #1e40af; /* blue-800 */
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-200">
+        <nav class="container mx-auto px-4 lg:px-6 py-3">
+            <div class="flex justify-between items-center">
+                <a href="#hero" class="text-xl font-bold text-gray-900">⚡️ AI 電力革命</a>
+                <div class="hidden md:flex items-center space-x-6 lg:space-x-8 text-sm font-medium text-gray-600">
+                    <a href="#problem" class="hover:text-blue-600 transition-colors nav-link">問題核心</a>
+                    <a href="#solution" class="hover:text-blue-600 transition-colors nav-link">解決方案</a>
+                    <a href="#ecosystem" class="hover:text-blue-600 transition-colors nav-link">產業動態</a>
+                    <a href="#delta" class="hover:text-blue-600 transition-colors nav-link">案例：台達電</a>
+                    <a href="#future" class="hover:text-blue-600 transition-colors nav-link">未來展望</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section id="hero" class="relative text-center py-20 md:py-32 bg-white overflow-hidden">
+            <div class="absolute inset-0 bg-grid-gray-200 [mask-image:linear-gradient(to_bottom,white,transparent)]"></div>
+            <div class="container mx-auto px-4 relative">
+                <h1 class="text-4xl md:text-6xl font-black text-gray-900 leading-tight">從電網到晶片：一場必要的電力革命</h1>
+                <p class="mt-4 max-w-3xl mx-auto text-lg md:text-xl text-gray-600">AI 的驚人算力正以前所未有的速度吞噬能源，傳統電力架構已達極限。答案，就隱藏在我們傳輸電力的根本方式中。</p>
+                <a href="#problem" class="mt-8 inline-block bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-blue-700 transition-transform hover:scale-105">探索問題的根源</a>
+            </div>
+        </section>
+
+        <!-- The Problem Section -->
+        <section id="problem" class="py-16 md:py-24 bg-gray-50">
+            <div class="container mx-auto px-4">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">AI 的能源饑渴：指數級增長的挑戰</h2>
+                    <p class="mt-4 text-lg text-gray-600">
+                        生成式 AI 的崛起徹底改變了遊戲規則。資料中心的功耗不再是線性增長，而是爆炸性的。這不僅僅是需要更多電力，而是在極小的「機櫃」空間內容納和管理巨大能量的「功率密度」危機。
+                    </p>
+                </div>
+
+                <div class="mt-12 md:mt-16 grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-xl mb-4 text-center">單機櫃功耗的驚人躍升</h3>
+                        <div class="chart-container">
+                            <canvas id="powerGrowthChart"></canvas>
+                        </div>
+                         <p class="text-center text-sm text-gray-500 mt-2">資料來源：NVIDIA 產品路線圖及產業分析</p>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-xl shadow-md">
+                           <h3 class="font-bold text-xl mb-2">基礎設施的惡性循環</h3>
+                           <p class="text-gray-600">
+                               增加運算能力（GPU）不僅消耗電力，還需要更多電力來冷卻它產生的巨大熱量。結果，越來越多的能源被用於支援系統，而非運算本身，造成巨大浪費。這就是所謂的 PUE (電力使用效率) 問題。
+                           </p>
+                        </div>
+                         <div class="bg-white p-6 rounded-xl shadow-md">
+                           <h3 class="font-bold text-xl mb-2">物理學的瓶頸</h3>
+                           <p class="text-gray-600">
+                               當前的根本瓶頸是 <strong>功率密度</strong>。如何在一個僅有電話亭大小的機櫃內，安全、高效地傳輸和管理高達百萬瓦的電力，並帶走廢熱？傳統方法已無能為力。
+                           </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Solution Section -->
+        <section id="solution" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">回歸物理本質：HVDC 革命</h2>
+                    <p class="mt-4 text-lg text-gray-600">
+                        要解決功率密度危機，我們必須簡化電力傳輸路徑，減少能量浪費。這就是高壓直流電（HVDC）的用武之地。讓我們比較一下新舊兩種路徑。
+                    </p>
+                </div>
+
+                <div class="mt-12 grid lg:grid-cols-2 gap-12 lg:gap-16">
+                    <!-- Traditional AC Path -->
+                    <article class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                        <h3 class="text-2xl font-bold text-center mb-6">舊路徑：傳統交流電 (AC) 的漫長旅程</h3>
+                        <div class="space-y-4 text-center">
+                            <p class="text-gray-600">電力從電網到晶片，需經過多次轉換，每一步都是能量的損失。</p>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="path-step bg-white p-3 rounded-lg shadow-sm w-4/5 has-tooltip cursor-pointer">電網中壓 (13.8kV)
+                                    <div class="tooltip bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-10">AC/AC 變壓</div>
+                                </div>
+                                <div class="text-xl text-gray-400">⬇️</div>
+                                <div class="path-step bg-white p-3 rounded-lg shadow-sm w-4/5 has-tooltip cursor-pointer">UPS (AC-DC-AC)
+                                    <div class="tooltip bg-red-500 text-white text-xs rounded py-1 px-2 -mt-10">❌ 2次轉換，巨大損耗</div>
+                                </div>
+                                <div class="text-xl text-gray-400">⬇️</div>
+                                <div class="path-step bg-white p-3 rounded-lg shadow-sm w-4/5 has-tooltip cursor-pointer">機櫃 PDU (AC)
+                                     <div class="tooltip bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-10">配電</div>
+                                </div>
+                                <div class="text-xl text-gray-400">⬇️</div>
+                                <div class="path-step bg-white p-3 rounded-lg shadow-sm w-4/5 has-tooltip cursor-pointer">伺服器 PSU (AC-DC)
+                                    <div class="tooltip bg-red-500 text-white text-xs rounded py-1 px-2 -mt-10">❌ 最終轉換，產生廢熱</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-6 border-t">
+                            <h4 class="font-bold text-lg text-center mb-2">核心問題：低壓 x 大電流 = 高損耗</h4>
+                            <p class="text-sm text-center text-gray-600 mb-4">根據物理公式 $P_{loss} = I^2R$，能量損失與電流的平方成正比。為了在低電壓下傳輸高功率，電流必須極大，導致驚人的能量浪費。</p>
+                            <div class="bg-white p-4 rounded-lg">
+                                <label for="current-slider" class="block text-sm font-medium text-center">互動模擬：拖動滑塊增加電流</label>
+                                <input id="current-slider" type="range" min="1" max="100" value="10" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2">
+                                <div class="text-center mt-2">
+                                    <span class="text-lg font-bold text-red-600" id="loss-display">🔥 能量損失: 100</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- HVDC Path -->
+                    <article class="bg-blue-50 p-6 rounded-xl border border-blue-200">
+                        <h3 class="text-2xl font-bold text-center mb-6 text-blue-800">新路徑：高壓直流電 (HVDC) 的高效直達</h3>
+                         <div class="space-y-4 text-center">
+                            <p class="text-blue-700">大幅簡化路徑，從源頭解決問題。</p>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="path-step bg-white p-3 rounded-lg shadow-sm w-4/5 has-tooltip cursor-pointer">電網中壓 (13.8kV)
+                                     <div class="tooltip bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-10">AC 輸入</div>
+                                </div>
+                                <div class="text-xl text-green-500">⬇️</div>
+                                <div class="path-step bg-white p-3 rounded-lg shadow-sm w-4/5 has-tooltip cursor-pointer">高效整流器 (AC-DC)
+                                    <div class="tooltip bg-green-500 text-white text-xs rounded py-1 px-2 -mt-10">✅ 僅一次轉換，直達 800V DC</div>
+                                </div>
+                                <div class="text-xl text-green-500">⬇️</div>
+                                <div class="path-step bg-white p-3 rounded-lg shadow-sm w-4/5 has-tooltip cursor-pointer">機櫃 DC-DC 轉換
+                                    <div class="tooltip bg-green-500 text-white text-xs rounded py-1 px-2 -mt-10">✅ 高效降壓至晶片所需電壓</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-blue-200">
+                             <h4 class="font-bold text-lg text-center mb-4 text-blue-800">核心優勢：高壓 x 小電流 = 低損耗</h4>
+                             <p class="text-sm text-center text-blue-700 mb-4">
+                                將電壓提升至 800V，輸送相同功率時，電流劇減，能量損失呈指數級下降。這帶來了革命性的好處。
+                            </p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                                <div class="bg-white p-3 rounded-lg">
+                                    <div class="text-3xl font-bold text-green-600">~5%</div>
+                                    <div class="text-sm">效率提升</div>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg">
+                                    <div class="text-3xl font-bold text-green-600">-45%</div>
+                                    <div class="text-sm">銅材使用</div>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg">
+                                    <div class="text-3xl font-bold text-green-600">-70%</div>
+                                    <div class="text-sm">維護成本</div>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg">
+                                    <div class="text-3xl font-bold text-green-600">-30%</div>
+                                    <div class="text-sm">總體成本(TCO)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                
+                 <div class="mt-16 bg-gray-50 p-6 rounded-xl">
+                    <h3 class="text-2xl font-bold text-center mb-6">效率對比：眼見為憑</h3>
+                    <p class="text-center text-gray-600 max-w-2xl mx-auto mb-6">從電網到晶片的端到端效率差異是驚人的。損失的電力都變成了需要額外冷卻的廢熱。</p>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="efficiencyChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Ecosystem Section -->
+        <section id="ecosystem" class="py-16 md:py-24 bg-gray-50">
+            <div class="container mx-auto px-4">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">生態集結：雙軌並行，共赴未來</h2>
+                    <p class="mt-4 text-lg text-gray-600">
+                        這場革命並非紙上談兵，而是由行業巨頭共同推動的全產業運動。目前已形成兩條清晰、互補的技術路徑。
+                    </p>
+                </div>
+
+                <div class="mt-12 grid md:grid-cols-2 gap-8 lg:gap-12">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-green-500">
+                        <h3 class="text-2xl font-bold mb-4 flex items-center"><span class="text-3xl mr-3">🏆</span> NVIDIA 的 800V 頂級性能路線</h3>
+                        <p class="text-gray-600 mb-4">由 AI 晶片領導者 NVIDIA 主導，目標是為其最頂級、功耗最高的 AI 平台（如 Rubin Ultra）提供極致性能。這是一條自上而下、追求最高效率和功率密度的精英路線。</p>
+                        <ul class="space-y-2 text-gray-700">
+                            <li class="flex items-start"><span class="text-green-500 mr-2">✔</span> <strong>目標：</strong> 百萬瓦（MW）級機櫃，極簡電力路徑。</li>
+                            <li class="flex items-start"><span class="text-green-500 mr-2">✔</span> <strong>策略：</strong> 打造「AI 工廠」藍圖，集結從晶片到系統的合作夥伴聯盟。</li>
+                            <li class="flex items-start"><span class="text-green-500 mr-2">✔</span> <strong>定位：</strong> 滿足對性能不計成本的旗艦級 AI 系統。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-blue-500">
+                        <h3 class="text-2xl font-bold mb-4 flex items-center"><span class="text-3xl mr-3">🤝</span> OCP 的 400V 開放標準路線</h3>
+                        <p class="text-gray-600 mb-4">由 Meta、微軟等雲端巨頭在「開放運算計畫 (OCP)」中推動，核心是採用 400V 電壓和「分離式電源架構」，旨在建立一個標準化、多供應商、成本優化的生態。</p>
+                        <ul class="space-y-2 text-gray-700">
+                            <li class="flex items-start"><span class="text-blue-500 mr-2">✔</span> <strong>目標：</strong> 提高空間利用率，實現模組化和可擴展性。</li>
+                            <li class="flex items-start"><span class="text-blue-500 mr-2">✔</span> <strong>策略：</strong> 透過 ORV3 等開放標準，降低大規模部署的成本和複雜度。</li>
+                            <li class="flex items-start"><span class="text-blue-500 mr-2">✔</span> <strong>定位：</strong> 服務廣大的、主流的超大規模資料中心市場。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Delta Case Study -->
+        <section id="delta" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center max-w-3xl mx-auto">
+                    <div class="inline-block bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full mb-4">案例研究</div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">台達電子：雙軌佈局，掌握 AI 電力核心</h2>
+                    <p class="mt-4 text-lg text-gray-600">
+                        作為全球電源管理與散熱解決方案的領導者，台達電子憑藉前瞻佈局，完美應對了 HVDC 轉型浪潮。他們並未單押一邊，而是雙線並進，成為整個生態不可或缺的夥伴。
+                    </p>
+                </div>
+                
+                <div class="mt-12 max-w-4xl mx-auto">
+                    <!-- Tabs -->
+                    <div class="mb-4 border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-4 justify-center" aria-label="Tabs">
+                            <button id="tab-btn-ocp" class="tab-btn whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors duration-200">
+                                OCP 400V 主流方案
+                            </button>
+                            <button id="tab-btn-nvidia" class="tab-btn whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors duration-200">
+                                NVIDIA 800V 頂尖方案
+                            </button>
+                             <button id="tab-btn-total" class="tab-btn whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors duration-200">
+                                整體解決方案
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div id="tab-content">
+                        <div id="tab-panel-ocp" class="tab-panel p-6 bg-gray-50 rounded-lg">
+                            <h3 class="text-xl font-bold mb-4">服務主流市場：符合 OCP ORV3 標準的電源系統</h3>
+                            <p class="text-gray-600 mb-4">台達是 OCP ORV3 標準的主要供應商，其 18kW 電源系統是服務超大規模 AI 市場的明星產品。</p>
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <h4 class="font-semibold">ORV3 18kW 電源系統</h4>
+                                <ul class="mt-2 list-disc list-inside text-gray-700 space-y-1">
+                                    <li><strong>輸出功率：</strong> 18kW (或 15kW 冗餘配置)</li>
+                                    <li><strong>輸出電壓：</strong> 48V/50V 直流</li>
+                                    <li><strong>峰值效率：</strong> <span class="font-bold text-green-600">高達 97.5%</span>，大幅節省電費</li>
+                                    <li><strong>戰略定位：</strong> 抓住由 Meta、微軟定義的高銷量、標準化市場。</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div id="tab-panel-nvidia" class="tab-panel p-6 bg-gray-50 rounded-lg hidden">
+                            <h3 class="text-xl font-bold mb-4">擁抱頂尖性能：與 NVIDIA 合作的 800V HVDC 解決方案</h3>
+                            <p class="text-gray-600 mb-4">台達與 NVIDIA 緊密合作，開發了一整套 800V 解決方案，足以支持未來百萬瓦級的超級 AI 機櫃。</p>
+                            <div class="space-y-4">
+                                <div class="bg-white p-4 rounded-lg shadow-sm">
+                                    <h4 class="font-semibold">90kW DC-DC 伺服器電源架</h4>
+                                    <ul class="mt-2 list-disc list-inside text-gray-700 space-y-1">
+                                        <li><strong>功能：</strong> 將 800Vdc 高效轉換為伺服器可用的 50Vdc</li>
+                                        <li><strong>峰值效率：</strong> <span class="font-bold text-green-600">驚人的 98.5%</span></li>
+                                        <li><strong>戰略定位：</strong> 為 NVIDIA 旗艦平台提供機櫃級的關鍵電力分配。</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg shadow-sm">
+                                    <h4 class="font-semibold">電力電容櫃 (Power Capacitance Shelf)</h4>
+                                     <ul class="mt-2 list-disc list-inside text-gray-700 space-y-1">
+                                        <li><strong>功能：</strong> 吸收和撫平 GPU 負載劇變時的功率突波，確保系統穩定</li>
+                                        <li><strong>能力：</strong> 內置鋰離子電容，快速充放電</li>
+                                        <li><strong>戰略定位：</strong> 解決高階 AI 系統的電源穩定性痛點。</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                         <div id="tab-panel-total" class="tab-panel p-6 bg-gray-50 rounded-lg hidden">
+                            <h3 class="text-xl font-bold mb-4">從電網到晶片：超越電源的整合能力</h3>
+                            <p class="text-gray-600 mb-4">台達的成功不僅在於電源本身，更在於提供涵蓋電力、散熱到管理的完整解決方案，這才是 AI 時代的致勝關鍵。</p>
+                            <div class="space-y-4">
+                                <div class="bg-white p-4 rounded-lg shadow-sm">
+                                    <h4 class="font-semibold">1.5MW 液對液冷卻分配單元 (CDU)</h4>
+                                    <p class="text-gray-700">為 NVIDIA GB200 NVL72 這樣的高密度機櫃提供關鍵的液冷散熱支持，解決廢熱問題。</p>
+                                </div>
+                                 <div class="bg-white p-4 rounded-lg shadow-sm">
+                                    <h4 class="font-semibold">系統級整合商</h4>
+                                    <p class="text-gray-700">台達的角色已從元件供應商，轉變為能提供不斷電系統、配電單元、電池備援、乃至貨櫃式資料中心的完整方案提供者。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Future Section -->
+        <section id="future" class="py-16 md:py-24 bg-gray-50">
+            <div class="container mx-auto px-4">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">未來展望：一場不可逆轉的變革</h2>
+                    <p class="mt-4 text-lg text-gray-600">
+                        儘管 HVDC 的普及仍面臨初期成本和安全標準等挑戰，但其在運營成本和能源效率上的巨大優勢，使其成為支撐下一代 AI 發展的必然選擇。
+                    </p>
+                </div>
+                <div class="mt-12 max-w-4xl mx-auto">
+                     <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-yellow-400">
+                        <h3 class="text-2xl font-bold text-center mb-6">決定性因素：總體擁有成本 (TCO)</h3>
+                        <p class="text-center text-gray-600 max-w-2xl mx-auto mb-6">雖然初始投資（CapEx）可能較高，但在資料中心的全生命週期中，運營成本（OpEx）的節省是決定性的。電費、冷卻開銷和維護成本的大幅降低，帶來了巨大的 TCO 優勢。</p>
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="tcoChart"></canvas>
+                        </div>
+                         <p class="text-center text-sm text-gray-500 mt-2">NVIDIA 預估採用 800V 架構可將 TCO 降低高達 30%。</p>
+                    </div>
+
+                    <div class="mt-12 text-center max-w-3xl mx-auto">
+                        <h3 class="text-2xl font-bold mb-4">結論：HVDC 是賦能技術，而非優化選項</h3>
+                        <p class="text-gray-600 text-lg">
+                           算力競賽的本質是能源效率的競賽。HVDC 不再是一個可有可無的「優化方案」，而是讓未來 AI 宏大願景得以實現的 <strong>基礎性、賦能性技術</strong>。這場由功率密度引發的革命，正在重塑整個電力電子行業的競爭格局，而像台達這樣具備系統整合能力的企業，將處於最有利的位置。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>本互動式報告根據公開產業資訊與分析整理而成，旨在提供教育與資訊參考。</p>
+            <p class="mt-2">&copy; 2025 AI 電力革命分析報告。保留所有權利。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Chart.js: Rack Power Growth Chart
+            const powerGrowthCtx = document.getElementById('powerGrowthChart').getContext('2d');
+            new Chart(powerGrowthCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['H100 (2022)', 'GB200 (2024)', 'Rubin Ultra (2027)'],
+                    datasets: [{
+                        label: '單機櫃功耗 (kW)',
+                        data: [30, 140, 600],
+                        backgroundColor: ['#60a5fa', '#3b82f6', '#1e3a8a'],
+                        borderColor: ['#3b82f6', '#2563eb', '#1e40af'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.raw} kW`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '功耗 (kW)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Interactive Power Loss Simulator
+            const slider = document.getElementById('current-slider');
+            const lossDisplay = document.getElementById('loss-display');
+            slider.addEventListener('input', (e) => {
+                const currentValue = parseInt(e.target.value);
+                const lossValue = Math.round(Math.pow(currentValue, 2));
+                lossDisplay.innerHTML = `🔥 能量損失: ${lossValue}`;
+            });
+
+            // Efficiency Chart
+            const efficiencyCtx = document.getElementById('efficiencyChart').getContext('2d');
+            new Chart(efficiencyCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['傳統 AC 架構', 'HVDC 架構'],
+                    datasets: [{
+                        label: '端到端效率',
+                        data: [87.6, 92.5], // Using a conservative 92.5% for HVDC
+                        backgroundColor: ['#ef4444', '#22c55e'],
+                        barPercentage: 0.5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: false,
+                            min: 85,
+                            max: 100,
+                             title: {
+                                display: true,
+                                text: '效率 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+             // TCO Chart
+            const tcoCtx = document.getElementById('tcoChart').getContext('2d');
+            new Chart(tcoCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['傳統 AC 架構', '800V HVDC 架構'],
+                    datasets: [{
+                        label: '相對總擁有成本 (TCO)',
+                        data: [100, 70],
+                        backgroundColor: ['#f59e0b', '#16a34a'],
+                        barPercentage: 0.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 110,
+                            title: {
+                                display: true,
+                                text: '相對成本 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+
+
+            // Tab functionality for Delta Case Study
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetPanelId = button.id.replace('btn', 'panel');
+
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    tabPanels.forEach(panel => {
+                        if (panel.id === targetPanelId) {
+                            panel.classList.remove('hidden');
+                        } else {
+                            panel.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+            
+            // Set initial active tab
+            document.getElementById('tab-btn-ocp').classList.add('active');
+            document.getElementById('tab-panel-ocp').classList.remove('hidden');
+
+
+            // Smooth scroll and active nav link highlighting
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('nav .nav-link');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.getAttribute('id');
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+                        });
+                    }
+                });
+            }, { rootMargin: '-30% 0px -70% 0px' });
+            
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
