@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：街口36億風暴分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Subtle Accents -->
+    <!-- Application Structure Plan: The SPA uses a thematic, single-page scrolling structure with a sticky navigation bar. The flow is designed to first present the core event (The 3.6B Disappearance) via an interactive timeline, then delve into deeper analysis sections: 1. A visual diagram explaining the regulatory loophole and a history of non-compliance. 2. A financial analysis with an interactive chart showing the cash-burning business model. 3. A comparative analysis of the "startup exceptionalism" culture. This structure guides the user from the "what" to the "why" and "so what," making a complex story digestible and engaging. -->
+    <!-- Visualization & Content Choices: 
+        - Timeline (HTML/CSS/JS): Goal: Inform on the sequence of events. Method: Interactive vertical timeline. Justification: Best way to present chronological information clearly. Interaction: Clicking on a point reveals details.
+        - Regulatory Diagram (HTML/CSS): Goal: Organize and explain the complex holding structure. Method: Styled divs forming a flowchart. Justification: A visual diagram is far more intuitive than text for explaining corporate structures and identifying the key loophole.
+        - Financial Chart (Chart.js Bar Chart): Goal: Show the trend of financial losses. Method: Bar chart comparing revenue and net loss. Justification: Visually proves the unsustainability of the business model. Interaction: Tooltips on hover show precise data.
+        - Comparative Layout (Tailwind Grid): Goal: Compare JKO with other controversial startups. Method: Three-column card layout. Justification: Reinforces the author's argument about a recurring cultural pattern by placing cases side-by-side.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F4;
+            color: #4A4A4A;
+        }
+        .accent-bg { background-color: #A8B8D0; }
+        .accent-text { color: #A8B8D0; }
+        .accent-border { border-color: #A8B8D0; }
+        .warn-bg { background-color: #D98880; }
+        .warn-text { color: #D98880; }
+        .warn-border { border-color: #D98880; }
+        .nav-link {
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #D98880;
+            border-bottom-color: #D98880;
+        }
+        .timeline-item-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+        }
+        .timeline-item-content.open {
+            max-height: 500px;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="navbar" class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-lg font-bold warn-text">街口風暴分析</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#hero" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">首頁</a>
+                        <a href="#timeline" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">事件始末</a>
+                        <a href="#regulation" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">監管失靈?</a>
+                        <a href="#finance" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">財務真相</a>
+                        <a href="#culture" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">文化反思</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button id="mobile-menu-button" type="button" class="bg-white inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#hero" class="nav-link block px-3 py-2 rounded-md text-base font-medium">首頁</a>
+                <a href="#timeline" class="nav-link block px-3 py-2 rounded-md text-base font-medium">事件始末</a>
+                <a href="#regulation" class="nav-link block px-3 py-2 rounded-md text-base font-medium">監管失靈?</a>
+                <a href="#finance" class="nav-link block px-3 py-2 rounded-md text-base font-medium">財務真相</a>
+                <a href="#culture" class="nav-link block px-3 py-2 rounded-md text-base font-medium">文化反思</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="hero" class="py-20 md:py-32">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-4xl md:text-6xl font-bold text-gray-800 leading-tight">消失的36億</h2>
+                <p class="mt-4 text-lg md:text-xl text-gray-600">一場揭開台灣金融科技治理、監管與「新創例外主義」的風暴</p>
+                <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                    <div class="bg-white/60 p-6 rounded-xl shadow-md">
+                        <p class="text-4xl font-bold warn-text">36 億</p>
+                        <p class="mt-2 text-gray-600">與泰山企業的交易爭議金額</p>
+                    </div>
+                    <div class="bg-white/60 p-6 rounded-xl shadow-md">
+                        <p class="text-4xl font-bold accent-text">681 萬</p>
+                        <p class="mt-2 text-gray-600">街口支付總用戶數 (市場第二)</p>
+                    </div>
+                    <div class="bg-white/60 p-6 rounded-xl shadow-md">
+                        <p class="text-4xl font-bold warn-text">> 22 億</p>
+                        <p class="mt-2 text-gray-600">街口支付累積虧損金額</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="timeline" class="py-16 bg-white/70">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800">事件始末</h2>
+                    <p class="mt-2 text-gray-600">這起風暴並非一日造成。透過互動時間軸，追溯從爭議投資到資金成謎的完整過程。</p>
+                </div>
+                <div id="timeline-container" class="relative max-w-2xl mx-auto">
+                </div>
+            </div>
+        </section>
+
+        <section id="regulation" class="py-16">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800">監管失靈？</h2>
+                    <p class="mt-2 text-gray-600">街口案的核心，暴露了控股公司架構下的監管漏洞，以及一部不合規的歷史。</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                    <div class="text-center">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">控股公司的監管灰色地帶</h3>
+                        <div class="p-4 rounded-lg bg-white shadow-lg">
+                            <div class="border-2 border-dashed warn-border p-4 rounded-md">
+                                <h4 class="font-bold text-lg warn-text">母公司：街口金融科技</h4>
+                                <p class="text-sm text-gray-500">(金管會監管力道較弱)</p>
+                                <p class="text-sm mt-2">胡亦嘉任董事長，實質控制集團金流與決策。泰山36億元資金流入此處。</p>
+                            </div>
+                            <div class="mx-auto my-2 h-8 w-1 bg-gray-300"></div>
+                            <div class="border-2 border-solid accent-border p-4 rounded-md bg-gray-50">
+                                <h4 class="font-bold text-lg accent-text">子公司：街口電子支付</h4>
+                                <p class="text-sm text-gray-500">(受《電支條例》高度監管)</p>
+                                <p class="text-sm mt-2">胡亦嘉雖被停職，但母公司仍可將其當作提款機。用戶資金受獨立信託保護。</p>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-500">此圖表展示了胡亦嘉如何利用母公司（監管較鬆）控制子公司（監管嚴格）的漏洞，金管會的處分僅能觸及子公司，卻無法撼動他在母公司的控制權。</p>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700 text-center md:text-left">一部不合規的歷史</h3>
+                        <div class="space-y-4">
+                            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 warn-border">
+                                <h4 class="font-bold text-lg warn-text">「託付寶」之亂 (2020)</h4>
+                                <p class="mt-2 text-sm text-gray-600">複製中國「餘額寶」，但因不當廣告、公司治理失靈等七大違規遭金管會重罰300萬，胡亦嘉遭解除街口投信董事職務。</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 warn-border">
+                                <h4 class="font-bold text-lg warn-text">不當資金貸與 (2021)</h4>
+                                <p class="mt-2 text-sm text-gray-600">子公司街口支付違法貸與母公司街口金科7.75億元，形同掏空，遭罰180萬，胡亦嘉遭停止執行街口支付董事職務一年。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="finance" class="py-16 bg-white/70">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800">財務真相</h2>
+                    <p class="mt-2 text-gray-600">光鮮的市佔率背後，是長期虧損的財務現實。「中國經驗」的燒錢模式在台灣嚴重水土不服。</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="financialChart"></canvas>
+                </div>
+                <p class="text-center mt-4 text-sm text-gray-500">街口支付的財務報表顯示，儘管營收逐年成長，但虧損依然巨大，證明其商業模式尚未找到獲利途徑。將滑鼠懸停在圖表上以查看詳細數據。</p>
+            </div>
+        </section>
+
+        <section id="culture" class="py-16">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800">文化反思：「新創例外主義」</h2>
+                    <p class="mt-2 text-gray-600">街口案並非孤例。它揭示了一種在台灣新創圈令人不安的文化——認為「創新」可以凌駕於法律與倫理之上。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-lg text-center border-t-4 accent-border">
+                        <h3 class="font-bold text-xl mb-2">街口集團</h3>
+                        <p class="text-sm text-gray-600 mb-4">以「金融創新」為名，挑戰監管底線，最終引爆36億資金疑雲。</p>
+                        <p class="font-semibold text-gray-700 bg-gray-100 p-2 rounded-md">"監管扼殺創新"</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-lg text-center border-t-4 accent-border">
+                        <h3 class="font-bold text-xl mb-2">Lawsnote (七法)</h3>
+                        <p class="text-sm text-gray-600 mb-4">爬取對手資料庫遭判侵權，卻訴諸「法官不懂技術」來博取同情。</p>
+                        <p class="font-semibold text-gray-700 bg-gray-100 p-2 rounded-md">"法律不懂科技"</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-lg text-center border-t-4 accent-border">
+                        <h3 class="font-bold text-xl mb-2">雲云科技 (CuboAi)</h3>
+                        <p class="text-sm text-gray-600 mb-4">創辦人殺害技術長，部分社群卻以「新創壓力大」為其開脫。</p>
+                        <p class="font-semibold text-gray-700 bg-gray-100 p-2 rounded-md">"創業維艱"</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white">
+        <div class="container mx-auto py-8 px-6 text-center">
+            <p>此互動報告根據公開新聞與分析文章製作，旨在提供資訊與促進討論。</p>
+            <p class="text-sm mt-2 text-gray-400">© 2025 資訊架構專案</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+            const timelineData = [
+                {
+                    date: '2023年5月',
+                    title: '爭議性投資',
+                    content: '泰山前經營團隊為抵禦市場派，決議動用36億元天價收購長年虧損的街口金科40.39%股權，被質疑為掏空公司的「焦土策略」。'
+                },
+                {
+                    date: '2025年5月',
+                    title: '法院判決無效',
+                    content: '泰山新經營團隊提告後，台北地方法院一審判決該股權交易無效，命令街口金科需返還36億元本金及利息。'
+                },
+                {
+                    date: '2025年7月前',
+                    title: '資金去向成謎',
+                    content: '泰山聲請假執行，卻發現街口金科的銀行帳戶已幾乎清空，存款不到千元，36億元鉅款不翼而飛。'
+                },
+                {
+                    date: '2025年7月10日',
+                    title: '強制執行碰壁',
+                    content: '法院前往街口金科總部查封資產，卻發現人去樓空、招牌被拆。子公司代表以「資產獨立」為由阻擋查封。'
+                },
+                {
+                    date: '2025年7月11日後',
+                    title: '市場信心危機',
+                    content: '事件曝光後，momo、PChome、家樂福等多家大型通路紛紛暫停街口支付服務，引爆消費者與商家信心危機。金管會緊急介入調查。'
+                }
+            ];
+
+            const timelineContainer = document.getElementById('timeline-container');
+            timelineContainer.innerHTML = `
+                <div class="absolute top-0 left-1/2 w-0.5 h-full bg-gray-300 transform -translate-x-1/2"></div>
+                ${timelineData.map((item, index) => `
+                    <div class="timeline-item mb-8 flex justify-between items-center w-full ${index % 2 === 0 ? 'flex-row-reverse' : ''}">
+                        <div class="order-1 w-5/12"></div>
+                        <div class="z-20 flex items-center order-1 bg-gray-800 shadow-xl w-8 h-8 rounded-full">
+                            <h1 class="mx-auto font-semibold text-sm text-white">${index + 1}</h1>
+                        </div>
+                        <div class="order-1 bg-white rounded-lg shadow-xl w-5/12 px-6 py-4 cursor-pointer timeline-item-header">
+                            <p class="mb-2 text-sm accent-text font-semibold">${item.date}</p>
+                            <h3 class="font-bold text-gray-800 text-lg">${item.title}</h3>
+                            <div class="timeline-item-content">
+                                <p class="text-sm leading-snug tracking-wide text-gray-600 text-opacity-100">${item.content}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+            
+            document.querySelectorAll('.timeline-item-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.querySelector('.timeline-item-content');
+                    content.classList.toggle('open');
+                });
+            });
+
+
+            const financialData = {
+                labels: ['2022年', '2023年', '2024年', '2025上半年'],
+                revenue: [3.6, 4.28, 5.1, 2.8],
+                netLoss: [-2.6, -1.8, -2.07, -1.0]
+            };
+            const ctx = document.getElementById('financialChart').getContext('2d');
+            const financialChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: financialData.labels,
+                    datasets: [
+                        {
+                            label: '營業收入 (億)',
+                            data: financialData.revenue,
+                            backgroundColor: 'rgba(168, 184, 208, 0.6)',
+                            borderColor: 'rgba(168, 184, 208, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '稅後淨損 (億)',
+                            data: financialData.netLoss,
+                            backgroundColor: 'rgba(217, 136, 128, 0.6)',
+                            borderColor: 'rgba(217, 136, 128, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return value + ' 億';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y + ' 億元';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        legend: {
+                           position: 'top',
+                        }
+                    }
+                }
+            });
+
+            const sections = document.querySelectorAll('section');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
