@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：安聯收益成長基金深度剖析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Subtle Accents -->
+    <!-- Application Structure Plan: A narrative-driven, single-page application guiding the user through four key investigative stages: 1. The Illusion of Yield (revealing the payout vs. total return gap), 2. The Shrinking Reality (visualizing NAV and dividend decay with a personalized inflation calculator), 3. The Performance Showdown (comparing the fund to a DIY ETF portfolio), and 4. The Leverage Trap (simulating the risks of borrowing to invest). This structure logically builds the argument from the report, transforming dense analysis into a step-by-step discovery process, which is more engaging and comprehensible for the user than a static dashboard. -->
+    <!-- Visualization & Content Choices: 
+        1. Payout vs. Return (Goal: Inform/Compare) -> A dual-axis line/bar chart to clearly show the annual deficit between the ~8% payout and the actual total return. The visual gap immediately communicates the core problem of capital erosion. (Library: Chart.js)
+        2. NAV & Dividend Decline (Goal: Show Change) -> Two synchronized line charts to visually link the cause (falling NAV) and effect (decreasing dividend per share). (Library: Chart.js)
+        3. Purchasing Power Calculator (Goal: Engage/Personalize) -> An interactive slider and input field allowing users to see how inflation and dividend cuts affect their *own* potential investment, making the abstract concept of real return tangible. (Library: Vanilla JS)
+        4. Performance Comparison (Goal: Compare) -> A cumulative growth line chart, which is more impactful than annual bars for demonstrating the long-term compounding effect of underperformance against a simple ETF portfolio. (Library: Chart.js)
+        5. Leverage Risk Simulator (Goal: Warn/Engage) -> An interactive dropdown to simulate outcomes in different market scenarios. This directly demonstrates the "套損" concept and the asymmetric risk-reward profile far more effectively than a static table. (Library: Vanilla JS)
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F4;
+            color: #3C3C3B;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 40vh;
+            max-height: 400px;
+        }
+        .card {
+            @apply bg-white/60 backdrop-blur-sm p-6 rounded-2xl shadow-md border border-gray-200/80;
+        }
+        .nav-button {
+            @apply px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300;
+        }
+        .nav-button.active {
+            @apply bg-blue-600 text-white shadow-lg;
+        }
+        .nav-button:not(.active) {
+            @apply bg-white/80 text-gray-700 hover:bg-gray-200;
+        }
+        .kpi-value {
+            @apply text-3xl md:text-4xl font-bold text-blue-600;
+        }
+        .kpi-label {
+            @apply text-sm text-gray-500 mt-1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="sticky top-0 z-50 bg-white/70 backdrop-blur-lg shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-xl font-bold text-gray-800">安聯收益成長基金 | 互動式剖析</h1>
+                <nav class="hidden md:flex items-center space-x-2">
+                    <a href="#illusion" class="nav-button active" data-nav="illusion">收益幻象</a>
+                    <a href="#reality" class="nav-button" data-nav="reality">現實衝擊</a>
+                    <a href="#performance" class="nav-button" data-nav="performance">績效對決</a>
+                    <a href="#leverage" class="nav-button" data-nav="leverage">槓桿陷阱</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-16">
+
+        <section class="text-center mb-16 md:mb-24">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight">
+                解構 <span class="text-blue-600">8%</span> 配息率的真相
+            </h1>
+            <p class="mt-4 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+                深入探討安聯收益成長基金。高配息的背後，是真實的投資回報，還是侵蝕本金的數字遊戲？本互動報告將帶您揭開迷霧。
+            </p>
+        </section>
+
+        <!-- Section 1: The Illusion of Yield -->
+        <section id="illusion" class="py-12 md:py-20 space-y-12">
+            <header>
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4 text-center">第一章：收益的幻象</h2>
+                <h3 class="text-lg md:text-xl text-gray-600 mb-8 text-center max-w-3xl mx-auto">
+                    本章節旨在揭示該基金宣傳的高配息率與其真實總報酬之間的根本性脫節。我們將透過數據視覺化，展示基金的支出（配息）如何長期高於其收入（總報酬），從而導致必須從投資者本金中支付配息。
+                </h3>
+            </header>
+            <div class="grid md:grid-cols-5 gap-8 items-center">
+                <div class="md:col-span-3 card">
+                    <h3 class="font-bold text-xl mb-4 text-gray-700">年化報酬 vs 配息率 (2015-2024)</h3>
+                    <div class="chart-container">
+                        <canvas id="returnVsPayoutChart"></canvas>
+                    </div>
+                </div>
+                <div class="md:col-span-2 space-y-4">
+                    <div class="card text-center">
+                        <div id="payoutCompositionText" class="text-2xl font-bold text-red-600 mb-2">配息的81%來自本金</div>
+                        <p class="text-sm text-gray-600">根據近期資料，配息絕大部分是返還您的原始投資，而非投資利潤。</p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-lg text-gray-800">核心矛盾</h4>
+                        <p class="mt-2 text-gray-600">
+                            當一支基金支付的配息率（約 <span class="font-bold text-blue-600">8%</span>）持續高於其自身產生的年化總報酬（約 <span class="font-bold text-red-600">7.36%</span>），差額就必須從資產淨值中提取。這就是「配息來自本金」的根本原因，它會系統性地侵蝕您的資本。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: The Shrinking Reality -->
+        <section id="reality" class="py-12 md:py-20 space-y-12">
+            <header>
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4 text-center">第二章：現實的衝擊</h2>
+                <h3 class="text-lg md:text-xl text-gray-600 mb-8 text-center max-w-3xl mx-auto">
+                    資本侵蝕並非無足輕重的會計項目，它會帶來真實且嚴重的後果。本章節將展示基金淨值與每股配息金額的同步下滑，並透過一個互動計算機，讓您親身感受通膨如何進一步摧毀您退休收入的購買力。
+                </h3>
+            </header>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="card">
+                    <h3 class="font-bold text-xl mb-4 text-gray-700">基金淨值 (NAV) 走勢 (2013-2025)</h3>
+                    <div class="chart-container">
+                        <canvas id="navChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="font-bold text-xl mb-4 text-gray-700">每月每股配息金額走勢</h3>
+                    <div class="chart-container">
+                        <canvas id="dividendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-12">
+                <h3 class="text-2xl font-bold text-center text-gray-800 mb-6">退休金縮水計算機</h3>
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <label for="investmentSlider" class="block font-medium text-gray-700 mb-2">假設初始投資金額 (新台幣)</label>
+                        <input type="range" id="investmentSlider" min="1000000" max="20000000" step="100000" value="10000000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="text-center font-bold text-blue-600 text-2xl mt-2" id="investmentValue">NT$ 10,000,000</div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                        <div>
+                            <div class="kpi-value" id="initialIncome">NT$ 800,000</div>
+                            <div class="kpi-label">2013年預期年收入</div>
+                        </div>
+                        <div>
+                            <div class="kpi-value" id="currentIncome">NT$ 586,667</div>
+                            <div class="kpi-label">當前名目年收入</div>
+                        </div>
+                        <div>
+                             <div class="kpi-value text-red-600" id="realIncome">NT$ 505,747</div>
+                            <div class="kpi-label">計入通膨後<br>真實購買力</div>
+                        </div>
+                    </div>
+                </div>
+                 <p class="text-center text-gray-500 mt-6 text-sm">此計算假設2013年至今累積通膨為16%，且配息從0.075美元降至0.055美元。</p>
+            </div>
+        </section>
+
+        <!-- Section 3: The Performance Showdown -->
+        <section id="performance" class="py-12 md:py-20 space-y-12">
+            <header>
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4 text-center">第三章：績效的對決</h2>
+                <h3 class="text-lg md:text-xl text-gray-600 mb-8 text-center max-w-3xl mx-auto">
+                    投資者支付高昂費用，是為了換取超越市場的表現。本章節將安聯收益成長基金與一個由低成本ETF組成的簡易被動投資組合進行正面比較，檢視其主動管理策略是否物有所值。
+                </h3>
+            </header>
+            <div class="card">
+                <h3 class="font-bold text-xl mb-4 text-gray-700">安聯基金 vs. DIY ETF 投資組合 - 累積總報酬 (2015-2024)</h3>
+                <p class="text-gray-600 mb-4 max-w-2xl">
+                    此圖顯示，若在2015年初各投入 $10,000，十年後兩者的財富差距。DIY 投資組合由 1/3 SPY (美股)、1/3 HYG (高收益債) 和 1/3 CWB (可轉債) 組成。
+                </p>
+                <div class="chart-container h-[50vh] max-h-[500px]">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                <div class="mt-6 text-center grid sm:grid-cols-3 gap-4">
+                     <div>
+                        <div class="kpi-value text-red-600">-50.7%</div>
+                        <div class="kpi-label">安聯基金累積落後幅度</div>
+                    </div>
+                    <div>
+                        <div class="kpi-value">1.55%</div>
+                        <div class="kpi-label">安聯基金年費</div>
+                    </div>
+                    <div>
+                        <div class="kpi-value">~0.33%</div>
+                        <div class="kpi-label">DIY 組合加權年費</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: The Leverage Trap -->
+        <section id="leverage" class="py-12 md:py-20 space-y-12">
+            <header>
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4 text-center">第四章：槓桿的陷阱</h2>
+                <h3 class="text-lg md:text-xl text-gray-600 mb-8 text-center max-w-3xl mx-auto">
+                    「借錢投資，穩賺利差」？這種策略並非無風險套利，而是一種高風險的槓桿交易。本節將模擬在不同市場環境下，槓桿投資者可能面臨的災難性後果，揭示「套利」如何變成「套損」。
+                </h3>
+            </header>
+            <div class="card max-w-4xl mx-auto">
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="font-bold text-xl text-gray-800 mb-4">槓桿風險模擬器</h3>
+                        <p class="text-gray-600 mb-4">假設您投入100萬本金，再以2%利率借貸100萬（總投資200萬），請選擇一個市場情境，看看您的本金會發生什麼變化。</p>
+                        <select id="leverageScenario" class="w-full p-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="good">多頭市場 (如 2019年, 基金 +19.49%)</option>
+                            <option value="bad">溫和修正 (如 2018年, 基金 -4.89%)</option>
+                            <option value="crash">嚴重衰退 (如 2022年, 基金 -19.70%)</option>
+                        </select>
+                    </div>
+                    <div id="leverageResult" class="text-center p-6 rounded-lg transition-all duration-500">
+                        <div class="kpi-label">您的100萬本金變為...</div>
+                        <div class="text-5xl font-extrabold" id="leverageValue"></div>
+                        <p class="mt-2 text-lg font-medium" id="leverageReturn"></p>
+                    </div>
+                </div>
+                 <p class="text-center text-gray-500 mt-6 text-sm">計算公式：(基金總報酬 x 2) - 借貸成本。這個簡化模型清晰地展示了槓桿如何同時放大收益與虧損。</p>
+            </div>
+        </section>
+        
+        <footer class="mt-16 md:mt-24 border-t pt-8 text-center text-gray-500">
+            <p>本互動報告根據公開資訊與數據分析製作，僅供教育與研究目的，不構成任何投資建議。</p>
+            <p class="text-sm mt-2">© 2025 互動式報告產生器</p>
+        </footer>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const data = {
+                returnVsPayout: {
+                    years: ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+                    totalReturn: [-3.38, 8.96, 12.55, -4.89, 19.49, 21.94, 11.66, -19.70, 17.32, 9.94],
+                    payoutRate: [8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+                },
+                nav: {
+                    years: ['2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025'],
+                    values: [10.0, 10.9, 10.5, 10.2, 10.8, 10.1, 9.9, 10.5, 10.7, 8.6, 9.5, 9.1, 8.0]
+                },
+                dividend: {
+                    years: ['2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+                    values: [0.075, 0.075, 0.075, 0.075, 0.072, 0.066, 0.066, 0.066, 0.06, 0.06, 0.058, 0.055]
+                },
+                performance: {
+                    years: ['2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+                    allianz: [10000, 9662, 10528, 11850, 11270, 13465, 16420, 18334, 14722, 17272, 18987],
+                    diy: [10000, 9854, 11033, 12650, 12275, 15024, 18841, 21006, 17520, 20560, 23504],
+                },
+                 leverage: {
+                    good: { return: 19.49, text: "本金成長 37.0%", value: "1,369,800", color: "text-green-500", bg: "bg-green-100/60" },
+                    bad: { return: -4.89, text: "本金虧損 11.8%", value: "882,200", color: "text-orange-500", bg: "bg-orange-100/60" },
+                    crash: { return: -19.70, text: "本金虧損 41.4%", value: "586,000", color: "text-red-600", bg: "bg-red-100/60" },
+                }
+            };
+
+            const FONT_COLOR = '#3C3C3B';
+            const GRID_COLOR = 'rgba(0, 0, 0, 0.05)';
+            Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
+            Chart.defaults.color = FONT_COLOR;
+
+            // Chart 1: Return vs Payout
+            new Chart(document.getElementById('returnVsPayoutChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.returnVsPayout.years,
+                    datasets: [{
+                        label: '年化總報酬 (%)',
+                        data: data.returnVsPayout.totalReturn,
+                        backgroundColor: (context) => context.raw >= 0 ? 'rgba(54, 162, 235, 0.6)' : 'rgba(255, 99, 132, 0.6)',
+                        borderColor: (context) => context.raw >= 0 ? 'rgba(54, 162, 235, 1)' : 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    }, {
+                        type: 'line',
+                        label: '年化配息率 (%)',
+                        data: data.returnVsPayout.payoutRate,
+                        borderColor: '#FFC107',
+                        backgroundColor: '#FFC107',
+                        pointBackgroundColor: '#FFC107',
+                        tension: 0.1,
+                        yAxisID: 'y'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: GRID_COLOR },
+                            ticks: { callback: value => value + '%' }
+                        },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.formattedValue}%` } },
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Chart 2: NAV
+            new Chart(document.getElementById('navChart'), {
+                type: 'line',
+                data: {
+                    labels: data.nav.years,
+                    datasets: [{
+                        label: '基金淨值 (美元)',
+                        data: data.nav.values,
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            grid: { color: GRID_COLOR },
+                            ticks: { callback: value => '$' + value.toFixed(2) }
+                        },
+                        x: { grid: { display: false } }
+                    },
+                     plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (context) => `${context.dataset.label}: $${context.formattedValue}` } }
+                    }
+                }
+            });
+
+            // Chart 3: Dividend
+            new Chart(document.getElementById('dividendChart'), {
+                type: 'line',
+                data: {
+                    labels: data.dividend.years,
+                    datasets: [{
+                        label: '每月每股配息 (美元)',
+                        data: data.dividend.values,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            grid: { color: GRID_COLOR },
+                            ticks: { callback: value => '$' + value.toFixed(3) }
+                         },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (context) => `${context.dataset.label}: $${context.formattedValue}` } }
+                    }
+                }
+            });
+
+            // Chart 4: Performance
+             new Chart(document.getElementById('performanceChart'), {
+                type: 'line',
+                data: {
+                    labels: data.performance.years,
+                    datasets: [{
+                        label: '安聯收益成長基金',
+                        data: data.performance.allianz,
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }, {
+                        label: 'DIY ETF 投資組合',
+                        data: data.performance.diy,
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            grid: { color: GRID_COLOR },
+                            ticks: { callback: value => '$' + value.toLocaleString() }
+                        },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: $${context.raw.toLocaleString()}`
+                            }
+                        },
+                        legend: { position: 'bottom' }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+
+
+            // Interactive Calculators
+            const investmentSlider = document.getElementById('investmentSlider');
+            const investmentValue = document.getElementById('investmentValue');
+            const initialIncome = document.getElementById('initialIncome');
+            const currentIncome = document.getElementById('currentIncome');
+            const realIncome = document.getElementById('realIncome');
+            const USD_TWD_RATE = 32; // Assuming exchange rate
+
+            function updateRetirementCalc() {
+                const investment = parseFloat(investmentSlider.value);
+                const shares = (investment / USD_TWD_RATE) / 10; // Assuming initial NAV of $10
+
+                const initialAnnual = shares * 0.075 * 12 * USD_TWD_RATE;
+                const currentAnnual = shares * 0.055 * 12 * USD_TWD_RATE;
+                const realAnnual = currentAnnual / 1.16;
+
+                investmentValue.textContent = 'NT$ ' + investment.toLocaleString();
+                initialIncome.textContent = 'NT$ ' + Math.round(initialAnnual).toLocaleString();
+                currentIncome.textContent = 'NT$ ' + Math.round(currentAnnual).toLocaleString();
+                realIncome.textContent = 'NT$ ' + Math.round(realAnnual).toLocaleString();
+            }
+
+            investmentSlider.addEventListener('input', updateRetirementCalc);
+            updateRetirementCalc();
+
+
+            // Leverage Simulator
+            const leverageScenario = document.getElementById('leverageScenario');
+            const leverageResult = document.getElementById('leverageResult');
+            const leverageValue = document.getElementById('leverageValue');
+            const leverageReturn = document.getElementById('leverageReturn');
+
+            function updateLeverageSim() {
+                const scenario = data.leverage[leverageScenario.value];
+                leverageValue.textContent = 'NT$ ' + scenario.value;
+                leverageReturn.textContent = scenario.text;
+                
+                leverageResult.className = 'text-center p-6 rounded-lg transition-all duration-500 ' + scenario.bg;
+                leverageValue.className = 'text-5xl font-extrabold ' + scenario.color;
+                leverageReturn.className = 'mt-2 text-lg font-medium ' + scenario.color;
+            }
+
+            leverageScenario.addEventListener('change', updateLeverageSim);
+            updateLeverageSim();
+
+            // Navigation scroll spy
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('nav a');
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.nav === current) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
