@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code 多代理人可觀測性儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Slate & Sky) -->
+    <!-- Application Structure Plan: A narrative-driven, single-page journey. It starts with the problem (scaling agents), introduces the solution (the dashboard), explains the architecture with an interactive diagram, showcases a simulated dashboard with live features (chart, event stream, filters), details the underlying tech (Hooks), and ends with a call to action. This structure guides users from concept to application, making complex information digestible and engaging. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: System Architecture -> Goal: Organize/Inform -> Viz: Interactive Diagram (HTML/CSS) -> Interaction: Hover to see component details. Justification: More engaging than a static image.
+        - Report Info: Event Volume over Time -> Goal: Show Change/Trends -> Viz: Bar Chart (Chart.js Canvas) -> Interaction: Filter buttons update chart data. Justification: Clearly visualizes agent activity levels.
+        - Report Info: Dashboard Features -> Goal: Inform/Interact -> Viz: Simulated Dashboard UI (HTML/CSS/JS) -> Interaction: Users can click filters to see the event stream and chart change in real-time. Justification: Provides a tangible feel for the tool's power.
+        - Report Info: Claude Code Hooks -> Goal: Inform -> Viz: Styled Code Block (HTML/CSS) -> Interaction: Static, with text wrapping to avoid scrollbars. Justification: Clearly presents the configuration without breaking layout. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-16">
+
+        <!-- Header Section -->
+        <header class="text-center mb-16 md:mb-24">
+            <span class="text-sky-600 font-semibold">運籌帷幄，決勝千里</span>
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900 mt-2 mb-4">Claude Code 多代理人可觀測性</h1>
+            <p class="max-w-3xl mx-auto text-lg text-slate-600">
+                當您的 AI 代理人團隊從單兵作戰走向軍團協作，您如何掌握全局？本儀表板提供一個強大、視覺化的介面，讓您能即時監控所有代理人的行為，將混亂轉為秩序。
+            </p>
+        </header>
+
+        <!-- Architecture Section -->
+        <section id="architecture" class="mb-16 md:mb-24">
+            <h2 class="text-3xl font-bold text-center text-slate-900 mb-2">系統如何運作？</h2>
+            <p class="text-center text-slate-600 mb-12">一個簡潔、高效的單向資料流，確保所有代理人活動都能被即時捕捉與呈現。</p>
+            
+            <div class="flex flex-col items-center">
+                <!-- Top Row -->
+                <div class="flex flex-col md:flex-row items-center justify-center w-full">
+                    <div class="flow-item p-4 bg-white rounded-lg shadow-md border border-slate-200" data-info="旅程的起點。您在各處運行的每一個 Claude code 實例。">
+                        <span class="text-3xl">🤖</span><h3 class="font-bold mt-2">Claude 代理人</h3>
+                    </div>
+                    <div class="w-8 h-1 border-t-2 border-slate-300 border-dashed mx-2 hidden md:block"></div>
+                    <div class="h-8 w-1 border-l-2 border-slate-300 border-dashed my-2 md:hidden"></div>
+                    <div class="flow-item p-4 bg-white rounded-lg shadow-md border border-slate-200" data-info="在代理人執行特定動作時觸發的 Python 腳本，負責收集事件資料。">
+                        <span class="text-3xl">🪝</span><h3 class="font-bold mt-2">掛鉤腳本</h3>
+                    </div>
+                    <div class="w-8 h-1 border-t-2 border-slate-300 border-dashed mx-2 hidden md:block"></div>
+                    <div class="h-8 w-1 border-l-2 border-slate-300 border-dashed my-2 md:hidden"></div>
+                    <div class="flow-item p-4 bg-white rounded-lg shadow-md border border-slate-200" data-info="掛鉤腳本將事件打包成 JSON，透過 HTTP POST 請求發送到中央伺服器。">
+                        <span class="text-3xl">📤</span><h3 class="font-bold mt-2">HTTP 請求</h3>
+                    </div>
+                </div>
+
+                <!-- Arrow to Server -->
+                <div class="h-8 w-1 border-l-2 border-slate-300 border-dashed my-2"></div>
+
+                <!-- Server -->
+                <div class="flow-item p-4 bg-sky-100 rounded-lg shadow-md border border-sky-200" data-info="一個輕量級後端伺服器 (Bun)，負責接收所有事件，並分發至資料庫與前端。">
+                     <span class="text-3xl">🖥️</span><h3 class="font-bold mt-2 text-sky-900">中央伺服器</h3>
+                </div>
+
+                <!-- Arrow from Server -->
+                <div class="h-8 w-1 border-l-2 border-slate-300 border-dashed my-2"></div>
+
+                <!-- Bottom Row -->
+                <div class="w-full flex justify-center relative">
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-slate-300 border border-dashed hidden md:block"></div>
+                    <div class="flex flex-col md:flex-row items-center justify-around w-full max-w-4xl pt-8">
+                        <div class="flow-item text-center p-4 bg-white rounded-lg shadow-md border border-slate-200" data-info="伺服器將事件存入 SQLite，供永久保存和未來分析。">
+                            <span class="text-3xl">🗃️</span><h3 class="font-bold mt-2">SQLite 資料庫</h3>
+                        </div>
+                        <div class="h-8 w-1 border-l-2 border-slate-300 border-dashed my-2 md:hidden"></div>
+                        <div class="flow-item text-center p-4 bg-white rounded-lg shadow-md border border-slate-200" data-info="同時，伺服器透過 WebSocket 將事件即時廣播給所有前端客戶端。">
+                            <span class="text-3xl">📡</span><h3 class="font-bold mt-2">WebSocket</h3>
+                        </div>
+                        <div class="h-8 w-1 border-l-2 border-slate-300 border-dashed my-2 md:hidden"></div>
+                        <div class="flow-item text-center p-4 bg-white rounded-lg shadow-md border border-slate-200" data-info="您在瀏覽器中看到的儀表板 (Vue.js)，即時更新畫面。">
+                            <span class="text-3xl">📊</span><h3 class="font-bold mt-2">前端儀表板</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="architecture-info" class="mt-8 text-center text-slate-600 bg-slate-100 p-4 rounded-lg min-h-[3rem] transition-all duration-300 flex items-center justify-center">
+                將滑鼠懸停在上方元件上以查看詳細說明。
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="mb-16 md:mb-24 bg-slate-100 p-4 sm:p-6 md:p-8 rounded-2xl border border-slate-200">
+            <h2 class="text-3xl font-bold text-center text-slate-900 mb-2">互動式儀表板模擬</h2>
+            <p class="text-center text-slate-600 mb-8">體驗儀表板的核心功能。點擊下方的篩選器，即時查看圖表與事件串流的變化。</p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left: Chart and Filters -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">即時活動脈動</h3>
+                    <div class="chart-container mx-auto">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                    <div class="mt-6">
+                        <h4 class="font-semibold mb-2 text-slate-700">篩選事件來源：</h4>
+                        <div id="filter-buttons" class="flex flex-wrap gap-2">
+                            <button class="filter-btn active px-4 py-2 text-sm font-medium rounded-full bg-sky-600 text-white" data-filter="all">所有專案</button>
+                            <button class="filter-btn px-4 py-2 text-sm font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300" data-filter="Project-A">無限代理人循環</button>
+                            <button class="filter-btn px-4 py-2 text-sm font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300" data-filter="Project-B">Medscan Pro</button>
+                            <button class="filter-btn px-4 py-2 text-sm font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300" data-filter="Project-C">儀表板本身</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Event Stream -->
+                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">即時事件串流</h3>
+                    <div id="event-stream" class="h-96 overflow-y-auto pr-2 space-y-3">
+                        <!-- Events will be injected here by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Hooks Section -->
+        <section id="hooks" class="text-center">
+             <h2 class="text-3xl font-bold text-slate-900 mb-2">背後的魔法：Claude Code Hooks</h2>
+            <p class="max-w-3xl mx-auto text-slate-600 mb-8">
+                這一切都始於 Claude Code 內建的 Hooks 機制。只需在設定檔中簡單配置，就能為代理人生命週期中的關鍵節點掛上監控腳本，實現高度模組化的監控。
+            </p>
+            <div class="max-w-4xl mx-auto bg-slate-800 text-left rounded-lg p-6 shadow-2xl">
+                <pre><code class="text-sm text-slate-200 whitespace-pre-wrap break-words"><span class="text-slate-400"># .claude/settings.yaml</span>
+<span class="text-sky-400">hooks:</span>
+  <span class="text-violet-400">pre-tool-use:</span>
+    <span class="text-slate-400">- python hooks/send_event.py --app "儀表板本身" --event "pre-tool-use" --summarize</span>
+  <span class="text-violet-400">post-tool-use:</span>
+    <span class="text-slate-400">- python hooks/send_event.py --app "儀表板本身" --event "post-tool-use" --summarize</span>
+  <span class="text-violet-400">notification:</span>
+    <span class="text-slate-400">- python hooks/send_event.py --app "儀表板本身" --event "notification"</span>
+    <span class="text-slate-400">- python hooks/speak.py</span>
+  <span class="text-violet-400">stop:</span>
+    <span class="text-slate-400">- python hooks/send_event.py --app "儀表板本身" --event "stop"</span>
+</code></pre>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center p-8 bg-slate-800 text-slate-400 mt-16 md:mt-24">
+        <p class="text-lg font-bold text-white mb-2">準備好掌控您的 AI 團隊了嗎？</p>
+        <p class="mb-4">這個專案為您提供了一個絕佳的起點。立即探索原始碼並開始建構吧！</p>
+        <a href="https://github.com/disler/claude-code-hooks-multi-agent-observability" target="_blank" rel="noopener noreferrer" class="inline-block bg-sky-600 text-white font-bold py-3 px-6 rounded-full hover:bg-sky-700 transition-colors">
+            前往 GitHub 專案
+        </a>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const MOCK_DATA = [
+            { sourceApp: 'Project-A', sessionId: '15CC5C', eventType: 'pre-tool-use', summary: '準備寫入 UI 元件至指定路徑。', color: 'bg-blue-100 text-blue-800' },
+            { sourceApp: 'Project-B', sessionId: 'A8D3F1', eventType: 'notification', summary: '資料庫模型已更新，請確認。', color: 'bg-green-100 text-green-800' },
+            { sourceApp: 'Project-A', sessionId: '15CC5C', eventType: 'post-tool-use', summary: '成功寫入 `clinical-dashboard.html`。', color: 'bg-blue-100 text-blue-800' },
+            { sourceApp: 'Project-C', sessionId: 'BEEF01', eventType: 'stop', summary: '任務完成：行動版 UI 已部署。', color: 'bg-purple-100 text-purple-800' },
+            { sourceApp: 'Project-B', sessionId: 'A8D3F1', eventType: 'pre-tool-use', summary: '準備執行資料庫遷移腳本。', color: 'bg-green-100 text-green-800' },
+            { sourceApp: 'Project-A', sessionId: 'E4A2B7', eventType: 'start', summary: '新代理人啟動：開始重構登入頁面。', color: 'bg-amber-100 text-amber-800' },
+            { sourceApp: 'Project-A', sessionId: '15CC5C', eventType: 'sub-agent-complete', summary: '子任務完成：側邊欄導航。', color: 'bg-blue-100 text-blue-800' },
+            { sourceApp: 'Project-B', sessionId: 'A8D3F1', eventType: 'post-tool-use', summary: '資料庫遷移成功。', color: 'bg-green-100 text-green-800' },
+            { sourceApp: 'Project-C', sessionId: 'BEEF01', eventType: 'pre-tool-use', summary: '正在讀取 `styles.css` 進行壓縮。', color: 'bg-purple-100 text-purple-800' },
+            { sourceApp: 'Project-A', sessionId: 'E4A2B7', eventType: 'pre-tool-use', summary: '讀取現有的 `login.js` 檔案。', color: 'bg-amber-100 text-amber-800' }
+        ];
+
+        let activityChart;
+        let currentFilter = 'all';
+        let eventInterval;
+
+        const eventStreamEl = document.getElementById('event-stream');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+
+        function renderEventStream(events) {
+            eventStreamEl.innerHTML = '';
+            events.forEach(event => {
+                const eventEl = document.createElement('div');
+                eventEl.className = 'p-3 rounded-lg border border-slate-200 fade-in';
+                eventEl.innerHTML = `
+                    <div class="flex justify-between items-center text-xs mb-1">
+                        <span class="font-bold px-2 py-0.5 rounded ${event.color}">${event.sourceApp.replace('Project-A', '無限代理人循環').replace('Project-B', 'Medscan Pro').replace('Project-C', '儀表板本身')}</span>
+                        <span class="text-slate-400">ID: ${event.sessionId}</span>
+                    </div>
+                    <p class="text-sm text-slate-700">${event.summary}</p>
+                `;
+                eventStreamEl.prepend(eventEl);
+            });
+             while (eventStreamEl.children.length > 20) {
+                eventStreamEl.removeChild(eventStreamEl.lastChild);
+            }
+        }
+
+        function getFilteredData() {
+            if (currentFilter === 'all') {
+                return MOCK_DATA;
+            }
+            return MOCK_DATA.filter(e => e.sourceApp === currentFilter);
+        }
+        
+        function updateChart() {
+            const filteredData = getFilteredData();
+            const eventCounts = {};
+            const labels = [];
+
+            filteredData.forEach(event => {
+                const app = event.sourceApp;
+                eventCounts[app] = (eventCounts[app] || 0) + 1;
+            });
+            
+            const datasets = Object.keys(eventCounts).map(app => {
+                 const colorMap = {
+                    'Project-A': 'rgba(59, 130, 246, 0.7)',
+                    'Project-B': 'rgba(16, 185, 129, 0.7)',
+                    'Project-C': 'rgba(168, 85, 247, 0.7)',
+                    'Project-D': 'rgba(245, 158, 11, 0.7)'
+                };
+                 const borderColorMap = {
+                    'Project-A': 'rgb(59, 130, 246)',
+                    'Project-B': 'rgb(16, 185, 129)',
+                    'Project-C': 'rgb(168, 85, 247)',
+                    'Project-D': 'rgb(245, 158, 11)'
+                };
+                return {
+                    label: app.replace('Project-A', '無限代理人循環').replace('Project-B', 'Medscan Pro').replace('Project-C', '儀表板本身'),
+                    data: [eventCounts[app]],
+                    backgroundColor: colorMap[app] || 'rgba(107, 114, 128, 0.7)',
+                    borderColor: borderColorMap[app] || 'rgb(107, 114, 128)',
+                    borderWidth: 2,
+                };
+            });
+            
+            if (activityChart) {
+                activityChart.data.labels = ['活動總覽'];
+                activityChart.data.datasets = datasets;
+                activityChart.update();
+            }
+        }
+        
+        function setupChart() {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            activityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['活動總覽'],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: { display: true, text: '事件數量' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += context.parsed.x + ' 個事件';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            updateChart();
+        }
+
+        function handleFilterClick(e) {
+            currentFilter = e.target.dataset.filter;
+            filterButtons.forEach(btn => {
+                btn.classList.remove('bg-sky-600', 'text-white');
+                btn.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+            });
+            e.target.classList.add('bg-sky-600', 'text-white');
+            e.target.classList.remove('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+            
+            renderEventStream(getFilteredData().slice(-10));
+            updateChart();
+        }
+
+        filterButtons.forEach(btn => btn.addEventListener('click', handleFilterClick));
+
+        function simulateRealtime() {
+            let i = 0;
+            eventInterval = setInterval(() => {
+                const newData = { ...MOCK_DATA[i % MOCK_DATA.length] };
+                MOCK_DATA.push(newData);
+                
+                renderEventStream(getFilteredData().slice(-10));
+                updateChart();
+                i++;
+            }, 2500);
+        }
+
+        const flowItems = document.querySelectorAll('.flow-item');
+        const infoBox = document.getElementById('architecture-info');
+        flowItems.forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                infoBox.textContent = item.dataset.info;
+            });
+             item.addEventListener('mouseleave', () => {
+                infoBox.textContent = "將滑鼠懸停在上方元件上以查看詳細說明。";
+            });
+        });
+        
+        setupChart();
+        renderEventStream(getFilteredData().slice(-10));
+        simulateRealtime();
+    });
+    </script>
+</body>
+</html>
