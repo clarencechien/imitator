@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>穩定幣戰場：互動式分析儀表板</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0d9488"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="穩定幣戰場">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/0d9488/ffffff?text=SB">
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIua1i+W9k+WcsOa5n+WosemHkeW6pzrmrYzmnpzojLQgKFBXQeeyviApIiwKICAic2hvcnRfbmFtZSI6ICLmtYvlvZPlnLDmuZ8iLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL3BsYWNlaG9sZC5jby8xOTJ4MTkyLzBkOTQ4OC9mZmZmZmY/dGV4dD1TQiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL3BsYWNlaG9sZC5jby81MTJ4NTEyLzBkOTQ4OC9mZmZmZmY/dGV4dD1TQiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIgogICAgfQogIF0sCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjhmYWZjIiwKICAidGhlbWVfY29sb3IiOiAiIzBkOTQ4OCIKfQ==">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate & Teal Harmony -->
+    <!-- Application Structure Plan: The SPA is designed as a thematic, single-page dashboard with a sticky top navigation for easy access to key sections: Overview, Power Players, Regulation, Macro Impact, Future, and the newly added Deep Game. This structure allows users to explore non-linearly based on their interests. The 'Power Players' section uses an interactive tab system to present a large amount of comparative data without overwhelming the user. The new 'Deep Game' section is structured with distinct cards to break down complex, abstract risks into digestible concepts. This non-linear, interactive, and thematic design was chosen to make the dense and complex information about stablecoins digestible, engaging, and highly usable for different types of users. -->
+    <!-- Visualization & Content Choices: Market Share -> Goal: Show dominance -> Viz: Donut Chart (Chart.js) -> Interaction: Hover tooltips -> Justification: Instant visual grasp of concentration. Market Growth -> Goal: Show trend -> Viz: Line Chart (Chart.js) -> Justification: Standard for time-series data. Player Comparison -> Goal: Compare factions -> Viz: Interactive Tabs (HTML/JS) -> Interaction: Click to reveal -> Justification: Manages cognitive load, allows focused comparison. Regulatory/Macro/Deep Game Concepts -> Goal: Explain complex topics -> Viz: Styled Info Cards (HTML/Tailwind) -> Justification: Breaks down information into scannable, digestible chunks. The entire design prioritizes clarity and guided exploration. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #0d9488; /* teal-600 */
+            border-bottom-color: #0d9488; /* teal-600 */
+        }
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background-color: #0d9488; /* teal-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .section-fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .section-fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header id="navbar" class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl md:text-2xl font-bold text-teal-700">穩定幣戰場</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">市場概覽</a>
+                        <a href="#players" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">權力玩家</a>
+                        <a href="#regulation" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">全球監管</a>
+                        <a href="#macro" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">宏觀戰場</a>
+                        <a href="#future" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">未來展望</a>
+                        <a href="#deep-game" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">深層博弈</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav" class="bg-white border border-slate-300 rounded-md py-2 pl-3 pr-10 text-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                        <option value="#overview">市場概覽</option>
+                        <option value="#players">權力玩家</option>
+                        <option value="#regulation">全球監管</option>
+                        <option value="#macro">宏觀戰場</option>
+                        <option value="#future">未來展望</option>
+                        <option value="#deep-game">深層博弈</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <section id="overview" class="section-fade-in text-center mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">重塑全球金融的數位美元</h2>
+            <p class="max-w-3xl mx-auto text-slate-600 mb-12">穩定幣已從加密貨幣的利基工具，演變為交易量超越支付巨頭的全球金融基礎設施。它不僅是連接傳統與數位金融的橋樑，更是地緣政治、貨幣主權與科技創新的核心戰場。</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto text-left">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-semibold text-slate-700 mb-2">市場佔有率 (2025 Q3)</h3>
+                    <p class="text-sm text-slate-500 mb-4">Tether (USDT) 和 Circle (USDC) 共同主宰了超過85%的市場，呈現雙頭壟斷的格局。</p>
+                    <div class="chart-container">
+                        <canvas id="marketShareChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-semibold text-slate-700 mb-2">市值爆炸性增長</h3>
+                    <p class="text-sm text-slate-500 mb-4">穩定幣總市值在五年內增長超過20倍，預計在2028年將達到數兆美元規模。</p>
+                    <div class="chart-container">
+                        <canvas id="marketCapChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="players" class="section-fade-in mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">權力玩家的競技場</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">穩定幣的競爭是不同意識形態、商業模式與地緣政治聯盟的對決。點擊下方標籤，探索四大權力集團的戰略與佈局。</p>
+            </div>
+            <div class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+                <button class="tab-btn active px-4 py-2 text-sm md:text-base font-semibold bg-white text-slate-700 rounded-full shadow-sm" data-tab="usdc">💎 合規派: Circle (USDC)</button>
+                <button class="tab-btn px-4 py-2 text-sm md:text-base font-semibold bg-white text-slate-700 rounded-full shadow-sm" data-tab="usdt">🌐 影子帝國: Tether (USDT)</button>
+                <button class="tab-btn px-4 py-2 text-sm md:text-base font-semibold bg-white text-slate-700 rounded-full shadow-sm" data-tab="usd1">🦅 政治挑戰者: Trump (USD1)</button>
+                <button class="tab-btn px-4 py-2 text-sm md:text-base font-semibold bg-white text-slate-700 rounded-full shadow-sm" data-tab="dai">🛡️ 理想主義者: MakerDAO (DAI)</button>
+            </div>
+            <div class="max-w-4xl mx-auto">
+                <div id="usdc-content" class="tab-content bg-white p-6 md:p-8 rounded-2xl shadow-xl transition-opacity duration-500">
+                    <h3 class="text-2xl font-bold text-teal-700 mb-3">Circle (USDC): 合規的模範生</h3>
+                    <p class="text-slate-600 mb-6">核心戰略是擁抱監管，追求完全透明，成為受政府與機構信賴的「數位美元」。其商業模式是將儲備金投資於短期美國國債，賺取利息。</p>
+                    <div class="grid md:grid-cols-2 gap-6 text-sm">
+                        <div class="bg-teal-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-teal-800 mb-2">優勢 (Pros)</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>高度透明，定期發布審計報告</li>
+                                <li>受主流機構（如貝萊德）支持</li>
+                                <li>完全符合美、歐監管框架</li>
+                                <li>品牌形象良好，被視為「安全」選項</li>
+                            </ul>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-red-800 mb-2">挑戰 (Cons)</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>與Coinbase的利潤分成協議成本高昂</li>
+                                <li>增長依賴傳統金融體系，彈性較低</li>
+                                <li>高度中心化，易受單點政策風險影響</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div id="usdt-content" class="tab-content hidden bg-white p-6 md:p-8 rounded-2xl shadow-xl transition-opacity duration-500">
+                    <h3 class="text-2xl font-bold text-sky-700 mb-3">Tether (USDT): 影子帝國</h3>
+                    <p class="text-slate-600 mb-6">利用監管灰色地帶，透過離岸運營獲得彈性。它已成為新興市場與受制裁經濟體事實上的數位美元，流動性與滲透力全球第一。</p>
+                    <div class="grid md:grid-cols-2 gap-6 text-sm">
+                        <div class="bg-sky-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-sky-800 mb-2">優勢 (Pros)</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>全球流動性最強，交易對最廣泛</li>
+                                <li>在新興市場擁有無可匹敵的網絡效應</li>
+                                <li>不受美國直接管轄，提供地緣政治對沖</li>
+                                <li>利潤驚人，並進行多元化科技投資</li>
+                            </ul>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-red-800 mb-2">挑戰 (Cons)</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>儲備透明度備受質疑</li>
+                                <li>與非法活動（如洗錢）高度關聯</li>
+                                <li>面臨巨大的全球監管合規壓力</li>
+                                <li>商業模式高度依賴利率環境</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div id="usd1-content" class="tab-content hidden bg-white p-6 md:p-8 rounded-2xl shadow-xl transition-opacity duration-500">
+                    <h3 class="text-2xl font-bold text-red-700 mb-3">Trump (USD1): 政治挑戰者</h3>
+                    <p class="text-slate-600 mb-6">由川普家族關聯公司發行，背後是阿布達比主權財富基金和幣安的戰略同盟，代表著政治力量與加密原生渠道的結合。</p>
+                    <div class="grid md:grid-cols-2 gap-6 text-sm">
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-red-800 mb-2">優勢 (Pros)</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>強大的政治背書與民粹主義敘事</li>
+                                <li>獲中東主權財富基金巨額投資</li>
+                                <li>與全球最大交易所幣安深度綁定</li>
+                            </ul>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-yellow-800 mb-2">挑戰 (Cons)</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>前景與政治人物的命運高度相關</li>
+                                <li>監管不確定性極高</li>
+                                <li>長期穩定性與透明度有待觀察</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div id="dai-content" class="tab-content hidden bg-white p-6 md:p-8 rounded-2xl shadow-xl transition-opacity duration-500">
+                    <h3 class="text-2xl font-bold text-amber-600 mb-3">MakerDAO (DAI): 理想主義者</h3>
+                    <p class="text-slate-600 mb-6">由去中心化自治組織 (DAO) 管理，目標是創造一個完全抗審查、中立且無需依賴任何中心化實體的穩定幣。</p>
+                    <div class="grid md:grid-cols-2 gap-6 text-sm">
+                        <div class="bg-amber-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-amber-800 mb-2">優勢 (Pros)</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>高度去中心化，抗審查能力強</li>
+                                <li>由智能合約自動運行，透明可驗證</li>
+                                <li>在DeFi領域擁有良好聲譽和整合度</li>
+                            </ul>
+                        </div>
+                        <div class="bg-slate-100 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800 mb-2">挑戰 (Cons)</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                <li>資本效率較低（需超額抵押）</li>
+                                <li>擴展性受限，市值與巨頭差距巨大</li>
+                                <li>治理模型複雜，決策效率可能較低</li>
+                                <li>為擴大規模，部分抵押品已中心化</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="regulation" class="section-fade-in mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">全球監管浪潮</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">穩定幣正從灰色地帶走向合規化。美、歐、亞三大經濟體正以不同的戰略目標，塑造未來的監管版圖。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-600">
+                    <h3 class="text-xl font-bold text-blue-700 mb-3">🇺🇸 美國：鞏固霸權</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">通過《天才法案》(GENIUS Act) 等立法，將穩定幣發行商納入類似銀行的監管框架。目標是「馴化」國內風險，同時最大化「數位美元」的全球吸引力，將其收編為延伸美元霸權的國家工具。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
+                    <h3 class="text-xl font-bold text-yellow-600 mb-3">🇪🇺 歐盟：捍衛主權</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">《加密資產市場法規》(MiCA) 採取更謹慎保守的態度，對穩定幣施加交易量限制、禁止支付利息等。核心目標是防範金融風險，保護歐元區的貨幣主權與銀行體系穩定。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-red-600">
+                    <h3 class="text-xl font-bold text-red-700 mb-3">🇨🇳/🇭🇰 亞洲：戰略前哨</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">香港與新加坡展開激烈競爭，推出監管沙盒吸引創新。香港的角色尤為關鍵，它被視為中國探索離岸人民幣穩定幣、連接真實世界資產 (RWA) 代幣化的前沿陣地，是中國「雙軌制」數位貨幣戰略的一環。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="macro" class="section-fade-in mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">宏觀金融戰場</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">穩定幣的影響力已超越加密貨幣範疇，直接衝擊著國際金融體系的三大支柱：貨幣主權、主權債務與傳統銀行體系。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="font-semibold text-lg text-slate-800 mb-2">🌍 數位美元化</h3>
+                    <p class="text-sm text-slate-500">在新興市場，穩定幣成為對抗惡性通膨的工具，民眾自發使用數位美元進行儲蓄和交易，這在無形中加強了美元霸權，同時削弱了當地央行的貨幣主權。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="font-semibold text-lg text-slate-800 mb-2">💰 意想不到的債主</h3>
+                    <p class="text-sm text-slate-500">穩定幣發行商為維持儲備，已成為美國國債的大買家（僅Tether就持有超千億美元），為美國政府債務市場創造了龐大且持續增長的需求來源。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="font-semibold text-lg text-slate-800 mb-2">🏛️ 金融脫媒威脅</h3>
+                    <p class="text-sm text-slate-500">若大量資金從銀行存款流向穩定幣，將侵蝕銀行的核心資本，限制其信貸能力，並削弱央行貨幣政策的傳導效力，對傳統銀行體系構成根本性挑戰。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="future" class="section-fade-in mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">未來地平線</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">穩定幣的野蠻生長時代已過，一個制度化、地緣政治化和深度融合的新時代已經開啟。遊戲規則已變，終局才剛剛開始。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div class="bg-white p-8 rounded-2xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-4">RWA 革命：代幣化的世界</h3>
+                    <p class="text-slate-600">穩定幣的下一個爆發點，是將房地產、私人信貸等「真實世界資產」(RWA) 代幣化。在這個數百兆美元的市場中，穩定幣將扮演無可替代的基礎結算層角色。全球最大資管公司貝萊德的入場，已證實了這一趨勢。</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-4">支付的最後一哩路</h3>
+                    <p class="text-slate-600">Visa、Mastercard、PayPal 等傳統金融巨頭正從對抗轉為整合，將穩定幣納入其全球支付網絡。穩定幣正在從金融市場的B2B結算，走向無處不在的日常支付，完成其普及的「最後一哩路」。</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="deep-game" class="section-fade-in">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">深層博弈：未見的風險與潛在的終局</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">要真正理解穩定幣的未來，必須超越現有市場格局，去探討潛伏在水面之下的第二序效應、技術暗流和地緣政治的引爆點。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                <div class="bg-white p-6 rounded-xl shadow-lg space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800">宏觀經濟的「幽靈」</h3>
+                    <div>
+                        <h4 class="font-semibold text-teal-700">影子利率的形成</h4>
+                        <p class="text-sm text-slate-500 mt-1">穩定幣發行商透過管理數千億美元的國債儲備，實質上為加密經濟設定了一個獨立於央行的「無風險利率」，執行著一種影響深遠的「影子貨幣政策」。</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-teal-700">地緣政治的引爆點</h4>
+                        <p class="text-sm text-slate-500 mt-1">穩定幣基礎設施正從中立的金融軌道，演變為可被精準打擊或利用的金融武器。合規穩定幣可能被用於執行制裁，而非合規穩定幣則可能面臨其他大國的壓力。</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800">技術的暗流</h3>
+                    <div>
+                        <h4 class="font-semibold text-teal-700">區塊鏈的戰略選擇</h4>
+                        <p class="text-sm text-slate-500 mt-1">在哪條鏈上發行已是戰略佈局。以太坊代表安全，高性能鏈爭奪市場，Layer 2則成為主流入口。跨鏈協議將成為未來的「SWIFT」。</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-teal-700">混合模型的探索</h4>
+                        <p class="text-sm text-slate-500 mt-1">算法穩定幣失敗後，結合了法幣儲備、加密抵押和少量算法的「混合模型」正在興起，試圖在去中心化、穩定性和資本效率之間尋求新的平衡。</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800">資本的新敘事</h3>
+                    <div>
+                        <h4 class="font-semibold text-teal-700">Tether：無國籍的主權財富基金</h4>
+                        <p class="text-sm text-slate-500 mt-1">憑藉巨額利潤，Tether的運作模式已超越普通公司，更像一個在全球範圍內投資AI、生技等戰略資產的「無國籍主權財富基金」。</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-teal-700">風險的再定價</h4>
+                        <p class="text-sm text-slate-500 mt-1">一個全新的「穩定幣風險保險」市場正在興起，為脫鉤、破產等風險提供保險，並創造出類似信用違約互換(CDS)的衍生品，成為觀察市場風險評估的窗口。</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800">社會契約的再思考</h3>
+                    <div>
+                        <h4 class="font-semibold text-teal-700">普惠還是掠奪？</h4>
+                        <p class="text-sm text-slate-500 mt-1">為高通膨國家民眾提供價值儲存工具的同時，也將他們暴露在缺乏消費者保護、沒有存款保險的新型金融風險之下，這是一種潛在的「掠奪性普惠」。</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-teal-700">透明的全景監獄</h4>
+                        <p class="text-sm text-slate-500 mt-1">區塊鏈的永久可追溯性，可能使完全合規的穩定幣體系演變為前所未有的金融監控工具，對個人隱私和自由構成根本性威脅。</p>
+                    </div>
+                </div>
+            </div>
+             <div class="text-center mt-12">
+                <p class="max-w-3xl mx-auto text-slate-600">穩定幣的故事，正從一場金融創新的討論，演變為一場關於權力、控制和社會形態的深刻博弈。終局遠未到來，每一個微小變量都可能引發難以預料的連鎖反應。</p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8">
+        <p class="text-sm text-slate-500">數據與分析綜合自公開報告與市場資訊 (2025 Q3)。</p>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const marketShareData = {
+        labels: ['Tether (USDT)', 'Circle (USDC)', 'DAI', '其他'],
+        datasets: [{
+            label: '市場佔有率',
+            data: [65.8, 25.1, 2.2, 6.9],
+            backgroundColor: [
+                '#0ea5e9', // sky-500
+                '#14b8a6', // teal-500
+                '#f59e0b', // amber-500
+                '#64748b'  // slate-500
+            ],
+            borderColor: '#f8fafc',
+            borderWidth: 4,
+            hoverOffset: 8
+        }]
+    };
+
+    const marketCapData = {
+        labels: ['2020', '2021', '2022', '2023', '2024', '2025 (E)'],
+        datasets: [{
+            label: '穩定幣總市值 (十億美元)',
+            data: [20, 80, 150, 130, 200, 250],
+            fill: true,
+            backgroundColor: 'rgba(20, 184, 166, 0.2)',
+            borderColor: 'rgb(13, 148, 136)',
+            tension: 0.3,
+            pointBackgroundColor: 'rgb(13, 148, 136)',
+            pointRadius: 4,
+            pointHoverRadius: 6
+        }]
+    };
+
+    const chartConfig = {
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                           family: "'Noto Sans TC', sans-serif"
+                        },
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    bodyFont: {
+                        family: "'Noto Sans TC', sans-serif"
+                    },
+                    titleFont: {
+                        family: "'Noto Sans TC', sans-serif"
+                    }
+                }
+            }
+        }
+    };
+
+    const marketShareCtx = document.getElementById('marketShareChart').getContext('2d');
+    new Chart(marketShareCtx, {
+        type: 'doughnut',
+        data: marketShareData,
+        options: chartConfig.options
+    });
+
+    const marketCapCtx = document.getElementById('marketCapChart').getContext('2d');
+    new Chart(marketCapCtx, {
+        type: 'line',
+        data: marketCapData,
+        options: {
+            ...chartConfig.options,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value + 'B';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    const tabs = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(item => item.classList.remove('active'));
+            tab.classList.add('active');
+
+            const target = tab.getAttribute('data-tab');
+
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+                if (content.id === `${target}-content`) {
+                    content.classList.remove('hidden');
+                }
+            });
+        });
+    });
+
+    const sections = document.querySelectorAll('.section-fade-in');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    sections.forEach(section => {
+        observer.observe(section);
+    });
+    
+    const navLinks = document.querySelectorAll('a[href^="#"]');
+    navLinks.forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+    
+    const mobileNav = document.getElementById('mobile-nav');
+    mobileNav.addEventListener('change', function() {
+        const targetElement = document.querySelector(this.value);
+        if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+
+    const navObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const id = entry.target.getAttribute('id');
+            const navLink = document.querySelector(`.nav-link[href="#${id}"]`);
+            if(navLink){
+                if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                    navLink.classList.add('active');
+                }
+            }
+        });
+    }, { rootMargin: "-50% 0px -50% 0px", threshold: 0 });
+
+    document.querySelectorAll('section[id]').forEach(section => {
+        navObserver.observe(section);
+    });
+
+});
+</script>
+
+</body>
+</html>
