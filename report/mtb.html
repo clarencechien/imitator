@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登山車的未來：未來五年趨勢互動報告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: 本應用程式採用主題式分區結構，而非傳統報告的線性佈局。主要分為四大區塊：科技革命、騎乘體驗、市場趨勢與未來展望。頂部設有固定導覽列，讓使用者能快速跳轉至感興趣的主題。這種設計的目的是為了讓不同背景的使用者（如技術愛好者、普通騎士、產業觀察家）都能根據自身興趣，自由探索資訊，從而提升可用性與參與度。互動元素包括可點擊的卡片、動態圖表和時間軸，旨在將複雜的趨勢轉化為直觀易懂的視覺內容。 -->
+    <!-- Visualization & Content Choices: 
+        1. E-MTB 市場佔有率預測 -> 目標：比較與展示趨勢 -> 視覺化：堆疊長條圖 -> 互動：滑鼠懸停顯示詳細數據 -> 理由：直觀呈現 E-MTB 相對於傳統 MTB 的增長趨勢和市場份額變化。 -> 庫/方法：Chart.js (Canvas)。
+        2. 核心技術發展 -> 目標：分類組織資訊 -> 視覺化：互動式卡片 -> 互動：點擊卡片以展開詳細說明 -> 理由：保持介面簡潔，讓使用者能專注於單一技術主題，避免資訊過載。 -> 庫/方法：HTML/CSS/JS。
+        3. MTB 騎乘光譜 -> 目標：組織與分類 -> 視覺化：基於 HTML/CSS 的水平圖表 -> 互動：滑鼠懸停高亮並顯示簡介 -> 理由：比純文字段落更有效地解釋各騎乘風格間的關聯，一目了然。 -> 庫/方法：HTML/CSS (Tailwind)。
+        4. 五年發展時間軸 -> 目標：呈現時序性預測 -> 視覺化：垂直時間軸 -> 互動：點擊年份高亮顯示該年預測 -> 理由：最直觀的時序資訊呈現方式，垂直滾動適用於所有裝置。 -> 庫/方法：HTML/CSS/JS。
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0891b2;
+            border-bottom-color: #0891b2;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -21px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+            border: 3px solid #67e8f9;
+        }
+        .tech-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .tech-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header class="text-center py-12 md:py-20 bg-white shadow-sm">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl md:text-5xl font-bold text-cyan-700">登山車的未來</h1>
+            <p class="mt-4 text-lg md:text-xl text-stone-600">未來五年 (2025-2029) 發展趨勢互動報告</p>
+        </div>
+    </header>
+
+    <nav id="navbar" class="sticky top-0 bg-white/80 backdrop-blur-lg shadow-md z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center items-center h-16 space-x-4 md:space-x-8">
+                <a href="#tech" class="nav-link px-2 py-1 text-sm md:text-base font-medium text-stone-700">科技革命</a>
+                <a href="#experience" class="nav-link px-2 py-1 text-sm md:text-base font-medium text-stone-700">騎乘體驗</a>
+                <a href="#market" class="nav-link px-2 py-1 text-sm md:text-base font-medium text-stone-700">市場趨勢</a>
+                <a href="#outlook" class="nav-link px-2 py-1 text-sm md:text-base font-medium text-stone-700">未來展望</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-12">
+
+        <section id="tech" class="scroll-mt-24 mb-16">
+            <h2 class="text-3xl font-bold text-center mb-4 text-cyan-800">科技革命：更智慧、更輕、更整合</h2>
+            <p class="max-w-3xl mx-auto text-center text-stone-600 mb-12">
+                登山車的技術正在以前所未有的速度發展。電子化、輕量化和智慧整合是未來五年的核心主軸。這些創新不僅僅是為了追求極致性能，更是為了提升所有騎士的騎乘樂趣與安全性。本區塊將帶您探索幾項關鍵技術的未來走向，點擊卡片以了解更多。
+            </p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <div class="tech-card bg-white p-6 rounded-xl shadow-lg cursor-pointer" onclick="toggleDetail('detail-ebike')">
+                    <h3 class="text-xl font-bold mb-2 text-cyan-700">E-MTB 2.0：輕量化與普及化</h3>
+                    <p class="text-stone-600">新一代電輔系統將更輕、更安靜、更高效，讓 E-MTB 的騎乘感受無限接近傳統 MTB。</p>
+                    <div id="detail-ebike" class="hidden mt-4 pt-4 border-t border-stone-200">
+                        <p class="text-sm text-stone-600"><strong>發展重點：</strong><br>1. <strong>輕量化馬達：</strong>重量低於 2kg 的中置馬達將成為主流。<br>2. <strong>小型化電池：</strong>電池容量不減，但體積和重量將大幅縮小，完美整合於車架內。<br>3. <strong>智慧輔助：</strong>系統能根據心率、踏頻和地形自動調整輔助力道。</p>
+                    </div>
+                </div>
+
+                <div class="tech-card bg-white p-6 rounded-xl shadow-lg cursor-pointer" onclick="toggleDetail('detail-electronics')">
+                    <h3 class="text-xl font-bold mb-2 text-cyan-700">全面無線化：電子變速與避震</h3>
+                    <p class="text-stone-600">擺脫線管的束縛，無線電子套件將從頂級下放至中階車款，提供更整潔的外觀和精準的性能。</p>
+                    <div id="detail-electronics" class="hidden mt-4 pt-4 border-t border-stone-200">
+                        <p class="text-sm text-stone-600"><strong>發展重點：</strong><br>1. <strong>無線避震：</strong>自動感應地形並即時調整鎖定與回彈的智慧避震系統。<br>2. <strong>整合操控：</strong>單一控制器即可操作變速、升降座管甚至避震模式。<br>3. <strong>能源共享：</strong>電池系統標準化，可互相通用，減少充電煩惱。</p>
+                    </div>
+                </div>
+
+                <div class="tech-card bg-white p-6 rounded-xl shadow-lg cursor-pointer" onclick="toggleDetail('detail-integration')">
+                    <h3 class="text-xl font-bold mb-2 text-cyan-700">智慧整合：數據與騎乘的結合</h3>
+                    <p class="text-stone-600">車架將內建更多感應器，收集騎乘數據，提供個人化的設定建議與訓練分析。</p>
+                    <div id="detail-integration" class="hidden mt-4 pt-4 border-t border-stone-200">
+                        <p class="text-sm text-stone-600"><strong>發展重點：</strong><br>1. <strong>內建感測器：</strong>避震行程、胎壓、功率等數據將被即時監控。<br>2. <strong>AI 設定建議：</strong>手機 App 能根據你的騎乘數據和回饋，提供避震與胎壓的最佳設定。<br>3. <strong>防盜與追蹤：</strong>整合 GPS 追蹤功能成為高階車款標配。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="experience" class="scroll-mt-24 mb-16">
+            <h2 class="text-3xl font-bold text-center mb-4 text-cyan-800">騎乘體驗與社群：多元、永續、連結</h2>
+            <p class="max-w-3xl mx-auto text-center text-stone-600 mb-12">
+                MTB 的核心始終是「騎乘」本身。未來，騎士們將更注重路線的品質、騎乘風格的多樣性，以及對環境的責任感。社群的連結將超越地理限制，創造更多元的交流與活動。本區塊將探討騎乘文化與環境的演變。
+            </p>
+
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg mb-12">
+                <h3 class="text-xl font-bold mb-4 text-center text-cyan-700">MTB 騎乘光譜</h3>
+                <p class="text-center text-stone-600 mb-6">"Down-country" 等新興風格模糊了傳統分類的界線，騎士更傾向於選擇適合自己玩樂方式的車種。</p>
+                <div class="flex flex-col md:flex-row justify-between items-center text-center text-xs md:text-sm space-y-2 md:space-y-0">
+                    <div class="w-full md:w-auto">
+                        <div class="font-bold">XC (越野)</div>
+                        <div class="text-stone-500">輕量、爬坡</div>
+                    </div>
+                    <div class="flex-grow w-full md:w-auto h-2 bg-gradient-to-r from-sky-300 via-teal-400 to-emerald-500 rounded-full mx-4"></div>
+                    <div class="w-full md:w-auto">
+                        <div class="font-bold">Down-country</div>
+                        <div class="text-stone-500">XC效率+Trail樂趣</div>
+                    </div>
+                    <div class="flex-grow w-full md:w-auto h-2 bg-gradient-to-r from-emerald-500 via-green-500 to-lime-500 rounded-full mx-4"></div>
+                    <div class="w-full md:w-auto">
+                        <div class="font-bold">Trail (林道)</div>
+                        <div class="text-stone-500">全方位</div>
+                    </div>
+                     <div class="flex-grow w-full md:w-auto h-2 bg-gradient-to-r from-lime-500 via-yellow-500 to-amber-500 rounded-full mx-4"></div>
+                    <div class="w-full md:w-auto">
+                        <div class="font-bold">Enduro (耐力)</div>
+                        <div class="text-stone-500">計時下坡</div>
+                    </div>
+                    <div class="flex-grow w-full md:w-auto h-2 bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 rounded-full mx-4"></div>
+                    <div class="w-full md:w-auto">
+                        <div class="font-bold">DH (下坡)</div>
+                        <div class="text-stone-500">純粹速度</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-2 text-cyan-700">永續的林道</h3>
+                    <p class="text-stone-600">環境保護意識抬頭，騎士社群將更積極地參與林道修建與維護。使用回收材料製造的裝備和零件將成為一種新時尚，品牌也會將「永續性」作為重要的行銷訴求。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-2 text-cyan-700">虛實整合的社群</h3>
+                    <p class="text-stone-600">透過 Strava, Zwift 等平台，騎士間的競賽和交流不再受限於地理位置。品牌將舉辦更多線上挑戰賽，並結合線下約騎活動，建立更緊密的社群連結。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="market" class="scroll-mt-24 mb-16">
+            <h2 class="text-3xl font-bold text-center mb-4 text-cyan-800">市場趨勢與商業模式：DTC、客製化、循環經濟</h2>
+             <p class="max-w-3xl mx-auto text-center text-stone-600 mb-12">
+                消費者購買習慣的改變正在重塑登山車產業。直銷模式的興起、對個人化的追求，以及對永續性的重視，都將催生新的商業機會與挑戰。此區塊將分析市場動態，並以圖表呈現 E-MTB 的預期增長。
+            </p>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg mb-12">
+                <h3 class="text-xl font-bold mb-4 text-center text-cyan-700">全球 E-MTB 市場佔有率預測</h3>
+                <div class="chart-container">
+                    <canvas id="marketShareChart"></canvas>
+                </div>
+                 <p class="text-center text-xs text-stone-500 mt-4">數據為基於當前趨勢的推估，僅供參考。</p>
+            </div>
+             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                 <h3 class="text-xl font-bold mb-4 text-center text-cyan-700">商業模式演變</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="py-3 px-4 bg-stone-100 font-bold uppercase text-sm text-stone-600 border-b border-stone-200">商業模式</th>
+                                <th class="py-3 px-4 bg-stone-100 font-bold uppercase text-sm text-stone-600 border-b border-stone-200">核心特點</th>
+                                <th class="py-3 px-4 bg-stone-100 font-bold uppercase text-sm text-stone-600 border-b border-stone-200">未來發展</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="hover:bg-stone-50">
+                                <td class="py-3 px-4 border-b border-stone-200 font-medium">DTC (直銷品牌)</td>
+                                <td class="py-3 px-4 border-b border-stone-200">價格優勢、線上客製化、直接與消費者溝通</td>
+                                <td class="py-3 px-4 border-b border-stone-200">將設立更多實體體驗中心，解決售後服務問題。</td>
+                            </tr>
+                            <tr class="hover:bg-stone-50">
+                                <td class="py-3 px-4 border-b border-stone-200 font-medium">傳統車店</td>
+                                <td class="py-3 px-4 border-b border-stone-200">專業建議、維修保養、社群中心</td>
+                                <td class="py-3 px-4 border-b border-stone-200">轉型為高階服務與體驗中心，提供fitting、課程等。</td>
+                            </tr>
+                            <tr class="hover:bg-stone-50">
+                                <td class="py-3 px-4 border-b border-stone-200 font-medium">循環經濟</td>
+                                <td class="py-3 px-4 border-b border-stone-200">二手車認證、零件租賃、回收材料再製</td>
+                                <td class="py-3 px-4 border-b border-stone-200">將出現專業的零件訂閱服務與官方認證二手平台。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="outlook" class="scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-4 text-cyan-800">未來五年展望：發展時間軸</h2>
+            <p class="max-w-3xl mx-auto text-center text-stone-600 mb-12">
+                綜合以上趨勢，我們為未來五年描繪了一幅可能的發展藍圖。這是一個充滿創新與變革的時代，登山車將變得更智慧、更環保、也更有趣。以下是我們對各年度關鍵發展的預測。
+            </p>
+            <div class="relative pl-8 border-l-2 border-cyan-200">
+                <div class="mb-10 timeline-item">
+                    <h4 class="text-2xl font-bold text-cyan-600">2025</h4>
+                    <p class="mt-2 text-stone-700"><strong>輕量化 E-MTB 元年：</strong>各大品牌推出重量在 17-19kg 範圍內的林道電輔車，市場反應熱烈。無線電子套件開始出現在中高階車款上。</p>
+                </div>
+                <div class="mb-10 timeline-item">
+                    <h4 class="text-2xl font-bold text-cyan-600">2026</h4>
+                    <p class="mt-2 text-stone-700"><strong>智慧避震普及：</strong>整合 AI 的自動調整避震系統成為頂級車款標配，並可透過 App 進行微調。DTC 品牌開始大規模設立線下服務據點。</p>
+                </div>
+                <div class="mb-10 timeline-item">
+                    <h4 class="text-2xl font-bold text-cyan-600">2027</h4>
+                    <p class="mt-2 text-stone-700"><strong>永續材質突破：</strong>使用回收碳纖維或海洋廢料製成的車架與零件問世，並獲得市場認可。零件訂閱制服務開始萌芽。</p>
+                </div>
+                 <div class="mb-10 timeline-item">
+                    <h4 class="text-2xl font-bold text-cyan-600">2028</h4>
+                    <p class="mt-2 text-stone-700"><strong>市場黃金交叉：</strong>在歐洲等成熟市場，E-MTB 的年銷量首次超越傳統 MTB。車內整合的 GPS 防盜與緊急求助功能成為標準配備。</p>
+                </div>
+                <div class="timeline-item">
+                    <h4 class="text-2xl font-bold text-cyan-600">2029</h4>
+                    <p class="mt-2 text-stone-700"><strong>完全整合時代：</strong>動力、變速、避震、座管等系統高度整合，由中央處理器統一管理，提供前所未有的無縫騎乘體驗。個人化 3D 列印零件服務更加成熟。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-white mt-16 py-8">
+        <div class="container mx-auto px-4 text-center text-stone-500">
+            <p>&copy; 2025 MTB 未來趨勢互動報告。所有內容均為基於現有資訊的分析與預測。</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleDetail(id) {
+            const element = document.getElementById(id);
+            element.classList.toggle('hidden');
+        }
+
+        const marketShareCtx = document.getElementById('marketShareChart').getContext('2d');
+        const marketShareChart = new Chart(marketShareCtx, {
+            type: 'bar',
+            data: {
+                labels: ['2024 (現況)', '2025', '2026', '2027', '2028', '2029'],
+                datasets: [
+                    {
+                        label: '傳統 MTB',
+                        data: [70, 65, 58, 52, 48, 45],
+                        backgroundColor: '#67e8f9',
+                        borderColor: '#0e7490',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'E-MTB',
+                        data: [30, 35, 42, 48, 52, 55],
+                        backgroundColor: '#0891b2',
+                        borderColor: '#0e7490',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: false,
+                        text: '全球 E-MTB 市場佔有率預測 (%)'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                    },
+                    y: {
+                        stacked: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('nav a');
+            let current = '';
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 80) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
