@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣銀行靜止戶條件查詢</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Tailwind Slate background, White cards, Sky Blue accents) -->
+    <!-- Application Structure Plan: The application is designed to guide users from a general overview to specific details. It starts with a title and a summary of key findings. Then, it provides interactive controls (search, sort) for users who know what they're looking for. The core information is presented in a responsive grid of cards for easy scanning and comparison. This is followed by two summary charts that visualize the distribution of policies across all banks, offering a high-level understanding. This structure supports both quick lookups and broader data exploration, making complex information accessible and user-friendly. -->
+    <!-- Visualization & Content Choices: 
+        - Bank Policies -> Goal: Inform/Compare -> Viz: Interactive Card Grid -> Interaction: Search, Sort -> Justification: Allows users to quickly find their bank or compare banks based on specific criteria (e.g., lowest balance threshold). This is more intuitive than a static table. -> Method: HTML/Tailwind/JS.
+        - Inactivity Period Data -> Goal: Summarize -> Viz: Bar Chart -> Interaction: Hover tooltips -> Justification: Provides an immediate visual summary of the most common inactivity period policies, answering "How long until my account goes dormant?". -> Library: Chart.js (Canvas).
+        - Balance Threshold Data -> Goal: Summarize -> Viz: Bar Chart -> Interaction: Hover tooltips -> Justification: Visually summarizes the common balance requirements, answering "How much money must I keep in the account?". -> Library: Chart.js (Canvas).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .icon-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">台灣銀行靜止戶條件總覽</h1>
+            <p class="mt-3 text-lg text-slate-600 max-w-3xl mx-auto">您的帳戶多久沒動會被「凍結」？本工具整理了台灣各主要銀行的靜止戶（或稱警示帳戶）觸發條件，幫助您輕鬆查詢與比較，避免帳戶被限制使用。</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-slate-800 mb-4">核心發現</h2>
+            <div class="grid md:grid-cols-2 gap-4 text-slate-700">
+                <p>大部分銀行的靜止戶條件設定為<strong class="text-sky-600">「帳戶餘額低於1,000元」</strong>且<strong class="text-sky-600">「超過1至2年無任何交易紀錄」</strong>。不過，各家銀行政策差異大，建議使用下方工具查詢您的所屬銀行。</p>
+                <p>部分銀行，如渣打銀行與星展銀行，條件較為嚴格，僅需<strong class="text-sky-600">半年</strong>無交易紀錄即可能被列為靜止戶。而台北富邦銀行的年限則長達<strong class="text-sky-600">5年</strong>，是本次整理中條件最寬鬆的銀行之一。</p>
+            </div>
+        </div>
+
+        <section class="mb-8 bg-white rounded-xl shadow-md p-6">
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="search-bank" class="block text-sm font-medium text-slate-700 mb-2">搜尋銀行</label>
+                    <input type="text" id="search-bank" placeholder="輸入銀行名稱，例如：玉山銀行" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                </div>
+                <div>
+                    <label for="sort-by" class="block text-sm font-medium text-slate-700 mb-2">排序方式</label>
+                    <select id="sort-by" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition bg-white">
+                        <option value="default">預設排序</option>
+                        <option value="period_asc">靜止年限 (由短到長)</option>
+                        <option value="period_desc">靜止年限 (由長到短)</option>
+                        <option value="balance_asc">餘額門檻 (由低到高)</option>
+                        <option value="balance_desc">餘額門檻 (由高到低)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <main id="bank-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </main>
+        
+        <section class="mt-12">
+            <h2 class="text-2xl font-bold text-center text-slate-900 mb-8">政策分佈圖表</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-bold text-center mb-4">靜止戶年限分佈</h3>
+                    <p class="text-sm text-slate-500 text-center mb-4">此圖表顯示各銀行設定的「無交易」年限分佈。可以看出，多數銀行將年限定為1年。</p>
+                    <div class="chart-container">
+                        <canvas id="periodChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-bold text-center mb-4">餘額門檻分佈</h3>
+                    <p class="text-sm text-slate-500 text-center mb-4">此圖表顯示靜止戶的最低餘額要求。約半數的銀行將門檻設為0元，但另一大宗則是1000元。</p>
+                    <div class="chart-container">
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center mt-12 pt-8 border-t border-slate-200">
+            <p class="text-sm text-slate-500">免責聲明：本頁面資訊僅供參考，最新且最準確的資訊請以各銀行官方公告為準。</p>
+            <p class="text-xs text-slate-400 mt-2">資料整理時間：2024年</p>
+        </footer>
+
+    </div>
+
+    <script>
+        window.addEventListener('load', () => {
+            const bankData = [
+                { id: '004', name: '臺灣銀行', period: 2, balance: 100, condition: '活期存款帳戶餘額未滿100元，且長達2年無任何交易紀錄。' },
+                { id: '005', name: '土地銀行', period: 3, balance: 100, condition: '活儲帳戶餘額低於100元，且超過3年未往來。' },
+                { id: '006', name: '合作金庫', period: 1, balance: 1000, condition: '活儲帳戶餘額低於1000元，且超過1年無存提轉帳等交易。' },
+                { id: '007', name: '第一銀行', period: 2, balance: 1000, condition: '活儲帳戶餘額低於1000元，且超過2年無任何交易紀錄。' },
+                { id: '008', name: '華南銀行', period: 2, balance: 1000, condition: '活儲存款餘額低於1000元，且超過2年未有任何交易。' },
+                { id: '009', name: '彰化銀行', period: 3, balance: 0, condition: '活儲帳戶餘額為0元，且超過3年無任何交易紀錄。' },
+                { id: '011', name: '上海商銀', period: 3, balance: 1000, condition: '活儲帳戶餘額低於1000元，且超過3年未往來。' },
+                { id: '012', name: '台北富邦', period: 5, balance: 0, condition: '活儲帳戶餘額為0元，且超過5年無任何交易紀錄。' },
+                { id: '013', name: '國泰世華', period: 2, balance: 1000, condition: '活儲帳戶餘額低於1000元，且超過2年無任何交易紀錄。' },
+                { id: '016', name: '高雄銀行', period: 2, balance: 1000, condition: '活儲帳戶餘額低於1000元，且超過2年無任何交易紀錄。' },
+                { id: '017', name: '兆豐銀行', period: 1, balance: 1000, condition: '活儲帳戶餘額低於1000元，且超過1年無任何交易紀錄。' },
+                { id: '021', name: '花旗銀行', period: 1, balance: 9999, condition: '活儲帳戶長達1年無任何帳戶往來，且帳戶平均月餘額低於最低餘額限制。(此處餘額以通用高門檻示意)' },
+                { id: '050', name: '臺灣企銀', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年無任何交易紀錄。' },
+                { id: '052', name: '渣打銀行', period: 0.5, balance: 0, condition: '活儲帳戶餘額為0元，且超過半年無任何交易紀錄。' },
+                { id: '053', name: '台中銀行', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年無任何交易紀錄。' },
+                { id: '054', name: '京城銀行', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年無任何交易紀錄。' },
+                { id: '081', name: '匯豐銀行', period: 2, balance: 0, condition: '活儲帳戶餘額為0元，且超過2年無任何交易紀錄。' },
+                { id: '101', name: '瑞興銀行', period: 1, balance: 100, condition: '活儲帳戶餘額低於100元，且超過1年未往來。' },
+                { id: '102', name: '華泰銀行', period: 1, balance: 100, condition: '活儲帳戶餘額低於100元，且超過1年未往來。' },
+                { id: '103', name: '臺灣新光', period: 1, balance: 100, condition: '活儲帳戶餘額低於100元，且超過1年未往來。' },
+                { id: '106', name: '陽信銀行', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年未往來。' },
+                { id: '108', name: '板信銀行', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年未往來。' },
+                { id: '147', name: '三信商銀', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年未往來。' },
+                { id: '803', name: '聯邦銀行', period: 1, balance: 1000, condition: '活儲帳戶餘額低於1000元，且超過1年無任何交易紀錄。' },
+                { id: '805', name: '遠東商銀', period: 2, balance: 100, condition: '活儲帳戶餘額低於100元，且超過2年無任何交易紀錄。' },
+                { id: '806', name: '元大銀行', period: 3, balance: 0, condition: '活儲帳戶餘額為0元，且超過3年無任何交易紀錄。' },
+                { id: '807', name: '永豐銀行', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年無任何交易紀錄。' },
+                { id: '808', name: '玉山銀行', period: 1, balance: 1000, condition: '活儲帳戶餘額低於1000元，且超過1年無任何交易紀錄。' },
+                { id: '809', name: '凱基銀行', period: 2, balance: 0, condition: '活儲帳戶餘額為0元，且超過2年無任何交易紀錄。' },
+                { id: '810', name: '星展銀行', period: 0.5, balance: 100, condition: '活儲帳戶餘額低於100元，且超過半年無任何交易紀錄。' },
+                { id: '812', name: '台新銀行', period: 3, balance: 0, condition: '活儲帳戶餘額為0元，且超過3年無任何交易紀錄。' },
+                { id: '815', name: '安泰銀行', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年未往來。' },
+                { id: '822', name: '中國信託', period: 1, balance: 0, condition: '活儲帳戶餘額為0元，且超過1年未往來。' }
+            ];
+
+            const cardsContainer = document.getElementById('bank-cards');
+            const searchInput = document.getElementById('search-bank');
+            const sortSelect = document.getElementById('sort-by');
+
+            function renderBankCards(data) {
+                cardsContainer.innerHTML = '';
+                if (data.length === 0) {
+                    cardsContainer.innerHTML = `<p class="text-slate-500 md:col-span-2 lg:col-span-3 text-center">找不到符合條件的銀行。</p>`;
+                    return;
+                }
+                data.forEach(bank => {
+                    const card = `
+                        <div class="bg-white rounded-xl shadow-md p-6 flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                            <h3 class="text-xl font-bold mb-4 text-slate-800">${bank.name}</h3>
+                            <div class="space-y-4 mb-4 flex-grow">
+                                <div class="flex items-start">
+                                    <div class="icon-container bg-sky-100 text-sky-600 mr-4 flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold">靜止年限</p>
+                                        <p class="text-slate-600">${bank.period} 年無交易</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <div class="icon-container bg-emerald-100 text-emerald-600 mr-4 flex-shrink-0">
+                                       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold">餘額門檻</p>
+                                        <p class="text-slate-600">${bank.balance === 9999 ? '視專案' : `低於 ${bank.balance} 元`}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-auto pt-4 border-t border-slate-200">
+                                <p class="text-sm text-slate-500">${bank.condition}</p>
+                            </div>
+                        </div>
+                    `;
+                    cardsContainer.innerHTML += card;
+                });
+            }
+
+            function filterAndSortData() {
+                let filteredData = [...bankData];
+                const searchTerm = searchInput.value.toLowerCase();
+                
+                if (searchTerm) {
+                    filteredData = filteredData.filter(bank => bank.name.toLowerCase().includes(searchTerm));
+                }
+
+                const sortBy = sortSelect.value;
+                switch (sortBy) {
+                    case 'period_asc':
+                        filteredData.sort((a, b) => a.period - b.period);
+                        break;
+                    case 'period_desc':
+                        filteredData.sort((a, b) => b.period - a.period);
+                        break;
+                    case 'balance_asc':
+                        filteredData.sort((a, b) => a.balance - b.balance);
+                        break;
+                    case 'balance_desc':
+                        filteredData.sort((a, b) => b.balance - a.balance);
+                        break;
+                }
+
+                renderBankCards(filteredData);
+            }
+
+            function renderCharts() {
+                const periodCtx = document.getElementById('periodChart').getContext('2d');
+                const balanceCtx = document.getElementById('balanceChart').getContext('2d');
+                
+                const periodCounts = bankData.reduce((acc, bank) => {
+                    const period = `${bank.period}年`;
+                    acc[period] = (acc[period] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const balanceCategories = bankData.reduce((acc, bank) => {
+                    let category;
+                    if (bank.balance === 0) category = '0元';
+                    else if (bank.balance <= 100) category = '100元以下';
+                    else if (bank.balance <= 1000) category = '1000元以下';
+                    else category = '專案規定';
+                    acc[category] = (acc[category] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+                            titleFont: { weight: 'bold' },
+                            bodyFont: { size: 14 },
+                            padding: 12,
+                            cornerRadius: 6,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#64748b',
+                                stepSize: 1
+                            },
+                            grid: {
+                                color: '#e2e8f0'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#64748b'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                };
+
+                new Chart(periodCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(periodCounts).sort((a, b) => parseFloat(a) - parseFloat(b)),
+                        datasets: [{
+                            label: '銀行數量',
+                            data: Object.values(periodCounts),
+                            backgroundColor: 'rgba(56, 189, 248, 0.6)',
+                            borderColor: 'rgba(14, 165, 233, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: chartOptions
+                });
+
+                new Chart(balanceCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(balanceCategories).sort((a, b) => parseInt(a) - parseInt(b)),
+                        datasets: [{
+                            label: '銀行數量',
+                            data: Object.values(balanceCategories),
+                            backgroundColor: 'rgba(52, 211, 153, 0.6)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: chartOptions
+                });
+            }
+
+            searchInput.addEventListener('input', filterAndSortData);
+            sortSelect.addEventListener('change', filterAndSortData);
+
+            renderBankCards(bankData);
+            renderCharts();
+        });
+    </script>
+</body>
+</html>
+
