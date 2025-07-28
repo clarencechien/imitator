@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code 子代理架構權威指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .nav-link.active { color: #0891b2; font-weight: 600; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+        .tab-btn.active { background-color: #0891b2; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        sup a { text-decoration: none; color: #0891b2; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <header class="bg-slate-50/80 backdrop-blur-lg sticky top-0 z-50 border-b border-slate-200">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-slate-800">子代理權威指南</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4 text-sm font-medium">
+                        <a href="#architecture" class="nav-link px-3 py-2 rounded-md text-slate-600 hover:text-cyan-600 transition-colors">架構</a>
+                        <a href="#creation" class="nav-link px-3 py-2 rounded-md text-slate-600 hover:text-cyan-600 transition-colors">創建</a>
+                        <a href="#memory" class="nav-link px-3 py-2 rounded-md text-slate-600 hover:text-cyan-600 transition-colors">記憶體</a>
+                        <a href="#tokenomics" class="nav-link px-3 py-2 rounded-md text-slate-600 hover:text-cyan-600 transition-colors">Token經濟</a>
+                        <a href="#strategy" class="nav-link px-3 py-2 rounded-md text-slate-600 hover:text-cyan-600 transition-colors">戰略</a>
+                        <a href="#resources" class="nav-link px-3 py-2 rounded-md text-slate-600 hover:text-cyan-600 transition-colors">資源庫</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="py-20 sm:py-24 text-center">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
+                    <span class="block">Claude Code 子代理</span>
+                    <span class="block text-cyan-600">架構權威指南</span>
+                </h2>
+                <p class="mt-6 max-w-3xl mx-auto text-lg text-slate-600">
+                    本指南超越官方文件，深入探討由社群驅動的實踐方法、架構細節與戰略決策，帶您從「提示工程師」蛻變為「AI 系統架構師」。
+                </p>
+            </div>
+        </section>
+
+        <section id="architecture" class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-base font-semibold text-cyan-600 tracking-wider uppercase">第一章</h2>
+                    <p class="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">子代理架構：上下文與隔離機制</p>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">理解子代理系統的基礎：一個層級分明、上下文隔離的協同者-工作者模式。<sup><a href="#ref-1">[1]</a></sup></p>
+                </div>
+                <div class="mt-12 grid md:grid-cols-2 gap-12 items-center">
+                    <div id="architecture-diagram" class="bg-slate-100 p-6 rounded-lg border border-slate-200 min-h-[350px]">
+                        <h3 class="text-lg font-semibold text-center text-slate-800">協同者-工作者模式</h3>
+                        <div class="mt-4 flex flex-col items-center">
+                            <div class="bg-slate-700 text-white px-6 py-3 rounded-lg shadow-lg w-48 text-center">
+                                <p class="font-bold">協同者 (主代理)</p>
+                                <p class="text-xs mt-1">分析、分解、委派、整合</p>
+                            </div>
+                            <div class="h-8 w-1 bg-slate-300 my-2"></div>
+                            <p class="text-xs text-slate-500 mb-2">委派 (精煉過的上下文)</p>
+                            <div class="w-full h-px bg-slate-300"></div>
+                            <div class="mt-4 flex justify-around w-full">
+                                <div class="flex flex-col items-center">
+                                    <div class="bg-cyan-600 text-white px-4 py-2 rounded-lg shadow-md w-40 text-center">
+                                        <p class="font-bold">子代理 A</p>
+                                        <p class="text-xs mt-1">獨立上下文</p>
+                                    </div>
+                                    <div class="h-6 w-1 bg-slate-300 my-2"></div>
+                                    <p class="text-xs text-slate-500">回傳結果</p>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="bg-cyan-600 text-white px-4 py-2 rounded-lg shadow-md w-40 text-center">
+                                        <p class="font-bold">子代理 B</p>
+                                        <p class="text-xs mt-1">獨立上下文</p>
+                                    </div>
+                                    <div class="h-6 w-1 bg-slate-300 my-2"></div>
+                                    <p class="text-xs text-slate-500">回傳結果</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold text-slate-800">核心機制：隔離的上下文視窗</h3>
+                        <p class="mt-4 text-slate-600">這是最關鍵的概念：<strong>每一個子代理都在其完全獨立的上下文視窗中運作</strong>。<sup><a href="#ref-2">[2]</a></sup> 它們之間不存在共享的記憶體。協同者的上下文不會自動提供給子代理，反之亦然。</p>
+                        <div class="mt-6 space-y-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-800">✓</div>
+                                <p class="ml-4 text-slate-600"><strong>防止上下文污染：</strong>主代理冗長的對話歷史不會混淆專業化的子代理。</p>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-800">✓</div>
+                                <p class="ml-4 text-slate-600"><strong>提升專注度：</strong>隔離機制使子代理能更精確地遵循其系統提示和任務指令。</p>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-800">✓</div>
+                                <p class="ml-4 text-slate-600"><strong>突破上下文限制：</strong>將大型任務分配給多個代理，有效地並行化上下文的使用。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="creation" class="py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-base font-semibold text-cyan-600 tracking-wider uppercase">第二章</h2>
+                    <p class="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">建立您的代理團隊</p>
+                </div>
+                <div class="mt-12 grid md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg border">
+                        <h3 class="text-xl font-bold text-slate-800">解構 `.md` 檔案</h3>
+                        <p class="mt-2 text-slate-600">子代理是透過儲存在 `~/.claude/agents/` 目錄下的 Markdown 檔案來定義的。<sup><a href="#ref-3">[3]</a></sup></p>
+                        <div class="mt-4 font-mono text-sm bg-slate-900 text-white p-4 rounded-md overflow-x-auto">
+                            <pre><code>---
+name: code-reviewer
+description: Expert code review for quality...
+tools: [Read, Grep]
+---
+You are a senior-code-reviewer...</code></pre>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border">
+                        <h3 class="text-xl font-bold text-slate-800">`description` 的藝術</h3>
+                        <p class="mt-2 text-slate-600">協同者使用 `description` 欄位來決定呼叫哪位專家。這並非簡單的關鍵字匹配，而是語義理解。</p>
+                        <div class="mt-4 space-y-2">
+                            <p><strong class="text-red-600">弱描述：</strong> "處理程式碼"</p>
+                            <p><strong class="text-green-600">強描述：</strong> "針對品質、安全性和可維護性的專家級程式碼審查專家"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="memory" class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-base font-semibold text-cyan-600 tracking-wider uppercase">第三章</h2>
+                    <p class="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">模擬蜂巢思維：記憶、狀態與任務管理</p>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">子代理本質上是無狀態的。以下是社群為克服此限制而發展出的四種關鍵記憶模式。</p>
+                </div>
+                <div class="mt-12">
+                    <div class="mb-4 border-b border-gray-200">
+                        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="memory-tabs" role="tablist">
+                            <li role="presentation"><button class="tab-btn inline-block p-4 border-b-2 rounded-t-lg" data-tab="memory-1">模式一：結構化產物</button></li>
+                            <li role="presentation"><button class="tab-btn inline-block p-4 border-b-2 rounded-t-lg" data-tab="memory-2">模式二：反思代理</button></li>
+                            <li role="presentation"><button class="tab-btn inline-block p-4 border-b-2 rounded-t-lg" data-tab="memory-3">模式三：檔案系統</button></li>
+                            <li role="presentation"><button class="tab-btn inline-block p-4 border-b-2 rounded-t-lg" data-tab="memory-4">模式四：待辦事項清單</button></li>
+                        </ul>
+                    </div>
+                    <div id="memory-tab-content" class="p-6 bg-slate-50 rounded-lg border">
+                        <div id="memory-1" class="tab-content">
+                            <h3 class="text-xl font-bold">結構化產物作為順序記憶 <sup><a href="#ref-4">[4]</a></sup></h3>
+                            <p class="mt-2 text-slate-600">一個代理的輸出（如 `requirements.md`）成為序列中下一個代理的直接輸入。專案狀態的「記憶」被編碼在這些中間檔案中。</p>
+                            <p class="mt-2 text-sm text-cyan-700"><strong>適用於：</strong>線性的、瀑布式的工作流程。</p>
+                        </div>
+                        <div id="memory-2" class="tab-content">
+                            <h3 class="text-xl font-bold">「反思代理」實現長期記憶</h3>
+                            <p class="mt-2 text-slate-600">創建一個專門的 `reflection-agent`，它可以對儲存過去對話歷史的向量資料庫進行語義搜索，以「記住」過去的解決方案。</p>
+                             <p class="mt-2 text-sm text-cyan-700"><strong>適用於：</strong>記住如何修復重複出現的錯誤，或跨專案應用一致的模式。</p>
+                        </div>
+                        <div id="memory-3" class="tab-content">
+                            <h3 class="text-xl font-bold">基於檔案系統的持久狀態</h3>
+                            <p class="mt-2 text-slate-600">賦予代理讀取/寫入特定「記憶檔案」（如 `claude.md`）的工具。在開始新任務前，指示它讀取此檔案以重新獲取上下文。</p>
+                             <p class="mt-2 text-sm text-cyan-700"><strong>適用於：</strong>維護需要跨會話持久存在的專案特定配置或決策。</p>
+                        </div>
+                        <div id="memory-4" class="tab-content">
+                            <h3 class="text-xl font-bold">提示生成內部待辦事項清單</h3>
+                            <p class="mt-2 text-slate-600">指示協同者首先將複雜請求分解為一個計劃或待辦事項清單，然後利用 Claude Code 的內部清單功能逐一執行。</p>
+                             <p class="mt-2 text-sm text-cyan-700"><strong>適用於：</strong>確保複雜的多步驟任務得以徹底完成，而模型不會迷失目標。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tokenomics" class="py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-base font-semibold text-cyan-600 tracking-wider uppercase">第四章</h2>
+                    <p class="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">Token 經濟學：快取與成本優化</p>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">多代理系統極其消耗 Token (高達 15 倍)。Anthropic 的「提示詞快取」是應對此問題的關鍵。<sup><a href="#ref-5">[5]</a></sup></p>
+                </div>
+                <div class="mt-12 grid md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h3 class="text-2xl font-semibold text-slate-800">提示詞快取 (Prompt Caching)</h3>
+                        <p class="mt-4 text-slate-600">與其在每次 API 呼叫時都重新發送龐大且靜態的部分（如系統提示、工具定義），不如將它們快取起來。這可以節省高達 <strong>90%</strong> 的 Token 成本和大量時間。<sup><a href="#ref-6">[6]</a></sup></p>
+                        <div class="mt-6 bg-white p-4 rounded-lg border">
+                            <h4 class="font-semibold">關鍵 API 參數：`cache_control`</h4>
+                            <p class="mt-2 text-slate-600">在 API 請求中，為某個內容區塊添加 `cache_control: {"type": "ephemeral"}` 物件。位於該區塊<strong>之前</strong>的所有內容都將被視為可快取的。</p>
+                            <p class="mt-2 text-sm text-slate-500">注意：快取有最小 Token 長度限制 (如 Sonnet 為 1024) 和 5 分鐘的預設生命週期 (TTL)。</p>
+                        </div>
+                    </div>
+                    <div>
+                         <div class="chart-container">
+                            <canvas id="tokenomicsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategy" class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-base font-semibold text-cyan-600 tracking-wider uppercase">第五章</h2>
+                    <p class="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">戰略架構：團隊 vs. 天才</p>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">我應該建立一個多代理「團隊」，還是打造一個萬能的「獨行天才」？這是一個核心的戰略選擇。<sup><a href="#ref-7">[7]</a></sup></p>
+                </div>
+                <div class="mt-12 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">指標</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">多代理系統 (團隊)</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">單一通用代理 (天才)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">架構複雜性</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">高</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">低</td></tr>
+                            <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Token 消耗</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">非常高 (約 15x)</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">較低 (約 1x)</td></tr>
+                            <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">可擴展性</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">高 (可並行化)</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">低 (線性)</td></tr>
+                            <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">容錯性</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">高</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">低 (單點故障)</td></tr>
+                            <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">邏輯連貫性</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">較低 (有衝突風險)</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">高</td></tr>
+                            <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">理想任務類型</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">複雜 / 廣泛 / 可並行</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">簡單 / 線性 / 範圍明確</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                 <p class="mt-8 text-center text-slate-600"><strong>結論：</strong> 最有效的系統很可能是<strong>混合體</strong>。讓一個主協同者處理簡單任務，並在需要時衍生一個子代理團隊來處理複雜的子任務。</p>
+            </div>
+        </section>
+
+        <section id="resources" class="py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-slate-900">資源庫與引用來源</h2>
+                    <p class="mt-4 text-lg text-slate-600">本指南內容所引用的關鍵文章、教學與討論。</p>
+                </div>
+                <div class="mt-12 space-y-4">
+                    <ol class="list-decimal list-inside space-y-3 text-slate-600">
+                        <li id="ref-1"><strong class="font-semibold text-slate-800">Anthropic - How we built our multi-agent research system:</strong> 官方文章，詳細闡述了協同者-工作者模式的設計理念。 <a href="https://www.anthropic.com/news/claude-for-systems" target="_blank" class="text-cyan-600 hover:underline">連結</a></li>
+                        <li id="ref-2"><strong class="font-semibold text-slate-800">Cuong Tran's Blog - Claude Code: Subagent Deep Dive:</strong> 極具深度的開發者實測，證實了獨立上下文視窗的存在與影響。 <a href="https://cuong.io/blog/claude-code-subagent-deep-dive" target="_blank" class="text-cyan-600 hover:underline">連結</a></li>
+                        <li id="ref-3"><strong class="font-semibold text-slate-800">GitHub - wshobson/agents:</strong> 一個典型的社群代理集合，展示了 `.md` 檔案的標準結構。 <a href="https://github.com/wshobson/agents" target="_blank" class="text-cyan-600 hover:underline">連結</a></li>
+                        <li id="ref-4"><strong class="font-semibold text-slate-800">GitHub - zhsama/claude-sub-agent:</strong> 一個基於結構化產物進行記憶傳遞的複雜工作流程框架範例。 <a href="https://github.com/zhsama/claude-sub-agent" target="_blank" class="text-cyan-600 hover:underline">連結</a></li>
+                        <li id="ref-5"><strong class="font-semibold text-slate-800">Constellation Research - Anthropic's multi-agent system overview:</strong> 分析多代理系統高昂 Token 成本的產業觀察。 <a href="https://www.constellationr.com/blog-news/insights/anthropics-multi-agent-system-overview-must-read-cios" target="_blank" class="text-cyan-600 hover:underline">連結</a></li>
+                        <li id="ref-6"><strong class="font-semibold text-slate-800">Anthropic - Caching API Documentation:</strong> 關於 `cache_control` 的官方 API 文件，是實現成本優化的權威來源。 <a href="https://docs.anthropic.com/en/api/caching" target="_blank" class="text-cyan-600 hover:underline">連結</a></li>
+                        <li id="ref-7"><strong class="font-semibold text-slate-800">Medium - Challenges in Multi-Agent Systems:</strong> 深入探討「團隊 vs. 天才」哲學辯論的文章。 <a href="https://medium.com/@joycebirkins/challenges-in-multi-agent-systems-google-a2a-claude-code-research-g%C3%B6del-agent-e2c415e14a5e" target="_blank" class="text-cyan-600 hover:underline">連結</a></li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-white">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-400">本指南基於 Anthropic 官方文件與開源社群研究成果彙編而成。</p>
+            <p class="mt-2 text-sm text-slate-500">最後更新時間：2025年7月</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Navigation scroll highlighting
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                        });
+                    }
+                });
+            }, { rootMargin: '-20% 0px -80% 0px' });
+            sections.forEach(section => observer.observe(section));
+
+            // Memory Tabs
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active', 'border-cyan-500', 'text-cyan-600'));
+                    button.classList.add('active', 'border-cyan-500', 'text-cyan-600');
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === button.dataset.tab) {
+                           content.classList.add('active', 'fade-in');
+                        }
+                    });
+                });
+            });
+            if(tabButtons.length > 0) tabButtons[0].click();
+
+            // Tokenomics Chart
+            const tokenomicsCtx = document.getElementById('tokenomicsChart').getContext('2d');
+            new Chart(tokenomicsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['10K Token Prompt'],
+                    datasets: [{
+                        label: '標準 API 呼叫成本',
+                        data: [100],
+                        backgroundColor: 'rgba(100, 116, 139, 0.6)',
+                        borderColor: 'rgba(100, 116, 139, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: '首次快取寫入成本',
+                        data: [125],
+                        backgroundColor: 'rgba(234, 179, 8, 0.6)',
+                        borderColor: 'rgba(234, 179, 8, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: '後續快取讀取成本',
+                        data: [10],
+                        backgroundColor: 'rgba(6, 182, 212, 0.6)',
+                        borderColor: 'rgba(6, 182, 212, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '相對成本 (%)' } } },
+                    plugins: {
+                        title: { display: true, text: '提示詞快取成本效益分析' },
+                        tooltip: { callbacks: { label: context => `${context.dataset.label}: ${context.raw}%` } }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
