@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>無限滾動月曆</title>
+    
+    <!-- 讓網頁在手機上看起來像原生App -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- 引用字體和 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS 變數，用於動態調整字距 */
+        :root {
+            --letter-spacing: 0.1em;
+        }
+        body {
+            font-family: 'LXGW WenKai TC', cursive;
+            background-color: #F8F4E8;
+            letter-spacing: var(--letter-spacing);
+            overscroll-behavior-y: contain; /* 防止在iOS上滾動時，整個網頁被拉動 */
+        }
+        .calendar-month {
+            height: 100vh;
+            padding-bottom: 80px; /* 避免內容被下方的控制面板遮擋 */
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            flex-grow: 1; /* 讓日期網格填滿剩餘的垂直空間 */
+        }
+        .calendar-day {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid #f3f4f6;
+            border-right: 1px solid #f3f4f6;
+            font-size: clamp(1rem, 4vw, 1.5rem); /* 字體大小隨螢幕寬度自適應 */
+        }
+        /* 移除每行最右邊的格線 */
+        .calendar-grid > .calendar-day:nth-child(7n) {
+            border-right: none;
+        }
+        .saturday { color: #5A8F7B; }
+        .sunday { color: #D97706; }
+        /* "今天" 的樣式 */
+        .today {
+            background-color: #D97706;
+            color: white;
+            border-radius: 50%;
+            width: 2.5em;
+            height: 2.5em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+
+<body class="antialiased text-gray-800 h-full overflow-hidden">
+
+    <!-- 月曆容器，設定為可垂直滾動與滾動吸附 -->
+    <div id="calendar-container" class="h-full w-full overflow-y-auto snap-y snap-mandatory">
+        <!-- 月份將會由 JavaScript 動態插入此處 -->
+    </div>
+
+    <!-- 控制面板 -->
+    <div class="fixed bottom-0 left-0 w-full bg-white/70 backdrop-blur-sm p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+        <div class="flex items-center justify-center space-x-4">
+            <label for="letter-spacing-slider" class="text-sm text-gray-600 whitespace-nowrap">字距</label>
+            <input type="range" id="letter-spacing-slider" min="0" max="10" value="1" class="w-full max-w-xs">
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('calendar-container');
+            const letterSpacingSlider = document.getElementById('letter-spacing-slider');
+            const root = document.documentElement;
+
+            let currentDate = new Date();
+            let currentYear = currentDate.getFullYear();
+            let currentMonth = currentDate.getMonth();
+            let observer; // 將 observer 宣告在外面
+
+            // 產生單一月份的 HTML 結構
+            function generateMonthHTML(year, month) {
+                const date = new Date(year, month, 1);
+                const monthName = `${date.getFullYear()}年 ${date.getMonth() + 1}月`;
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDayIndex = date.getDay();
+                const today = new Date();
+                const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+                let daysHTML = '';
+                // 填補月份第一天前的空格
+                for (let i = 0; i < firstDayIndex; i++) {
+                    daysHTML += `<div class="calendar-day"></div>`;
+                }
+
+                // 填入當月所有日期
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dayIndex = (firstDayIndex + i - 1) % 7;
+                    let dayClass = 'calendar-day';
+                    let spanClass = 'font-medium';
+
+                    if (dayIndex === 6) spanClass += ' saturday';
+                    if (dayIndex === 0) spanClass += ' sunday';
+                    if (isCurrentMonth && i === today.getDate()) {
+                        spanClass += ' today';
+                    }
+
+                    daysHTML += `<div class="${dayClass}"><span class="${spanClass}">${i}</span></div>`;
+                }
+                
+                // 補齊結尾的空格，讓版面完整
+                const totalCells = firstDayIndex + daysInMonth;
+                const remainingCells = (7 - (totalCells % 7)) % 7;
+                 for (let i = 0; i < remainingCells; i++) {
+                    daysHTML += `<div class="calendar-day"></div>`;
+                }
+
+                return `
+                    <div class="calendar-month w-full h-full flex flex-col p-4 snap-start" data-year="${year}" data-month="${month}">
+                        <div class="text-center mb-4 flex-shrink-0">
+                            <h1 class="text-3xl font-bold text-[#283618]">${monthName}</h1>
+                        </div>
+                        <div class="grid grid-cols-7 text-center font-bold text-gray-600 mb-2 flex-shrink-0">
+                            <div class="sunday">日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div class="saturday">六</div>
+                        </div>
+                        <div class="calendar-grid text-center">
+                            ${daysHTML}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 更新觀察器，確保它只觀察第一個和最後一個月份
+            function updateObserver() {
+                if (observer) {
+                    observer.disconnect();
+                }
+
+                observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            // 當第一個月份進入可視區域時，載入更早的月份
+                            if (entry.target === container.firstElementChild) {
+                                loadPreviousMonth();
+                            } 
+                            // 當最後一個月份進入可視區域時，載入之後的月份
+                            else if (entry.target === container.lastElementChild) {
+                                loadNextMonth();
+                            }
+                        }
+                    });
+                }, { root: container, threshold: 0.5 });
+
+                if (container.firstElementChild) observer.observe(container.firstElementChild);
+                if (container.lastElementChild) observer.observe(container.lastElementChild);
+            }
+
+            // 載入下一個月
+            function loadNextMonth() {
+                const lastMonthDiv = container.lastElementChild;
+                if (!lastMonthDiv) return;
+                let year = parseInt(lastMonthDiv.dataset.year);
+                let month = parseInt(lastMonthDiv.dataset.month);
+                
+                month++;
+                if (month > 11) {
+                    month = 0;
+                    year++;
+                }
+                container.insertAdjacentHTML('beforeend', generateMonthHTML(year, month));
+                updateObserver(); // 重新設定觀察目標
+            }
+
+            // 載入上一個月
+            function loadPreviousMonth() {
+                const firstMonthDiv = container.firstElementChild;
+                if (!firstMonthDiv) return;
+                const oldScrollHeight = container.scrollHeight;
+
+                let year = parseInt(firstMonthDiv.dataset.year);
+                let month = parseInt(firstMonthDiv.dataset.month);
+
+                month--;
+                if (month < 0) {
+                    month = 11;
+                    year--;
+                }
+                container.insertAdjacentHTML('afterbegin', generateMonthHTML(year, month));
+                
+                // 載入新月份後，維持滾動位置，避免畫面跳動
+                const newScrollHeight = container.scrollHeight;
+                container.scrollTop += (newScrollHeight - oldScrollHeight);
+                
+                updateObserver(); // 重新設定觀察目標
+            }
+
+            // 初始化月曆
+            function init() {
+                const prevMonthDate = new Date(currentYear, currentMonth - 1);
+                const nextMonthDate = new Date(currentYear, currentMonth + 1);
+
+                container.innerHTML = `
+                    ${generateMonthHTML(prevMonthDate.getFullYear(), prevMonthDate.getMonth())}
+                    ${generateMonthHTML(currentYear, currentMonth)}
+                    ${generateMonthHTML(nextMonthDate.getFullYear(), nextMonthDate.getMonth())}
+                `;
+                
+                // 首次載入時，直接滾動到當前月份
+                const currentMonthEl = container.querySelector(`[data-year="${currentYear}"][data-month="${currentMonth}"]`);
+                if (currentMonthEl) {
+                    currentMonthEl.scrollIntoView({ behavior: 'auto' });
+                }
+                
+                // 設定觀察器
+                updateObserver();
+            }
+
+            // 字距滑桿事件監聽
+            letterSpacingSlider.addEventListener('input', (e) => {
+                const spacing = e.target.value / 10;
+                root.style.setProperty('--letter-spacing', `${spacing}em`);
+            });
+
+            init();
+        });
+    </script>
+</body>
+</html>
+
