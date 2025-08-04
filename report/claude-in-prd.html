@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式 Vibe Coding 深度解析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Subtle Tech Blue Accent -->
+    <!-- Application Structure Plan: A thematic, single-page dashboard structure is used instead of a linear transcript format. This allows users to explore key concepts non-linearly, which is better for comprehension and engagement. The structure includes a hero section for the main thesis, followed by thematic sections for "What," "Why," "How," a "Case Study," and an interactive "Q&A." This breakdown transforms a passive listening experience into an active exploration, making the complex topic more digestible and user-friendly. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: AI task length doubling every 7 months. -> Goal: Show Change/Growth. -> Viz: Interactive Line Chart (Chart.js). -> Interaction: Hover tooltips. -> Justification: The exponential curve is the most powerful way to convey the urgency and core "why" of the talk.
+        - Report Info: "Leaf Node" strategy. -> Goal: Organize/Explain a concept. -> Viz: HTML/CSS Diagram. -> Interaction: Static visual. -> Justification: A visual metaphor of a tree structure is far more intuitive for explaining this architectural concept than text alone.
+        - Report Info: Q&A session. -> Goal: Organize/Inform. -> Viz: Accordion/Collapsible List (HTML/JS). -> Interaction: Click to expand/collapse. -> Justification: This avoids a wall of text, making the content scannable and allowing users to focus on questions they find most relevant.
+        - Report Info: Vibe Coding vs. AI-Assisted Coding. -> Goal: Compare. -> Viz: Side-by-side cards. -> Interaction: Subtle hover effects. -> Justification: Direct comparison clarifies the core definition and sets the stage for the rest of the content.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f7f4;
+            color: #4a4a4a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Vibe Coding 解析</h1>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#what-is-it" class="nav-link text-gray-600 border-b-2 border-transparent pb-1">什麼是Vibe Coding?</a>
+                    <a href="#why-it-matters" class="nav-link text-gray-600 border-b-2 border-transparent pb-1">為何重要?</a>
+                    <a href="#how-to" class="nav-link text-gray-600 border-b-2 border-transparent pb-1">如何實踐?</a>
+                    <a href="#case-study" class="nav-link text-gray-600 border-b-2 border-transparent pb-1">實戰案例</a>
+                    <a href="#qa" class="nav-link text-gray-600 border-b-2 border-transparent pb-1">問答精選</a>
+                </div>
+                <div class="md:hidden">
+                    <button id="menu-btn" class="text-gray-600 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden mt-4 flex flex-col space-y-2">
+                <a href="#what-is-it" class="nav-link text-gray-600 py-1">什麼是Vibe Coding?</a>
+                <a href="#why-it-matters" class="nav-link text-gray-600 py-1">為何重要?</a>
+                <a href="#how-to" class="nav-link text-gray-600 py-1">如何實踐?</a>
+                <a href="#case-study" class="nav-link text-gray-600 py-1">實戰案例</a>
+                <a href="#qa" class="nav-link text-gray-600 py-1">問答精選</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-16">
+        
+        <section id="hero" class="text-center mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-5xl font-bold text-gray-900 mb-4">在正式環境中，負責任地進行 Vibe Coding</h2>
+            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">由 Anthropic 研究員 Erik 主講，探討如何駕馭 AI 程式設計的未來趨勢，從「忘記程式碼的存在」到安全地交付產品，釋放指數級的生產力。</p>
+        </section>
+
+        <section id="what-is-it" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl md:text-3xl font-bold text-gray-900">什麼是 Vibe Coding？</h3>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">這不僅僅是使用 AI 寫程式。真正的 Vibe Coding 是一種心態的轉變，讓你完全沉浸在感覺中，甚至忘記程式碼的存在，專注於最終的產品實現。</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h4 class="font-bold text-xl mb-3 text-blue-600">傳統 AI 輔助</h4>
+                    <p class="text-gray-700 mb-4">開發者仍處於緊密的回饋循環中。AI 像是 Copilot 或 Cursor，主要扮演著建議者和加速器的角色。</p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li class="flex items-start"><span class="mr-2 text-blue-500">✓</span> <span>開發者主導，AI 輔助</span></li>
+                        <li class="flex items-start"><span class="mr-2 text-blue-500">✓</span> <span>需逐行審查或頻繁修正</span></li>
+                        <li class="flex items-start"><span class="mr-2 text-blue-500">✓</span> <span>專為工程師設計，提升效率</span></li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-blue-500 transform md:scale-105">
+                     <h4 class="font-bold text-xl mb-3 text-green-600">真正的 Vibe Coding</h4>
+                    <p class="text-gray-700 mb-4">開發者信任 AI 代理人，將其視為能獨立完成任務的夥伴，自己則轉變為產品經理的角色。</p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li class="flex items-start"><span class="mr-2 text-green-500">✓</span> <span>AI 主導，人類監督與驗證</span></li>
+                        <li class="flex items-start"><span class="mr-2 text-green-500">✓</span> <span>從審查程式碼轉為驗證產品功能</span></li>
+                        <li class="flex items-start"><span class="mr-2 text-green-500">✓</span> <span>為非工程師開啟了打造應用的可能</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="why-it-matters" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl md:text-3xl font-bold text-gray-900">為何重要？擁抱指數級的未來</h3>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">AI 能夠執行的任務長度正以驚人的速度成長。如果我們不學會信任並駕馭這股力量，我們自己將成為生產力的瓶頸。</p>
+            </div>
+            <div class="bg-white p-4 md:p-8 rounded-lg shadow-xl">
+                <div class="chart-container">
+                    <canvas id="exponentialChart"></canvas>
+                </div>
+                <p class="text-center mt-4 text-gray-600">就像開發者最終學會信任編譯器，而不再去讀組合語言一樣，我們也需要學會信任更高層次的 AI 抽象，專注於打造更宏大的系統。</p>
+            </div>
+        </section>
+
+        <section id="how-to" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl md:text-3xl font-bold text-gray-900">如何實踐？負責任的 Vibe Coding 策略</h3>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">忘記程式碼，但不能忘記產品。這需要一套新的工作方法，讓我們在不深入實作細節的情況下，依然能確保品質與安全。</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md text-center border border-gray-200">
+                    <div class="text-4xl mb-4">🧑‍💼</div>
+                    <h4 class="font-bold text-xl mb-2">當 AI 的產品經理</h4>
+                    <p class="text-gray-600">你的角色不再是寫程式，而是定義需求、引導方向、並驗收最終成果。問「我能為 Claude 做什麼」，而不是反過來。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center border border-gray-200">
+                    <div class="text-4xl mb-4">🌳</div>
+                    <h4 class="font-bold text-xl mb-2">專注於「葉節點」</h4>
+                    <p class="text-gray-600">將 Vibe Coding 應用於系統中不被其他部分依賴的「葉節點」。這樣即使產生技術債，影響也能被控制，不會污染核心架構。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center border border-gray-200">
+                    <div class="text-4xl mb-4">🔍</div>
+                    <h4 class="font-bold text-xl mb-2">設計可驗證性</h4>
+                    <p class="text-gray-600">建立你能在不讀程式碼的情況下驗證的抽象層。例如：驗收測試、壓力測試、以及清晰的輸入輸出驗證。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="case-study" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl md:text-3xl font-bold text-gray-900">實戰案例：Anthropic 的 22,000 行挑戰</h3>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">理論需要實踐證明。看看 Anthropic 團隊如何運用上述策略，負責任地將一個由 Claude 大量編寫的龐大變更合併到正式環境中。</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-xl p-8 grid md:grid-cols-2 gap-8 items-center">
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800">挑戰</h4>
+                        <p class="text-gray-600">將一個 22,000 行的變更，合併到正式環境的強化學習程式碼庫中。</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800">解決方案</h4>
+                        <ul class="list-disc list-inside text-gray-600 space-y-2">
+                            <li><strong class="text-gray-700">人類扮演 PM：</strong>投入數天人力定義需求與引導。</li>
+                            <li><strong class="text-gray-700">專注葉節點：</strong>變更主要集中在低風險區域。</li>
+                            <li><strong class="text-gray-700">重度人工審查：</strong>針對核心、需擴展的部分。</li>
+                            <li><strong class="text-gray-700">設計可驗證性：</strong>建立壓力測試和清晰的 I/O 驗證點。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="text-center bg-blue-50 p-8 rounded-lg">
+                    <p class="text-5xl md:text-7xl font-bold text-blue-600">90%+</p>
+                    <p class="mt-2 text-lg text-blue-800">的時間與精力節省 (估計)</p>
+                    <p class="mt-4 text-gray-600">團隊對這次變更的信心，與任何人工編寫的變更無異，同時開啟了對未來大型專案可能性的全新想像。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="qa" class="scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl md:text-3xl font-bold text-gray-900">問答精選</h3>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">從演講的問答環節中，精選出關於學習、開發流程與未來展望的關鍵問題與回答。</p>
+            </div>
+            <div class="space-y-4 max-w-4xl mx-auto">
+                <div class="accordion-item bg-white rounded-lg shadow-md border border-gray-200">
+                    <button class="accordion-header w-full text-left p-4 font-semibold text-lg text-gray-800 flex justify-between items-center">
+                        <span>當我們不再親手寫程式，該如何學習與成長？</span>
+                        <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-4">
+                        <p class="py-4 text-gray-600 border-t border-gray-200">AI 工具反而加速了學習。你可以隨時問 AI：「為什麼你選擇這個函式庫？」來快速吸收新知。更重要的是，開發週期縮短讓我們能有更多「嘗試」的機會，從而更快地學習到高層次的架構決策與產品思維。懶惰的人會被淘汰，但積極學習的人將獲得四倍的成長速度。</p>
+                    </div>
+                </div>
+                <div class="accordion-item bg-white rounded-lg shadow-md border border-gray-200">
+                    <button class="accordion-header w-full text-left p-4 font-semibold text-lg text-gray-800 flex justify-between items-center">
+                        <span>在 Vibe Coding 中如何實踐測試驅動開發 (TDD)？</span>
+                        <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-4">
+                        <p class="py-4 text-gray-600 border-t border-gray-200">TDD 非常有用。你可以先讓 AI 寫測試，或者在 AI 寫完程式後，你優先只讀「測試」部分。如果你認同測試案例的邏輯，且測試都通過了，你就能對程式碼建立高度信心。鼓勵 AI 寫出極簡的端到端測試，效果最好。</p>
+                    </div>
+                </div>
+                <div class="accordion-item bg-white rounded-lg shadow-md border border-gray-200">
+                    <button class="accordion-header w-full text-left p-4 font-semibold text-lg text-gray-800 flex justify-between items-center">
+                        <span>如何快速熟悉一個新的程式碼庫？</span>
+                        <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-4">
+                        <p class="py-4 text-gray-600 border-t border-gray-200">在開始寫功能前，先用 AI 探索程式碼庫。你可以問：「告訴我驗證功能在哪裡？」或「找出和 A 功能類似的實作」。讓 AI 幫你列出相關檔案和類別，快速建立心智模型，之後再開始動手開發。</p>
+                    </div>
+                </div>
+                 <div class="accordion-item bg-white rounded-lg shadow-md border border-gray-200">
+                    <button class="accordion-header w-full text-left p-4 font-semibold text-lg text-gray-800 flex justify-between items-center">
+                        <span>如何讓非開發者也能安全地 Vibe Coding？</span>
+                        <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-4">
+                        <p class="py-4 text-gray-600 border-t border-gray-200">這需要新的產品和框架，提供「可證明其正確性」的沙盒環境。例如，一個後端系統，其核心的驗證和支付功能是預先建好且安全的，使用者只需在 UI 層進行 Vibe Coding。這為非技術背景的人提供了一個安全的遊樂場，讓他們能規模化自己的想法，而不會產生安全風險。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-6 py-4 text-center text-gray-400">
+            <p>基於 Erik 的演講內容製作 | 互動式應用程式設計</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuBtn = document.getElementById('menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            menuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            const accordionItems = document.querySelectorAll('.accordion-item');
+            accordionItems.forEach(item => {
+                const header = item.querySelector('.accordion-header');
+                const content = item.querySelector('.accordion-content');
+                const icon = header.querySelector('svg');
+
+                header.addEventListener('click', () => {
+                    const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+                    
+                    accordionItems.forEach(i => {
+                        i.querySelector('.accordion-content').style.maxHeight = '0px';
+                        i.querySelector('.accordion-header svg').classList.remove('rotate-180');
+                    });
+
+                    if (!isOpen) {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        icon.classList.add('rotate-180');
+                    }
+                });
+            });
+
+            const ctx = document.getElementById('exponentialChart').getContext('2d');
+            const months = Array.from({ length: 10 }, (_, i) => i * 7);
+            const taskLength = months.map(m => Math.pow(2, m / 7));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months.map(m => `${m} 個月後`),
+                    datasets: [{
+                        label: 'AI 可執行任務長度 (小時)',
+                        data: taskLength,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'logarithmic',
+                            title: {
+                                display: true,
+                                text: '任務長度 (小時，對數尺度)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '時間'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2) + ' 小時';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section[id]');
+
+            function changeNav() {
+                let index = sections.length;
+                while(--index && window.scrollY + 100 < sections[index].offsetTop) {}
+                
+                navLinks.forEach((link) => link.classList.remove('active'));
+                const activeLink = document.querySelector(`.nav-link[href="#${sections[index].id}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+            }
+            
+            changeNav();
+            window.addEventListener('scroll', changeNav);
+        });
+    </script>
+
+</body>
+</html>
