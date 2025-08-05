@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google 開發者計畫 Premium 方案互動儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Slate, White, Cyan, Amber) -->
+    <!-- Application Structure Plan: 本應用程式採用了分區塊的儀表板設計，而非線性報告。頂部是導航欄，讓使用者能快速跳轉至感興趣的區塊。結構依序為：1. 總覽與價值主張（快速了解核心價值）、2. 方案比較（互動式圖表與表格）、3. Gemini 權益詳解（解答核心問題）、4. 成本效益分析器（個人化建議）、5. 重要條款（釐清細節）。這種結構將複雜資訊模組化，讓使用者能根據自身需求探索，優先解答最常見問題，從而大幅提升資訊獲取效率與使用者體驗。 -->
+    <!-- Visualization & Content Choices: 報告中的數據被轉化為多種視覺化形式：1. 價值主張 -> 目標：快速展示投資回報 -> 視覺化：動態計數器與 Chart.js 甜甜圈圖 -> 互動：懸停顯示細節，直觀傳達 $299 年費與其數倍回報的對比。 2. 方案比較 -> 目標：清晰對比各等級權益 -> 視覺化：Chart.js 長條圖比較核心配額，HTML 表格詳列所有權益 -> 互動：圖表懸停提示，表格清晰易讀。 3. Gemini 配額 -> 目標：解答核心問題 -> 視覺化：大型數字卡片凸顯 120 RPM / 1,500 RPD -> 互動：無，旨在清晰、直接地傳達關鍵數據。 4. 開發者建議 -> 目標：提供個人化指導 -> 視覺化：HTML/Tailwind 製作的按鈕組與資訊卡 -> 互動：點擊不同開發者類型按鈕，顯示對應的建議，實現引導式決策。所有圖表均使用 Chart.js Canvas 實現，無任何 SVG 或 Mermaid JS。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0891b2; /* cyan-600 */
+            border-bottom-color: #0891b2;
+        }
+        .persona-btn.active {
+            background-color: #0e7490; /* cyan-700 */
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            text-align: center;
+            border-left: 4px solid #0891b2; /* cyan-600 */
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4">
+            <nav class="flex items-center justify-between h-16">
+                <h1 class="text-xl md:text-2xl font-bold text-cyan-800">GDP Premium 互動儀表板</h1>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#overview" class="nav-link text-slate-600 pb-1 border-b-2 border-transparent">總覽</a>
+                    <a href="#comparison" class="nav-link text-slate-600 pb-1 border-b-2 border-transparent">方案比較</a>
+                    <a href="#benefits" class="nav-link text-slate-600 pb-1 border-b-2 border-transparent">Gemini 權益</a>
+                    <a href="#analyzer" class="nav-link text-slate-600 pb-1 border-b-2 border-transparent">成本效益</a>
+                    <a href="#fine-print" class="nav-link text-slate-600 pb-1 border-b-2 border-transparent">重要條款</a>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav" class="bg-white border border-slate-300 rounded-md py-2 px-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <option value="#overview">總覽</option>
+                        <option value="#comparison">方案比較</option>
+                        <option value="#benefits">Gemini 權益</option>
+                        <option value="#analyzer">成本效益</option>
+                        <option value="#fine-print">重要條款</option>
+                    </select>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <!-- Section 1: Overview & Value Proposition -->
+        <section id="overview" class="scroll-mt-20 text-center mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4">一目了然的價值主張</h2>
+            <p class="max-w-3xl mx-auto text-slate-600 mb-10">Google 開發者計畫 Premium 方案是一項戰略性投資。僅需 $299 年費，即可解鎖遠超其標價的經濟回報與無形的生產力提升。</p>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col justify-center items-center">
+                    <span class="text-lg font-semibold text-slate-500">年度成本</span>
+                    <span class="text-5xl font-bold text-cyan-700 mt-2">$299</span>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col justify-center items-center">
+                    <span class="text-lg font-semibold text-slate-500">基礎回報價值</span>
+                    <span id="base-value" class="text-5xl font-bold text-amber-600 mt-2">$0</span>
+                    <span class="text-sm text-slate-500 mt-1">(雲端抵免額 + 認證券)</span>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col justify-center items-center">
+                    <span class="text-lg font-semibold text-slate-500">最高潛在價值</span>
+                    <span id="potential-value" class="text-5xl font-bold text-green-600 mt-2">$0</span>
+                    <span class="text-sm text-slate-500 mt-1">(含考取認證獎勵)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Plan Comparison -->
+        <section id="comparison" class="scroll-mt-20 mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 text-center mb-4">方案比較儀表板</h2>
+            <p class="max-w-3xl mx-auto text-slate-600 text-center mb-12">Premium 方案在關鍵開發者權益上，相較於免費的標準版有著質的飛躍。透過互動圖表與詳細表格，清晰洞察其核心優勢。</p>
+            
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-center text-slate-800 mb-4">核心配額對比 (每分鐘請求數)</h3>
+                    <div class="chart-container mx-auto">
+                        <canvas id="rpmChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-center text-slate-800 mb-4">價值回報對比 (美元)</h3>
+                     <div class="chart-container mx-auto">
+                        <canvas id="valueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 bg-white p-6 rounded-xl shadow-lg overflow-x-auto">
+                <h3 class="text-xl font-bold text-slate-800 mb-6">詳細權益對比表</h3>
+                <table class="w-full min-w-[800px] text-left">
+                    <thead>
+                        <tr class="border-b-2 border-slate-200">
+                            <th class="py-3 px-4 font-bold text-slate-800">權益項目</th>
+                            <th class="py-3 px-4 font-bold text-slate-500 text-center">Standard (標準版)</th>
+                            <th class="py-3 px-4 font-bold text-white bg-cyan-700 rounded-t-lg text-center">Premium (年費方案)</th>
+                            <th class="py-3 px-4 font-bold text-slate-500 text-center">Enterprise (企業版)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparison-table-body" class="divide-y divide-slate-100">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 3: Gemini Benefits -->
+        <section id="benefits" class="scroll-mt-20 mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 text-center mb-4">Gemini 權益詳解</h2>
+            <p class="max-w-3xl mx-auto text-slate-600 text-center mb-12">這裏是您最關心的核心問題答案。Premium 方案為您的個人開發工作流提供了極其寬裕的 Gemini CLI 使用配額。</p>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="stat-card">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">每分鐘請求數 (RPM)</h3>
+                    <p class="text-6xl font-bold text-cyan-600">120</p>
+                    <p class="text-slate-500 mt-2">是標準版的 2 倍</p>
+                </div>
+                <div class="stat-card">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">每日請求數 (RPD)</h3>
+                    <p class="text-6xl font-bold text-cyan-600">1,500</p>
+                    <p class="text-slate-500 mt-2">比標準版多 500 次</p>
+                </div>
+            </div>
+            <div class="mt-12 bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
+                <h3 class="text-2xl font-bold text-slate-800 mb-4 text-center">「工具級配額」 vs 「API 級配額」</h3>
+                <p class="text-slate-600 mb-6">理解兩者的區別至關重要。GDP Premium 提供的配額是為了賦能**單個開發者的個人生產力**，而非支撐商業級應用程式的後端服務。這是一個強大的個人輔助工具，而不是一個無限擴展的 API 金鑰。</p>
+                <div class="flex flex-col md:flex-row justify-around gap-6">
+                    <div class="flex-1 p-6 bg-slate-50 rounded-lg border border-slate-200">
+                        <h4 class="font-bold text-lg text-cyan-800">GDP Premium (工具級)</h4>
+                        <p class="mt-2 text-sm text-slate-600">適用於終端機手動查詢、編寫腳本、IDE 輔助編碼等個人高強度互動場景。</p>
+                        <p class="mt-4 text-2xl font-bold">120 <span class="text-base font-normal">RPM</span></p>
+                    </div>
+                    <div class="flex-1 p-6 bg-slate-50 rounded-lg border border-slate-200">
+                        <h4 class="font-bold text-lg text-indigo-800">Gemini API (API 級)</h4>
+                        <p class="mt-2 text-sm text-slate-600">適用於建構面向公眾的聊天機器人、內容生成網站等需要服務大量終端使用者的商業應用。</p>
+                        <p class="mt-4 text-2xl font-bold">> 1,000 <span class="text-base font-normal">RPM</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Cost-Benefit Analyzer -->
+        <section id="analyzer" class="scroll-mt-20 mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 text-center mb-4">成本效益分析器</h2>
+            <p class="max-w-3xl mx-auto text-slate-600 text-center mb-12">您屬於哪種類型的開發者？點擊下方按鈕，獲取針對您個人情況的戰略性建議，判斷此方案是否適合您。</p>
+            <div class="flex justify-center flex-wrap gap-4 mb-8">
+                <button class="persona-btn px-6 py-3 font-semibold rounded-full transition-all duration-300 shadow-sm bg-white hover:bg-cyan-50" data-persona="individual">👤 個人開發者 / 技術愛好者</button>
+                <button class="persona-btn px-6 py-3 font-semibold rounded-full transition-all duration-300 shadow-sm bg-white hover:bg-cyan-50" data-persona="team">👥 小型技術團隊 / 新創公司</button>
+                <button class="persona-btn px-6 py-3 font-semibold rounded-full transition-all duration-300 shadow-sm bg-white hover:bg-cyan-50" data-persona="cli-only">💻 僅對 CLI 感興趣者</button>
+            </div>
+            <div id="recommendation-card" class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8 transition-opacity duration-500 opacity-0">
+                <h3 id="recommendation-title" class="text-2xl font-bold text-cyan-800 mb-4"></h3>
+                <p id="recommendation-text" class="text-slate-600 leading-relaxed"></p>
+            </div>
+        </section>
+
+        <!-- Section 5: The Fine Print -->
+        <section id="fine-print" class="scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 text-center mb-4">重要條款與注意事項</h2>
+            <p class="max-w-3xl mx-auto text-slate-600 text-center mb-12">理解這些細節有助於您建立正確的期望，充分利用 Premium 方案的全部潛力。</p>
+            <div class="max-w-3xl mx-auto space-y-4">
+                <div class="accordion-item bg-white rounded-lg shadow-md">
+                    <button class="accordion-header w-full flex justify-between items-center p-5 text-left font-semibold text-lg text-slate-800">
+                        <span>關於「持續使用」的公平使用原則</span>
+                        <span class="accordion-icon text-cyan-600 text-2xl transform transition-transform duration-300">+</span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="p-5 pt-0 text-slate-600">
+                            <p>數字配額 (120 RPM) 並非唯一限制。您的使用權是在一個龐大的**多租戶共享資源池**中的高優先級訪問權。任何被系統判定為濫用、或對共享資源構成威脅的極端使用模式（例如長時間以最大速率發送高複雜度請求），即便未超出配額，仍可能面臨 Google 的干預，措施包括但不限於：暫時性節流 (Throttling)、模型降級 (Model Fallback) 或強制請求失敗。請保持合理的使用模式。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item bg-white rounded-lg shadow-md">
+                    <button class="accordion-header w-full flex justify-between items-center p-5 text-left font-semibold text-lg text-slate-800">
+                        <span>Gemini 2.5 Pro 存取權限解析</span>
+                        <span class="accordion-icon text-cyan-600 text-2xl transform transition-transform duration-300">+</span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="p-5 pt-0 text-slate-600">
+                            <p class="mb-4">您擁有兩種存取路徑，其權益和時效不同：</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong class="text-green-700">永久核心權益：</strong>在訂閱有效期內，您可以**持續透過 Gemini CLI** 存取 Gemini 2.5 Pro 等強大模型，並享有 120 RPM 的高配額。這是方案的核心價值。</li>
+                                <li><strong class="text-amber-700">限時附加福利：</strong>方案中包含的「Google AI Pro」是一個為期**三個月的試用**。它提供網頁版 (gemini.google.com) 的高級功能、Workspace 整合及 2TB 儲存空間。試用期結束後，這些附加福利將失效，但您的核心 CLI 權益不受影響。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8 mt-12 border-t border-slate-200">
+        <p class="text-slate-500 text-sm">此互動式報告基於公開資訊生成，僅供參考。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Data from the report
+            const data = {
+                comparison: [
+                    {
+                        feature: '費用',
+                        standard: '免費',
+                        premium: '$299 美元/年',
+                        enterprise: '$75 美元/開發者/月'
+                    },
+                    {
+                        feature: 'Gemini CLI 配額 (RPM/RPD)',
+                        standard: '60 / 1,000',
+                        premium: '<strong>120 / 1,500</strong>',
+                        enterprise: '120 / 2,000'
+                    },
+                    {
+                        feature: 'GenAI & Cloud 抵免額',
+                        standard: '無',
+                        premium: '<strong>$550 美元/年</strong>',
+                        enterprise: '$150 美元/月'
+                    },
+                    {
+                        feature: '認證後獎勵抵免額',
+                        standard: '無',
+                        premium: '<strong>$500 美元</strong>',
+                        enterprise: '不適用'
+                    },
+                    {
+                        feature: 'Google Cloud 認證優待券',
+                        standard: '無',
+                        premium: '<strong>每年 1 張</strong> (價值~$200)',
+                        enterprise: '不適用'
+                    },
+                    {
+                        feature: 'Google Cloud 專家諮詢',
+                        standard: '無',
+                        premium: '<strong>每年 1 小時</strong>',
+                        enterprise: '不適用'
+                    },
+                    {
+                        feature: 'Google Cloud Skills Boost',
+                        standard: '每月 35 點數',
+                        premium: '<strong>無限制</strong>',
+                        enterprise: '無限制'
+                    },
+                    {
+                        feature: 'Google AI Pro 試用',
+                        standard: '不適用',
+                        premium: '<strong>3 個月</strong>',
+                        enterprise: '不適用'
+                    }
+                ],
+                personas: {
+                    individual: {
+                        title: '👤 對於個人開發者 / 技術愛好者',
+                        text: '如果 您是 Google Cloud 和 AI 技術的重度使用者，經常進行個人專案的實驗與開發，並且有計劃考取 Google Cloud 相關認證，那麼此方案<strong>極力推薦</strong>。其提供的價值遠超成本，幾乎是一個不容錯過的機會。'
+                    },
+                    team: {
+                        title: '👥 對於小型技術團隊 / 新創公司',
+                        text: '此方案可作為團隊成員低成本入門和使用 Google 生態的絕佳跳板。團隊可以利用高額的雲端抵免額進行產品原型開發和測試 (MVP)，同時利用高配額的 Gemini CLI 提升團隊的整體開發效率。但需注意，產品走向商業運營時，應規劃預算將後端服務遷移到按用量計費的 Vertex AI 平台。'
+                    },
+                    'cli-only': {
+                        title: '💻 對於僅對 CLI 感興趣者',
+                        text: '此方案的價值相對較低。如果無法利用價值數百美元的 Cloud 抵免額，則需要審慎評估僅為 CLI 的配額提升支付 $299 是否划算。建議先充分利用免費方案的 60 RPM 配額，只有當頻繁觸及瓶頸時，再考慮升級。'
+                    }
+                }
+            };
+
+            // Dynamic Counters
+            function animateValue(obj, start, end, duration) {
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    obj.innerHTML = '$' + Math.floor(progress * (end - start) + start).toLocaleString();
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+                window.requestAnimationFrame(step);
+            }
+            animateValue(document.getElementById('base-value'), 0, 750, 1500);
+            animateValue(document.getElementById('potential-value'), 0, 1250, 2000);
+
+            // Chart.js - RPM Comparison
+            const rpmCtx = document.getElementById('rpmChart').getContext('2d');
+            new Chart(rpmCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Standard', 'Premium', 'Enterprise'],
+                    datasets: [{
+                        label: '每分鐘請求數 (RPM)',
+                        data: [60, 120, 120],
+                        backgroundColor: [
+                            'rgba(100, 116, 139, 0.6)', // slate-500
+                            'rgba(8, 145, 178, 0.7)',  // cyan-600
+                            'rgba(100, 116, 139, 0.6)'  // slate-500
+                        ],
+                        borderColor: [
+                            'rgb(100, 116, 139)',
+                            'rgb(8, 145, 178)',
+                            'rgb(100, 116, 139)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.raw} RPM`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'RPM'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Chart.js - Value Comparison
+            const valueCtx = document.getElementById('valueChart').getContext('2d');
+            new Chart(valueCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['年度成本', '基礎回報', '潛在獎勵'],
+                    datasets: [{
+                        label: '價值結構 (美元)',
+                        data: [299, 750, 500],
+                        backgroundColor: [
+                            'rgba(220, 38, 38, 0.7)', // red-600
+                            'rgba(202, 138, 4, 0.7)', // amber-600
+                            'rgba(22, 163, 74, 0.7)' // green-600
+                        ],
+                        borderColor: [
+                            'rgb(220, 38, 38)',
+                            'rgb(202, 138, 4)',
+                            'rgb(22, 163, 74)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: $${context.raw}`;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Premium 方案價值結構'
+                        }
+                    }
+                }
+            });
+
+            // Populate Comparison Table
+            const tableBody = document.getElementById('comparison-table-body');
+            data.comparison.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="py-4 px-4 font-semibold text-slate-700">${item.feature}</td>
+                    <td class="py-4 px-4 text-center text-slate-600">${item.standard}</td>
+                    <td class="py-4 px-4 text-center text-cyan-800 bg-cyan-50">${item.premium}</td>
+                    <td class="py-4 px-4 text-center text-slate-600">${item.enterprise}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Persona Analyzer
+            const personaBtns = document.querySelectorAll('.persona-btn');
+            const recCard = document.getElementById('recommendation-card');
+            const recTitle = document.getElementById('recommendation-title');
+            const recText = document.getElementById('recommendation-text');
+
+            personaBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const persona = btn.dataset.persona;
+                    const personaData = data.personas[persona];
+
+                    personaBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    recCard.style.opacity = 0;
+                    setTimeout(() => {
+                        recTitle.textContent = personaData.title;
+                        recText.innerHTML = personaData.text;
+                        recCard.style.opacity = 1;
+                    }, 300);
+                });
+            });
+            // Auto-select first persona on load
+            personaBtns[0].click();
+
+            // Accordion
+            const accordions = document.querySelectorAll('.accordion-item');
+            accordions.forEach(item => {
+                const header = item.querySelector('.accordion-header');
+                const content = item.querySelector('.accordion-content');
+                const icon = item.querySelector('.accordion-icon');
+                header.addEventListener('click', () => {
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.classList.remove('rotate-45');
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        icon.classList.add('rotate-45');
+                    }
+                });
+            });
+
+            // Smooth Scrolling & Active Nav Link
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+            
+            function changeActiveLink() {
+                let index = sections.length;
+                while(--index && window.scrollY + 100 < sections[index].offsetTop) {}
+                
+                navLinks.forEach((link) => link.classList.remove('active'));
+                if (index > -1) {
+                   const activeLink = document.querySelector(`.nav-link[href="#${sections[index].id}"]`);
+                   if(activeLink) activeLink.classList.add('active');
+                }
+            }
+
+            window.addEventListener('scroll', changeActiveLink);
+            changeActiveLink(); // Initial check
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+            
+            // Mobile navigation
+            const mobileNav = document.getElementById('mobile-nav');
+            mobileNav.addEventListener('change', (e) => {
+                const targetId = e.target.value;
+                document.querySelector(targetId).scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
