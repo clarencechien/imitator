@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>結婚登記日 精緻行程圖</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f9fafb;
+        }
+        .gantt-wrapper {
+            display: grid;
+            grid-template-columns: 140px 1fr; /* 左側標籤寬度 + 圖表區域 */
+            width: 100%;
+        }
+        .gantt-labels {
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #e5e7eb;
+        }
+        .gantt-label-item {
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 1rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .gantt-chart-area {
+            position: relative;
+        }
+        .gantt-timeline {
+            display: flex;
+            height: 50px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .gantt-hour-marker {
+            flex-grow: 1;
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+            border-left: 1px solid #e5e7eb;
+        }
+        .gantt-grid {
+            position: relative;
+            height: 540px; /* 6 tasks * 90px per task */
+            background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px);
+            background-size: calc(100% / 6) 100%; /* 6 hours */
+        }
+        .task-bar {
+            position: absolute;
+            height: 60px;
+            transition: all 0.2s ease-out;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .task-bar:hover {
+            transform: scale(1.05);
+            z-index: 20;
+        }
+        .task-bar-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .task-bar-label {
+            position: absolute;
+            white-space: nowrap;
+            color: #1f2937;
+            font-weight: 700;
+        }
+        .tooltip {
+            visibility: hidden; opacity: 0;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .task-bar:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .agenda-view { display: none; }
+        @media (max-width: 767px) {
+            .gantt-wrapper { display: none; }
+            .agenda-view { display: block; }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-7xl bg-white rounded-2xl shadow-2xl shadow-rose-100/50 p-6 sm:p-8">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 tracking-wider">結婚登記日・詳細流程</h1>
+            <p class="text-lg text-gray-500 mt-2">10月23日</p>
+        </div>
+
+        <!-- 手機版：垂直行程列表 (Agenda View) -->
+        <div class="agenda-view space-y-4"></div>
+
+        <!-- 電腦版：甘特圖 (Gantt Chart View) -->
+        <div class="gantt-wrapper">
+            <div class="gantt-labels"></div>
+            <div class="gantt-chart-area">
+                <div class="gantt-timeline"></div>
+                <div class="gantt-grid"></div>
+            </div>
+        </div>
+
+        <div class="mt-12 p-6 bg-emerald-50 border-l-4 border-emerald-400 rounded-r-lg">
+            <h3 class="text-xl font-bold text-emerald-800 mb-2">結論：行程完美銜接！</h3>
+            <p class="text-emerald-700">您們將在 <strong>14:30</strong> 抵達戶政事務所，擁有充足的緩衝時間。登記完成後，可以從容地展開後續的攝影行程。</p>
+        </div>
+
+        <div class="mt-8 p-6 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+            <h3 class="text-xl font-bold text-blue-800 mb-2">攝影時間分配解析</h3>
+            <p class="text-blue-700">在 15:00 到 17:00 的總計 <strong>120 分鐘</strong> 攝影時長中：</p>
+            <ul class="list-disc list-inside mt-2 text-blue-700 space-y-1">
+                <li>戶政事務所登記與拍攝：約 <strong>45 分鐘</strong> (15:00 - 15:45)</li>
+                <li>移動至四四南村車程：約 <strong>15 分鐘</strong> (15:45 - 16:00)</li>
+                <li class="mt-2"><strong>您在四四南村將有 <span class="font-bold text-2xl text-blue-800">60</span> 分鐘的純生活風格攝影時間 (16:00 - 17:00)。</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 根據第一步確認的精準任務列表
+            const tasks = [
+                { name: '妝髮造型', start: 11.5, end: 14.0, color: 'bg-pink-300', details: '11:30 - 14:00 | 地點：謙信綠寶大樓' },
+                { name: '驅車前往', start: 14.0, end: 14.5, color: 'bg-sky-300', details: '14:00 - 14:30 | → 信義區戶政事務所' },
+                { name: '抵達與準備', start: 14.5, end: 15.0, color: 'bg-amber-300', details: '14:30 - 15:00 | 緩衝、抽牌、備妥文件' },
+                { name: '登記手續攝影', start: 15.0, end: 15.75, color: 'bg-emerald-300', details: '15:00 - 15:45 | 於戶政事務所' },
+                { name: '移動至四四南村', start: 15.75, end: 16.0, color: 'bg-cyan-300', details: '15:45 - 16:00 | 包含交通時間' },
+                { name: '生活風格攝影', start: 16.0, end: 17.0, color: 'bg-purple-300', details: '16:00 - 17:00 | 於四四南村' }
+            ];
+
+            const startHour = 11;
+            const endHour = 17;
+            const totalDurationMinutes = (endHour - startHour) * 60;
+
+            const agendaContainer = document.querySelector('.agenda-view');
+            const labelsContainer = document.querySelector('.gantt-labels');
+            const timelineContainer = document.querySelector('.gantt-timeline');
+            const gridContainer = document.querySelector('.gantt-grid');
+
+            // 渲染時間軸
+            for (let i = startHour; i < endHour; i++) {
+                const hourMarker = document.createElement('div');
+                hourMarker.className = 'gantt-hour-marker pt-4';
+                hourMarker.textContent = `${i}:00`;
+                timelineContainer.appendChild(hourMarker);
+            }
+
+            tasks.forEach((task, index) => {
+                // 渲染左側標籤
+                const label = document.createElement('div');
+                label.className = 'gantt-label-item';
+                label.textContent = task.name;
+                labelsContainer.appendChild(label);
+
+                // --- 全新定位邏輯：使用百分比 ---
+                const taskStartMinutes = (task.start - startHour) * 60;
+                const taskDurationMinutes = (task.end - task.start) * 60;
+
+                const leftPercentage = (taskStartMinutes / totalDurationMinutes) * 100;
+                const widthPercentage = (taskDurationMinutes / totalDurationMinutes) * 100;
+
+                const topPosition = index * 90 + 15; // 每個任務的垂直位置
+
+                const bar = document.createElement('div');
+                bar.className = 'task-bar';
+                bar.style.left = `${leftPercentage}%`;
+                bar.style.width = `${widthPercentage}%`;
+                bar.style.top = `${topPosition}px`;
+                
+                bar.innerHTML = `
+                    <div class="task-bar-bg ${task.color}"></div>
+                    <span class="task-bar-label">${task.name}</span>
+                    <div class="tooltip w-max bg-gray-800 text-white text-xs rounded-md py-1.5 px-3 shadow-xl">${task.details}</div>
+                `;
+                gridContainer.appendChild(bar);
+
+                // 渲染手機版列表
+                const start = new Date();
+                start.setHours(Math.floor(task.start), (task.start % 1) * 60, 0, 0);
+                const end = new Date();
+                end.setHours(Math.floor(task.end), (task.end % 1) * 60, 0, 0);
+                const formatTime = (date) => date.toTimeString().substring(0, 5);
+                const agendaItem = document.createElement('div');
+                agendaItem.className = 'flex items-center p-4 bg-gray-50 rounded-lg shadow-sm';
+                agendaItem.innerHTML = `
+                    <div class="w-20 text-center">
+                        <p class="font-bold text-gray-700">${formatTime(start)}</p>
+                        <p class="text-sm text-gray-500">|</p>
+                        <p class="text-sm text-gray-500">${formatTime(end)}</p>
+                    </div>
+                    <div class="w-1.5 h-12 ${task.color} rounded-full mx-4"></div>
+                    <div class="flex-grow">
+                        <p class="font-semibold text-lg text-gray-800">${task.name}</p>
+                        <p class="text-sm text-gray-600">${task.details.split('|')[1] || ''}</p>
+                    </div>
+                `;
+                agendaContainer.appendChild(agendaItem);
+            });
+        });
+    </script>
+</body>
+</html>
+
