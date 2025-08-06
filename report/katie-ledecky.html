@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>畢業典禮演講：游完全程 (Going the Distance)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Horizon -->
+    <!-- Application Structure Plan: A single-page, thematic SPA. The structure uses a main navigation to switch between the three core themes of the speech (Pacing, Process, Time) instead of a linear text format. This allows users to actively engage with and digest each core message independently. The flow is designed to be exploratory, starting with a broad introduction and allowing users to dive into the themes in any order, culminating in a powerful conclusion. This structure was chosen to transform a passive listening experience into an active, memorable exploration of the speech's key lessons. -->
+    <!-- Visualization & Content Choices:
+    - Intro: Goal=Engage. Method=Interactive Stopwatch (HTML/JS). Justification=Makes the abstract concept of "time" tangible and personal, directly mirroring the opening anecdote.
+    - Pacing: Goal=Compare/Change. Method=Interactive Line Chart (Chart.js). Interaction=Hover over data points to see commentator quotes. Justification=Visually demonstrates the core story of defying expectations and setting one's own pace, making the narrative more impactful.
+    - Process: Goal=Organize/Inform. Method=HTML/CSS Diagram ("Effort Bank"). Interaction=Hover for details. Justification=Clearly visualizes the immense scale of preparation vs. performance, reinforcing the "love the process" message.
+    - Time: Goal=Relationships. Method=Animated Text (CSS/JS). Interaction=Subtle fading text animation of the grandmothers' names. Justification=Evokes the feeling of a mantra and internal thought, preserving the emotional weight of the anecdote without distracting visuals.
+    - Library=Chart.js for the chart. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F4;
+            color: #333;
+        }
+        .theme-button {
+            transition: all 0.3s ease;
+        }
+        .theme-button.active {
+            background-color: #3B82F6;
+            color: #FFFFFF;
+            font-weight: 700;
+        }
+        .theme-content {
+            display: none;
+        }
+        .theme-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .fade-text-container span {
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            position: absolute;
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="text-center py-12 md:py-20 bg-blue-50">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl md:text-6xl font-bold text-blue-800">游完全程</h1>
+            <p class="mt-4 text-lg md:text-xl text-blue-600">來自一位游泳選手的人生三項修煉</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-12">
+        <section id="intro" class="text-center max-w-3xl mx-auto">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">一億零四百萬秒的時光</h2>
+            <p class="text-lg text-gray-600 mb-8">
+                演講者用一個關於碼錶的故事開場，提醒我們時間飛逝。在史丹佛的四年，約等於一億零四百萬秒。這個互動應用程式將演講的核心思想——配速、過程與時間——轉化為可探索的旅程，讓我們深入體會「游完全程」的智慧。
+            </p>
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <p class="text-md text-gray-700 mb-4">演講者提到，她父親曾讓她挑戰用最快速度啟動和停止碼錶，來感受百分之一秒的短暫。你有多快？</p>
+                <div class="flex items-center justify-center space-x-4">
+                    <button id="stopwatch-btn" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors">開始</button>
+                    <div id="stopwatch-display" class="text-4xl font-mono bg-gray-100 px-6 py-2 rounded-lg text-gray-800">0.00</div>
+                </div>
+                 <p id="stopwatch-result" class="mt-4 text-gray-500 h-5"></p>
+            </div>
+        </section>
+
+        <section id="themes" class="mt-16">
+            <div class="flex justify-center mb-8 border-b border-gray-300">
+                <button data-theme="pacing" class="theme-button active text-lg py-3 px-6 rounded-t-lg">配速 (Pacing)</button>
+                <button data-theme="process" class="theme-button text-lg py-3 px-6 rounded-t-lg">過程 (Process)</button>
+                <button data-theme="time" class="theme-button text-lg py-3 px-6 rounded-t-lg">時間 (Time)</button>
+            </div>
+
+            <div id="pacing-content" class="theme-content active">
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold mb-4 text-center text-blue-700">配速：不要害怕帶頭領跑</h3>
+                    <p class="text-lg text-gray-600 mb-6 max-w-3xl mx-auto text-center">
+                        在 15 歲那年的奧運決賽，所有人都認為她衝得太快，建議她放慢腳步。但她相信自己的節奏，最終大幅領先奪冠。這個故事告訴我們：有時，年輕和默默無聞是優勢。要聽從內心的聲音，當你需要快的時候，就勇敢地快。
+                    </p>
+                     <blockquote class="my-8 border-l-4 border-blue-300 pl-4 text-xl italic text-gray-700 max-w-2xl mx-auto">
+                        "不要害怕帶頭領跑。有時候，你就是得放手一搏，去發現自己到底有多大的能耐。"
+                    </blockquote>
+                    <div class="chart-container">
+                        <canvas id="pacingChart"></canvas>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-gray-500">將滑鼠懸停在圖表上的點，查看當時的評論。</p>
+                </div>
+            </div>
+
+            <div id="process-content" class="theme-content">
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold mb-4 text-center text-green-700">過程：愛上過程，而非頒獎台</h3>
+                    <p class="text-lg text-gray-600 mb-6 max-w-3xl mx-auto text-center">
+                        真正的秘訣不是巧克力冰淇淋 🍦，而是享受日復一日的努力。演講者將目標設定為挑戰自己的「時間」，而非擊敗對手。每一次練習、讀的每一頁書，都是在為「努力銀行」存款，這些看似微不足道的時刻，最終成就了你。
+                    </p>
+                    <blockquote class="my-8 border-l-4 border-green-300 pl-4 text-xl italic text-gray-700 max-w-2xl mx-auto">
+                        "愛上過程，而不是頒獎台。"
+                    </blockquote>
+                    <div class="grid md:grid-cols-2 gap-8 text-center my-8">
+                        <div class="bg-green-50 p-6 rounded-xl border border-green-200">
+                            <h4 class="text-xl font-semibold text-green-800">游泳的努力銀行</h4>
+                            <p class="text-5xl font-bold my-4 text-green-600">26,000</p>
+                            <p class="text-gray-600">英里的練習里程</p>
+                            <p class="text-3xl my-2 text-green-500">↓</p>
+                            <p class="text-2xl font-bold text-green-700">5.5</p>
+                            <p class="text-gray-600">英里的奧運決賽</p>
+                        </div>
+                        <div class="bg-green-50 p-6 rounded-xl border border-green-200">
+                            <h4 class="text-xl font-semibold text-green-800">史丹佛的知識銀行</h4>
+                            <p class="text-5xl font-bold my-4 text-green-600">15,000</p>
+                            <p class="text-gray-600">頁的指定閱讀</p>
+                            <p class="text-3xl my-2 text-green-500">↓</p>
+                            <p class="text-2xl font-bold text-green-700">1</p>
+                            <p class="text-gray-600">張畢業證書</p>
+                        </div>
+                    </div>
+                     <blockquote class="mt-8 border-l-4 border-green-300 pl-4 text-xl italic text-gray-700 max-w-2xl mx-auto">
+                        "你不必贏得那場比賽，你只需要贏得你自己的比賽。"
+                    </blockquote>
+                </div>
+            </div>
+
+            <div id="time-content" class="theme-content">
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg border border-gray-200">
+                     <h3 class="text-2xl font-bold mb-4 text-center text-purple-700">時間：與重要的人一起度過</h3>
+                    <p class="text-lg text-gray-600 mb-6 max-w-3xl mx-auto text-center">
+                        在人生漫長的比賽中，我們想些什麼？在最低潮的時刻，演講者心中默念著祖母們的名字，從中汲取力量。這提醒我們，你無法獨自走完全程。家人、朋友、隊友、教練，他們是陪伴你度過艱難時光的聲音。
+                    </p>
+                     <blockquote class="my-8 border-l-4 border-purple-300 pl-4 text-xl italic text-gray-700 max-w-2xl mx-auto">
+                        "你無法獨自走完全程。"
+                    </blockquote>
+                    <div class="relative h-24 w-full fade-text-container my-8">
+                        
+                    </div>
+                    <p class="text-center mt-4 text-sm text-gray-500">在艱難的比賽中，心中默念的名字給予了她力量。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="mt-16 text-center max-w-3xl mx-auto">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">最好的，還在後頭</h2>
+            <p class="text-lg text-gray-600 mb-8">
+                配速、過程、時間——我們都在學習如何游完人生的長泳。史丹佛教會我們提出困難的問題，並在追尋中找到喜悅。
+            </p>
+            <div class="bg-blue-800 text-white p-8 rounded-xl shadow-2xl">
+                <p class="text-2xl md:text-3xl font-bold">"畢業生們，各就各位 (Take your mark)，</p>
+                <p class="text-2xl md:text-3xl font-bold mt-2">然後走出去，留下你的印記 (make your mark)。"</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-8 mt-12 bg-gray-100">
+        <p class="text-gray-500">為史丹佛 2025 畢業生獻上祝福。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const themeButtons = document.querySelectorAll('.theme-button');
+            const themeContents = document.querySelectorAll('.theme-content');
+
+            themeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const theme = button.dataset.theme;
+
+                    themeButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    themeContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `${theme}-content`) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            const stopwatchBtn = document.getElementById('stopwatch-btn');
+            const stopwatchDisplay = document.getElementById('stopwatch-display');
+            const stopwatchResult = document.getElementById('stopwatch-result');
+            let timer;
+            let startTime;
+            let running = false;
+
+            stopwatchBtn.addEventListener('click', () => {
+                if (!running) {
+                    startTime = Date.now();
+                    timer = setInterval(() => {
+                        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                        stopwatchDisplay.textContent = elapsedTime;
+                    }, 10);
+                    stopwatchBtn.textContent = '停止';
+                    stopwatchBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                    stopwatchBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                    stopwatchResult.textContent = '';
+                    running = true;
+                } else {
+                    clearInterval(timer);
+                    const finalTime = stopwatchDisplay.textContent;
+                    stopwatchBtn.textContent = '再試一次';
+                    stopwatchBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                    stopwatchBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                    if (parseFloat(finalTime) < 0.10) {
+                       stopwatchResult.textContent = `太厲害了！${finalTime} 秒！比演講者還快！`;
+                    } else {
+                       stopwatchResult.textContent = `你的成績是 ${finalTime} 秒。百分之一秒真的很短！`;
+                    }
+                    running = false;
+                }
+            });
+
+            const pacingCtx = document.getElementById('pacingChart').getContext('2d');
+            const pacingChart = new Chart(pacingCtx, {
+                type: 'line',
+                data: {
+                    labels: ['開賽', '35秒', '55秒', '2分55秒', '終點'],
+                    datasets: [{
+                        label: '領先秒數',
+                        data: [0, 0.5, 1.2, 3.5, 4.1],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.1,
+                        pointBackgroundColor: '#3B82F6',
+                        pointRadius: 6,
+                        pointHoverRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const comments = [
+                                        '教練建議不要衝太快',
+                                        '評論：「她需要把腳從油門上移開了。」',
+                                        '評論：「她游得太快了，需要找到節奏。」',
+                                        '評論：「這些老將知道自己在做什麼。」',
+                                        '最終以超過 4 秒的優勢獲勝'
+                                    ];
+                                    return comments[context.dataIndex];
+                                }
+                            },
+                            backgroundColor: '#1F2937',
+                            titleFont: { size: 0 },
+                            bodyFont: { size: 14 },
+                            padding: 12,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '領先秒數 (秒)'
+                            }
+                        },
+                        x: {
+                             title: {
+                                display: true,
+                                text: '比賽進程'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const fadeTextContainer = document.querySelector('.fade-text-container');
+            const names = ["海根奶奶", "貝爾塔奶奶"];
+            let nameIndex = 0;
+            
+            names.forEach((name, index) => {
+                const span = document.createElement('span');
+                span.textContent = name;
+                fadeTextContainer.appendChild(span);
+            });
+
+            const spans = fadeTextContainer.querySelectorAll('span');
+            
+            function animateNames() {
+                spans.forEach(span => span.style.opacity = '0');
+                
+                const currentSpan = spans[nameIndex];
+                currentSpan.style.opacity = '1';
+                
+                setTimeout(() => {
+                    currentSpan.style.opacity = '0';
+                }, 2500);
+
+                nameIndex = (nameIndex + 1) % names.length;
+            }
+            
+            setInterval(animateNames, 3000);
+            animateNames();
+
+        });
+    </script>
+</body>
+</html>
+
