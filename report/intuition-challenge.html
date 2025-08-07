@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直覺王者大挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: manipulation;
+        }
+        .screen {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .screen.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .option-btn.correct {
+            background-color: #22c55e !important; /* green-500 */
+            color: white !important;
+            border-color: #16a34a !important; /* green-600 */
+        }
+        .option-btn.incorrect {
+            background-color: #ef4444 !important; /* red-500 */
+            color: white !important;
+            border-color: #dc2626 !important; /* red-600 */
+        }
+        .option-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            background: #4f46e5; /* indigo-600 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        input[type='range']::-webkit-slider-thumb {
+            @apply slider-thumb;
+        }
+        input[type='range']::-moz-range-thumb {
+            @apply slider-thumb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center overflow-hidden">
+
+        <!-- 開始畫面 -->
+        <div id="start-screen" class="screen active flex-col items-center justify-center">
+            <h1 class="text-4xl sm:text-5xl font-bold text-indigo-600 mb-4">直覺王者大挑戰</h1>
+            <p class="text-lg text-gray-600 mb-6 max-w-md">許多生活中的決策都依賴我們的第一反應和常識。這個挑戰將測試你在各種有趣領域的「直覺判斷力」有多強！</p>
+            <p class="text-sm text-gray-500 mb-8">完成15道題目後，我們會告訴你，你的成績在所有玩家中排在什麼位置。</p>
+            <button id="start-btn" class="w-full max-w-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-transform transform hover:scale-105">
+                開始挑戰！
+            </button>
+        </div>
+
+        <!-- 問題畫面 -->
+        <div id="question-screen" class="screen flex-col">
+            <div class="w-full mb-6">
+                <div class="flex justify-between items-center mb-2 text-gray-500 font-medium">
+                    <span id="question-counter">問題 1 / 15</span>
+                    <span id="score-display">得分: 0</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="progress-bar" class="bg-green-500 h-3 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                </div>
+            </div>
+            <h2 id="question-text" class="text-2xl sm:text-3xl font-bold mb-8 min-h-[100px] flex items-center justify-center">問題文字</h2>
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <!-- 選項按鈕會動態生成於此 -->
+            </div>
+        </div>
+
+        <!-- 預測畫面 -->
+        <div id="prediction-screen" class="screen flex-col items-center justify-center">
+            <h2 class="text-3xl font-bold text-indigo-600 mb-4">挑戰完成！</h2>
+            <p class="text-lg text-gray-600 mb-6">在揭曉你的全球排名之前，先來做個有趣的預測吧！</p>
+            <label for="prediction-slider" class="text-xl font-medium mb-4">你覺得，你的表現會贏過百分之多少的玩家？</label>
+            <div class="w-full max-w-md flex items-center gap-4">
+                <span class="font-bold text-gray-500">0%</span>
+                <input type="range" id="prediction-slider" min="0" max="100" value="50" class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                <span class="font-bold text-gray-500">100%</span>
+            </div>
+            <span id="slider-value" class="text-5xl font-bold text-indigo-600 my-6">50%</span>
+            <button id="submit-prediction-btn" class="w-full max-w-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-transform transform hover:scale-105">
+                查看結果
+            </button>
+        </div>
+
+        <!-- 結果畫面 -->
+        <div id="results-screen" class="screen flex-col items-center justify-center">
+            <h2 class="text-4xl font-bold text-indigo-600 mb-6">成績揭曉！</h2>
+            <div class="bg-gray-100 rounded-lg p-6 w-full mb-6 text-left space-y-4">
+                <p class="text-xl">👉 您總共答對了 <strong id="final-score" class="text-green-600 text-2xl"></strong> 題！</p>
+                <p class="text-xl">👉 這個成績，讓您贏過了全球 <strong id="actual-rank" class="text-blue-600 text-2xl"></strong> 的玩家！</p>
+                <p class="text-xl">👉 而您當時預測自己會贏過 <strong id="predicted-rank" class="text-purple-600 text-2xl"></strong> 的玩家！</p>
+            </div>
+            
+            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-md w-full mb-6">
+                <div class="flex">
+                    <div class="py-1"><svg class="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zM9 11v4h2v-4H9zm0-4h2v2H9V7z"/></svg></div>
+                    <div>
+                        <p class="font-bold mb-2">發現了嗎？這就是有趣的「達克效應」！</p>
+                        <p class="text-sm">簡單來說，當我們在某個領域還不是專家時，不僅容易犯錯，更<strong>缺乏意識到自己錯誤的能力!</strong>這就像一個「知識的盲點」。不過別擔心，意識到這一點，就是邁向「專家之境」的第一步！</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="play-again-btn" class="w-full max-w-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg transition-transform transform hover:scale-105">
+                再玩一次
+            </button>
+        </div>
+
+    </div>
+
+    <!-- 答案回饋彈窗 -->
+    <div id="feedback-modal" class="fixed inset-0 bg-black bg-opacity-60 items-center justify-center p-4 screen">
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+            <h3 id="feedback-title" class="text-4xl font-bold mb-4"></h3>
+            <p id="feedback-text" class="text-gray-600 mb-6"></p>
+            <button id="next-question-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full text-lg shadow-lg">下一題</button>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM 元素
+        const startScreen = document.getElementById('start-screen');
+        const questionScreen = document.getElementById('question-screen');
+        const predictionScreen = document.getElementById('prediction-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const screens = document.querySelectorAll('.screen');
+
+        const startBtn = document.getElementById('start-btn');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const questionCounter = document.getElementById('question-counter');
+        const scoreDisplay = document.getElementById('score-display');
+        const progressBar = document.getElementById('progress-bar');
+        
+        const predictionSlider = document.getElementById('prediction-slider');
+        const sliderValue = document.getElementById('slider-value');
+        const submitPredictionBtn = document.getElementById('submit-prediction-btn');
+
+        const finalScore = document.getElementById('final-score');
+        const actualRank = document.getElementById('actual-rank');
+        const predictedRank = document.getElementById('predicted-rank');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        const feedbackModal = document.getElementById('feedback-modal');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackText = document.getElementById('feedback-text');
+        const nextQuestionBtn = document.getElementById('next-question-btn');
+
+        // 遊戲題目資料
+        const questions = [
+            { question: "在古代維京戰士的頭盔上，最經典的特徵是什麼？", options: ["兩側有一對牛角", "頂部有金屬尖刺", "有精美的羽毛裝飾", "其實沒有證據顯示有牛角"], answer: 3, explanation: "維京頭盔上有角的形象，是19世紀歌劇為了舞台效果設計的。考古學上從未發現過帶角的維京頭盔！" },
+            { question: "俗話說「金魚的記憶只有七秒」，這句話是真的嗎？", options: ["是真的，牠們記不住事情", "假的，可達數個月", "比七秒還短", "特定品種記憶力差"], answer: 1, explanation: "科學研究證實，金魚的記憶力可達數個月，牠們比你想的要聰明得多！" },
+            { question: "一支球棒和一顆球總共110元。球棒比球貴100元，請問球多少錢？", options: ["10元", "5元", "15元", "20元"], answer: 1, explanation: "正確答案是：球5元，球棒105元，總共110元！如果球是10元，球棒就是110元，總共是120元。" },
+            { question: "世界上擁有最多金字塔的國家是哪個？", options: ["埃及", "墨西哥", "蘇丹", "秘魯"], answer: 2, explanation: "雖然埃及金字塔最有名，但它的鄰國蘇丹擁有的金字塔數量超過250座，遠多於埃及的100多座。" },
+            { question: "人體舌頭的不同區域，真的分別只負責感受一種特定味覺嗎？", options: ["是的，這就是味覺地圖", "不是，所有味蕾都能感受所有味道", "只有甜味和鹹味分開", "主要分佈如此，但有重疊"], answer: 1, explanation: "「味覺地圖」是一個流傳百年的錯誤翻譯。事實上，你舌頭上的每一個味蕾，都能同時感受到酸、甜、苦、鹹、鮮五種味道。" },
+            { question: "在小說《科學怪人》中，由科學家創造出來的「怪物」叫什麼名字？", options: ["法蘭肯斯坦", "普羅米修斯", "亞當", "小說中從未給他取名"], answer: 3, explanation: "「法蘭肯斯坦」其實是創造他的那位科學家的姓氏！小說中的怪物自始至終都沒有名字。" },
+            { question: "關於畫家梵谷割掉自己耳朵的事件，比較準確的描述是？", options: ["他割掉了整個右耳", "他只割掉了一小塊左耳的耳垂", "在精神病院被別人割掉的", "這是虛構的故事"], answer: 1, explanation: "根據當時的醫生報告，梵谷是在與好友高更爭吵後，割掉了自己「左耳」的一小部分，並非整個耳朵。" },
+            { question: "從月球上，唯一能用肉眼看到的地球人造建築是萬里長城，這個說法正確嗎？", options: ["正確，它是唯一可見的", "不正確，萬里長城太細了根本看不見", "不只長城，金字塔也看得到", "特定天氣下才看得到"], answer: 1, explanation: "這是一個著名的「太空迷思」。許多太空人都證實，萬里長城在太空軌道上很難用肉眼辨識，從月球上更是絕對不可能。" },
+            { question: "老教堂的窗戶玻璃「上薄下厚」，證明了玻璃是一種流動極其緩慢的液體。這個說法科學嗎？", options: ["是的，玻璃本質是液體", "不是，這是古代工藝不均勻造成的", "只有含鉛玻璃會流動", "需要數萬年才會流動"], answer: 1, explanation: "玻璃是「無定形固體」，不是液體。古代工匠製造的玻璃厚薄本來就不均勻，工人傾向於將較厚的一側朝下安裝，才造成了這個誤會。" },
+            { question: "旅鼠（Lemmings）在遷徙時，會集體跳下懸崖「自殺」，這是牠們的天性嗎？", options: ["是的，為了控制種群數量", "不是，這是迪士尼紀錄片的擺拍", "食物短缺時才會", "牠們只是視力不好"], answer: 1, explanation: "旅鼠集體自殺的印象，源於1958年迪士尼的一部紀錄片，片中製作團隊為了戲劇效果，將旅鼠趕下懸崖。" },
+            { question: "法國皇帝拿破崙，在當時的歐洲人裡，算是個子特別矮小的人嗎？", options: ["是的，他是著名的小矮子", "不是，他的身高在當時屬平均水平", "年輕時高，年老後縮水", "他比多數國王都高"], answer: 1, explanation: "拿破崙的身高約168公分，在19世紀初的法國是平均身高。他「矮小」的形象，很大程度是英國的政治宣傳。" },
+            { question: "一個池塘里的荷葉，每天面積都會擴大一倍。如果第30天長滿整個池塘，請問第幾天會長滿半個池塘？", options: ["第15天", "第20天", "第25天", "第29天"], answer: 3, explanation: "既然每天面積都變為前一天的兩倍，那麼在長滿全池（第30天）的前一天，面積自然就是池塘的一半！" },
+            { question: "俗話說「瞎得像隻蝙蝠」，這代表蝙蝠的視力非常差嗎？", options: ["是的，牠們完全是瞎子", "不是，所有蝙蝠都能看見", "只有果蝠視力好", "牠們是色盲"], answer: 1, explanation: "沒有任何一種蝙蝠是全盲的。牠們都擁有可以視物的眼睛，只是更依賴精準的回聲定位系統來輔助導航。" },
+            { question: "「閃電不會擊中同一個地方兩次」這句諺語，符合科學事實嗎？", options: ["符合，電會尋找新路徑", "不符合，高聳建築物經常被重複擊中", "非常罕見的情況下才會", "只是一個比喻"], answer: 1, explanation: "這句話完全是錯的。事實上，閃電「偏愛」重複擊中高聳的物體。紐約的帝國大廈每年平均會被閃電擊中20多次！" },
+            { question: "普遍認為，吃太多糖會讓小孩子變得「過動」，這個說法有充分的科學根據嗎？", options: ["有，糖分會直接刺激神經", "沒有，多數研究顯示無直接關聯", "對特定體質的孩子有影響", "只有人工甜味劑會"], answer: 1, explanation: "儘管這是許多家長的共同經驗，但多項嚴謹的科學研究都未能證實糖的攝取與兒童的過動行為有直接因果關係。" }
+        ];
+
+        // 遊戲狀態
+        let currentQuestionIndex;
+        let score;
+        let userPrediction;
+
+        // 初始化遊戲
+        function initGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            userPrediction = 50;
+            predictionSlider.value = 50;
+            sliderValue.textContent = '50%';
+            updateScoreDisplay();
+        }
+
+        // 顯示特定畫面
+        function showScreen(screenId) {
+            screens.forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // 開始遊戲
+        function startGame() {
+            initGame();
+            showScreen('question-screen');
+            showQuestion();
+        }
+
+        // 顯示問題
+        function showQuestion() {
+            const question = questions[currentQuestionIndex];
+            questionText.textContent = question.question;
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-btn', 'w-full', 'bg-white', 'border-2', 'border-gray-300', 'hover:border-indigo-500', 'hover:bg-indigo-50', 'text-gray-700', 'font-medium', 'py-4', 'px-4', 'rounded-lg', 'text-lg');
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+            questionCounter.textContent = `問題 ${currentQuestionIndex + 1} / ${questions.length}`;
+            progressBar.style.width = `${((currentQuestionIndex) / questions.length) * 100}%`;
+        }
+        
+        // 更新分數顯示
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `得分: ${score}`;
+        }
+
+        // 選擇答案
+        function selectAnswer(selectedIndex) {
+            const question = questions[currentQuestionIndex];
+            const isCorrect = selectedIndex === question.answer;
+            
+            // 禁用所有按鈕
+            const buttons = optionsContainer.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (isCorrect) {
+                score++;
+                buttons[selectedIndex].classList.add('correct');
+                feedbackTitle.textContent = '答對了！';
+                feedbackTitle.className = 'text-4xl font-bold mb-4 text-green-500';
+            } else {
+                buttons[selectedIndex].classList.add('incorrect');
+                buttons[question.answer].classList.add('correct');
+                feedbackTitle.textContent = '答錯了...';
+                feedbackTitle.className = 'text-4xl font-bold mb-4 text-red-500';
+            }
+            updateScoreDisplay();
+            feedbackText.textContent = question.explanation;
+            feedbackModal.classList.add('active');
+        }
+
+        // 下一題或結束
+        function handleNext() {
+            feedbackModal.classList.remove('active');
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                progressBar.style.width = `${((currentQuestionIndex) / questions.length) * 100}%`;
+                showQuestion();
+            } else {
+                progressBar.style.width = '100%';
+                showScreen('prediction-screen');
+            }
+        }
+
+        // 顯示結果
+        function showResults() {
+            userPrediction = predictionSlider.value;
+            showScreen('results-screen');
+            
+            // 模擬一個比較真實的排名
+            // 基礎分 + 隨機數，讓分數一樣的人排名也可能不同
+            let baseRank = score * 5; 
+            let randomFactor = Math.floor(Math.random() * 15);
+            let calculatedRank = Math.min(99, baseRank + randomFactor);
+
+            finalScore.textContent = `${score} / ${questions.length}`;
+            actualRank.textContent = `${calculatedRank}%`;
+            predictedRank.textContent = `${userPrediction}%`;
+        }
+
+        // 事件監聽
+        startBtn.addEventListener('click', startGame);
+        
+        predictionSlider.addEventListener('input', (e) => {
+            sliderValue.textContent = `${e.target.value}%`;
+        });
+
+        submitPredictionBtn.addEventListener('click', showResults);
+        
+        nextQuestionBtn.addEventListener('click', handleNext);
+        
+        playAgainBtn.addEventListener('click', () => {
+            showScreen('start-screen');
+        });
+
+    </script>
+</body>
+</html>
