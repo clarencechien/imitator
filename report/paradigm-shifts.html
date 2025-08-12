@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式報告：典範轉移與贏家的詛咒 (增強版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: The application is structured into two main, switchable thematic sections: "The Smartphone Era" and "The AI Era". This non-linear design allows users to directly compare the historical case study with the current analysis. Within each era, users can interactively select companies to view detailed analyses, turning the article's narrative into an exploratory experience. This structure was chosen to highlight the core thesis—the recurring pattern of the "Winner's Curse"—by placing the past and present side-by-side for direct comparison, enhancing user understanding and engagement far more effectively than a linear article format. -->
+    <!-- Visualization & Content Choices: 1. Company Analysis (Smartphone/AI Eras): Goal: Compare strategies. Method: Interactive tabs/buttons dynamically display content blocks for each company (Nokia, Microsoft, Apple, Amazon, etc.). Interaction: User click. Justification: Encourages active exploration over passive reading. Library: Vanilla JS. 2. Market Share Chart (Nokia vs. Samsung): Goal: Show quantitative disparity. Method: Bar chart. Interaction: Static view. Justification: A simple, impactful visualization of a key data point. Library: Chart.js. 3. Paradigm Evolution Diagrams: Goal: Explain a process. Method: HTML/CSS recreation of the source diagrams. Interaction: Hover-to-reveal tooltips. Justification: Makes static diagrams from the report interactive and self-explanatory. Library: Vanilla JS + Tailwind CSS. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8;
+            color: #383838;
+        }
+        .tab-active {
+            background-color: #A6B1E1;
+            color: #FFFFFF;
+        }
+        .tab-inactive {
+            background-color: #EFEFEF;
+            color: #383838;
+        }
+        .content-card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAEAEA;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            transition: all 0.3s ease-in-out;
+        }
+        .company-btn-active {
+            background-color: #424874;
+            color: #FFFFFF;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .company-btn-inactive {
+            background-color: #DCD6F7;
+            color: #424874;
+        }
+        .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .has-tooltip:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .quote-dramatic {
+            position: relative;
+            background-color: #424874;
+            color: #FDFBF8;
+            border-left: 5px solid #A6B1E1;
+            padding: 1.5rem;
+            padding-left: 2.5rem;
+            border-radius: 0.5rem;
+            margin: 1.5rem 0;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        .quote-dramatic::before {
+            content: '“';
+            position: absolute;
+            left: 0.5rem;
+            top: 0.5rem;
+            font-size: 3rem;
+            line-height: 1;
+            color: #A6B1E1;
+            font-family: serif;
+        }
+        .quote-dramatic footer {
+            text-align: right;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            font-style: italic;
+            color: #DCD6F7;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#424874] mb-2">典範轉移與贏家的詛咒</h1>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">一份關於科技巨頭如何在新舊時代更迭中應對挑戰的互動式分析報告。</p>
+        </header>
+
+        <nav class="flex justify-center mb-10">
+            <div class="flex space-x-2 p-1 bg-gray-200 rounded-full">
+                <button onclick="switchEra('smartphone')" id="btn-smartphone" class="tab-active text-sm md:text-base font-semibold py-2 px-4 md:px-6 rounded-full transition-colors duration-300">智慧型手機時代</button>
+                <button onclick="switchEra('ai')" id="btn-ai" class="tab-inactive text-sm md:text-base font-semibold py-2 px-4 md:px-6 rounded-full transition-colors duration-300">人工智慧時代</button>
+            </div>
+        </nav>
+
+        <main id="app-content">
+
+            <!-- Smartphone Era Section -->
+            <section id="era-smartphone">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-[#424874] mb-2">案例研究：智慧型手機的崛起</h2>
+                    <p class="text-md text-gray-600 max-w-2xl mx-auto">從PC到行動優先的轉變，重新定義了市場贏家與輸家。上一代王者為何隕落？新晉霸主又如何崛起？</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    <div class="content-card p-6">
+                        <h3 class="text-2xl font-bold text-[#424874] mb-4">時代的定義者</h3>
+                        <p class="text-gray-700 mb-4">智慧型手機時代由兩股力量共同塑造：<b class="text-[#A6B1E1]">蘋果 (Apple)</b> 的iPhone創造了以觸控為核心的用戶體驗和App Store分銷模式，囊括了市場絕大部分利潤。與此同時，<b class="text-[#A6B1E1]">亞馬遜 (AWS)</b> 提前佈局雲端，為行動應用提供了無所不在的數據與運算基礎。兩者結合，開啟了「連續運算」的全新典範。</p>
+                        <blockquote class="border-l-4 border-[#A6B1E1] pl-4 py-2 my-4 bg-slate-50 text-gray-600">
+                            「雲端意味著應用和數據可從任何地方存取；行動裝置則讓I/O層無處不在。兩者結合使運算變得連續不間斷。」
+                        </blockquote>
+                    </div>
+                     <div class="content-card p-6">
+                        <h3 class="text-2xl font-bold text-[#424874] mb-4">市場份額劇變 (2007)</h3>
+                        <p class="text-gray-700 mb-4">2007年iPhone問世，市場格局已現裂痕。諾基亞雖仍是銷量冠軍，但三星的快速追趕預示了舊秩序的崩潰。下方的圖表展示了當時兩者的手機銷量對比。</p>
+                        <div class="chart-container relative h-64 w-full max-w-md mx-auto">
+                            <canvas id="marketShareChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card p-6 mt-8">
+                    <h3 class="text-2xl font-bold text-center text-[#424874] mb-6">輸家的詛咒：為何昔日王者會失敗？</h3>
+                    <div class="flex justify-center flex-wrap gap-3 mb-6">
+                        <button id="btn-nokia" onclick="showCompany('nokia')" class="company-btn-active font-semibold py-2 px-5 rounded-full transition-all duration-300">諾基亞 (Nokia)</button>
+                        <button id="btn-microsoft" onclick="showCompany('microsoft')" class="company-btn-inactive font-semibold py-2 px-5 rounded-full transition-all duration-300">微軟 (Microsoft)</button>
+                    </div>
+                    <div id="company-details">
+                        <div id="content-nokia">
+                            <h4 class="text-xl font-bold text-[#424874] mb-2">核心問題：驕傲與路徑依賴</h4>
+                            <p class="text-gray-700 mb-3">諾基亞曾擁有無可匹敵的硬體、供應鏈與分銷網絡，但在新典範中，這些優勢變得次要。真正的戰場轉移到了作業系統與應用生態。諾基亞的根本性失敗在於，他們沒有承認自身在軟體上的弱點，反而出於驕傲，試圖打造一個全新的作業系統來對抗iOS和Android，最終耗盡了所有優勢。</p>
+                            <p class="text-gray-700">最明智的策略本應是擁抱Android，利用其免費、成熟的生態，專注於自己擅長的硬體和渠道。但他們沒有這麼做。</p>
+                            <blockquote class="quote-dramatic">
+                                擁有一個生態系似乎比擁有服務或供應鏈重要得多，即使打造這個生態系會讓你真正擅長的東西完全貶值。
+                            </blockquote>
+                        </div>
+                        <div id="content-microsoft" class="hidden">
+                            <h4 class="text-xl font-bold text-[#424874] mb-2">核心問題：錯把舊地圖當新大陸</h4>
+                            <p class="text-gray-700 mb-3">微軟試圖將PC時代的Windows霸權延伸到行動裝置上，但行動裝置是「完全不同」的物種。他們花了數年才意識到，過去的成功反而是創新的包袱。在「現實」中iOS與Android瓜分世界時，「雷德蒙」的微軟卻還活在PC時代的幻夢裡，加倍下注於註定失敗的Windows Phone，甚至為此推遲了Office登陸iOS。</p>
+                             <blockquote class="quote-dramatic">
+                                所有人都必須從零開始，而既然是從零開始，微軟就沒有任何內建優勢可言。他們純粹是在執行力上輸了。
+                            </blockquote>
+                        </div>
+                    </div>
+                </div>
+                 <div class="content-card p-6 mt-8">
+                    <h3 class="text-2xl font-bold text-center text-[#424874] mb-6">贏家的策略：為何後來者能居上？</h3>
+                    <div class="flex justify-center flex-wrap gap-3 mb-6">
+                        <button id="btn-samsung" onclick="showWinner('samsung')" class="company-btn-active font-semibold py-2 px-5 rounded-full transition-all duration-300">三星 (Samsung)</button>
+                        <button id="btn-google" onclick="showWinner('google')" class="company-btn-inactive font-semibold py-2 px-5 rounded-full transition-all duration-300">Google</button>
+                    </div>
+                    <div id="winner-details">
+                        <div id="content-samsung">
+                            <h4 class="text-xl font-bold text-[#424874] mb-2">核心策略：無恥的模仿與快速迭代</h4>
+                            <p class="text-gray-700">三星的成功，在於他們放下了身段，意識到需要快速改變。他們「無恥地」模仿了iPhone的硬體設計，並迅速擁抱Android。他們不在乎外界的看法，只做對公司最有利的事。在商業上，這不是對錯問題，而是生存問題。他們是唯一存活下來並蓬勃發展的iPhone前時代手機製造商。</p>
+                        </div>
+                        <div id="content-google" class="hidden">
+                            <h4 class="text-xl font-bold text-[#424874] mb-2">核心策略：務實的轉向</h4>
+                            <p class="text-gray-700">Android早期也公然抄襲了iOS的介面設計。但這正是務實的表現：蘋果已經證明了什麼是可行的，不去學習才是愚蠢的。Google透過Android抓住了非iPhone市場，並藉由搜尋業務從整個生態中獲利。這種不被「原創」包袱所困的靈活性，是他們成功的關鍵。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Era Section -->
+            <section id="era-ai" class="hidden">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-[#424874] mb-2">當前挑戰：人工智慧的浪潮</h2>
+                    <p class="text-md text-gray-600 max-w-2xl mx-auto">AI是否是下一個典範轉移？智慧型手機時代的贏家——蘋果與亞馬遜——正站在歷史的十字路口。他們會重蹈覆轍，還是成功駕馭新浪潮？</p>
+                </div>
+
+                <div class="content-card p-6">
+                    <h3 class="text-2xl font-bold text-center text-[#424874] mb-6">現任王者的AI策略</h3>
+                     <div class="flex justify-center flex-wrap gap-3 mb-6">
+                        <button id="btn-apple-ai" onclick="showAiCompany('apple-ai')" class="company-btn-active font-semibold py-2 px-5 rounded-full transition-all duration-300">蘋果 (Apple)</button>
+                        <button id="btn-amazon-ai" onclick="showAiCompany('amazon-ai')" class="company-btn-inactive font-semibold py-2 px-5 rounded-full transition-all duration-300">亞馬遜 (Amazon)</button>
+                    </div>
+                    <div id="ai-company-details">
+                        <div id="content-apple-ai">
+                            <h4 class="text-xl font-bold text-[#424874] mb-2">策略核心：設備端、個人化、隱私</h4>
+                            <p class="text-gray-700 mb-4">蘋果認為，對用戶最有用的AI是基於個人數據的AI。他們的策略是利用強大的Apple Silicon晶片在設備端運行「夠好的」本地AI，並透過私有雲運算處理進階任務，以此保護用戶隱私。他們賭的是，AI將成為iPhone體驗的一部分，而非一個獨立的平台。這是一個典型的將新技術融入現有成功產品的「持續性創新」路徑。</p>
+                            <blockquote class="quote-dramatic">
+                                我們很少是第一個…但我們發明了這些產品類別的『現代』版本。這就是我對AI的感覺。
+                                <footer>– Tim Cook</footer>
+                            </blockquote>
+                        </div>
+                        <div id="content-amazon-ai" class="hidden">
+                            <h4 class="text-xl font-bold text-[#424874] mb-2">策略核心：雲端、企業級、成本效益</h4>
+                            <p class="text-gray-700 mb-4">亞馬遜認為，對企業最有用的AI是基於其海量企業數據的AI。他們的策略是將AI視為像運算、儲存一樣的基礎元件，並利用自家的AI晶片（如Trainium）提供高性價比的推論服務。他們賭的是，AI最終會商品化，而成本和效率將是決勝關鍵。這與他們將一切服務化的AWS模式一脈相承。</p>
+                             <blockquote class="quote-dramatic">
+                                我認為現在AI還處於非常早期的階段…大量的運算和推論最終將會在Trainium2上運行。
+                                <footer>– Andy Jassy</footer>
+                            </blockquote>
+                        </div>
+                    </div>
+                     <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="text-xl font-bold text-center text-[#424874] mb-2">潛在風險：贏家的詛咒重現？</h4>
+                        <p class="text-gray-700 text-center max-w-3xl mx-auto">兩家公司的策略都與他們在上一時代的成功路徑高度一致。他們冒的風險是，隱含地假設AI<b class="text-red-500">不是</b>一次徹底的典範轉移。但如果AI的未來是「代理人(Agents)」和「自主運算」，那麼最重要的將是極致的性能，而非成本或隱私。這可能讓蘋果和亞馬遜的現有優勢變得無關緊要。</p>
+                    </div>
+                </div>
+                
+                <div class="content-card p-6 mt-8">
+                    <h3 class="text-2xl font-bold text-center text-[#424874] mb-6">未來的運算典範</h3>
+                    <p class="text-center text-gray-600 mb-6 max-w-3xl mx-auto">從集中式批次處理到無所不在的連續運算，再到AI驅動的自主/增強未來。將滑鼠懸停在下方圖示上以了解各階段的意義。</p>
+                    <div class="flex flex-col md:flex-row justify-around items-center space-y-8 md:space-y-0 md:space-x-4">
+                        <!-- Diagram Item 1 -->
+                        <div class="text-center relative has-tooltip">
+                            <div class="w-24 h-24 bg-[#DCD6F7] rounded-full flex items-center justify-center text-4xl mb-2">🖥️</div>
+                            <p class="font-bold">批次處理</p>
+                            <p class="text-sm text-gray-500">一個房間</p>
+                            <div class="tooltip absolute bottom-full mb-2 w-48 bg-gray-800 text-white text-xs rounded py-1 px-2 text-center">在大型主機時代，運算任務被成批提交，非即時。</div>
+                        </div>
+                        <!-- Arrow -->
+                        <div class="text-2xl text-gray-400 hidden md:block">→</div>
+                        <!-- Diagram Item 2 -->
+                        <div class="text-center relative has-tooltip">
+                            <div class="w-24 h-24 bg-[#DCD6F7] rounded-full flex items-center justify-center text-4xl mb-2">💻</div>
+                            <p class="font-bold">刻意運算</p>
+                            <p class="text-sm text-gray-500">桌面/本地</p>
+                             <div class="tooltip absolute bottom-full mb-2 w-48 bg-gray-800 text-white text-xs rounded py-1 px-2 text-center">PC時代，用戶需要主動在特定設備上進行操作。</div>
+                        </div>
+                        <!-- Arrow -->
+                        <div class="text-2xl text-gray-400 hidden md:block">→</div>
+                        <!-- Diagram Item 3 -->
+                        <div class="text-center relative has-tooltip">
+                            <div class="w-24 h-24 bg-[#A6B1E1] rounded-full flex items-center justify-center text-4xl mb-2">📱</div>
+                            <p class="font-bold">連續運算</p>
+                            <p class="text-sm text-gray-500">無所不在</p>
+                            <div class="tooltip absolute bottom-full mb-2 w-48 bg-gray-800 text-white text-xs rounded py-1 px-2 text-center">手機與雲端結合，運算隨時隨地發生，不間斷。</div>
+                        </div>
+                        <!-- Arrow -->
+                        <div class="text-2xl text-red-500 font-bold hidden md:block">→</div>
+                        <!-- Diagram Item 4 -->
+                        <div class="text-center relative has-tooltip">
+                            <div class="w-24 h-24 bg-[#424874] rounded-full flex items-center justify-center text-4xl text-white mb-2">🤖</div>
+                            <p class="font-bold">自主/增強</p>
+                            <p class="text-sm text-gray-500">隨心所欲</p>
+                            <div class="tooltip absolute bottom-full mb-2 w-48 bg-gray-800 text-white text-xs rounded py-1 px-2 text-center">AI代理人自主工作，或AR眼鏡增強現實，運算變得主動且無形。</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-card p-6 mt-8">
+                    <h3 class="text-2xl font-bold text-center text-[#424874] mb-4">挑戰者：值得重新審視的Google</h3>
+                     <p class="text-gray-700 mb-4 text-center max-w-3xl mx-auto">相較於蘋果和亞馬遜策略上的路徑依賴，Google在AI時代的表現更值得關注。他們成功駕馭了從PC到行動的轉變，現在又全力投入AI。他們看似無定形的「學院派」文化，雖然難以分析，但可能正是跨越多個典範並最終勝出的關鍵。</p>
+                     <blockquote class="quote-dramatic">
+                        分析市場的最佳方式，本應是假設前一個典範的贏家將在新典範中受到根本性的束縛，這不是儘管他們取得了成功，而是<b>因為</b>他們的成功。
+                    </blockquote>
+                </div>
+
+            </section>
+        </main>
+
+        <footer class="text-center mt-12 pt-8 border-t border-gray-200">
+            <p class="text-gray-500 text-sm">此互動式報告基於 Stratechery by Ben Thompson 的文章進行分析與視覺化呈現。</p>
+        </footer>
+
+    </div>
+
+    <script>
+        const marketShareData = {
+            labels: ['手機銷量 (百萬部)'],
+            datasets: [{
+                label: '諾基亞 (Nokia)',
+                data: [110],
+                backgroundColor: '#A6B1E1',
+                borderColor: '#424874',
+                borderWidth: 1
+            }, {
+                label: '三星 (Samsung)',
+                data: [41],
+                backgroundColor: '#DCD6F7',
+                borderColor: '#A6B1E1',
+                borderWidth: 1
+            }]
+        };
+
+        const marketShareConfig = {
+            type: 'bar',
+            data: marketShareData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: '2007年主要手機製造商銷量對比'
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        };
+
+        let marketShareChart;
+
+        function initializeChart() {
+            const ctx = document.getElementById('marketShareChart');
+            if (ctx) {
+                if (marketShareChart) {
+                    marketShareChart.destroy();
+                }
+                marketShareChart = new Chart(ctx, marketShareConfig);
+            }
+        }
+        
+        function switchEra(era) {
+            const smartphoneSection = document.getElementById('era-smartphone');
+            const aiSection = document.getElementById('era-ai');
+            const smartphoneBtn = document.getElementById('btn-smartphone');
+            const aiBtn = document.getElementById('btn-ai');
+
+            if (era === 'smartphone') {
+                smartphoneSection.classList.remove('hidden');
+                aiSection.classList.add('hidden');
+                smartphoneBtn.classList.replace('tab-inactive', 'tab-active');
+                aiBtn.classList.replace('tab-active', 'tab-inactive');
+                initializeChart();
+            } else {
+                smartphoneSection.classList.add('hidden');
+                aiSection.classList.remove('hidden');
+                aiBtn.classList.replace('tab-inactive', 'tab-active');
+                smartphoneBtn.classList.replace('tab-active', 'tab-inactive');
+            }
+        }
+
+        function showCompany(company) {
+            const nokiaContent = document.getElementById('content-nokia');
+            const microsoftContent = document.getElementById('content-microsoft');
+            const nokiaBtn = document.getElementById('btn-nokia');
+            const microsoftBtn = document.getElementById('btn-microsoft');
+            
+            nokiaContent.classList.add('hidden');
+            microsoftContent.classList.add('hidden');
+            nokiaBtn.classList.replace('company-btn-active', 'company-btn-inactive');
+            microsoftBtn.classList.replace('company-btn-active', 'company-btn-inactive');
+
+            if (company === 'nokia') {
+                nokiaContent.classList.remove('hidden');
+                nokiaBtn.classList.replace('company-btn-inactive', 'company-btn-active');
+            } else {
+                microsoftContent.classList.remove('hidden');
+                microsoftBtn.classList.replace('company-btn-inactive', 'company-btn-active');
+            }
+        }
+        
+        function showWinner(company) {
+            const samsungContent = document.getElementById('content-samsung');
+            const googleContent = document.getElementById('content-google');
+            const samsungBtn = document.getElementById('btn-samsung');
+            const googleBtn = document.getElementById('btn-google');
+            
+            samsungContent.classList.add('hidden');
+            googleContent.classList.add('hidden');
+            samsungBtn.classList.replace('company-btn-active', 'company-btn-inactive');
+            googleBtn.classList.replace('company-btn-active', 'company-btn-inactive');
+
+            if (company === 'samsung') {
+                samsungContent.classList.remove('hidden');
+                samsungBtn.classList.replace('company-btn-inactive', 'company-btn-active');
+            } else {
+                googleContent.classList.remove('hidden');
+                googleBtn.classList.replace('company-btn-inactive', 'company-btn-active');
+            }
+        }
+
+        function showAiCompany(company) {
+            const appleContent = document.getElementById('content-apple-ai');
+            const amazonContent = document.getElementById('content-amazon-ai');
+            const appleBtn = document.getElementById('btn-apple-ai');
+            const amazonBtn = document.getElementById('btn-amazon-ai');
+
+            appleContent.classList.add('hidden');
+            amazonContent.classList.add('hidden');
+            appleBtn.classList.replace('company-btn-active', 'company-btn-inactive');
+            amazonBtn.classList.replace('company-btn-active', 'company-btn-inactive');
+
+            if (company === 'apple-ai') {
+                appleContent.classList.remove('hidden');
+                appleBtn.classList.replace('company-btn-inactive', 'company-btn-active');
+            } else {
+                amazonContent.classList.remove('hidden');
+                amazonBtn.classList.replace('company-btn-inactive', 'company-btn-active');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeChart();
+        });
+    </script>
+</body>
+</html>
