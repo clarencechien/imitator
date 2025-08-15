@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPad mini 7 採購決策分析工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as an interactive dashboard/calculator. It starts with a clear summary of the baseline device cost. The core of the app is a user-driven calculator where selecting a monthly plan and contract duration instantly updates the key financial metric: the 'Maximum Advisable Upfront Cost'. This is supported by a dynamic bar chart for immediate visual comparison of Total Cost of Ownership (TCO). Below the calculator, collapsible sections provide deeper analysis (cost breakdown, strategic factors) without cluttering the primary user flow. This structure guides the user from a high-level decision to detailed justification, making a complex financial report easily digestible and actionable. -->
+    <!-- Visualization & Content Choices: Report Info: TCO comparison between buying separately vs. telco bundle. -> Goal: Compare. -> Viz/Presentation: Dynamic Stacked Bar Chart (Chart.js). -> Interaction: Updates on user selection of plan/duration. -> Justification: Provides a clear visual breakdown of cost components (device vs. service) for each scenario, clarifying the financial trade-off instead of showing two identical totals. | Report Info: Service cost premium in enterprise plans. -> Goal: Organize/Compare. -> Viz/Presentation: Stacked Bar Chart (Chart.js) showing market cost vs. enterprise premium. -> Interaction: Updates with duration selection. -> Justification: Clearly visualizes the "hidden cost" discussed in the report. | Report Info: Qualitative factors (lock-in, flexibility). -> Goal: Inform. -> Viz/Presentation: Styled HTML cards with icons. -> Interaction: Static. -> Justification: Breaks down text-heavy concepts into scannable, visually appealing components. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8f7f4;
+            color: #4a4a4a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 450px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .control-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .control-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .control-btn:not(.active) {
+            background-color: #ffffff;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+        .result-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+        }
+        .section-title {
+            color: #1e3a8a;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">iPad mini 7 採購決策分析工具</h1>
+            <p class="mt-2 text-lg text-gray-600">基於 256GB Wi-Fi + 行動網路版 (建議售價 NT$25,400) 之財務分析</p>
+        </header>
+
+        <main>
+            <section id="calculator" class="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-8">
+                <h2 class="section-title text-2xl font-bold mb-6 text-center">互動成本效益計算機</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <div class="mb-6">
+                            <label class="block text-lg font-semibold mb-3 text-gray-700">1. 選擇 5G 月租方案</label>
+                            <div id="plan-selector" class="flex flex-wrap gap-3">
+                                <button data-plan="799" class="control-btn flex-1 font-semibold py-3 px-4 rounded-lg">NT$799</button>
+                                <button data-plan="999" class="control-btn flex-1 font-semibold py-3 px-4 rounded-lg active">NT$999</button>
+                                <button data-plan="1399" class="control-btn flex-1 font-semibold py-3 px-4 rounded-lg">NT$1399</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-lg font-semibold mb-3 text-gray-700">2. 選擇合約期間</label>
+                            <div id="duration-selector" class="flex flex-wrap gap-3">
+                                <button data-duration="24" class="control-btn flex-1 font-semibold py-3 px-4 rounded-lg active">24 個月</button>
+                                <button data-duration="30" class="control-btn flex-1 font-semibold py-3 px-4 rounded-lg">30 個月</button>
+                                <button data-duration="36" class="control-btn flex-1 font-semibold py-3 px-4 rounded-lg">36 個月</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-card border border-gray-200 rounded-2xl p-6 text-center flex flex-col justify-center h-full">
+                        <h3 class="text-lg font-semibold text-gray-600">此方案的「最高建議預繳專案價」為：</h3>
+                        <p id="breakeven-price" class="text-5xl font-bold text-blue-600 my-4">NT$ 16,400</p>
+                        <p id="recommendation-text" class="text-gray-700">若電信商報價低於此價格，則綁約方案在財務上是划算的。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tco-comparison" class="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-8">
+                <h2 class="section-title text-2xl font-bold mb-2 text-center">總體擁有成本 (TCO) 結構比較</h2>
+                <p class="text-center text-gray-600 mb-6">在「損益兩平點」上，比較兩種採購方式的成本組成。</p>
+                <div class="chart-container">
+                    <canvas id="tcoChart"></canvas>
+                </div>
+            </section>
+
+            <section id="detailed-analysis" class="mb-8">
+                <h2 class="section-title text-2xl font-bold mb-6 text-center">深入分析與策略考量</h2>
+                <div class="space-y-4">
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                        <details class="group">
+                            <summary class="flex items-center justify-between p-6 cursor-pointer">
+                                <h3 class="text-xl font-semibold text-gray-800">服務成本結構解析</h3>
+                                <span class="text-blue-500 group-open:rotate-180 transition-transform duration-300">▼</span>
+                            </summary>
+                            <div class="p-6 border-t border-gray-200">
+                                <p class="mb-4 text-gray-600">企業方案的月租費通常高於市場上「純門號」方案的實際成本。下圖顯示了您選擇的方案中，有多少是市場公允的服務費，又有多少是為了補貼設備而產生的「服務溢價」。</p>
+                                <div class="chart-container h-72 md:h-80">
+                                    <canvas id="costBreakdownChart"></canvas>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                        <details class="group">
+                            <summary class="flex items-center justify-between p-6 cursor-pointer">
+                                <h3 class="text-xl font-semibold text-gray-800">超越數字的策略性考量</h3>
+                                <span class="text-blue-500 group-open:rotate-180 transition-transform duration-300">▼</span>
+                            </summary>
+                            <div class="p-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="bg-blue-50 p-4 rounded-lg">
+                                    <h4 class="font-bold text-blue-800 mb-2">合約鎖定效應</h4>
+                                    <p class="text-sm text-blue-700">長期合約會讓您錯過未來可能出現的更優惠資費或新技術。綁約方案的折扣必須足以彌補您放棄的彈性。</p>
+                                </div>
+                                <div class="bg-green-50 p-4 rounded-lg">
+                                    <h4 class="font-bold text-green-800 mb-2">方案與需求契合度</h4>
+                                    <p class="text-sm text-green-700">評估您的真實數據用量。選擇遠超您需求的「吃到飽」方案，會讓設備補貼的效益大打折扣。</p>
+                                </div>
+                                <div class="bg-yellow-50 p-4 rounded-lg">
+                                    <h4 class="font-bold text-yellow-800 mb-2">企業方案的隱性價值</h4>
+                                    <p class="text-sm text-yellow-700">企業方案可能提供簡化帳務、優先客服、一站式採購等便利性，這些無形價值也應納入您的決策考量。</p>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-12 text-sm text-gray-500">
+            <p>此工具根據公開市場數據進行財務模型分析，實際報價請洽您的企業客戶經理。</p>
+            <p>&copy; 2024 策略性採購分析工具</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const DEVICE_PRICE = 25400;
+
+            const marketData = {
+                24: {
+                    799: { discount: 6000 },
+                    999: { discount: 9000 },
+                    1399: { discount: 14500 }
+                },
+                30: {
+                    799: { discount: 7500 },
+                    999: { discount: 11250 },
+                    1399: { discount: 18125 }
+                },
+                36: {
+                    799: { discount: 9000 },
+                    999: { discount: 13500 },
+                    1399: { discount: 21750 }
+                }
+            };
+
+            let currentState = {
+                plan: 999,
+                duration: 24
+            };
+
+            const breakevenPriceEl = document.getElementById('breakeven-price');
+            const recommendationTextEl = document.getElementById('recommendation-text');
+            const planSelector = document.getElementById('plan-selector');
+            const durationSelector = document.getElementById('duration-selector');
+
+            const tcoChartCtx = document.getElementById('tcoChart').getContext('2d');
+            const costBreakdownCtx = document.getElementById('costBreakdownChart').getContext('2d');
+            
+            let tcoChart, costBreakdownChart;
+
+            function formatCurrency(value) {
+                return `NT$ ${Math.round(value).toLocaleString()}`;
+            }
+
+            function calculateValues() {
+                const { plan, duration } = currentState;
+                const enterpriseTcv = plan * duration;
+                const marketDiscount = marketData[duration][plan].discount;
+                const marketTcv = enterpriseTcv - marketDiscount;
+                
+                const tcoBenchmark = DEVICE_PRICE + marketTcv;
+                const breakevenPrice = tcoBenchmark - enterpriseTcv;
+
+                return {
+                    enterpriseTcv,
+                    marketTcv,
+                    marketDiscount,
+                    tcoBenchmark,
+                    breakevenPrice
+                };
+            }
+
+            function updateUI() {
+                const { breakevenPrice } = calculateValues();
+                breakevenPriceEl.textContent = formatCurrency(breakevenPrice);
+                
+                document.querySelectorAll('#plan-selector button').forEach(btn => {
+                    btn.classList.toggle('active', parseInt(btn.dataset.plan) === currentState.plan);
+                });
+                document.querySelectorAll('#duration-selector button').forEach(btn => {
+                    btn.classList.toggle('active', parseInt(btn.dataset.duration) === currentState.duration);
+                });
+
+                updateCharts();
+            }
+
+            function createTcoChart() {
+                const { enterpriseTcv, marketTcv, breakevenPrice } = calculateValues();
+                tcoChart = new Chart(tcoChartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['分開購買 (設備+純門號)', '電信綁約方案 (損益兩平)'],
+                        datasets: [
+                            {
+                                label: '設備成本',
+                                data: [DEVICE_PRICE, breakevenPrice],
+                                backgroundColor: '#60a5fa',
+                                borderWidth: 1,
+                                borderRadius: 8
+                            },
+                            {
+                                label: '服務總成本',
+                                data: [marketTcv, enterpriseTcv],
+                                backgroundColor: '#a5b4fc',
+                                borderWidth: 1,
+                                borderRadius: 8
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true,
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `${context.dataset.label}: ${formatCurrency(context.raw)}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: (value) => formatCurrency(value)
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function createCostBreakdownChart() {
+                const { marketTcv, marketDiscount } = calculateValues();
+                costBreakdownChart = new Chart(costBreakdownCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [`${currentState.duration}個月合約`],
+                        datasets: [
+                            {
+                                label: '市場公允服務費',
+                                data: [marketTcv],
+                                backgroundColor: '#a5b4fc',
+                                borderWidth: 1,
+                                borderRadius: 8
+                            },
+                            {
+                                label: '服務溢價 (用於補貼設備)',
+                                data: [marketDiscount],
+                                backgroundColor: '#fca5a5',
+                                borderWidth: 1,
+                                borderRadius: 8
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `${context.dataset.label}: ${formatCurrency(context.raw)}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                                ticks: {
+                                    callback: (value) => `${value/1000}k`
+                                }
+                            },
+                            y: {
+                                stacked: true,
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateCharts() {
+                const { enterpriseTcv, marketTcv, breakevenPrice, marketDiscount } = calculateValues();
+                
+                if (tcoChart) {
+                    tcoChart.data.datasets[0].data = [DEVICE_PRICE, breakevenPrice];
+                    tcoChart.data.datasets[1].data = [marketTcv, enterpriseTcv];
+                    tcoChart.update();
+                }
+
+                if (costBreakdownChart) {
+                    costBreakdownChart.data.labels = [`${currentState.duration}個月合約`];
+                    costBreakdownChart.data.datasets[0].data = [marketTcv];
+                    costBreakdownChart.data.datasets[1].data = [marketDiscount];
+                    costBreakdownChart.update();
+                }
+            }
+
+            planSelector.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    currentState.plan = parseInt(e.target.dataset.plan);
+                    updateUI();
+                }
+            });
+
+            durationSelector.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    currentState.duration = parseInt(e.target.dataset.duration);
+                    updateUI();
+                }
+            });
+
+            createTcoChart();
+            createCostBreakdownChart();
+            updateUI();
+        });
+    </script>
+</body>
+</html>
