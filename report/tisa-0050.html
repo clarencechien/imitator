@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TISA 0050 連結基金 vs. 直購 0050 ETF 互動分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony Neutrals -->
+    <!-- Application Structure Plan: The SPA is structured as a user-centric decision guide, moving from a high-level comparison to a personalized simulation and a final recommendation. This flow (Compare -> Simulate -> Decide) is more intuitive than the report's linear structure. It starts with a side-by-side feature comparison for quick understanding. The core is an interactive simulator that makes the abstract concept of "tax drag" tangible and personal. It concludes with clear, profile-based recommendations and an FAQ for details. This architecture prioritizes user engagement and clarity, transforming a dense report into an actionable tool. -->
+    <!-- Visualization & Content Choices: 1. Report's Quantitative Model -> Goal: Personalize long-term impact -> Viz: Interactive Line Chart (Chart.js/Canvas) -> Interaction: A slider for investment amount, buttons for time horizon, and a dropdown for tax rate update the chart instantly. Justification: This hybrid approach offers both precision (slider) and speed (buttons) for the most common user inputs, creating an optimal UX. 2. Cost & Tax Tables -> Goal: Direct comparison -> Viz: Side-by-side cards (HTML/Tailwind) with icons -> Interaction: None. Justification: Enhances scannability. 3. Recommendation Section -> Goal: Actionable advice -> Viz: Checklist-style columns (HTML/Tailwind). Justification: Easy for users to self-identify. 4. Detailed Explanations -> Goal: Optional depth -> Viz: Accordion (HTML/JS). Justification: Hides complexity, reduces cognitive load. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF7;
+            color: #3D405B;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        .control-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .control-btn.active {
+            background-color: #81B29A;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+        .slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #81B29A;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        .slider-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #E0E0E0;
+            border-radius: 5px;
+        }
+        input[type='range']::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            margin-top: -6px;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-[#3D405B]">投資路徑選擇器</h1>
+            <div class="hidden md:flex space-x-8 text-gray-600">
+                <a href="#comparison" class="hover:text-[#81B29A] transition-colors">優劣比較</a>
+                <a href="#simulator" class="hover:text-[#81B29A] transition-colors">財富模擬</a>
+                <a href="#recommendation" class="hover:text-[#81B29A] transition-colors">策略建議</a>
+                <a href="#faq" class="hover:text-[#81B29A] transition-colors">常見問答</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <section class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4 text-[#3D405B]">TISA 0050連結基金 vs. 直購 0050 ETF</h2>
+            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">該選擇極致的稅務效率，還是無可取代的投資彈性？本工具將透過互動模擬，助您找到最適合的長期投資策略。</p>
+        </section>
+
+        <section id="comparison" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-center mb-10">關鍵差異：全方位比較</h3>
+            <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+                兩種投資方式的核心差異在於成本結構、稅務處理與資金彈性。本節將各項優劣並陳，讓您一目了然。理解這些根本差異，是做出明智決策的第一步。
+            </p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200/50">
+                    <h4 class="text-2xl font-bold mb-6 text-center text-[#81B29A]">TISA 0050連結基金</h4>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">📈</span>
+                            <div><strong class="font-semibold">核心優勢：稅務效率</strong><p class="text-gray-600 text-sm">股利自動再投資，持有期間完全免繳股利所得稅與二代健保補充保費，將應稅所得轉化為免稅的資本利得。</p></div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">💰</span>
+                            <div><strong class="font-semibold">交易成本：趨近於零</strong><p class="text-gray-600 text-sm">連續扣款24個月即享申購、贖回0手續費優惠，極大化小額投資效益。</p></div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">🔒</span>
+                            <div><strong class="font-semibold">投資紀律：機制約束</strong><p class="text-gray-600 text-sm">24個月的承諾有助於克服市場波動時的非理性賣出衝動，強制執行長期投資策略。</p></div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">⏳</span>
+                            <div><strong class="font-semibold">資金彈性：較低</strong><p class="text-gray-600 text-sm">僅能定期定額，無法擇時加減碼。贖回需數個工作日，資金流動性較差。</p></div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200/50">
+                    <h4 class="text-2xl font-bold mb-6 text-center text-[#E07A5F]">直購 0050 ETF</h4>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">💸</span>
+                            <div><strong class="font-semibold">核心劣勢：稅務拖累</strong><p class="text-gray-600 text-sm">每年需將股利併入綜合所得稅計算，或採28%分離課稅，並可能產生二代健保補充保費，侵蝕長期複利效果。</p></div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">🛒</span>
+                            <div><strong class="font-semibold">交易成本：極低</strong><p class="text-gray-600 text-sm">券商手續費折扣多，但賣出時需支付0.1%證券交易稅，是無法避免的固定成本。</p></div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">🕊️</span>
+                            <div><strong class="font-semibold">投資紀律：考驗人性</strong><p class="text-gray-600 text-sm">完全的交易自由，也意味著投資者需憑藉自身紀律對抗市場情緒，避免追高殺低。</p></div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-2xl mr-4">⚡</span>
+                            <div><strong class="font-semibold">資金彈性：極高</strong><p class="text-gray-600 text-sm">可在盤中隨時買賣，可單筆、定期定額或波段操作，資金T+2日即可入帳，流動性絕佳。</p></div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="simulator" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-center mb-10">互動財富模擬器</h3>
+            <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+                紙上談兵不如實際演算。請調整您的每月投資額與期間，並選擇稅率，即時模擬兩種策略的長期財富差距。
+            </p>
+            <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200/50">
+                <div class="grid md:grid-cols-3 gap-8 mb-8 items-end">
+                    <div>
+                        <label for="monthlyInvestment" class="block font-medium mb-2 text-center">1. 每月投資金額</label>
+                        <input type="range" id="monthlyInvestment" min="5000" max="50000" step="1000" value="15000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-track">
+                        <div class="text-center mt-2 font-semibold text-lg text-[#3D405B]">NT$ <span id="monthlyInvestmentValue">15,000</span></div>
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-2 text-center">2. 選擇投資期間</label>
+                        <div id="investmentHorizon" class="flex justify-center gap-2">
+                            <button data-value="10" class="control-btn px-5 py-2 bg-gray-200 rounded-full">10年</button>
+                            <button data-value="20" class="control-btn px-5 py-2 bg-gray-200 rounded-full active">20年</button>
+                            <button data-value="30" class="control-btn px-5 py-2 bg-gray-200 rounded-full">30年</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="taxBracket" class="block font-medium mb-2 text-center">3. 您的所得稅率</label>
+                        <select id="taxBracket" class="w-full p-2 border border-gray-300 rounded-md focus:ring-[#81B29A] focus:border-[#81B29A]">
+                            <option value="0.05">5%</option>
+                            <option value="0.12" selected>12%</option>
+                            <option value="0.20">20%</option>
+                            <option value="0.30">30%</option>
+                            <option value="0.40">40%</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="wealthChart"></canvas>
+                </div>
+                <div id="simulationResult" class="mt-8 text-center bg-[#FDFBF7] p-6 rounded-lg">
+                    <h4 class="text-xl font-bold mb-2">模擬結果</h4>
+                    <p class="text-gray-700">經過 <span id="resultYears" class="font-bold">20</span> 年，在 <span id="resultTax" class="font-bold">12%</span> 稅率下...</p>
+                    <div class="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-8 mt-4">
+                        <div class="text-left">
+                            <p class="text-sm text-gray-500">TISA 0050 連結基金</p>
+                            <p id="tisaValue" class="text-2xl font-bold text-[#81B29A]">NT$ 0</p>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-sm text-gray-500">直購 0050 ETF</p>
+                            <p id="etfValue" class="text-2xl font-bold text-[#E07A5F]">NT$ 0</p>
+                        </div>
+                    </div>
+                     <p class="mt-4 text-lg">TISA 策略最終領先 <strong id="valueDifference" class="text-[#81B29A]">NT$ 0</strong> (<strong id="percentageDifference" class="text-[#81B29A]">0.00%</strong>)。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="recommendation" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-center mb-10">基於您的輪廓：策略建議</h3>
+            <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+                綜合所有因素，最終選擇取決於您的個人財務狀況與投資哲學。以下框架能幫助您快速定位，找到最符合自身長期利益的道路。
+            </p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-[#81B29A]">
+                    <h4 class="text-2xl font-bold mb-6 text-center">✔️ 選擇 TISA 0050 連結基金，如果...</h4>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex"><span class="mr-3">👍</span>您是高所得人士 (稅率20%以上)，稅務優化效益最大。</li>
+                        <li class="flex"><span class="mr-3">🎯</span>您的投資目標是極長期的退休規劃 (10年以上)。</li>
+                        <li class="flex"><span class="mr-3">🧘</span>您欣賞「設定後即忘記」的模式，需要機制來強化紀律。</li>
+                        <li class="flex"><span class="mr-3">🏆</span>您的核心目標是最大化「稅後」總資產，願意犧牲彈性。</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-[#E07A5F]">
+                    <h4 class="text-2xl font-bold mb-6 text-center">✔️ 選擇 直購 0050 ETF，如果...</h4>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex"><span class="mr-3">👍</span>您處於較低所得稅級距 (5%或12%)，稅務影響較小。</li>
+                        <li class="flex"><span class="mr-3">🔑</span>您高度重視資金的流動性，可能在數年內動用資金。</li>
+                        <li class="flex"><span class="mr-3">🧠</span>您是紀律嚴明的投資者，有信心堅持長期計畫。</li>
+                        <li class="flex"><span class="mr-3">🛠️</span>您希望運用更多元策略，如單筆加碼或波段操作。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <section id="faq" class="scroll-mt-20">
+            <h3 class="text-3xl font-bold text-center mb-10">常見問答 (FAQ)</h3>
+             <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+                此處整理了關於兩種投資方式更深入的細節與解釋，幫助您釐清所有疑問。
+            </p>
+            <div class="space-y-4 max-w-4xl mx-auto">
+                <div class="bg-white rounded-lg shadow-md">
+                    <button class="w-full text-left p-4 font-semibold flex justify-between items-center accordion-toggle">
+                        <span>TISA 的「24個月承諾」如果中斷了會怎麼樣？</span>
+                        <span class="transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                        <p class="p-4 pt-0 text-gray-600">後果相對溫和。並非沒收獲利或罰款，而是在中止、贖回或扣款失敗後的6個月內，不能再對「同一檔」TISA基金新增定期定額契約。您原有的部位可以繼續持有或隨時贖回。這個設計主要是為了勸退短期投機者，而非懲罰長期投資者。</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md">
+                    <button class="w-full text-left p-4 font-semibold flex justify-between items-center accordion-toggle">
+                        <span>為什麼TISA能做到股利不配息，而直接買ETF不行？</span>
+                        <span class="transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                        <p class="p-4 pt-0 text-gray-600">這是由其「連結基金」的結構決定的。您投資的TISA基金是一個獨立的共同基金，它去持有0050 ETF。當0050配息時，現金是配給TISA基金這個「法人」，而不是您個人。TISA基金再依其「不配息」的公開說明書規定，將這筆錢直接再投資，推升基金淨值。而您直接持有ETF時，您就是股利發放的直接對象，因此一定會收到現金並產生稅負。</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md">
+                    <button class="w-full text-left p-4 font-semibold flex justify-between items-center accordion-toggle">
+                        <span>TISA連結基金的內扣費用會不會比直接買ETF高很多？</span>
+                        <span class="transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                        <p class="p-4 pt-0 text-gray-600">不會。為了避免雙重收費，法規規定連結基金投資於主基金(0050)的部位，經理公司不得再收取經理費。TISA級別甚至對其餘現金部位的經理費提供折扣。因此，兩者的總費用率(TER)非常接近，尤其在0050於2025年大幅調降費用後，內扣成本的差距已微乎其微，不再是決策的關鍵因素。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white mt-20 border-t">
+        <div class="container mx-auto px-6 py-6 text-center text-gray-500">
+            <p>&copy; 2025 投資路徑選擇器. 內容僅供參考，不構成任何投資建議。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const monthlyInvestmentSlider = document.getElementById('monthlyInvestment');
+            const monthlyInvestmentValue = document.getElementById('monthlyInvestmentValue');
+            const investmentHorizonContainer = document.getElementById('investmentHorizon');
+            const taxBracketSelect = document.getElementById('taxBracket');
+
+            const resultYears = document.getElementById('resultYears');
+            const resultTax = document.getElementById('resultTax');
+            const tisaValueEl = document.getElementById('tisaValue');
+            const etfValueEl = document.getElementById('etfValue');
+            const valueDifferenceEl = document.getElementById('valueDifference');
+            const percentageDifferenceEl = document.getElementById('percentageDifference');
+
+            let wealthChart;
+            
+            const simulationParams = {
+                investment: 15000,
+                horizon: 20,
+                taxRate: 0.12
+            };
+
+            const formatCurrency = (num) => `NT$ ${Math.round(num).toLocaleString()}`;
+            const formatNumber = (num) => `${Math.round(num).toLocaleString()}`;
+
+            function calculateWealth(P, years, taxRate) {
+                const annualReturn = 0.08;
+                const capitalGainRate = 0.05;
+                const dividendYield = 0.03;
+
+                const tisaTER = 0.0028;
+                const etfTER = 0.0023;
+
+                const n = years * 12;
+                const r_monthly_tisa = Math.pow(1 + annualReturn - tisaTER, 1/12) - 1;
+                
+                let tisaFutureValue = 0;
+                for (let i = 0; i < n; i++) {
+                    tisaFutureValue = (tisaFutureValue + P) * (1 + r_monthly_tisa);
+                }
+
+                let dividendTax;
+                if (taxRate <= 0.12) {
+                    dividendTax = Math.max(0, taxRate - 0.085);
+                } else {
+                    dividendTax = 0.28;
+                }
+                const healthInsurancePremium = 0.0211;
+                
+                const effectiveDividendYield = dividendYield * (1 - dividendTax - healthInsurancePremium);
+                const etfAnnualReturn = (1 + capitalGainRate) * (1 + effectiveDividendYield) - 1;
+                const r_monthly_etf = Math.pow(1 + etfAnnualReturn - etfTER, 1/12) - 1;
+                
+                let etfFutureValue = 0;
+                for (let i = 0; i < n; i++) {
+                    etfFutureValue = (etfFutureValue + P) * (1 + r_monthly_etf);
+                }
+                
+                const transactionTax = 0.001;
+                const finalEtfValue = etfFutureValue * (1 - transactionTax);
+
+                return { tisaFutureValue, finalEtfValue };
+            }
+
+            function generateChartData() {
+                const { investment, horizon, taxRate } = simulationParams;
+                const labels = Array.from({ length: horizon + 1 }, (_, i) => `第 ${i} 年`);
+                const tisaData = [0];
+                const etfData = [0];
+
+                for (let y = 1; y <= horizon; y++) {
+                    const { tisaFutureValue, finalEtfValue } = calculateWealth(investment, y, taxRate);
+                    tisaData.push(tisaFutureValue);
+                    etfData.push(finalEtfValue);
+                }
+                
+                return { labels, tisaData, etfData };
+            }
+
+            function runSimulation() {
+                const { investment, horizon, taxRate } = simulationParams;
+                
+                monthlyInvestmentValue.textContent = formatNumber(investment);
+                
+                const { tisaFutureValue, finalEtfValue } = calculateWealth(investment, horizon, taxRate);
+                const { labels, tisaData, etfData } = generateChartData();
+                
+                const taxText = taxBracketSelect.options[taxBracketSelect.selectedIndex].text;
+
+                resultYears.textContent = horizon;
+                resultTax.textContent = taxText;
+                tisaValueEl.textContent = formatCurrency(tisaFutureValue);
+                etfValueEl.textContent = formatCurrency(finalEtfValue);
+
+                const difference = tisaFutureValue - finalEtfValue;
+                const percentage = finalEtfValue > 0 ? (difference / finalEtfValue) * 100 : 0;
+                
+                valueDifferenceEl.textContent = formatCurrency(difference);
+                percentageDifferenceEl.textContent = `${percentage.toFixed(2)}%`;
+
+                if (wealthChart) {
+                    wealthChart.data.labels = labels;
+                    wealthChart.data.datasets[0].data = tisaData;
+                    wealthChart.data.datasets[1].data = etfData;
+                    wealthChart.update();
+                } else {
+                    const ctx = document.getElementById('wealthChart').getContext('2d');
+                    wealthChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'TISA 0050 連結基金',
+                                    data: tisaData,
+                                    borderColor: '#81B29A',
+                                    backgroundColor: 'rgba(129, 178, 154, 0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.1
+                                },
+                                {
+                                    label: '直購 0050 ETF',
+                                    data: etfData,
+                                    borderColor: '#E07A5F',
+                                    backgroundColor: 'rgba(224, 122, 95, 0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            if (value >= 1000000) return (value / 1000000) + 'M';
+                                            if (value >= 1000) return (value / 1000) + 'K';
+                                            return value;
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            if (context.parsed.y !== null) {
+                                                label += formatCurrency(context.parsed.y);
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            monthlyInvestmentSlider.addEventListener('input', (e) => {
+                simulationParams.investment = parseInt(e.target.value);
+                runSimulation();
+            });
+
+            investmentHorizonContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    investmentHorizonContainer.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    simulationParams.horizon = parseInt(e.target.dataset.value);
+                    runSimulation();
+                }
+            });
+
+            taxBracketSelect.addEventListener('change', (e) => {
+                simulationParams.taxRate = parseFloat(e.target.value);
+                runSimulation();
+            });
+            
+            document.querySelectorAll('.accordion-toggle').forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    const icon = button.querySelector('span:last-child');
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.classList.remove('rotate-180');
+                    } else {
+                        document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+                        document.querySelectorAll('.accordion-toggle span:last-child').forEach(i => i.classList.remove('rotate-180'));
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.classList.add('rotate-180');
+                    }
+                });
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            runSimulation();
+        });
+    </script>
+</body>
+</html>
