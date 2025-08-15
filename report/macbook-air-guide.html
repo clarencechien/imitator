@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacBook Air 兩年持有成本互動分析儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Subtle Blue Accent -->
+    <!-- Application Structure Plan: A dashboard-style, single-page application divided into four logical, scrollable sections: 1) Executive Summary Dashboard, 2) Cost Breakdown Analysis, 3) Resale Value Factors, and 4) Strategic Comparison & Recommendation. This structure transforms the linear report into a task-oriented experience. Users can get a quick overview, dive into cost details, understand risks, and compare final options sequentially. Interactive elements like buttons and charts allow users to explore data non-linearly within each section, enhancing usability and comprehension far better than a simple text document. -->
+    <!-- Visualization & Content Choices: 
+        1.  Initial Cost Comparison: Goal: Compare purchase prices. Viz: Interactive Bar Chart (Chart.js). Interaction: Hover to see exact prices. Justification: Bar charts are ideal for direct comparison of discrete values.
+        2.  Total Cost of Ownership (TCO) Breakdown: Goal: Show cost composition. Viz: Stacked Bar Chart (Chart.js). Interaction: Buttons to switch between purchase channels, dynamically updating the chart. Justification: Stacked bars clearly visualize how different components (net cost, AppleCare+) contribute to the total cost for each scenario.
+        3.  Resale Value Scenarios: Goal: Illustrate depreciation risk. Viz: Donut Chart (Chart.js) showing value retention vs. depreciation. Interaction: Buttons to select Optimistic, Realistic, Pessimistic scenarios, updating the chart and text. Justification: A donut chart provides an immediate, intuitive sense of proportion for value loss, which is the core concept.
+        4.  Strategy Comparison: Goal: Directly compare "Buy-to-Lease" vs. "Direct Lease". Viz: Side-by-side metric cards (HTML/Tailwind). Interaction: Clear visual separation. Justification: For a final, high-level comparison of two distinct options, simple, bold metric cards are more direct and impactful than a complex chart.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #FDFBF8; color: #3D405B; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .tab-button { transition: all 0.3s ease; }
+        .tab-button.active { color: #3D405B; background-color: #E0DCD3; border-color: #3D405B; }
+        .tab-button:not(.active) { color: #81849A; background-color: transparent; }
+        .card { background-color: #FFFFFF; border: 1px solid #E0DCD3; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .metric-value { color: #8D5A4B; }
+        .section-title { border-bottom: 2px solid #8D5A4B; padding-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-7xl">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-2">MacBook Air 持有成本效益分析</h1>
+            <p class="text-lg text-gray-600">一個為期兩年的「以買代租」互動決策儀表板</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="sticky top-0 bg-[#FDFBF8]/80 backdrop-blur-sm z-10 py-4 mb-12 border-b border-gray-200">
+            <div class="flex justify-center space-x-4 md:space-x-8">
+                <a href="#summary" class="nav-link text-gray-600 hover:text-gray-900 font-medium">總覽</a>
+                <a href="#cost" class="nav-link text-gray-600 hover:text-gray-900 font-medium">成本分析</a>
+                <a href="#resale" class="nav-link text-gray-600 hover:text-gray-900 font-medium">殘值預測</a>
+                <a href="#recommendation" class="nav-link text-gray-600 hover:text-gray-900 font-medium">最終建議</a>
+            </div>
+        </nav>
+
+        <!-- Section 1: Executive Summary Dashboard -->
+        <section id="summary" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold mb-6 text-center section-title">決策總覽：關鍵數據儀表板</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-10">此儀表板濃縮了本報告的核心發現。我們將「購買後轉售」的策略視為一種租賃形式，計算其兩年期的總持有成本 (TCO)，並與專業租賃服務進行比較，以找出最具經濟效益的方案。</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-700">最佳「以買代租」月均成本</h3>
+                    <p class="text-4xl font-bold metric-value">NT$ 1,737</p>
+                    <p class="text-sm text-gray-500 mt-2">(教育價購買 + AppleCare+)</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-700">預估專業租賃月均成本</h3>
+                    <p class="text-4xl font-bold metric-value">NT$ 2,500+</p>
+                    <p class="text-sm text-gray-500 mt-2">(高階客製化機型)</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-700">兩年預計節省金額</h3>
+                    <p class="text-4xl font-bold metric-value">NT$ 18,000+</p>
+                    <p class="text-sm text-gray-500 mt-2">(「以買代租」策略優勢)</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Cost Breakdown Analysis -->
+        <section id="cost" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold mb-6 text-center section-title">第一步：購置成本與總持有成本分析</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-10">總持有成本 (TCO) 不僅僅是購買價格。它包含初始支出、風險管理成本（如 AppleCare+），並減去最終的轉售價值。此處我們將解構不同購買管道下的成本結構，了解每一分錢的去向。</p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-center">不同管道初始購置成本比較</h3>
+                    <div class="chart-container h-64 md:h-80">
+                        <canvas id="initialCostChart"></canvas>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-center">兩年期總持有成本 (TCO) 結構</h3>
+                    <div class="flex justify-center space-x-2 mb-4">
+                        <button id="btnRetail" class="tab-button text-sm py-2 px-4 border-b-2 font-medium">官方零售</button>
+                        <button id="btnEdu" class="tab-button text-sm py-2 px-4 border-b-2 font-medium active">教育優惠</button>
+                    </div>
+                    <div class="chart-container h-64 md:h-80">
+                        <canvas id="tcoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Resale Value Factors -->
+        <section id="resale" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold mb-6 text-center section-title">第二步：轉售價值預測與風險</h2>
+             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-10">轉售價值是決定此策略成敗的關鍵變數。受到「Apple Silicon 效應」影響，Mac 的折舊速度加快。此處我們模擬三種情境下的殘值，並分析影響價值的核心因素，幫助您最大化資產回收。</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-center">兩年後殘值情境分析</h3>
+                    <div class="flex justify-center space-x-2 mb-4">
+                        <button class="tab-button scenario-btn text-sm py-2 px-4 border-b-2 font-medium" data-scenario="optimistic">樂觀</button>
+                        <button class="tab-button scenario-btn text-sm py-2 px-4 border-b-2 font-medium active" data-scenario="realistic">現實</button>
+                        <button class="tab-button scenario-btn text-sm py-2 px-4 border-b-2 font-medium" data-scenario="pessimistic">悲觀</button>
+                    </div>
+                    <div class="chart-container h-64 md:h-80">
+                        <canvas id="resaleValueChart"></canvas>
+                    </div>
+                </div>
+                <div id="resaleInfo" class="card p-8">
+                    <h3 class="text-2xl font-bold mb-4" id="scenarioTitle">現實情境</h3>
+                    <p class="text-gray-600 mb-4" id="scenarioDescription">設備有輕微使用痕跡，在 M6 新機型發布後售出。這是最可能發生的情況。</p>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="font-semibold">預估殘值 / 原始價值</p>
+                            <p class="text-2xl font-bold metric-value" id="scenarioValue">~40%</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold">關鍵因素</p>
+                            <ul class="list-disc list-inside text-gray-600">
+                                <li><strong>Apple Silicon 效應：</strong>M系列晶片清晰的世代劃分，加速了舊機型的「感知過時性」。</li>
+                                <li><strong>客製化溢價折舊：</strong>高價的 RAM/SSD 升級在二手市場回收價值有限。</li>
+                                <li><strong>出售時機：</strong>在新機發表前 1-2 個月是最佳出售窗口。</li>
+                                <li><strong>機況與電池：</strong>外觀與電池健康度是影響價格的直觀關鍵。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Strategic Comparison & Recommendation -->
+        <section id="recommendation" class="scroll-mt-24">
+            <h2 class="text-3xl font-bold mb-6 text-center section-title">最終章：策略比較與執行建議</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-10">綜合所有數據，我們在此正面對決「以買代租」與「直接租賃」兩種策略。結論相當明確，但成功的關鍵在於執行。下方提供分步操作指南，助您實現最大財務效益。</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <div class="card p-8">
+                    <h3 class="text-2xl font-bold mb-4">🏆 最佳策略：「以買代租」</h3>
+                    <p class="text-gray-600 mb-6">透過精心規劃的購買、持有與出售流程，此策略能以最低的總成本，讓您享受到頂尖科技帶來的生產力。</p>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold">優點</h4>
+                            <p class="text-gray-600">總成本顯著較低、完全的設備所有權、可隨時出售的高度彈性。</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">風險與挑戰</h4>
+                            <p class="text-gray-600">需投入大量前期資本、承擔二手市場價格波動風險、自行負責維護與出售流程。</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="card p-8 bg-gray-50">
+                    <h3 class="text-2xl font-bold mb-4"> alternatif 策略：「直接租賃」</h3>
+                    <p class="text-gray-600 mb-6">此方案提供無可取代的便利性與成本可預測性，但代價是更高的總支出。適合完全規避風險或有特定企業財務規劃需求的用戶。</p>
+                     <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold">優點</h4>
+                            <p class="text-gray-600">零轉售風險、無需前期資本、全包式服務（維修、支援）、合約期滿無縫升級。</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">風險與挑戰</h4>
+                            <p class="text-gray-600">總成本顯著較高、無資產所有權、受合約約束、高階客製化選項稀少且昂貴。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-8">
+                 <h3 class="text-2xl font-bold mb-4 text-center">最大化回報：分步執行計畫</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                     <div>
+                         <h4 class="font-bold text-lg mb-2">1. 採購階段</h4>
+                         <p class="text-gray-600">等待「Back to School」檔期，利用教育優惠購買，並將贈品轉售，將初始成本降至最低。</p>
+                     </div>
+                     <div>
+                         <h4 class="font-bold text-lg mb-2">2. 持有階段</h4>
+                         <p class="text-gray-600">將設備視為待售資產。使用保護殼/貼，維持完美外觀與電池健康，並完整保留原廠盒裝配件。</p>
+                     </div>
+                     <div>
+                         <h4 class="font-bold text-lg mb-2">3. 出售階段</h4>
+                         <p class="text-gray-600">使用約 22 個月後，在下一代晶片發表前 1-2 個月，將完整清除資料的設備上架多個平台出售。</p>
+                     </div>
+                 </div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer class="text-center py-8 mt-12 border-t border-gray-200">
+        <p class="text-gray-500">此互動報告基於提供的財務分析文件產生。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const initialCostData = {
+                labels: ['官方零售', '教育優惠', '授權經銷商 (預估)'],
+                datasets: [{
+                    label: '初始購置成本 (NT$)',
+                    data: [62900, 59400, 58900],
+                    backgroundColor: ['#8D5A4B', '#B48A7A', '#E0DCD3'],
+                    borderColor: ['#8D5A4B', '#B48A7A', '#E0DCD3'],
+                    borderWidth: 1,
+                    borderRadius: 5,
+                }]
+            };
+
+            const tcoData = {
+                retail: {
+                    labels: ['官方零售 TCO'],
+                    datasets: [
+                        { label: '兩年期淨成本', data: [38900], backgroundColor: '#B48A7A', borderRadius: 5, },
+                        { label: 'AppleCare+ 成本', data: [6290], backgroundColor: '#E0DCD3', borderRadius: 5, }
+                    ]
+                },
+                edu: {
+                    labels: ['教育優惠 TCO'],
+                    datasets: [
+                        { label: '兩年期淨成本', data: [35400], backgroundColor: '#B48A7A', borderRadius: 5, },
+                        { label: 'AppleCare+ 成本', data: [6290], backgroundColor: '#E0DCD3', borderRadius: 5, }
+                    ]
+                }
+            };
+
+            const resaleValueData = {
+                optimistic: { percent: 50, desc: '設備狀況完美如新，且在新品發布前成功售出。', title: '樂觀情境' },
+                realistic: { percent: 40, desc: '設備有輕微使用痕跡，在 M6 新機型發布後售出。這是最可能發生的情況。', title: '現實情境' },
+                pessimistic: { percent: 30, desc: '設備有明顯外觀損傷，或在市場供給飽和時售出。', title: '悲觀情境' }
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: (value) => value / 1000 + 'K' } },
+                    x: { grid: { display: false } }
+                }
+            };
+
+            const pieChartOptions = {
+                 responsive: true,
+                 maintainAspectRatio: false,
+                 plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed !== null) {
+                                    label += context.parsed + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                 }
+            };
+
+            const initialCostCtx = document.getElementById('initialCostChart').getContext('2d');
+            const initialCostChart = new Chart(initialCostCtx, {
+                type: 'bar',
+                data: initialCostData,
+                options: { ...chartOptions, indexAxis: 'y' }
+            });
+
+            const tcoCtx = document.getElementById('tcoChart').getContext('2d');
+            const tcoChart = new Chart(tcoCtx, {
+                type: 'bar',
+                data: tcoData.edu,
+                options: { ...chartOptions, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { callback: (value) => value / 1000 + 'K' } } } }
+            });
+
+            const resaleValueCtx = document.getElementById('resaleValueChart').getContext('2d');
+            let resaleValueChart;
+            
+            function updateResaleChart(scenario) {
+                const data = resaleValueData[scenario];
+                const chartData = {
+                    labels: ['保留價值', '折舊損失'],
+                    datasets: [{
+                        data: [data.percent, 100 - data.percent],
+                        backgroundColor: ['#8D5A4B', '#E0DCD3'],
+                        borderColor: '#FFFFFF',
+                        borderWidth: 2,
+                    }]
+                };
+                if (resaleValueChart) {
+                    resaleValueChart.data = chartData;
+                    resaleValueChart.update();
+                } else {
+                    resaleValueChart = new Chart(resaleValueCtx, {
+                        type: 'doughnut',
+                        data: chartData,
+                        options: pieChartOptions
+                    });
+                }
+
+                document.getElementById('scenarioTitle').textContent = data.title;
+                document.getElementById('scenarioDescription').textContent = data.desc;
+                document.getElementById('scenarioValue').textContent = `~${data.percent}%`;
+            }
+
+            document.getElementById('btnRetail').addEventListener('click', (e) => {
+                tcoChart.data = tcoData.retail;
+                tcoChart.update();
+                document.querySelector('.tab-button.active').classList.remove('active');
+                e.target.classList.add('active');
+            });
+
+            document.getElementById('btnEdu').addEventListener('click', (e) => {
+                tcoChart.data = tcoData.edu;
+                tcoChart.update();
+                document.querySelector('.tab-button.active').classList.remove('active');
+                e.target.classList.add('active');
+            });
+
+            document.querySelectorAll('.scenario-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelector('.scenario-btn.active').classList.remove('active');
+                    e.target.classList.add('active');
+                    updateResaleChart(e.target.dataset.scenario);
+                });
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            updateResaleChart('realistic');
+        });
+    </script>
+</body>
+</html>
