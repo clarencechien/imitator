@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式訪談摘要：Lyn Alden 的金融洞見 (增補版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: The SPA is designed as a thematic journey through Lyn Alden's key ideas. It begins with foundational concepts ("What is Money?", "Three Eras"), moves to a critical analysis of the present ("The Broken System"), explores her personal background which shapes her views ("Personal Journey"), and concludes with forward-looking insights ("Future Vision", "Advice"). This structure allows users to build a comprehensive understanding, connecting her theories to her personal philosophy and practical advice. A new "Personal Journey" section was added to provide crucial context for her perspective, making her analysis more relatable. -->
+    <!-- Visualization & Content Choices: 
+        - What is Money?: Report Info -> Core definition of money, including illustrative examples. Goal -> Inform. Viz/Presentation -> Interactive toggle with added specific criteria and the "Godfather" anecdote. Interaction -> Clickable tabs. Justification -> The added details make the abstract theories more concrete and memorable. Library/Method -> Vanilla JS.
+        - Three Eras of Money: Report Info -> Historical evolution with emphasis on the "speed gap". Goal -> Show Change. Viz/Presentation -> Horizontal timeline with more detailed descriptions for each era. Interaction -> Clickable eras. Justification -> Highlighting the "speed gap" provides a clearer rationale for the transition between eras. Library/Method -> HTML/CSS with JS.
+        - The Broken System (Chart & Diagram): Report Info -> Currency debasement and capital hierarchy. Goal -> Compare & Organize. Viz/Presentation -> Bar chart with more precise data (6-8% range) and a new HTML/CSS "Capital Pyramid" diagram. Interaction -> Chart tooltips, static diagram. Justification -> The pyramid visually explains the unfair flow of capital, a core concept that a simple chart cannot capture. It makes the idea of "arbitraging the system" explicit. Library/Method -> Chart.js, HTML/CSS.
+        - Personal Journey (New Section): Report Info -> Alden's personal history and spending philosophy. Goal -> Inform/Contextualize. Viz/Presentation -> A narrative section with highlighted quotes and the "Hyundai vs. Toyota" anecdote. Interaction -> Static text. Justification -> Adds a crucial human element, explaining the "why" behind her financial views and building trust with the user. Library/Method -> HTML/CSS.
+        - Navigating the Future: Report Info -> Expanded descriptions of future scenarios. Goal -> Compare. Viz/Presentation -> Clickable cards with more detailed text. Interaction -> Click reveals text. Justification -> Fuller descriptions provide a richer understanding of her long-term vision. Library/Method -> Vanilla JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+            scroll-behavior: smooth;
+        }
+        .nav-btn {
+            transition: all 0.3s ease;
+        }
+        .nav-btn.active {
+            background-color: #A67B5B;
+            color: #FFFFFF;
+            font-weight: 700;
+        }
+        .content-card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAEAEA;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .content-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+        .interactive-tab {
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        .interactive-tab.active {
+            color: #A67B5B;
+            border-bottom-color: #A67B5B;
+        }
+        .timeline-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .timeline-item.active .timeline-dot {
+            background-color: #A67B5B;
+            transform: scale(1.5);
+        }
+        .timeline-item.active .timeline-title {
+            color: #A67B5B;
+            font-weight: 700;
+        }
+        .timeline-dot {
+            transition: all 0.3s ease;
+        }
+        .chart-container {
+            position: relative; 
+            width: 100%; 
+            max-width: 700px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 40vh;
+            max-height: 400px;
+        }
+        .pyramid {
+            display: grid;
+            grid-template-rows: repeat(3, auto);
+            gap: 2px;
+        }
+        .pyramid-level {
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+            padding: 2rem 1rem 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="sticky top-0 bg-white/80 backdrop-blur-lg shadow-sm z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between py-4">
+                <h1 class="text-xl md:text-2xl font-bold text-[#A67B5B]">Lyn Alden 的金融洞見</h1>
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                    <button onclick="scrollToSection('what-is-money')" class="nav-btn active px-4 py-2 rounded-full text-sm font-medium">貨幣本質</button>
+                    <button onclick="scrollToSection('eras-of-money')" class="nav-btn px-4 py-2 rounded-full text-sm font-medium">貨幣三時代</button>
+                    <button onclick="scrollToSection('broken-system')" class="nav-btn px-4 py-2 rounded-full text-sm font-medium">破碎的體系</button>
+                    <button onclick="scrollToSection('personal-journey')" class="nav-btn px-4 py-2 rounded-full text-sm font-medium">個人歷程</button>
+                    <button onclick="scrollToSection('future-vision')" class="nav-btn px-4 py-2 rounded-full text-sm font-medium">未來展望</button>
+                    <button onclick="scrollToSection('advice')" class="nav-btn px-4 py-2 rounded-full text-sm font-medium">給您的建議</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        
+        <section id="intro" class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">解構破碎的貨幣</h2>
+            <p class="max-w-3xl mx-auto text-gray-600">頂尖經濟分析師 Lyn Alden 深入剖析金錢的歷史、當代金融體系的失衡，以及科技如何為我們帶來一個更公平的未來。本頁將訪談精華轉化為互動式體驗，帶您探索她的核心觀點。</p>
+        </section>
+
+        <div class="space-y-16">
+
+            <section id="what-is-money" class="scroll-mt-20">
+                <div class="content-card p-6 md:p-8 rounded-xl">
+                    <h3 class="text-2xl font-bold mb-2 text-center">貨幣的本質：一本帳本</h3>
+                    <p class="text-center text-gray-600 mb-6">Lyn Alden 指出，無論形式如何，貨幣的根本都是一本「帳本」，用以記錄價值交換。這個概念整合了兩種主要的貨幣理論。您可以點擊下方頁籤，了解這兩種理論的差異。</p>
+                    <div class="flex justify-center border-b mb-6">
+                        <div id="tab-commodity" class="interactive-tab active px-6 py-3 font-medium" onclick="switchMoneyTheory('commodity')">理論一：商品貨幣</div>
+                        <div id="tab-credit" class="interactive-tab px-6 py-3 font-medium" onclick="switchMoneyTheory('credit')">理論二：信用貨幣</div>
+                    </div>
+                    <div id="content-commodity">
+                        <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">商品貨幣：以自然為帳本</h4>
+                        <p class="text-gray-700 mb-4">此觀點認為，人們會自然地尋找一種適合作為貨幣的商品。它必須具備可分割、可攜帶、同質性高且難以大量製造的特性。在歷史長河中，不同的商品（如貝殼、銅）相互競爭，最終黃金和白銀因其優越的「高庫存流量比」而勝出，成為了主導性的貨幣。這種貨幣的價值根植於其物理稀缺性，本質上是將「大自然」作為最可靠的帳本。</p>
+                        <div class="text-sm p-3 bg-gray-50 rounded-lg"><strong>關鍵特性：</strong> 耐用、可分割、可攜帶、稀缺性。</div>
+                    </div>
+                    <div id="content-credit" class="hidden">
+                        <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">信用貨幣：以信任為帳本</h4>
+                        <p class="text-gray-700 mb-4">此觀點認為，交易的核心是信用，不一定需要實體物品交換。在一個社群中，麵包師傅可以先提供麵包給屠夫，屠夫則給予一個「未來償還」的承諾（信用）。這種信用網路在小社群中是非正式的，隨著經濟規模擴大，則演變為由銀行或政府等第三方機構來維護的正式帳本。金錢在此扮演的角色，是可轉移的信用憑證，讓交易更順暢。</p>
+                        <div class="text-sm p-3 bg-gray-50 rounded-lg"><strong>經典案例：</strong> Lyn Alden 引用電影《教父》的開場，維托·柯里昂為人幫忙，不求金錢回報，而是要求對方欠他一份「未來可能需要償還的人情」。這就是最純粹的信用交換。</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="eras-of-money" class="scroll-mt-20">
+                 <div class="content-card p-6 md:p-8 rounded-xl">
+                    <h3 class="text-2xl font-bold mb-2 text-center">貨幣三時代：科技如何改變一切</h3>
+                    <p class="text-center text-gray-600 mb-8">Lyn Alden 將貨幣的歷史劃分為三個關鍵時代，其轉捩點在於「電信技術」的發明。這項技術徹底改變了交易與結算的速度，從而重塑了全球金融的權力格局。點擊下方的時代節點，探索各時期的特點。</p>
+                    <div class="w-full px-2">
+                        <div class="relative">
+                            <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-300 -translate-y-1/2"></div>
+                            <div class="flex justify-between relative">
+                                <div id="timeline-1" class="timeline-item active w-1/3 text-center" onclick="switchEra(1)">
+                                    <div class="timeline-dot w-4 h-4 rounded-full bg-gray-300 mx-auto mb-2"></div>
+                                    <p class="timeline-title text-sm md:text-base font-medium">前電信時代</p>
+                                </div>
+                                <div id="timeline-2" class="timeline-item w-1/3 text-center" onclick="switchEra(2)">
+                                    <div class="timeline-dot w-4 h-4 rounded-full bg-gray-300 mx-auto mb-2"></div>
+                                    <p class="timeline-title text-sm md:text-base font-medium">電信崛起時代</p>
+                                </div>
+                                <div id="timeline-3" class="timeline-item w-1/3 text-center" onclick="switchEra(3)">
+                                    <div class="timeline-dot w-4 h-4 rounded-full bg-gray-300 mx-auto mb-2"></div>
+                                    <p class="timeline-title text-sm md:text-base font-medium">數位結算時代</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="era-content" class="mt-8 p-4 bg-gray-50 rounded-lg">
+                        <div id="era-1">
+                            <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">前電信時代 (1830s 之前)</h4>
+                            <p class="text-gray-700">此時期以實體商品貨幣為主，特別是黃金和白銀。交易速度受限於物理運輸，但交易與結算的速度大致同步。貨幣的權力掌握在擁有稀有商品的人手中，而非中心化機構。</p>
+                        </div>
+                        <div id="era-2" class="hidden">
+                            <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">電信崛起時代 (約 1830s - 2008)</h4>
+                            <p class="text-gray-700">電報、電話和網路的發明，讓交易速度可以達到光速，但最終的價值「結算」仍需依賴緩慢的實體（如黃金）或中心化的銀行帳本。這種「速度差」催生了強大的中央銀行和民族國家帳本體系，權力高度集中。這是一個交易飛快，但結算緩慢的矛盾時代。</p>
+                        </div>
+                        <div id="era-3" class="hidden">
+                            <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">數位結算時代 (2009 - 至今)</h4>
+                            <p class="text-gray-700">比特幣的發明首次實現了「快速的去中心化結算」。它彌補了存在一個半世紀的速度差距，提供了一個不依賴任何中心機構的平行基礎層。這挑戰了現有的金融權力結構，並催生了穩定幣等建構於舊體系之上的新技術。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="broken-system" class="scroll-mt-20">
+                <div class="content-card p-6 md:p-8 rounded-xl">
+                    <h3 class="text-2xl font-bold mb-2 text-center">破碎的體系：為何你不公平地被稀釋？</h3>
+                    <p class="text-center text-gray-600 mb-8">當前的法定貨幣體系存在結構性問題。政府透過增加貨幣供給（俗稱「印鈔」）來支應赤字，這本質上是一種隱形稅收，會持續稀釋普通人的儲蓄和薪資購買力。下圖顯示了已開發國家與開發中國家平均的貨幣供給年增長率。</p>
+                    <div class="chart-container">
+                        <canvas id="debasementChart"></canvas>
+                    </div>
+                    <div class="mt-12">
+                        <h4 class="font-bold text-lg text-center mb-4">資本階級金字塔：財富如何流動</h4>
+                        <div class="max-w-md mx-auto space-y-4">
+                            <div class="bg-amber-100 p-4 rounded-lg text-center shadow">
+                                <h5 class="font-bold">頂層：套利者 👑</h5>
+                                <p class="text-sm text-amber-800">大型企業或富裕個人能以極低利率借入貶值的貨幣（做空貨幣），轉而購買比特幣、股權、房地產等稀缺資產，從貨幣貶值中獲利。</p>
+                            </div>
+                             <div class="bg-orange-100 p-4 rounded-lg text-center shadow">
+                                <h5 class="font-bold">中層：資產持有者 🏠</h5>
+                                <p class="text-sm text-orange-800">持有股票、房產等資產的中產階級，其資產價格可能因貨幣增發而上漲，但他們無法像頂層那樣主動利用低成本槓桿。</p>
+                            </div>
+                            <div class="bg-stone-200 p-4 rounded-lg text-center shadow">
+                                <h5 class="font-bold">底層：現金持有者 💵</h5>
+                                <p class="text-sm text-stone-800">依賴薪資和現金儲蓄的廣大群眾，包括開發中國家的用戶或穩定幣持有者。他們無法獲得有意義的利息，其購買力被頂層的套利行為持續侵蝕。</p>
+                            </div>
+                        </div>
+                         <p class="text-center text-gray-600 mt-6">這個體系導致回報不成比例地流向最能套利系統的人，而非最有生產力的人，從而加劇了貧富差距。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="personal-journey" class="scroll-mt-20">
+                <div class="content-card p-6 md:p-8 rounded-xl">
+                    <h3 class="text-2xl font-bold mb-2 text-center">個人歷程與投資哲學</h3>
+                    <p class="text-center text-gray-600 mb-6">Lyn Alden 的金融觀點深受其個人成長經歷的影響。她曾在貧困中成長，甚至一度無家可歸。這段經歷讓她對金錢、儲蓄和風險產生了深刻且務實的看法。</p>
+                    <div class="grid md:grid-cols-2 gap-6 items-center">
+                        <div>
+                            <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">從匱乏到儲蓄</h4>
+                            <p class="text-gray-700 mb-4">童年的不穩定環境讓她很早就意識到儲蓄的重要性。從七、八歲開始，她便會存下收到的零用錢，並對收集金銀幣產生興趣，可說是一位「早期的黃金信徒」。這段經歷培養了她對未來進行規劃和為風險做準備的習慣。</p>
+                            <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">投資風格：保守且分散</h4>
+                            <p class="text-gray-700">「我從不讓自己處於完全專注於單一資產的境地。」她的投資風格相對同齡人更為保守，強調資產分散，從不將所有雞蛋放在同一個籃子裡。這種策略讓她即使在市場劇烈波動時（如 FTX 崩盤），也能保持冷靜，甚至尋找加碼的機會。</p>
+                        </div>
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                            <h4 class="font-bold text-lg mb-2">消費哲學：解決「痛點」，而非追逐地位</h4>
+                            <blockquote class="border-l-4 border-[#A67B5B] pl-4 italic text-gray-600 mb-4">
+                                「追逐地位的象徵不是一件好事。一個很好的用錢方式是解決『痛點』。」
+                            </blockquote>
+                            <p class="text-gray-700">她以自己的車為例：她開了 16 年的現代汽車，直到它壽終正寢才換成豐田。對她而言，車只是代步工具，將錢花在昂貴的汽車上無法解決她的任何「痛點」。相反，她願意投資於提升旅行品質，因為那是她真正的痛點。她的建議是，有意識地把錢花在能真正提升自己幸福感的地方，而非陷入社會定義的「成功標準」中。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="future-vision" class="scroll-mt-20">
+                <div class="content-card p-6 md:p-8 rounded-xl">
+                    <h3 class="text-2xl font-bold mb-2 text-center">未來展望：兩種可能的貨幣未來</h3>
+                    <p class="text-center text-gray-600 mb-8">面對破碎的貨幣體系，未來會如何演變？Lyn Alden 提出了兩種可能的場景：一個是我們有生之年可見的現實路徑，另一個則是更為理想的科幻願景。</p>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div id="vision-realistic" class="border p-6 rounded-lg cursor-pointer hover:bg-gray-50" onclick="showVision('realistic')">
+                            <h4 class="font-bold text-lg mb-2 text-center">現實場景：貨幣的凝聚</h4>
+                            <p class="text-sm text-gray-600 text-center">點擊查看我們有生之年最可能看到的貨幣體系演變。</p>
+                        </div>
+                        <div id="vision-ideal" class="border p-6 rounded-lg cursor-pointer hover:bg-gray-50" onclick="showVision('ideal')">
+                            <h4 class="font-bold text-lg mb-2 text-center">理想場景：健全貨幣</h4>
+                             <p class="text-sm text-gray-600 text-center">點擊探索一個完全擺脫法定貨幣的理想未來。</p>
+                        </div>
+                    </div>
+                     <div id="vision-content-container" class="mt-6 p-4 bg-gray-50 rounded-lg hidden">
+                        <div id="vision-content-realistic" class="hidden">
+                            <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">現實場景：貨幣的凝聚</h4>
+                            <p class="text-gray-700">全球 180 多種法定貨幣的「碎裂化」狀態將開始逆轉。隨著網路普及和比特幣、穩定幣等選項的出現，最小、最弱的貨幣將逐漸被淘汰。人們會將價值轉移到更強勢的貨幣或比特幣中。這個世界將是比特幣與少數幾種主要法定貨幣長期共存的局面，人們的選擇權會增加，但舊體系依然存在。</p>
+                        </div>
+                        <div id="vision-content-ideal" class="hidden">
+                            <h4 class="font-bold text-lg mb-2 text-[#A67B5B]">理想場景：健全貨幣</h4>
+                            <p class="text-gray-700">完全擺脫法定貨幣。我們將擁有一個更透明、更公平的基礎貨幣層（如比特幣）。在這種體系下，投資將不再是為了對抗通膨而必須做的事，而是真正為了資助有價值的創新而進行的選擇。未來的人們回顧歷史，會覺得我們這個時代「錢是無中生有」的概念非常奇怪，一個更健康的經濟環境得以建立。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="advice" class="scroll-mt-20 text-center">
+                 <h3 class="text-2xl font-bold mb-4">給普通人的建議</h3>
+                 <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg border">
+                        <h4 class="font-bold text-lg mb-2">💡 財務上：對抗稀釋</h4>
+                        <p class="text-gray-600">時刻問自己：「我是否正在被稀釋？」盡力持有稀缺的資產（如比特幣、優質股權），並在可能的情況下，安全地做空那些不稀缺、供給不斷增加的東西（如法定貨幣）。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border">
+                        <h4 class="font-bold text-lg mb-2">🛠️ 職涯上：擁抱現實世界</h4>
+                        <p class="text-gray-600">AI 擅長處理數據中心內的任務（耗能約 20 百萬瓦），但在物理世界中，「可攜式 AI」的能源效率遠低於人類（大腦耗能僅 20 瓦）。因此，那些需要在戶外、非結構化環境中操作的高技能藍領工作，反而最能抵抗 AI 的衝擊。成為一個全面發展、能在現實世界解決問題的人，將是長期的優勢。</p>
+                    </div>
+                 </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer class="bg-gray-100 mt-16">
+        <div class="container mx-auto px-4 py-6 text-center text-gray-500 text-sm">
+            <p>此頁面是根據「邦妮區塊鏈」對 Lyn Alden 的訪談內容創建的互動式摘要。所有觀點均來自原訪談。</p>
+            <p>&copy; 2025 互動式摘要</p>
+        </div>
+    </footer>
+
+    <script>
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        const sections = document.querySelectorAll('section[id]');
+        const navBtns = document.querySelectorAll('.nav-btn');
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.4
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            let visibleSectionId = '';
+            entries.forEach(entry => {
+                if (entry.isIntersecting && entry.intersectionRatio >= 0.4) {
+                    visibleSectionId = entry.target.id;
+                }
+            });
+
+            if (visibleSectionId) {
+                 navBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.getAttribute('onclick').includes(visibleSectionId)) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+        }, observerOptions);
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+        function switchMoneyTheory(theory) {
+            const commodityTab = document.getElementById('tab-commodity');
+            const creditTab = document.getElementById('tab-credit');
+            const commodityContent = document.getElementById('content-commodity');
+            const creditContent = document.getElementById('content-credit');
+
+            if (theory === 'commodity') {
+                commodityTab.classList.add('active');
+                creditTab.classList.remove('active');
+                commodityContent.classList.remove('hidden');
+                creditContent.classList.add('hidden');
+            } else {
+                commodityTab.classList.remove('active');
+                creditTab.classList.add('active');
+                commodityContent.classList.add('hidden');
+                creditContent.classList.remove('hidden');
+            }
+        }
+        
+        function switchEra(eraNumber) {
+            const timelineItems = document.querySelectorAll('.timeline-item');
+            timelineItems.forEach(item => item.classList.remove('active'));
+            document.getElementById(`timeline-${eraNumber}`).classList.add('active');
+
+            const eraContents = document.querySelectorAll('#era-content > div');
+            eraContents.forEach(content => content.classList.add('hidden'));
+            document.getElementById(`era-${eraNumber}`).classList.remove('hidden');
+        }
+
+        function showVision(visionType) {
+            const container = document.getElementById('vision-content-container');
+            const realisticContent = document.getElementById('vision-content-realistic');
+            const idealContent = document.getElementById('vision-content-ideal');
+
+            container.classList.remove('hidden');
+            if (visionType === 'realistic') {
+                realisticContent.classList.remove('hidden');
+                idealContent.classList.add('hidden');
+            } else {
+                realisticContent.classList.add('hidden');
+                idealContent.classList.remove('hidden');
+            }
+        }
+
+        const ctx = document.getElementById('debasementChart').getContext('2d');
+        const debasementChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['已開發國家', '開發中國家'],
+                datasets: [{
+                    label: '平均貨幣供給年增長率 (%)',
+                    data: [[6, 8], [10, 15]],
+                    backgroundColor: [
+                        'rgba(166, 123, 91, 0.6)',
+                        'rgba(212, 163, 115, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(166, 123, 91, 1)',
+                        'rgba(212, 163, 115, 1)'
+                    ],
+                    borderWidth: 1,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '增長率 (%)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.x !== null) {
+                                    if (Array.isArray(context.raw)) {
+                                        label += `${context.raw[0]}% - ${context.raw[1]}% (歷史平均)`;
+                                    } else {
+                                        label += context.parsed.x + '%';
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
