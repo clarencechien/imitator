@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel 10 Fold 智慧購機決策中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as an interactive dashboard. It starts with a clear header stating the baseline phone price. The core is the "Interactive Cost Simulator," allowing users to select various purchase plans (carrier vs. direct) and immediately see the financial impact on key metrics (TCO, Equivalent Price) in both numerical cards and a comparative bar chart. This task-oriented design is more engaging than a static report. It's followed by a "Purchase Strategy Advisor" section using tabs for different user personas, making the qualitative recommendations easily accessible. This structure guides the user from quantitative exploration to qualitative, actionable advice, prioritizing usability and clear decision-making. -->
+    <!-- Visualization & Content Choices: Report Info: TCO, Equivalent Price, Discounts for 9 carrier plans vs. direct purchase. -> Goal: Allow users to compare the true long-term cost of all options. -> Viz/Presentation Method: An interactive dashboard with selector buttons, dynamic data cards, and a Chart.js bar chart. -> Interaction: Users click buttons to select a carrier plan; data cards and the bar chart update instantly to reflect the TCO and other metrics of the chosen plan against the baseline (PChome purchase). -> Justification: This transforms a dense data table into an exploratory "what-if" tool, making complex financial comparisons intuitive and immediate. The bar chart provides a powerful visual anchor for the cost differences. Persona-based advice is presented in tabs to avoid information overload. -> Library/Method: Chart.js (Canvas), Tailwind CSS for layout. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .tab-button.active {
+            border-color: #4C7C7D;
+            background-color: #4C7C7D;
+            color: #ffffff;
+        }
+        .option-button.active {
+            background-color: #4C7C7D;
+            color: #ffffff;
+            border-color: #4C7C7D;
+        }
+    </style>
+</head>
+<body class="bg-stone-100 text-stone-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-stone-900">Pixel 10 Fold 智慧購機決策中心</h1>
+            <p class="mt-2 text-lg text-stone-600">一個互動工具，助您解析最划算的購買策略</p>
+            <div class="mt-4 inline-block bg-white p-3 rounded-lg shadow-md">
+                <span class="text-stone-500">手機建議售價 (SRP): </span>
+                <span class="font-bold text-xl text-teal-700">NT$ 56,990</span>
+            </div>
+        </header>
+
+        <main>
+            <section id="simulator" class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-1 text-center">成本互動模擬器</h2>
+                <p class="text-stone-600 text-center mb-6">請選擇購機方案，即時查看各項成本分析。</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <div class="border border-stone-200 rounded-lg p-4">
+                        <h3 class="font-bold text-lg mb-4 text-center">1. 選擇您的購機方案</h3>
+                        
+                        <div id="controls-cht">
+                            <p class="font-semibold mb-2 text-stone-700">中華電信 5G 方案</p>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-stone-600 mb-1">月租費 (元)</label>
+                                <div id="monthly-fee-selector" class="flex flex-wrap gap-2">
+                                    <button data-fee="799" class="option-button flex-1 border-2 border-stone-300 rounded-md px-3 py-2 text-sm transition hover:bg-stone-200">799</button>
+                                    <button data-fee="999" class="option-button flex-1 border-2 border-stone-300 rounded-md px-3 py-2 text-sm transition hover:bg-stone-200">999</button>
+                                    <button data-fee="1399" class="option-button flex-1 border-2 border-stone-300 rounded-md px-3 py-2 text-sm transition hover:bg-stone-200">1,399</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-stone-600 mb-1">合約期間 (月)</label>
+                                <div id="contract-length-selector" class="flex flex-wrap gap-2">
+                                    <button data-length="24" class="option-button flex-1 border-2 border-stone-300 rounded-md px-3 py-2 text-sm transition hover:bg-stone-200">24</button>
+                                    <button data-length="30" class="option-button flex-1 border-2 border-stone-300 rounded-md px-3 py-2 text-sm transition hover:bg-stone-200">30</button>
+                                    <button data-length="36" class="option-button flex-1 border-2 border-stone-300 rounded-md px-3 py-2 text-sm transition hover:bg-stone-200">36</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                             <p class="font-semibold mb-2 text-stone-700">基準比較：購買裸機 + 單門號方案</p>
+                             <div class="flex items-center gap-4">
+                                <label for="sim-only-fee" class="text-sm font-medium text-stone-600 whitespace-nowrap">單門號月租 (元)</label>
+                                <input type="number" id="sim-only-fee" value="699" class="w-full p-2 border border-stone-300 rounded-md text-center">
+                             </div>
+                             <div class="flex items-center gap-4 mt-2">
+                                <label for="cashback-slider" class="text-sm font-medium text-stone-600 whitespace-nowrap">信用卡回饋 (%)</label>
+                                <input type="range" id="cashback-slider" min="0" max="10" value="5" step="1" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer">
+                                <span id="cashback-value" class="font-bold text-teal-700 w-8 text-right">5%</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg p-4 bg-stone-50">
+                        <h3 class="font-bold text-lg mb-4 text-center">2. 財務分析結果</h3>
+                        <div id="results" class="grid grid-cols-2 gap-4">
+                            <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                                <p class="text-sm text-stone-500">頭期款</p>
+                                <p id="result-down-payment" class="text-2xl font-bold text-stone-800">-</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                                <p class="text-sm text-stone-500">總持有成本 (TCO)</p>
+                                <p id="result-tco" class="text-2xl font-bold text-stone-800">-</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                                <p class="text-sm text-stone-500">手機等效價格</p>
+                                <p id="result-equivalent-price" class="text-2xl font-bold text-stone-800">-</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                                <p class="text-sm text-stone-500">總折讓 vs. 原價</p>
+                                <p id="result-total-discount" class="text-2xl font-bold text-red-500">-</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-center text-xs text-stone-500">
+                            <p id="result-summary">請選擇一個中華電信方案以進行比較。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h3 class="font-bold text-lg mb-4 text-center">3. 總持有成本 (TCO) 視覺化比較</h3>
+                    <div class="chart-container">
+                        <canvas id="tcoChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="recommendations" class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold mb-1 text-center">採購策略建議</h2>
+                <p class="text-stone-600 text-center mb-6">根據您的消費習慣，選擇最適合您的策略。</p>
+                <div class="w-full max-w-2xl mx-auto">
+                    <div class="flex border-b border-stone-200 mb-4">
+                        <button class="tab-button flex-1 py-2 px-4 text-center font-semibold text-stone-600 border-b-2 border-transparent transition hover:bg-stone-100" data-tab="persona1">高效能使用者</button>
+                        <button class="tab-button flex-1 py-2 px-4 text-center font-semibold text-stone-600 border-b-2 border-transparent transition hover:bg-stone-100" data-tab="persona2">成本敏感型</button>
+                        <button class="tab-button flex-1 py-2 px-4 text-center font-semibold text-stone-600 border-b-2 border-transparent transition hover:bg-stone-100" data-tab="persona3">財務優化者</button>
+                    </div>
+                    <div id="tab-content">
+                        <div id="persona1" class="tab-pane hidden p-4 bg-stone-50 rounded-lg">
+                            <h3 class="font-bold text-lg text-teal-800 mb-2">畫像一：高效能使用者</h3>
+                            <p class="text-stone-700 mb-2"><strong>需求：</strong>需要真正的 5G 不降速吃到飽，追求最大便利性，願意為頂級服務付費。</p>
+                            <p class="text-stone-800"><strong>策略建議：</strong>儘管財務成本最高，但申辦<strong>中華電信 1,399 元/36 個月方案</strong>可能是最符合需求的選擇。此方案提供真正 5G 吃到飽，並將頭期款降至最低。建議評估方案附贈的加值服務（如 Hami Video）是否符合您的需求，以最大化其總效用。</p>
+                        </div>
+                        <div id="persona2" class="tab-pane hidden p-4 bg-stone-50 rounded-lg">
+                            <h3 class="font-bold text-lg text-teal-800 mb-2">畫像二：成本敏感型使用者</h3>
+                            <p class="text-stone-700 mb-2"><strong>需求：</strong>中等數據用量，追求最低的長期總成本，對價格敏感。</p>
+                            <p class="text-stone-800"><strong>策略建議：</strong>最佳策略是<strong>完全避開電信購機合約</strong>。建議採用「<strong>PChome 購買 + 彈性單門號方案</strong>」的組合。在新機上市期間，關注電商平台的信用卡促銷，使用分期零利率購買裸機。同時，根據自身用量申辦價格在 499-699 元區間的短約或無綁約單門號方案。此策略將總持有成本降至最低，且保有完全的選擇自由。</p>
+                        </div>
+                        <div id="persona3" class="tab-pane hidden p-4 bg-stone-50 rounded-lg">
+                            <h3 class="font-bold text-lg text-teal-800 mb-2">畫像三：財務優化者</h3>
+                            <p class="text-stone-700 mb-2"><strong>需求：</strong>追求絕對最低的 TCO、最大的彈性，並能有效管理現金流。</p>
+                            <p class="text-stone-800"><strong>終極優化策略：</strong>在新機上市的「黃金促銷期」，於 PChome 等電商平台，使用提供最高回饋率的信用卡，並選擇最長期限的零利率分期付款購買裸機。同時，尋找市場上最靈活、最具性價比的單門號方案（可能是二線電信或網路門市限定方案）。最後，透過二手平台自行出售舊手機以獲得更高殘值。此策略是本分析中最具財務智慧的採購路徑。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-8 text-xs text-stone-500">
+            <p>&copy; 2025 智慧購機決策中心. 所有分析數據均基於公開市場資訊與歷史數據建模，僅供決策參考。</p>
+            <p>手機價格與方案以 Pixel 9 Fold 及 Samsung Galaxy Z Fold7 為模型，實際情況請以 Pixel 10 Fold 上市時為準。</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const SRP = 56990;
+
+            const planData = {
+                '799': { '24': 53990, '30': 52990, '36': 51490 },
+                '999': { '24': 52990, '30': 50990, '36': 45990 },
+                '1399': { '24': 48990, '30': 46990, '36': 41990 }
+            };
+
+            let selectedFee = null;
+            let selectedLength = null;
+
+            const feeSelector = document.getElementById('monthly-fee-selector');
+            const lengthSelector = document.getElementById('contract-length-selector');
+            const simOnlyFeeInput = document.getElementById('sim-only-fee');
+            const cashbackSlider = document.getElementById('cashback-slider');
+            const cashbackValue = document.getElementById('cashback-value');
+
+            const resultDownPayment = document.getElementById('result-down-payment');
+            const resultTco = document.getElementById('result-tco');
+            const resultEquivalentPrice = document.getElementById('result-equivalent-price');
+            const resultTotalDiscount = document.getElementById('result-total-discount');
+            const resultSummary = document.getElementById('result-summary');
+
+            const formatCurrency = (num) => `NT$ ${Math.round(num).toLocaleString()}`;
+
+            const updateDisplay = () => {
+                const simFee = parseInt(simOnlyFeeInput.value) || 0;
+                const cashbackPercent = parseInt(cashbackSlider.value) / 100;
+                const phonePriceWithCashback = SRP * (1 - cashbackPercent);
+
+                let chtDevicePrice = null;
+                let chtTco = null;
+                let chtEquivalentPrice = null;
+                let chtTotalDiscount = null;
+
+                if (selectedFee && selectedLength && planData[selectedFee] && planData[selectedFee][selectedLength]) {
+                    chtDevicePrice = planData[selectedFee][selectedLength];
+                    const totalMonthlyCost = selectedFee * selectedLength;
+                    chtTco = chtDevicePrice + totalMonthlyCost;
+                    const baselineServiceCost = simFee * selectedLength;
+                    chtEquivalentPrice = chtTco - baselineServiceCost;
+                    chtTotalDiscount = SRP - chtEquivalentPrice;
+
+                    resultDownPayment.textContent = formatCurrency(chtDevicePrice);
+                    resultTco.textContent = formatCurrency(chtTco);
+                    resultEquivalentPrice.textContent = formatCurrency(chtEquivalentPrice);
+                    resultTotalDiscount.textContent = formatCurrency(chtTotalDiscount);
+                    resultTotalDiscount.classList.toggle('text-red-500', chtTotalDiscount < 0);
+                    resultTotalDiscount.classList.toggle('text-green-600', chtTotalDiscount >= 0);
+                    resultSummary.textContent = `與購買裸機+單門號方案相比，此方案的總成本${chtTotalDiscount >= 0 ? '節省' : '高出'} ${formatCurrency(Math.abs(chtTotalDiscount))}`;
+                } else {
+                    resultDownPayment.textContent = '-';
+                    resultTco.textContent = '-';
+                    resultEquivalentPrice.textContent = '-';
+                    resultTotalDiscount.textContent = '-';
+                    resultSummary.textContent = '請選擇一個完整的中華電信方案以進行比較。';
+                }
+                
+                const baselineTco24 = phonePriceWithCashback + (simFee * 24);
+                const baselineTco30 = phonePriceWithCashback + (simFee * 30);
+                const baselineTco36 = phonePriceWithCashback + (simFee * 36);
+
+                let baselineTcoForComparison = 0;
+                if(selectedLength == 24) baselineTcoForComparison = baselineTco24;
+                else if(selectedLength == 30) baselineTcoForComparison = baselineTco30;
+                else if(selectedLength == 36) baselineTcoForComparison = baselineTco36;
+                
+                updateChart(chtTco, baselineTcoForComparison, selectedFee, selectedLength);
+            };
+
+            feeSelector.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    selectedFee = e.target.dataset.fee;
+                    Array.from(feeSelector.children).forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    updateDisplay();
+                }
+            });
+
+            lengthSelector.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    selectedLength = e.target.dataset.length;
+                    Array.from(lengthSelector.children).forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    updateDisplay();
+                }
+            });
+            
+            simOnlyFeeInput.addEventListener('input', updateDisplay);
+            cashbackSlider.addEventListener('input', (e) => {
+                cashbackValue.textContent = `${e.target.value}%`;
+                updateDisplay();
+            });
+
+            const ctx = document.getElementById('tcoChart').getContext('2d');
+            const tcoChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['中華電信方案', '購買裸機 + 單門號'],
+                    datasets: [{
+                        label: '總持有成本 (TCO)',
+                        data: [0, 0],
+                        backgroundColor: [
+                            'rgba(204, 102, 102, 0.6)',
+                            'rgba(76, 124, 125, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(204, 102, 102, 1)',
+                            'rgba(76, 124, 125, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'NT$ ' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += formatCurrency(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            function updateChart(chtTco, baselineTco, fee, length) {
+                if (chtTco && baselineTco) {
+                    tcoChart.data.labels[0] = `中華電信 ${fee}/${length}月`;
+                    tcoChart.data.datasets[0].data[0] = chtTco;
+                    tcoChart.data.datasets[0].data[1] = baselineTco;
+                } else {
+                    tcoChart.data.labels[0] = '中華電信方案';
+                    tcoChart.data.datasets[0].data[0] = 0;
+                    tcoChart.data.datasets[0].data[1] = 0;
+                }
+                tcoChart.update();
+            }
+
+            const tabs = document.querySelectorAll('.tab-button');
+            const panes = document.querySelectorAll('.tab-pane');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    panes.forEach(pane => {
+                        pane.classList.add('hidden');
+                    });
+                    document.getElementById(tab.dataset.tab).classList.remove('hidden');
+                });
+            });
+
+            tabs[1].click();
+            
+            document.querySelector('[data-fee="999"]').click();
+            document.querySelector('[data-length="36"]').click();
+        });
+    </script>
+</body>
+</html>
