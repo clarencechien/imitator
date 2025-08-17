@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人口海嘯：一場延遲到來的危機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0a192f;
+            color: #e6f1ff;
+            overflow-x: hidden;
+        }
+        .section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 1s ease-out, transform 1s ease-out;
+        }
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .card {
+            background-color: rgba(23, 42, 70, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 116, 139, 0.5);
+        }
+        .highlight { color: #64ffda; }
+        .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+        /* --- Tsunami Effects --- */
+        #tsunami-wrapper {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20%; /* Initial height */
+            z-index: 100;
+            pointer-events: none;
+            transition: height 1.0s ease-out;
+        }
+        .tsunami-layer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #wave-body { opacity: 0.65; }
+        #wave-body-svg { fill: #172a46; }
+        #wave-debris { opacity: 0.4; }
+        #wave-crest { height: 50px; bottom: auto; top: -25px; }
+        #wave-crest-svg { fill: #ffffff; opacity: 0.7; }
+        #content-wrapper { transition: filter 0.5s ease-in-out; }
+        .is-shaking { animation: shake 0.8s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        
+        /* --- Final Message Floating Effect --- */
+        #final-message {
+            position: fixed;
+            z-index: 150; /* Above the tsunami */
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(100vh);
+            pointer-events: none;
+            transition: opacity 2s ease-out 1s, transform 3s ease-out 1s; /* Delayed transition */
+        }
+        #final-message.surfaced {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Start Button */
+        #start-button-container {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(10, 25, 47, 0.95);
+            z-index: 200;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+            cursor: pointer;
+        }
+        #start-button {
+            background-color: #64ffda;
+            color: #0a192f;
+            border: none; padding: 1rem 2rem; font-size: 1.25rem; font-weight: bold;
+            border-radius: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        #start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(100, 255, 218, 0.2);
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <div id="start-button-container">
+        <button id="start-button">開始體驗</button>
+        <p class="text-slate-400 mt-4">(建議開啟音效以獲得完整體驗)</p>
+    </div>
+
+    <div id="content-wrapper" class="relative z-10">
+        <div class="container mx-auto px-4">
+            <!-- All sections except the last one -->
+            <section id="section1" class="section visible">
+                <div class="text-center max-w-3xl">
+                    <h1 class="text-4xl md:text-6xl font-bold mb-4 text-shadow">人口海嘯</h1>
+                    <p class="text-xl md:text-2xl text-slate-300 text-shadow">一場延遲到來的危機</p>
+                    <p class="mt-8 text-lg text-slate-400">很多人還沒意識到，台灣的人口危機早已展開。它就像海嘯，衝擊不是瞬間發生，而是先經歷一段看似無害的「退潮」。</p>
+                    <div class="mt-12 animate-bounce">
+                        <svg class="w-8 h-8 mx-auto text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                        <p class="text-slate-500 mt-2">向下捲動，見證浪潮的變化</p>
+                    </div>
+                </div>
+            </section>
+            <section id="section2" class="section">
+                <div class="text-center max-w-4xl w-full">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6 text-shadow">驟減的出生數，是海嘯的源頭</h2>
+                    <div class="card rounded-lg p-4 md:p-6 shadow-2xl">
+                        <div class="h-[300px] md:h-[500px] w-full"><canvas id="birthChart"></canvas></div>
+                        <p class="mt-4 text-slate-300 text-sm md:text-base">在 <span class="highlight font-bold">2000–2005</span> 與 <span class="highlight font-bold">2016–2022</span>，台灣的出生數出現兩波驟減，每一波都「直接打七折」。兩波加總，新生兒人數近乎腰斬。</p>
+                    </div>
+                </div>
+            </section>
+            <section id="section3" class="section">
+                <div class="text-center max-w-3xl">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-2 text-shadow">海嘯前的退潮</h2>
+                    <p class="text-lg text-slate-400 mb-10">第一波衝擊，已在我們不易察覺的角落發生。</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">🎓</div><h3 class="text-xl font-bold mb-2">補習班倒閉潮</h3><p class="text-slate-400">學生數持續下滑，招生一年比一年困難。</p></div>
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">🎢</div><h3 class="text-xl font-bold mb-2">遊樂園空蕩蕩</h3><p class="text-slate-400">入園人數一路墜落，平日甚至顯得蕭條。</p></div>
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">🏫</div><h3 class="text-xl font-bold mb-2">大學退場</h3><p class="text-slate-400">2000年後出生的孩子正值大學年齡，招生缺額已成常態。</p></div>
+                    </div>
+                </div>
+            </section>
+            <section id="section4" class="section">
+                <div class="text-center max-w-3xl">
+                     <div class="w-24 h-24 mx-auto mb-6 flex items-center justify-center rounded-full bg-red-500/20 border-2 border-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4 text-shadow">第一波海嘯：大缺工時代</h2>
+                    <p class="text-lg text-slate-300">第一波出生驟減的孩子們已大學畢業，正進入勞動市場。</p>
+                    <p class="mt-6 text-xl text-amber-400 font-bold bg-amber-400/10 px-4 py-2 rounded-md">結果就是：各行各業都在喊缺工。</p>
+                    <p class="mt-6 text-slate-400">過去那種蕭條與絕望感，正從教育、娛樂產業，逐漸蔓延到所有產業。</p>
+                </div>
+            </section>
+            <section id="section5" class="section">
+                <div class="text-center max-w-4xl">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4 text-shadow">房市的寧靜，只是假象</h2>
+                     <p class="text-lg text-slate-400 mb-10">為什麼衝擊還沒蔓延到房地產？因為主力客群的年齡還沒到。</p>
+                    <div class="card rounded-lg p-6 md:p-8 shadow-2xl flex flex-col md:flex-row items-center gap-8">
+                        <div class="text-center"><p class="text-6xl md:text-8xl font-bold highlight">30-40</p><p class="text-xl text-slate-300">歲</p><p class="mt-2 text-slate-400">買房主力與剛性需求</p></div>
+                        <div class="text-left flex-1 border-l-4 border-sky-500 pl-6"><p class="text-lg mb-4">目前，這個年齡層的人，大多是在 <span class="highlight">1985-1995</span> 年出生，那時台灣每年還有 <span class="highlight">30-40萬</span> 新生兒。</p><p class="text-lg mb-4">但幾年後，輪到 <span class="font-bold text-red-400">2000</span> 年後出生的「<span class="font-bold text-red-400">七折世代</span>」進入這個區間時，真正的海嘯才會衝向房地產。</p><p class="text-lg">過去「房價只漲不跌」的神話建立在人口持續增加的基礎上；當基礎不再，未來的走勢就不可能如過往。</p></div>
+                    </div>
+                </div>
+            </section>
+            <section id="section6" class="section">
+                <div class="text-center max-w-3xl">
+                     <div class="w-24 h-24 mx-auto mb-6 flex items-center justify-center rounded-full bg-red-500/20 border-2 border-red-500 animate-pulse"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4 text-shadow">更大的浪，還在地平線上</h2>
+                    <p class="text-lg text-slate-300">遺憾的是，這只是第一波衝擊。</p><p class="mt-6 text-xl text-red-400 font-bold bg-red-400/10 px-4 py-2 rounded-md">2016年後更猛烈的「第二波人口海嘯」還在後頭。</p><p class="mt-6 text-slate-400">當需求的核心（人口）持續萎縮，沒有任何資產能永遠違抗地心引力。</p>
+                </div>
+            </section>
+            <section id="section7" class="section">
+                <div class="text-center max-w-5xl">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-2 text-shadow">以日本為鏡：台灣 2025-2050 的未來預想圖</h2>
+                    <p class="text-lg text-slate-400 mb-10">日本走過的路，是我們最清晰的借鏡。以下現象，將不僅是趨勢，而是未來二十年的日常。</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">🏚️</div><h3 class="text-xl font-bold mb-2">「幽靈社區」與地方蕭條</h3><p class="text-slate-400">鄉鎮人口外移、市中心空屋率攀升，基礎設施的維護成本將成為沈重負擔。</p></div>
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">🤖</div><h3 class="text-xl font-bold mb-2">「無人化」科技加速普及</h3><p class="text-slate-400">為解決缺工問題，從餐廳到工廠，自動化、AI客服、送餐機器人將無所不在。</p></div>
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">👵</div><h3 class="text-xl font-bold mb-2">「銀髮勞動力」成為常態</h3><p class="text-slate-400">法定退休年齡被迫延後，70歲的計程車司機、服務生將不再是新聞。</p></div>
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">🏪</div><h3 class="text-xl font-bold mb-2">消費市場結構轉變</h3><p class="text-slate-400">「銀髮經濟」與「單身經濟」崛起，商品設計、通路與服務都將隨之變革。</p></div>
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">💼</div><h3 class="text-xl font-bold mb-2">中小企業「繼承者危機」</h3><p class="text-slate-400">許多擁有數十年技術的中小企業，因找不到接班人而被迫關閉或被併購。</p></div>
+                        <div class="card rounded-lg p-6 text-center"><div class="text-5xl mb-4">💸</div><h3 class="text-xl font-bold mb-2">社會保障體系壓力劇增</h3><p class="text-slate-400">領取年金的人變多、繳納保費的年輕人變少，健保與勞保的財務缺口將更嚴峻。</p></div>
+                    </div>
+                </div>
+            </section>
+            <div style="height: 50vh;"></div>
+        </div>
+    </div>
+
+    <div id="final-message">
+        <div class="text-center max-w-3xl p-4">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4 text-shadow">浪潮已至，我們如何應對？</h2>
+            <p class="text-xl text-slate-300">人口結構的改變無法逆轉，但應對的方式掌握在我們手中。</p>
+            <p class="mt-8 text-lg text-slate-400">從個人職涯規劃、企業轉型，到國家政策的佈局，都需要全新的思維。</p>
+            <p class="mt-6 text-2xl font-bold highlight">未來並非注定，改變的契機就在當下。</p>
+        </div>
+    </div>
+
+    <div id="tsunami-wrapper">
+        <div id="wave-debris" class="tsunami-layer">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <pattern id="debrisPattern" patternUnits="userSpaceOnUse" width="400" height="400">
+                        <g fill="rgba(0,0,0,0.5)">
+                            <path d="M50 0 L120 10 L110 25 L40 30 Z" transform="rotate(15) scale(0.8)"/>
+                            <rect x="200" y="150" width="80" height="20" transform="rotate(-25)"/>
+                            <circle cx="300" cy="300" r="15"/>
+                            <path d="M150 250 L220 260 L210 275 L140 280 Z" transform="rotate(45) scale(1.2)"/>
+                        </g>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#debrisPattern)"/>
+            </svg>
+        </div>
+        <div id="wave-body" class="tsunami-layer">
+            <svg id="wave-body-svg" class="w-full h-full" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,133.3C672,117,768,139,864,165.3C960,192,1056,224,1152,218.7C1248,213,1344,171,1392,149.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>
+        </div>
+        <div id="wave-crest" class="tsunami-layer">
+            <svg id="wave-crest-svg" class="w-full h-full" viewBox="0 0 1440 50" preserveAspectRatio="none"><path d="M0,25 C200,50 350,0 500,25 C650,50 800,0 950,25 C1100,50 1250,0 1440,25 L1440,50 L0,50 Z"></path></svg>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('.section');
+            const tsunamiWrapper = document.getElementById('tsunami-wrapper');
+            const contentWrapper = document.getElementById('content-wrapper');
+            const finalMessage = document.getElementById('final-message');
+            const debrisPattern = document.getElementById('debrisPattern');
+            const startButtonContainer = document.getElementById('start-button-container');
+            let audioStarted = false;
+            let rumble, impact;
+            let finalImpactTriggered = false; // Flag to ensure final impact happens only once
+
+            function setupAudio() {
+                if (audioStarted) return;
+                Tone.start();
+                rumble = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 4, decay: 0.1, sustain: 1, release: 4 } }).toDestination();
+                rumble.volume.value = -25;
+                impact = new Tone.MembraneSynth({ pitchDecay: 0.08, octaves: 10, oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.8, sustain: 0.01, release: 1.4, attackCurve: 'exponential' } }).toDestination();
+                impact.volume.value = -3;
+                audioStarted = true;
+            }
+
+            startButtonContainer.addEventListener('click', () => {
+                setupAudio();
+                startButtonContainer.style.transition = 'opacity 0.5s ease';
+                startButtonContainer.style.opacity = '0';
+                setTimeout(() => startButtonContainer.style.display = 'none', 500);
+                if(rumble) rumble.triggerAttack();
+            });
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+            }, { root: null, rootMargin: '0px', threshold: 0.2 });
+            sections.forEach(section => observer.observe(section));
+
+            function animateTsunami() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const scrollPercentage = (scrollTop / scrollHeight);
+
+                let waveHeight;
+                if (scrollPercentage < 0.15) waveHeight = 20;
+                else if (scrollPercentage < 0.4) waveHeight = 20 - (scrollPercentage - 0.15) * 60;
+                else if (scrollPercentage < 0.9) waveHeight = 5 + ((scrollPercentage - 0.4) / 0.5) * 85;
+                else waveHeight = 90 + ((scrollPercentage - 0.9) / 0.1) * 10;
+                const currentWaveHeight = Math.max(5, Math.min(100, waveHeight));
+                tsunamiWrapper.style.height = `${currentWaveHeight}%`;
+                
+                if(audioStarted) rumble.volume.value = -25 + (currentWaveHeight / 100) * 15;
+
+                const xOffset = Math.sin(scrollTop * 0.01) * 200;
+                const yOffset = Math.cos(scrollTop * 0.007) * 200;
+                debrisPattern.setAttribute('x', xOffset);
+                debrisPattern.setAttribute('y', yOffset);
+
+                const waveCrestPosition = tsunamiWrapper.offsetTop;
+                const submersionDepth = Math.max(0, window.innerHeight - waveCrestPosition - 50);
+                const submersionFactor = Math.min(1, submersionDepth / (window.innerHeight * 0.9));
+
+                let blurValue = 0;
+                let brightnessValue = 1;
+
+                if (scrollPercentage < 0.95) {
+                    blurValue = submersionFactor * 1.5;
+                    brightnessValue = 1 - (submersionFactor * 0.2);
+                    if (finalImpactTriggered) { // Reset if user scrolls back up
+                        finalImpactTriggered = false;
+                        finalMessage.classList.remove('surfaced');
+                    }
+                } else {
+                    const finalFactor = (scrollPercentage - 0.95) / 0.05;
+                    blurValue = 1.5 + finalFactor * 8.5;
+                    brightnessValue = 0.8 - finalFactor * 0.55;
+                    
+                    if (!finalImpactTriggered) {
+                        finalImpactTriggered = true; // Set flag
+                        document.body.classList.add('is-shaking');
+                        if(audioStarted) impact.triggerAttackRelease("C1", "2n");
+                        setTimeout(() => {
+                            document.body.classList.remove('is-shaking');
+                        }, 800);
+                        // Trigger final message surfacing with the impact
+                        finalMessage.classList.add('surfaced');
+                    }
+                }
+                contentWrapper.style.filter = `blur(${blurValue}px) brightness(${brightnessValue})`;
+
+                requestAnimationFrame(animateTsunami);
+            }
+            requestAnimationFrame(animateTsunami);
+
+            const ctx = document.getElementById('birthChart').getContext('2d');
+            const years = ['1980', '1981', '1982', '1983', '1984', '1985', '1986', '1987', '1988', '1989', '1990', '1991', '1992', '1993', '1994', '1995', '1996', '1997', '1998', '1999', '2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023'];
+            const births = [414, 414, 407, 399, 382, 375, 348, 315, 342, 335, 335, 321, 326, 327, 329, 323, 326, 327, 278, 284, 305, 260, 247, 227, 216, 205, 204, 203, 198, 191, 166, 196, 229, 199, 210, 213, 193, 193, 181, 177, 165, 153, 138, 147];
+            const backgroundColors = years.map(year => { const y = parseInt(year); return ((y >= 2000 && y <= 2005) || (y >= 2016 && y <= 2022)) ? 'rgba(239, 68, 68, 0.6)' : 'rgba(56, 189, 248, 0.6)'; });
+            const borderColors = years.map(year => { const y = parseInt(year); return ((y >= 2000 && y <= 2005) || (y >= 2016 && y <= 2022)) ? 'rgba(239, 68, 68, 1)' : 'rgba(56, 189, 248, 1)'; });
+            new Chart(ctx, { type: 'bar', data: { labels: years, datasets: [{ label: '每年新生兒數 (千人)', data: births, backgroundColor: backgroundColors, borderColor: borderColors, borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(23, 42, 70, 0.9)', titleColor: '#e6f1ff', bodyColor: '#e6f1ff', callbacks: { label: (context) => ` ${context.parsed.y} 千人` } } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.2)' }, ticks: { color: '#94a3b8', callback: (value) => value + 'k' }, title: { display: true, text: '新生兒數 (千人)', color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8', maxRotation: 90, minRotation: 70, autoSkip: true, maxTicksLimit: 20 } } } } });
+        });
+    </script>
+
+</body>
+</html>
