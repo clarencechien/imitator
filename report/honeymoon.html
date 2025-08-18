@@ -48,10 +48,14 @@
         }
         .legend i {
             width: 18px;
-            height: 18px;
+            height: 4px;
             float: left;
             margin-right: 8px;
+            margin-top: 6px;
             opacity: 0.9;
+        }
+        .legend .dashed {
+            border-top: 4px dashed;
         }
     </style>
 </head>
@@ -149,7 +153,7 @@
         <!-- Map Section -->
         <section class="mb-12 infographic-card p-6 md:p-8">
             <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">互動式路線地圖</h2>
-            <p class="text-center text-gray-600 mb-4">點擊圖例可切換顯示不同行程路線，直觀比較路線差異。</p>
+            <p class="text-center text-gray-600 mb-4">點擊圖例可切換顯示不同行程路線，點擊地圖上的圖釘可查看景點簡介。</p>
             <div id="map" class="w-full h-[500px] md:h-[600px] rounded-lg z-0"></div>
         </section>
 
@@ -339,52 +343,80 @@
             maxZoom: 20
         }).addTo(map);
 
-        var locations = {
-            "Munich": [48.1351, 11.5820],
-            "Nuremberg": [49.4521, 11.0767],
-            "Rothenburg": [49.3777, 10.1789],
-            "Heidelberg": [49.3988, 8.6724],
-            "Strasbourg": [48.5734, 7.7521],
-            "Colmar": [48.0793, 7.3582],
-            "Bern": [46.9480, 7.4474],
-            "Grindelwald": [46.6243, 8.0336],
-            "Zermatt": [46.0207, 7.7491],
-            "Montreux": [46.4312, 6.9104],
-            "Chamonix": [45.9237, 6.8694],
-            "Lucerne": [47.0502, 8.3093],
-            "Fussen": [47.5682, 10.7000],
-            "Konigssee": [47.5889, 12.9892],
-            "Frankfurt": [50.1109, 8.6821],
-            "Riquewihr": [48.1664, 7.2982],
-            "Spiez": [46.6880, 7.6812]
+        const locations = {
+            "慕尼黑": { lat: 48.1351, lng: 11.5820, desc: "巴伐利亞首府，德國第三大城，以啤酒節聞名。" },
+            "紐倫堡": { lat: 49.4521, lng: 11.0767, desc: "神聖羅馬帝國的中心，充滿歷史感的玩具之都。" },
+            "羅騰堡": { lat: 49.3777, lng: 10.1789, desc: "羅曼蒂克大道上的珍珠，保存最完整的中世紀古城。" },
+            "海德堡": { lat: 49.3988, lng: 8.6724, desc: "德國最古老的大學城，擁有浪漫的古堡與老橋。" },
+            "史特拉斯堡": { lat: 48.5734, lng: 7.7521, desc: "法國亞爾薩斯首府，融合德法風情的運河小鎮。" },
+            "柯瑪": { lat: 48.0793, lng: 7.3582, desc: "《霍爾的移動城堡》靈感來源，色彩繽紛的童話小鎮。" },
+            "伯恩": { lat: 46.9480, lng: 7.4474, desc: "瑞士首都，其舊城區被列為世界文化遺產。" },
+            "格林德瓦": { lat: 46.6243, lng: 8.0336, desc: "艾格峰北麓最美山城，前往少女峰的門戶。" },
+            "策馬特": { lat: 46.0207, lng: 7.7491, desc: "無車環保山城，欣賞馬特洪峰的絕佳地點。" },
+            "蒙投": { lat: 46.4312, lng: 6.9104, desc: "日內瓦湖畔的音樂之都，以爵士音樂節聞名。" },
+            "霞慕尼": { lat: 45.9237, lng: 6.8694, desc: "法國阿爾卑斯山腳下，攀登白朗峰的起點。" },
+            "琉森": { lat: 47.0502, lng: 8.3093, desc: "瑞士的蜜月之鄉，擁有卡貝爾橋與美麗的琉森湖。" },
+            "福森": { lat: 47.5682, lng: 10.7000, desc: "通往新天鵝堡的門戶，阿爾卑斯山腳下的可愛小鎮。" },
+            "國王湖": { lat: 47.5889, lng: 12.9892, desc: "德國最清澈、最深的湖泊，景色如人間仙境。" },
+            "法蘭克福": { lat: 50.1109, lng: 8.6821, desc: "德國的金融中心與交通樞紐。" },
+            "里屈埃維": { lat: 48.1664, lng: 7.2982, desc: "亞爾薩斯酒鄉之路上，被譽為法國最美村莊之一。" },
+            "施皮茨": { lat: 46.6880, lng: 7.6812, desc: "圖恩湖畔的美麗小鎮，擁有湖光山色的城堡景觀。" },
+            "茲懷斯文": { lat: 46.4956, lng: 7.3751, desc: "搭乘黃金列車的重要轉乘站。" },
+            "安德馬特": { lat: 46.6349, lng: 8.5950, desc: "位於阿爾卑斯山隘口，冰河列車路線上的重要小鎮。" },
+            "茵特拉根": { lat: 46.6863, lng: 7.8632, desc: "少女峰地區的門戶，位於兩湖之間的渡假小鎮。" }
         };
         
-        // Define routes for all itineraries
-        var routeA = [locations.Munich, locations.Nuremberg, locations.Rothenburg, locations.Heidelberg, locations.Strasbourg, locations.Colmar, locations.Bern, locations.Grindelwald, locations.Montreux, locations.Zermatt, locations.Lucerne, locations.Fussen, locations.Konigssee, locations.Munich];
-        var routeB = [locations.Frankfurt, locations.Rothenburg, locations.Heidelberg, locations.Strasbourg, locations.Colmar, locations.Bern, locations.Grindelwald, locations.Montreux, locations.Zermatt, locations.Lucerne, locations.Fussen, locations.Konigssee, locations.Munich];
-        var routeC = [locations.Munich, locations.Nuremberg, locations.Rothenburg, locations.Heidelberg, locations.Strasbourg, locations.Colmar, locations.Grindelwald, locations.Montreux, locations.Chamonix, locations.Zermatt, locations.Lucerne, locations.Fussen, locations.Konigssee, locations.Munich];
-        var routeD = [locations.Munich, locations.Nuremberg, locations.Rothenburg, locations.Heidelberg, locations.Strasbourg, locations.Colmar, locations.Grindelwald, locations.Montreux, locations.Chamonix, locations.Zermatt, locations.Lucerne, locations.Fussen, locations.Konigssee, locations.Munich];
-        var routeE = [locations.Frankfurt, locations.Heidelberg, locations.Riquewihr, locations.Bern, locations.Montreux, locations.Zermatt, locations.Spiez, locations.Grindelwald, locations.Lucerne, locations.Fussen, locations.Rothenburg, locations.Frankfurt];
-        
-        // Create polylines
-        var polylineA = L.polyline(routeA, {color: '#16a34a', weight: 4, opacity: 0.8}).bindPopup('<b>行程A: 誠真15日</b>').addTo(map);
-        var polylineB = L.polyline(routeB, {color: '#6b7280', weight: 4, opacity: 0.8, dashArray: '5, 5'}).bindPopup('<b>行程B: 誠真14日 (轉機)</b>');
-        var polylineC = L.polyline(routeC, {color: '#4f46e5', weight: 4, opacity: 0.8}).bindPopup('<b>行程C: 晴天15日</b>');
-        var polylineD = L.polyline(routeD, {color: '#f97316', weight: 4, opacity: 0.8}).bindPopup('<b>行程D: 雋品14日</b>');
-        var polylineE = L.polyline(routeE, {color: '#0891b2', weight: 4, opacity: 0.8}).bindPopup('<b>行程E: 心憶13日</b>');
+        const loc = (name) => [locations[name].lat, locations[name].lng];
 
-        var overlays = {
-            "<i style='background: #16a34a'></i> 行程A (誠真15日)": polylineA,
-            "<i style='background: #4f46e5'></i> 行程C (晴天15日)": polylineC,
-            "<i style='background: #f97316'></i> 行程D (雋品14日)": polylineD,
-            "<i style='background: #0891b2'></i> 行程E (心憶13日)": polylineE,
-            "<i style='background: #6b7280; border-style: dashed; border-width: 2px;'></i> 行程B (誠真14日)": polylineB
+        // Define routes
+        const routeA_bus = [loc("慕尼黑"), loc("紐倫堡"), loc("羅騰堡"), loc("海德堡"), loc("史特拉斯堡"), loc("柯瑪"), loc("伯恩"), loc("格林德瓦"), loc("茲懷斯文")];
+        const routeA_train = [[loc("茲懷斯文"), loc("蒙投")], [loc("策馬特"), loc("安德馬特")]];
+        const routeA_bus2 = [loc("蒙投"), loc("策馬特"), loc("安德馬特"), loc("琉森"), loc("福森"), loc("國王湖"), loc("慕尼黑")];
+
+        const routeB_bus = [loc("法蘭克福"), loc("羅騰堡"), loc("海德堡"), loc("史特拉斯堡"), loc("柯瑪"), loc("伯恩"), loc("格林德瓦"), loc("茲懷斯文")];
+        const routeB_train = [[loc("茲懷斯文"), loc("蒙投")], [loc("策馬特"), loc("安德馬特")]];
+        const routeB_bus2 = [loc("蒙投"), loc("策馬特"), loc("安德馬特"), loc("琉森"), loc("福森"), loc("國王湖"), loc("慕尼黑")];
+
+        const routeC_bus = [loc("紐倫堡"), loc("羅騰堡"), loc("海德堡"), loc("史特拉斯堡"), loc("柯瑪"), loc("格林德瓦"), loc("茲懷斯文")];
+        const routeC_train = [[loc("慕尼黑"), loc("紐倫堡")], [loc("茲懷斯文"), loc("蒙投")], [loc("策馬特"), loc("施皮茨")]];
+        const routeC_bus2 = [loc("蒙投"), loc("霞慕尼"), loc("策馬特"), loc("施皮茨"), loc("琉森"), loc("福森"), loc("國王湖"), loc("慕尼黑")];
+
+        const routeD_bus = [loc("慕尼黑"), loc("紐倫堡"), loc("羅騰堡"), loc("海德堡"), loc("史特拉斯堡"), loc("柯瑪"), loc("格林德瓦"), loc("茲懷斯文")];
+        const routeD_train = [[loc("茲懷斯文"), loc("蒙投")], [loc("霞慕尼"), loc("策馬特")]];
+        const routeD_bus2 = [loc("蒙投"), loc("霞慕尼"), loc("策馬特"), loc("琉森"), loc("福森"), loc("國王湖"), loc("慕尼黑")];
+
+        const routeE_bus = [loc("法蘭克福"), loc("海德堡"), loc("里屈埃維"), loc("伯恩"), loc("蒙投"), loc("策馬特"), loc("施皮茨"), loc("格林德瓦")];
+        const routeE_train = [[loc("格林德瓦"), loc("茵特拉根")], [loc("茵特拉根"), loc("琉森")]];
+        const routeE_bus2 = [loc("琉森"), loc("福森"), loc("羅騰堡"), loc("法蘭克福")];
+
+        // Create Layer Groups
+        const groupA = L.layerGroup([L.polyline(routeA_bus, {color: '#16a34a', weight: 5, opacity: 0.8}), L.polyline(routeA_bus2, {color: '#16a34a', weight: 5, opacity: 0.8}), L.polyline(routeA_train[0], {color: '#16a34a', weight: 3, opacity: 0.9, dashArray: '8, 8'}), L.polyline(routeA_train[1], {color: '#16a34a', weight: 3, opacity: 0.9, dashArray: '8, 8'})]).addTo(map);
+        const groupB = L.layerGroup([L.polyline(routeB_bus, {color: '#6b7280', weight: 5, opacity: 0.8}), L.polyline(routeB_bus2, {color: '#6b7280', weight: 5, opacity: 0.8}), L.polyline(routeB_train[0], {color: '#6b7280', weight: 3, opacity: 0.9, dashArray: '8, 8'}), L.polyline(routeB_train[1], {color: '#6b7280', weight: 3, opacity: 0.9, dashArray: '8, 8'})]);
+        const groupC = L.layerGroup([L.polyline(routeC_bus, {color: '#4f46e5', weight: 5, opacity: 0.8}), L.polyline(routeC_bus2, {color: '#4f46e5', weight: 5, opacity: 0.8}), L.polyline(routeC_train[0], {color: '#4f46e5', weight: 3, opacity: 0.9, dashArray: '8, 8'}), L.polyline(routeC_train[1], {color: '#4f46e5', weight: 3, opacity: 0.9, dashArray: '8, 8'}), L.polyline(routeC_train[2], {color: '#4f46e5', weight: 3, opacity: 0.9, dashArray: '8, 8'})]);
+        const groupD = L.layerGroup([L.polyline(routeD_bus, {color: '#f97316', weight: 5, opacity: 0.8}), L.polyline(routeD_bus2, {color: '#f97316', weight: 5, opacity: 0.8}), L.polyline(routeD_train[0], {color: '#f97316', weight: 3, opacity: 0.9, dashArray: '8, 8'}), L.polyline(routeD_train[1], {color: '#f97316', weight: 3, opacity: 0.9, dashArray: '8, 8'})]);
+        const groupE = L.layerGroup([L.polyline(routeE_bus, {color: '#0891b2', weight: 5, opacity: 0.8}), L.polyline(routeE_bus2, {color: '#0891b2', weight: 5, opacity: 0.8}), L.polyline(routeE_train[0], {color: '#0891b2', weight: 3, opacity: 0.9, dashArray: '8, 8'}), L.polyline(routeE_train[1], {color: '#0891b2', weight: 3, opacity: 0.9, dashArray: '8, 8'})]);
+
+        const overlays = {
+            "行程A (誠真15日)": groupA,
+            "行程C (晴天15日)": groupC,
+            "行程D (雋品14日)": groupD,
+            "行程E (心憶13日)": groupE,
+            "行程B (誠真14日)": groupB
         };
         
-        // Add markers for key locations
         for (const [key, value] of Object.entries(locations)) {
-            L.marker(value).bindPopup(key).addTo(map);
+            L.marker([value.lat, value.lng]).bindPopup(`<strong>${key}</strong><br>${value.desc}`).addTo(map);
         }
+
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML += '<h4>交通方式</h4>';
+            div.innerHTML += '<i style="background: black"></i> 巴士路線<br>';
+            div.innerHTML += '<i class="dashed" style="border-color: black;"></i> 火車路線<br>';
+            return div;
+        };
+        legend.addTo(map);
 
         L.control.layers(null, overlays, { collapsed: false }).addTo(map);
     });
