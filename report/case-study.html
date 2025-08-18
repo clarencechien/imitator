@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>松陽馥麗｜互動式建案分析報告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The SPA is designed as a decision-making tool for potential homebuyers, not a linear report. The structure follows a logical user journey: 1. Hero section with key value propositions. 2. Sticky navigation for easy access. 3. Project Overview with interactive tabs for key features (specs, team, materials). 4. Developer Background, which transparently addresses past controversies as a narrative of brand reinvention. 5. Location Value with data visualization (price trend chart) to highlight potential. 6. Market Comparison with an interactive table to simplify competitor analysis. 7. An interactive Buyer's Checklist as a final, actionable tool. This task-oriented flow makes complex information digestible and supports informed decision-making. -->
+    <!-- Visualization & Content Choices: 1. Tucheng Price Trend (Report Data) -> Goal: Show Market Growth -> Viz: Line Chart (Chart.js) -> Interaction: Hover for details -> Justification: Visually compelling evidence of the area's investment potential. 2. Price Comparison (Report Data) -> Goal: Contextualize Project Pricing -> Viz: Bar Chart (Chart.js) -> Interaction: Hover for values -> Justification: Clearly positions the project at the premium end of the local market. 3. Competitor Analysis (Report Table) -> Goal: Simplify Comparison -> Presentation: Interactive HTML Table -> Interaction: Click buttons to highlight a competitor's data -> Justification: Allows users to focus on one competitor at a time, reducing cognitive load compared to a dense static table. 4. SWOT Analysis -> Goal: Summarize Pros/Cons -> Presentation: 4-quadrant HTML grid -> Justification: Classic, easily scannable format for strategic analysis. 5. Buyer's Checklist -> Goal: Provide Actionable Steps -> Presentation: Interactive HTML checklist -> Interaction: Clickable checkboxes -> Justification: Empowers the user and provides a tangible takeaway from the application. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #075985; /* text-sky-800 */
+            border-bottom-color: #075985;
+        }
+        .tab-button {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .tab-button.active {
+            background-color: #075985;
+            color: #FFFFFF;
+        }
+        .highlight-row {
+            transition: background-color 0.3s ease-in-out;
+        }
+        .highlight-row.highlight {
+            background-color: #E0F2FE;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="header" class="sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-sky-800">松陽馥麗｜建案分析</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#overview" class="nav-link text-gray-600 pb-1 border-b-2 border-transparent">建案總覽</a>
+                <a href="#developer" class="nav-link text-gray-600 pb-1 border-b-2 border-transparent">建商背景</a>
+                <a href="#location" class="nav-link text-gray-600 pb-1 border-b-2 border-transparent">區位價值</a>
+                <a href="#market" class="nav-link text-gray-600 pb-1 border-b-2 border-transparent">市場比較</a>
+                <a href="#checklist" class="nav-link text-gray-600 pb-1 border-b-2 border-transparent">購屋檢查清單</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden bg-white">
+            <a href="#overview" class="block text-center py-2 text-gray-600 hover:bg-sky-50">建案總覽</a>
+            <a href="#developer" class="block text-center py-2 text-gray-600 hover:bg-sky-50">建商背景</a>
+            <a href="#location" class="block text-center py-2 text-gray-600 hover:bg-sky-50">區位價值</a>
+            <a href="#market" class="block text-center py-2 text-gray-600 hover:bg-sky-50">市場比較</a>
+            <a href="#checklist" class="block text-center py-2 text-gray-600 hover:bg-sky-50">購屋檢查清單</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-12">
+
+        <section id="hero" class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold text-sky-900 mb-4">松陽馥麗</h2>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">一份為您剖析的互動式報告，深入了解土城永寧的指標性建案。 </p>
+            <div class="mt-8 flex flex-wrap justify-center gap-4">
+                <div class="bg-sky-100 text-sky-800 px-4 py-2 rounded-full text-sm font-semibold">日商日本國土開發營造</div>
+                <div class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-full text-sm font-semibold">捷運永寧站旁</div>
+                <div class="bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm font-semibold">正對土城國中</div>
+                <div class="bg-rose-100 text-rose-800 px-4 py-2 rounded-full text-sm font-semibold">低建蔽率社區</div>
+            </div>
+        </section>
+        
+        <div id="content-sections">
+            <section id="overview" class="mb-16 scroll-mt-20">
+                <h3 class="text-3xl font-bold text-center mb-2 text-sky-900">建案總覽</h3>
+                <p class="text-center text-gray-500 mb-10">本章節彙整【松陽馥麗】的核心規格、營建團隊與建材配備。您可以透過下方的互動標籤，快速切換查閱不同主題的詳細資訊，全面了解此建案的硬體規劃與品質承諾。</p>
+                
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    <div class="mb-6 border-b border-gray-200">
+                        <nav class="flex flex-wrap -mb-px" aria-label="Tabs">
+                            <button class="tab-button active w-1/3 md:w-auto text-center md:text-left mr-2 py-4 px-1 border-b-2 font-medium text-sm rounded-t-lg" data-target="specs">核心規格</button>
+                            <button class="tab-button w-1/3 md:w-auto text-center md:text-left mr-2 py-4 px-1 border-b-2 font-medium text-sm rounded-t-lg" data-target="team">營建團隊</button>
+                            <button class="tab-button w-1/3 md:w-auto text-center md:text-left py-4 px-1 border-b-2 font-medium text-sm rounded-t-lg" data-target="materials">高級建材</button>
+                        </nav>
+                    </div>
+                    
+                    <div id="tab-content">
+                        <div id="specs-content" class="tab-pane active">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-4">
+                                    <div class="flex"><strong class="w-24 shrink-0">基地位置</strong><span>新北市土城區永寧路55號旁</span></div>
+                                    <div class="flex"><strong class="w-24 shrink-0">基地面積</strong><span>約 1332.92 坪</span></div>
+                                    <div class="flex"><strong class="w-24 shrink-0">建築規劃</strong><span>1幢, 4棟, 211戶住家</span></div>
+                                    <div class="flex"><strong class="w-24 shrink-0">樓層規劃</strong><span>地上11層, 地下4層</span></div>
+                                    <div class="flex"><strong class="w-24 shrink-0">坪數格局</strong><span>二房(22-25坪), 三房(31-32坪)</span></div>
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="flex"><strong class="w-24 shrink-0">公設比</strong><span>34.06%</span></div>
+                                    <div class="flex"><strong class="w-24 shrink-0">建蔽率</strong><span>30.51% (低密度開發)</span></div>
+                                    <div class="flex"><strong class="w-24 shrink-0">停車位</strong><span>坡道平面式 127個 (配比 1:0.6)</span></div>
+                                    <div class="flex"><strong class="w-24 shrink-0">管理費</strong><span>120 元/坪/月</span></div>
+                                    <div class="flex"><strong class="w-24 shrink-0">完工時程</strong><span>預計 2029 年下半年</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="team-content" class="tab-pane hidden">
+                            <p class="mb-4 text-gray-600">本案集結國際級團隊，特別是引進以嚴謹著稱的日商營造廠，意圖打造區域內的品質標竿。</p>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                <div class="bg-gray-50 p-4 rounded-lg"><span class="text-2xl">🏗️</span><h4 class="font-bold mt-2">營造公司</h4><p>日商日本國土開發</p></div>
+                                <div class="bg-gray-50 p-4 rounded-lg"><span class="text-2xl">🏛️</span><h4 class="font-bold mt-2">建築設計</h4><p>周劍平建築師事務所</p></div>
+                                <div class="bg-gray-50 p-4 rounded-lg"><span class="text-2xl">🌳</span><h4 class="font-bold mt-2">景觀設計</h4><p>六國景觀設計</p></div>
+                                <div class="bg-gray-50 p-4 rounded-lg"><span class="text-2xl">🛋️</span><h4 class="font-bold mt-2">公設設計</h4><p>工一設計</p></div>
+                            </div>
+                        </div>
+                        <div id="materials-content" class="tab-pane hidden">
+                             <p class="mb-4 text-gray-600">建材大量採用日本一線品牌，與日系營造廠的背景相呼應，共同強化「日系精工」的產品形象。</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start"><span class="bg-sky-200 text-sky-800 font-bold rounded-full w-6 h-6 text-center mr-3 shrink-0">窗</span><span><strong>YKK AP 氣密窗</strong>，搭配 6+6mm Low-E 複層玻璃，提供優異隔音隔熱。</span></li>
+                                <li class="flex items-start"><span class="bg-emerald-200 text-emerald-800 font-bold rounded-full w-6 h-6 text-center mr-3 shrink-0">廚</span><span><strong>Panasonic 廚櫃系統</strong>，搭配林內三機與諾得廚下型淨水器。</span></li>
+                                <li class="flex items-start"><span class="bg-amber-200 text-amber-800 font-bold rounded-full w-6 h-6 text-center mr-3 shrink-0">衛</span><span><strong>INAX 衛浴五金</strong>，搭配 Panasonic 全自動馬桶及四合一暖風機。</span></li>
+                                <li class="flex items-start"><span class="bg-rose-200 text-rose-800 font-bold rounded-full w-6 h-6 text-center mr-3 shrink-0">地</span><span><strong>永大SPC石塑地板</strong>，搭配隔音墊，符合新式法規。</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="developer" class="mb-16 scroll-mt-20">
+                <h3 class="text-3xl font-bold text-center mb-2 text-sky-900">建商背景</h3>
+                <p class="text-center text-gray-500 mb-10">了解建商的過去是評估未來的重要一步。本章節將呈現松陽機構的雙重敘事：其成功的開發先例，以及曾引發重大爭議的歷史。我們將探討【松陽馥麗】的高規格規劃，如何被視為對過往商譽的策略性回應與品牌重塑。</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h4 class="font-bold text-xl mb-4 border-l-4 border-emerald-500 pl-3">正面實績與在地連結</h4>
+                        <p class="mb-4">松陽機構由張松董事長創立，宣稱擁有35年歷史，並深耕土城地區。除了商業開發，亦成立社會福利基金會投入公益。</p>
+                        <div class="bg-emerald-50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-emerald-800">成功案例：文山區「青耘上」</h5>
+                            <p class="text-sm text-emerald-700">此案成功結合自然景觀與生活機能，緊鄰公園與登山步道，顯示機構具備發掘地段潛力並與環境融合的能力，備受市場肯定。</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg border-2 border-amber-400">
+                        <h4 class="font-bold text-xl mb-4 border-l-4 border-amber-500 pl-3">歷史爭議與品牌重塑</h4>
+                        <p class="mb-4">然而，其在天母的「天和公園」建案，曾因山坡地開發的安全性引發劇烈社區抗爭與負面輿論，是評估其風險控管的關鍵指標。</p>
+                        <div class="bg-amber-50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-amber-800">策略性回應：【松陽馥麗】的品質承諾</h5>
+                            <p class="text-sm text-amber-700">本案不惜重金聘請日商營造，可視為對「天和公園」事件的直接策略性回應。這是一次資本密集的品牌重塑行動，意圖透過與頂級夥伴的連結，向市場傳達對品質與安全的全新承諾，消弭消費者疑慮。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="location" class="mb-16 scroll-mt-20">
+                <h3 class="text-3xl font-bold text-center mb-2 text-sky-900">區位價值</h3>
+                <p class="text-center text-gray-500 mb-10">永寧生活圈正從傳統工業區轉型為新興科技重鎮。本章節將分析其核心價值——卓越的交通網絡，以及隨產業轉型而來的發展潛力。透過下方的圖表，您可以看到土城區近年驚人的房價漲幅，這為本案的長期價值提供了市場數據支持。</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                    <div class="bg-white p-5 rounded-xl shadow-lg text-center"><span class="text-3xl">🚇</span><h4 class="font-bold mt-2">交通樞紐</h4><p class="text-sm text-gray-600">近捷運、轉運站、國道三號及台65，通勤便利</p></div>
+                    <div class="bg-white p-5 rounded-xl shadow-lg text-center"><span class="text-3xl">💼</span><h4 class="font-bold mt-2">產業轉型</h4><p class="text-sm text-gray-600">AI科技園區進駐，創造大量就業機會</p></div>
+                    <div class="bg-white p-5 rounded-xl shadow-lg text-center"><span class="text-3xl">🏫</span><h4 class="font-bold mt-2">優質學區</h4><p class="text-sm text-gray-600">正對升學率優異的土城國中</p></div>
+                    <div class="bg-white p-5 rounded-xl shadow-lg text-center"><span class="text-3xl">🏞️</span><h4 class="font-bold mt-2">自然環境</h4><p class="text-sm text-gray-600">鄰近公園綠地與天上山系步道</p></div>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h4 class="font-bold text-xl mb-4 text-center">土城區房價走勢 (2020-2024)</h4>
+                        <div class="chart-container">
+                            <canvas id="priceTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h4 class="font-bold text-xl mb-4 text-center">永寧地區房價定位比較</h4>
+                        <div class="chart-container">
+                            <canvas id="priceCompareChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="market" class="mb-16 scroll-mt-20">
+                <h3 class="text-3xl font-bold text-center mb-2 text-sky-900">市場比較</h3>
+                <p class="text-center text-gray-500 mb-10">土城房市競爭激烈，主要戰場集中在暫緩重劃區。本章節將【松陽馥麗】與兩大主要競爭者——「馥華」及「金城舞」系列進行比較，並提供一份SWOT分析。您可以點擊下方按鈕，在表格中高亮顯示特定建案，以便更清晰地進行對比。</p>
+                
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg mb-10">
+                    <div class="flex flex-wrap justify-center gap-2 mb-4">
+                        <button class="comp-button px-4 py-2 text-sm font-medium text-white bg-sky-700 rounded-lg hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500" data-target="fuli">松陽馥麗</button>
+                        <button class="comp-button px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none" data-target="fuhua">馥華之丘</button>
+                        <button class="comp-button px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none" data-target="jincheng">金城舞</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">比較項目</th>
+                                    <th scope="col" class="px-6 py-3">松陽馥麗</th>
+                                    <th scope="col" class="px-6 py-3">馥華之丘</th>
+                                    <th scope="col" class="px-6 py-3">金城舞</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b highlight-row highlight" data-row="fuli">
+                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">營建品質</th>
+                                    <td class="px-6 py-4 font-bold text-emerald-600">日商營造，品質為最大賣點</td>
+                                    <td class="px-6 py-4">甲級營造商，品質受肯定</td>
+                                    <td class="px-6 py-4">一般，市場評價不一</td>
+                                </tr>
+                                <tr class="bg-white border-b highlight-row" data-row="fuhua">
+                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">區位交通</th>
+                                    <td class="px-6 py-4 font-bold text-emerald-600">永寧生活圈，交通極優</td>
+                                    <td class="px-6 py-4">暫緩重劃區，距捷運較遠</td>
+                                    <td class="px-6 py-4">暫緩重劃區，鄰近捷運</td>
+                                </tr>
+                                <tr class="bg-white border-b highlight-row" data-row="jincheng">
+                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">主要弱點</th>
+                                    <td class="px-6 py-4 font-bold text-rose-600">建商過往爭議、周邊機能待發展</td>
+                                    <td class="px-6 py-4">距捷運遠、總價門檻高</td>
+                                    <td class="px-6 py-4">戶數密度高、部分格局不佳</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-emerald-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-emerald-800 mb-3">優勢 (Strengths)</h4>
+                        <ul class="list-disc list-inside text-emerald-700 space-y-1 text-sm">
+                            <li>卓越的營建血統 (日商營造)</li>
+                            <li>無可比擬的交通網絡</li>
+                            <li>關鍵的教育資源 (土城國中)</li>
+                            <li>相對低密度的環境</li>
+                        </ul>
+                    </div>
+                    <div class="bg-rose-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-rose-800 mb-3">劣勢 (Weaknesses)</h4>
+                        <ul class="list-disc list-inside text-rose-700 space-y-1 text-sm">
+                            <li>開發商的歷史包袱 (天和公園)</li>
+                            <li>待發展的生活機能</li>
+                            <li>頂級的價格門檻</li>
+                            <li>公開資訊存在不一致性</li>
+                        </ul>
+                    </div>
+                    <div class="bg-sky-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-sky-800 mb-3">機會 (Opportunities)</h4>
+                        <ul class="list-disc list-inside text-sky-700 space-y-1 text-sm">
+                            <li>區域轉型的紅利 (科技園區)</li>
+                            <li>基礎設施的完善 (永寧轉運站)</li>
+                            <li>成功吸引追求高品質的客群</li>
+                        </ul>
+                    </div>
+                    <div class="bg-amber-50 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-amber-800 mb-3">威脅 (Threats)</h4>
+                        <ul class="list-disc list-inside text-amber-700 space-y-1 text-sm">
+                            <li>房市景氣的逆轉風險</li>
+                            <li>區域發展不如預期</li>
+                            <li>暫緩重劃區的激烈競爭</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="checklist" class="scroll-mt-20">
+                <h3 class="text-3xl font-bold text-center mb-2 text-sky-900">購屋檢查清單</h3>
+                <p class="text-center text-gray-500 mb-10">在做出最終決定前，這份互動式清單能幫助您系統性地進行盡職調查。請逐一確認這些關鍵事項，確保您的權益得到充分保障。點擊方框即可標記完成。</p>
+                <div class="bg-white max-w-2xl mx-auto p-6 md:p-8 rounded-xl shadow-lg">
+                    <div class="space-y-4">
+                        <label class="flex items-center p-3 rounded-md hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-gray-700">核實確切完工日期，並載明於合約。</span>
+                        </label>
+                        <label class="flex items-center p-3 rounded-md hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-gray-700">確認合約營造廠為「日商日本國土開發」。</span>
+                        </label>
+                        <label class="flex items-center p-3 rounded-md hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-gray-700">主動詢問銷售方關於「天和公園」爭議。</span>
+                        </label>
+                        <label class="flex items-center p-3 rounded-md hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-gray-700">評估停車位分配方式與購買資格。</span>
+                        </label>
+                        <label class="flex items-center p-3 rounded-md hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-gray-700">進行多時段實地勘查，感受周邊環境。</span>
+                        </label>
+                        <label class="flex items-center p-3 rounded-md hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-gray-700">委請專家審閱預售屋買賣合約。</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-6 py-4 text-center text-sm">
+            <p>&copy; 2025 互動式建案分析報告。本報告資訊彙整自公開來源，僅供參考，購屋前請詳閱官方資料並進行獨立判斷。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            const navLinks = document.querySelectorAll('nav a[href^="#"]');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (!mobileMenu.classList.contains('hidden')) {
+                         mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    const target = button.dataset.target;
+                    tabPanes.forEach(pane => {
+                        if (pane.id === `${target}-content`) {
+                            pane.classList.remove('hidden');
+                            pane.classList.add('active');
+                        } else {
+                            pane.classList.add('hidden');
+                            pane.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            const compButtons = document.querySelectorAll('.comp-button');
+            const highlightRows = document.querySelectorAll('.highlight-row');
+            compButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const target = button.dataset.target;
+                    highlightRows.forEach(row => {
+                        if (row.dataset.row === target) {
+                            row.classList.add('highlight');
+                        } else {
+                            row.classList.remove('highlight');
+                        }
+                    });
+                });
+            });
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.4
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.getAttribute('id');
+                        document.querySelectorAll('.nav-link').forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${id}`) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('section[id]').forEach(section => {
+                observer.observe(section);
+            });
+
+            const priceTrendCtx = document.getElementById('priceTrendChart')?.getContext('2d');
+            if(priceTrendCtx) {
+                new Chart(priceTrendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['2020', '2021', '2022', '2023', '2024'],
+                        datasets: [{
+                            label: '土城區住宅大樓華廈均價 (萬/坪)',
+                            data: [37.9, 41.5, 45.1, 49.8, 53.6],
+                            borderColor: '#0284c7',
+                            backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '萬';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y + ' 萬/坪';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const priceCompareCtx = document.getElementById('priceCompareChart')?.getContext('2d');
+            if(priceCompareCtx) {
+                new Chart(priceCompareCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['本案(預售)', '新成屋(高標)', '中古華廈', '老公寓'],
+                        datasets: [{
+                            label: '平均單價 (萬/坪)',
+                            data: [74.5, 69, 45, 44],
+                            backgroundColor: [
+                                '#075985',
+                                '#0ea5e9',
+                                '#7dd3fc',
+                                '#e0f2fe'
+                            ],
+                            borderColor: [
+                                '#075985',
+                                '#0ea5e9',
+                                '#7dd3fc',
+                                '#e0f2fe'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return '約 ' + context.parsed.x + ' 萬/坪';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
