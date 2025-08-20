@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紐西蘭南島行程互動比較 | 為熟齡旅客尋找完美旅程</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Linen, Taupe, Sage Green, Slate Gray) -->
+    <!-- Application Structure Plan: A single-page dashboard comparing three travel agencies (上順, 巨匠, 尊榮). The core is an interactive filter system (buttons for Pacing, Experience, Comfort) that updates highlighted content cards and a central radar chart. This structure allows users to compare based on their personal priorities, moving from a passive reading experience (the report) to active exploration. The flow is: Intro -> Interactive Comparison Dashboard -> Interactive Map -> Detailed Feature Breakdown -> Daily Itinerary Tabs -> Persona-based Recommendations. -->
+    <!-- Visualization & Content Choices: 1. Main Viz: Radar Chart (Chart.js/Canvas) to compare multi-dimensional scores (Pacing, Comfort, Uniqueness, Scope). Interaction: Clicking a filter button highlights the corresponding axis on the chart. Justification: Radar charts are ideal for showing strengths/weaknesses across multiple common variables. 2. Content Presentation: Interactive Cards (HTML/CSS/JS). Interaction: Cards are highlighted based on filter selection. Justification: Guides user attention and breaks down complex info. 3. Key Differentiators: A static HTML table for direct, clear comparison of critical features like Milford Sound logistics. Justification: Best for factual, one-to-one comparisons. 4. Map Viz: Interactive Map (Leaflet.js) to visualize and compare tour routes. Interaction: Checkboxes to toggle routes. Justification: Provides crucial geographical context. 5. Itinerary Viz: Tabbed interface (HTML/CSS/JS) for day-by-day comparison. Justification: Organizes dense information cleanly and prevents cognitive overload. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFCF9; /* Linen White */
+            color: #4A4A4A; /* Dark Gray */
+        }
+        .bg-custom-linen { background-color: #FDFCF9; }
+        .bg-custom-taupe { background-color: #F0EBE3; }
+        .bg-custom-sage { background-color: #A7B8A8; }
+        .text-custom-slate { color: #5D737E; }
+        .border-custom-sage { border-color: #A7B8A8; }
+        .active-filter, .active-tab {
+            background-color: #5D737E !important;
+            color: #FFFFFF !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .highlight-card {
+            transform: scale(1.03);
+            box-shadow: 0 8px 25px rgba(93, 115, 126, 0.2);
+            border-color: #5D737E;
+        }
+        .transition-all {
+            transition: all 0.3s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        #map {
+            height: 500px;
+            border-radius: 1rem;
+            z-index: 1;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-custom-linen">
+
+    <header class="text-center py-12 px-4 bg-custom-taupe">
+        <h1 class="text-4xl md:text-5xl font-bold text-custom-slate">紐西蘭南島行程互動比較</h1>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">為見聞廣博的熟齡旅行者，從容、舒適、體驗三個維度，尋找最契合您的完美旅程。</p>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        
+        <section id="interactive-dashboard" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-custom-slate mb-4">互動比較儀表板</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-2xl mx-auto">點擊下方按鈕，探索您最重視的旅遊面向。圖表與重點資訊將為您即時呈現各家旅行社的特色。</p>
+
+            <div id="filter-controls" class="flex flex-wrap justify-center gap-3 md:gap-4 mb-10">
+                <button data-filter="pacing" class="filter-btn transition-all text-base font-semibold py-3 px-6 rounded-full bg-white shadow-md hover:bg-gray-100">🧘 旅途步調</button>
+                <button data-filter="experience" class="filter-btn transition-all text-base font-semibold py-3 px-6 rounded-full bg-white shadow-md hover:bg-gray-100">✨ 體驗獨特性</button>
+                <button data-filter="comfort" class="filter-btn transition-all text-base font-semibold py-3 px-6 rounded-full bg-white shadow-md hover:bg-gray-100">🚆 交通舒適度</button>
+                <button data-filter="scope" class="filter-btn transition-all text-base font-semibold py-3 px-6 rounded-full bg-white shadow-md hover:bg-gray-100">🗺️ 景點廣度</button>
+                <button data-filter="all" class="filter-btn transition-all text-base font-semibold py-3 px-6 rounded-full bg-white shadow-md hover:bg-gray-100 active-filter">🌐 綜合評比</button>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div class="chart-container">
+                        <canvas id="tourComparisonChart"></canvas>
+                    </div>
+                    <div id="summary-panel">
+                        <h3 id="summary-title" class="text-2xl font-bold text-custom-slate mb-3">綜合評比</h3>
+                        <p id="summary-text" class="text-gray-700 leading-relaxed">此圖表綜合了「從容度」、「舒適度」、「獨特性」與「廣度」四個維度，展現了三家旅行社行程的整體風格。您可以點擊上方按鈕，深入了解每個面向的細節比較。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="map-section" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-custom-slate mb-4">行程路線地圖</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-2xl mx-auto">勾選下方旅行社，在地圖上直觀比較不同行程的路線規劃與停留點。</p>
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <div id="map"></div>
+                <div id="map-controls" class="flex justify-center items-center gap-6 mt-4 flex-wrap">
+                    <label class="inline-flex items-center"><input type="checkbox" class="map-toggle form-checkbox h-5 w-5" data-agency="fantasy" checked style="color: #A7B8A8;"><span class="ml-2 text-gray-700 font-semibold" style="color: #A7B8A8;">上順旅遊 (慢遊美學)</span></label>
+                    <label class="inline-flex items-center"><input type="checkbox" class="map-toggle form-checkbox h-5 w-5" data-agency="artisan" checked style="color: #5D737E;"><span class="ml-2 text-gray-700 font-semibold" style="color: #5D737E;">巨匠旅遊 (多元體驗)</span></label>
+                    <label class="inline-flex items-center"><input type="checkbox" class="map-toggle form-checkbox h-5 w-5" data-agency="prestige" checked style="color: #D2B4A0;"><span class="ml-2 text-gray-700 font-semibold" style="color: #D2B4A0;">尊榮假期 (經典全景)</span></label>
+                </div>
+            </div>
+        </section>
+
+        <section id="agency-comparison" class="mb-16">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div id="card-fantasy" class="comparison-card transition-all bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent flex flex-col"><h3 class="text-2xl font-bold text-custom-slate mb-2">上順旅遊</h3><p class="text-lg font-semibold text-custom-sage mb-4">慢遊美學的實踐家</p><div class="space-y-4 flex-grow"><div data-category="pacing" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🧘 旅途步調</h4><p class="text-sm">透過多晚連泊與皇后鎮「自由日」的奢侈安排，創造最從容、無壓力的旅程節奏。</p></div><div data-category="experience" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">✨ 體驗獨特性</h4><p class="text-sm">除了經典景點，更融入四輪驅動車越野等深度在地體驗，追求與眾不同的回憶。</p></div><div data-category="comfort" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🚆 交通舒適度</h4><p class="text-sm">後勤規劃極佳，特別是入住蒂阿瑙以縮短米佛峽灣車程，是體貼熟齡旅客的典範。</p></div><div data-category="scope" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🗺️ 景點廣度</h4><p class="text-sm">專注於南島核心精華區，以深度換取廣度，行程不求最全，但求最精。</p></div></div></div>
+                <div id="card-artisan" class="comparison-card transition-all bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent flex flex-col"><h3 class="text-2xl font-bold text-custom-slate mb-2">巨匠旅遊</h3><p class="text-lg font-semibold text-custom-sage mb-4">多元體驗的鑑賞家</p><div class="space-y-4 flex-grow"><div data-category="pacing" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🧘 旅途步調</h4><p class="text-sm">同樣重視連泊安排，行程節奏流暢。雖無自由日，但活動豐富緊湊。</p></div><div data-category="experience" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">✨ 體驗獨特性</h4><p class="text-sm">「交通工具八部曲」是最大亮點，將移動過程轉化為享受，體驗豐富且獨一無二。</p></div><div data-category="comfort" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🚆 交通舒適度</h4><p class="text-sm">巧妙運用高山景觀火車取代最蜿蜒的巴士路段，提供無可比擬的交通舒適感。</p></div><div data-category="scope" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🗺️ 景點廣度</h4><p class="text-sm">路線規劃聰明，利用特色交通串連西海岸與核心景區，覆蓋範圍廣泛。</p></div></div></div>
+                <div id="card-prestige" class="comparison-card transition-all bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent flex flex-col"><h3 class="text-2xl font-bold text-custom-slate mb-2">尊榮假期</h3><p class="text-lg font-semibold text-custom-sage mb-4">經典路線的集大成者</p><div class="space-y-4 flex-grow"><div data-category="pacing" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🧘 旅途步調</h4><p class="text-sm">13天行程透過增加天數提供連泊，節奏較佳。10天行程則為緊湊高效的環線之旅。</p></div><div data-category="experience" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">✨ 體驗獨特性</h4><p class="text-sm">囊括所有經典必遊活動，如冰河船、螢火蟲洞等，提供最完整的南島地標巡禮。</p></div><div data-category="comfort" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🚆 交通舒適度</h4><p class="text-sm">以舒適的遊覽車為主，路線規劃成熟流暢，金旅獎肯定其品質。</p></div><div data-category="scope" class="info-block p-4 rounded-lg bg-custom-taupe/50"><h4 class="font-bold">🗺️ 景點廣度</h4><p class="text-sm">路線覆蓋最全面，特別是13天行程包含東西兩岸，提供真正的南島「壯遊」。</p></div></div></div>
+            </div>
+        </section>
+
+        <section id="detailed-comparison" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-custom-slate mb-8">行程細節終極比較</h2>
+            <div class="bg-white p-6 rounded-2xl shadow-lg overflow-x-auto"><table class="w-full min-w-[800px] text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th scope="col" class="px-6 py-3 rounded-tl-lg">比較項目</th><th scope="col" class="px-6 py-3 text-center">上順旅遊</th><th scope="col" class="px-6 py-3 text-center">巨匠旅遊</th><th scope="col" class="px-6 py-3 text-center rounded-tr-lg">尊榮假期</th></tr></thead><tbody><tr class="bg-white border-b"><th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">路線哲學</th><td class="px-6 py-4 text-center">深度慢遊，聚焦核心</td><td class="px-6 py-4 text-center">體驗導向，西進東出</td><td class="px-6 py-4 text-center">經典環線，廣度優先</td></tr><tr class="bg-gray-50 border-b"><th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">米佛峽灣方案</th><td class="px-6 py-4 text-center font-bold text-green-600">最優：前晚入住蒂阿瑙，隔日輕鬆前往</td><td class="px-6 py-4 text-center">佳：遊覽後入住蒂阿瑙或反向操作</td><td class="px-6 py-4 text-center">佳：遊覽後入住蒂阿瑙或反向操作</td></tr><tr class="bg-white border-b"><th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">特色交通</th><td class="px-6 py-4 text-center">百年蒸汽船</td><td class="px-6 py-4 text-center font-bold text-green-600">高山景觀火車、蒸汽船等「八部曲」</td><td class="px-6 py-4 text-center">舒適遊覽車為主</td></tr><tr class="bg-gray-50 border-b"><th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">自由活動日</th><td class="px-6 py-4 text-center font-bold text-green-600">皇后鎮 1 天</td><td class="px-6 py-4 text-center">無</td><td class="px-6 py-4 text-center">無</td></tr><tr class="bg-white border-b"><th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">連泊安排</th><td class="px-6 py-4 text-center">極佳 (瓦納卡+皇后鎮)</td><td class="px-6 py-4 text-center">佳 (西海岸+皇后鎮)</td><td class="px-6 py-4 text-center">佳 (僅13天行程)</td></tr><tr class="bg-gray-50 border-b"><th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">獨家活動</th><td class="px-6 py-4 text-center">四輪驅動車越野</td><td class="px-6 py-4 text-center">奢華海鮮遊船</td><td class="px-6 py-4 text-center">羊駝牧場、酒莊</td></tr><tr class="bg-white"><th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap rounded-bl-lg">住宿亮點</th><td class="px-6 py-4 text-center">隱士飯店+瓦納卡湖畔連泊</td><td class="px-6 py-4 text-center">隱士飯店保證入住</td><td class="px-6 py-4 text-center rounded-br-lg">隱士飯店保證面山房</td></tr></tbody></table></div>
+        </section>
+
+        <section id="daily-itinerary" class="mb-16">
+            <h2 class="text-3xl font-bold text-center text-custom-slate mb-8">每日行程速覽</h2>
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <div class="border-b border-gray-200 mb-4">
+                    <nav class="-mb-px flex justify-center space-x-4 md:space-x-8" aria-label="Tabs">
+                        <button data-tab="fantasy" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm md:text-base border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 active-tab" style="border-color: #5D737E;">上順旅遊</button>
+                        <button data-tab="artisan" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm md:text-base border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">巨匠旅遊</button>
+                        <button data-tab="prestige" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm md:text-base border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">尊榮假期</button>
+                    </nav>
+                </div>
+                <div id="itinerary-content">
+                    <div id="tab-fantasy" class="tab-content active">
+                        <div class="space-y-4">
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第1-2天：</strong>啟程 → 抵達基督城，市區觀光，適應調整。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第3天：</strong>基督城 → 庫克山國家公園 (入住隱士飯店)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第4天：</strong>庫克山 → 瓦納卡 (湖畔連泊第1晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第5天：</strong>瓦納卡全日深度遊 (湖畔連泊第2晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第6天：</strong>瓦納卡 → 皇后鎮 → 蒂阿瑙 (入住峽灣門戶)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第7天：</strong>蒂阿瑙 → 米佛峽灣遊船 → 皇后鎮 (連泊第1晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第8天：</strong>皇后鎮經典活動 (TSS蒸汽船、纜車) (連泊第2晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg font-bold text-green-700"><strong>第9天：</strong>皇后鎮全日自由活動 (連泊第3晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第10-11天：</strong>皇后鎮 → 基督城 → 溫暖的家。</div>
+                        </div>
+                    </div>
+                    <div id="tab-artisan" class="tab-content">
+                        <div class="space-y-4">
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第1-2天：</strong>啟程 → 抵達基督城。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg font-bold text-green-700"><strong>第3天：</strong>基督城 → 高山景觀火車 → 亞瑟隘口 → 西海岸冰河區 (連泊第1晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第4天：</strong>西海岸冰河健行或直升機體驗 (連泊第2晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第5天：</strong>西海岸 → 瓦納卡 → 皇后鎮 (連泊第1晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第6天：</strong>皇后鎮經典活動 (TSS蒸汽船、纜車) (連泊第2晚)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第7天：</strong>皇后鎮 → 蒂阿瑙 → 米佛峽灣遊船 → 蒂阿瑙。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第8天：</strong>蒂阿瑙 → 庫克山國家公園 (入住隱士飯店)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第9天：</strong>庫克山 (塔斯曼冰河船) → 基督城。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第10-11天：</strong>基督城 → 溫暖的家。</div>
+                        </div>
+                    </div>
+                    <div id="tab-prestige" class="tab-content">
+                        <div class="space-y-4">
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第1-2天：</strong>啟程 → 抵達基督城。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第3天：</strong>基督城 → 奧瑪魯 (藍眼企鵝) → 但尼丁。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第4天：</strong>但尼丁 → 蒂阿瑙 (螢火蟲洞)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第5天：</strong>蒂阿瑙 → 米佛峽灣遊船 → 皇后鎮。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第6天：</strong>皇后鎮經典活動 (纜車、酒莊)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第7天：</strong>皇后鎮 → 箭鎮 → 庫克山國家公園 (入住隱士飯店)。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第8天：</strong>庫克山 (塔斯曼冰河船) → 基督城。</div>
+                            <div class="p-4 bg-custom-taupe/30 rounded-lg"><strong>第9-10天：</strong>基督城 → 溫暖的家。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="recommendations" class="bg-white p-8 rounded-2xl shadow-lg">
+            <h2 class="text-3xl font-bold text-center text-custom-slate mb-8">最終結論與客製化建議</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div class="border border-gray-200 p-6 rounded-xl"><div class="text-4xl mb-4">🥇</div><h3 class="text-xl font-bold text-custom-slate mb-2">推薦一：致 從容的深度探索者</h3><p class="text-2xl font-bold text-custom-sage mb-3">上順旅遊</p><p class="text-gray-600 text-sm">如果您將放鬆的步調、個人時間的自由度置於首位，尋求一種恢復身心、最具品質的旅程，這是我們的首要推薦。</p></div>
+                <div class="border border-gray-200 p-6 rounded-xl"><div class="text-4xl mb-4">🥈</div><h3 class="text-xl font-bold text-custom-slate mb-2">推薦二：致 舒適的品味鑑賞家</h3><p class="text-2xl font-bold text-custom-sage mb-3">巨匠旅遊</p><p class="text-gray-600 text-sm">如果您不僅希望看到美景，更希望「享受過程」，重視旅途的舒適度與體驗的獨特性，巨匠的設計將最能打動您。</p></div>
+                <div class="border border-gray-200 p-6 rounded-xl"><div class="text-4xl mb-4">🥉</div><h3 class="text-xl font-bold text-custom-slate mb-2">推薦三：致 經典的全景收藏家</h3><p class="text-2xl font-bold text-custom-sage mb-3">尊榮假期</p><p class="text-gray-600 text-sm">如果您希望在一次旅程中，盡可能完整體驗南島所有經典地標，尊榮的全面路線能滿足您的「壯遊」心願 (推薦13天行程)。</p></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-6 bg-custom-taupe mt-12">
+        <p class="text-sm text-gray-600">此互動分析報告由 AI 根據公開資料生成，僅供決策參考。</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tourData = {
+                labels: ['從容度', '舒適度', '獨特性', '廣度'],
+                datasets: [
+                    { label: '上順旅遊', data: [5, 4, 4, 3], backgroundColor: 'rgba(167, 184, 168, 0.2)', borderColor: 'rgba(167, 184, 168, 1)', pointBackgroundColor: 'rgba(167, 184, 168, 1)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgba(167, 184, 168, 1)' },
+                    { label: '巨匠旅遊', data: [4, 5, 5, 4], backgroundColor: 'rgba(93, 115, 126, 0.2)', borderColor: 'rgba(93, 115, 126, 1)', pointBackgroundColor: 'rgba(93, 115, 126, 1)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgba(93, 115, 126, 1)' },
+                    { label: '尊榮假期', data: [3, 4, 3, 5], backgroundColor: 'rgba(210, 180, 160, 0.2)', borderColor: 'rgba(210, 180, 160, 1)', pointBackgroundColor: 'rgba(210, 180, 160, 1)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgba(210, 180, 160, 1)' }
+                ]
+            };
+
+            const summaryContent = {
+                pacing: { title: '🧘 旅途步調', text: '步調是熟齡旅遊的關鍵。上順以「多晚連泊」和珍貴的「自由日」拔得頭籌，提供最放鬆的節奏。巨匠與尊榮(13天)也透過連泊確保舒適度，而尊榮的10天行程則相對緊湊。' },
+                experience: { title: '✨ 體驗獨特性', text: '巨匠的「交通工具八部曲」提供了最多元、獨特的體驗。上順則在經典之外加入深度在地活動。尊榮則專注於將所有「經典必遊」一網打盡，提供最完整的地標巡禮。' },
+                comfort: { title: '🚆 交通舒適度', text: '巨匠的高山景觀火車，策略性地取代了最疲勞的巴士路段，提供了無可比擬的舒適感。上順透過入住蒂阿瑙，極大化了米佛峽灣之旅的舒適度，展現了後勤規劃的智慧。' },
+                scope: { title: '🗺️ 景點廣度', text: '尊榮的路線覆蓋最為全面，特別是13天行程，是唯一包含東西兩岸的「全景」選擇。巨匠與上順則更聚焦於南島的核心精華，以深度體驗為主。' },
+                all: { title: '🌐 綜合評比', text: '此圖表綜合了「從容度」、「舒適度」、「獨特性」與「廣度」四個維度，展現了三家旅行社行程的整體風格。您可以點擊上方按鈕，深入了解每個面向的細節比較。' }
+            };
+            
+            const ctx = document.getElementById('tourComparisonChart').getContext('2d');
+            const tourChart = new Chart(ctx, {
+                type: 'radar',
+                data: tourData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: { line: { borderWidth: 3 } },
+                    scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 5, pointLabels: { font: { size: 14, weight: 'bold' } }, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { position: 'top', labels: { font: { size: 14 } } } }
+                }
+            });
+
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const summaryTitle = document.getElementById('summary-title');
+            const summaryText = document.getElementById('summary-text');
+            const comparisonCards = document.querySelectorAll('.comparison-card');
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const filter = btn.dataset.filter;
+                    filterBtns.forEach(b => b.classList.remove('active-filter'));
+                    btn.classList.add('active-filter');
+                    summaryTitle.textContent = summaryContent[filter].title;
+                    summaryText.textContent = summaryContent[filter].text;
+                    comparisonCards.forEach(card => {
+                        card.classList.remove('highlight-card');
+                        const infoBlocks = card.querySelectorAll('.info-block');
+                        infoBlocks.forEach(block => block.classList.remove('ring-2', 'ring-custom-slate'));
+                        if (filter !== 'all') {
+                            const targetBlock = card.querySelector(`[data-category="${filter}"]`);
+                            if (targetBlock) {
+                                targetBlock.classList.add('ring-2', 'ring-custom-slate');
+                                card.classList.add('highlight-card');
+                            }
+                        }
+                    });
+                });
+            });
+
+            const map = L.map('map').setView([-43.5321, 172.6362], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+
+            const locations = {
+                christchurch: { lat: -43.5321, lng: 172.6362, desc: "基督城：花園城市，行程起點" },
+                mtcook: { lat: -43.7333, lng: 170.0962, desc: "庫克山：紐西蘭最高峰，入住隱士飯店" },
+                wanaka: { lat: -44.7000, lng: 169.1500, desc: "瓦納卡：湖畔小鎮，享受悠閒時光" },
+                teanau: { lat: -45.4167, lng: 167.7167, desc: "蒂阿瑙：峽灣門戶，前往米佛峽灣的前哨站" },
+                milford: { lat: -44.6719, lng: 167.9256, desc: "米佛峽灣：世界遺產，峽灣巡遊" },
+                queenstown: { lat: -45.0312, lng: 168.6626, desc: "皇后鎮：冒險之都，活動中心" },
+                franzjosef: { lat: -43.4667, lng: 170.1833, desc: "法蘭茲約瑟夫冰河：西海岸冰河景觀" },
+                arthurspass: { lat: -42.942, lng: 171.564, desc: "亞瑟隘口：高山景觀火車穿越點" },
+                dunedin: { lat: -45.8742, lng: 170.5036, desc: "但尼丁：蘇格蘭風情城市" }
+            };
+
+            const routes = {
+                fantasy: { color: '#A7B8A8', points: [locations.christchurch, locations.mtcook, locations.wanaka, locations.teanau, locations.milford, locations.queenstown, locations.christchurch] },
+                artisan: { color: '#5D737E', points: [locations.christchurch, locations.arthurspass, locations.franzjosef, locations.wanaka, locations.queenstown, locations.mtcook, locations.christchurch] },
+                prestige: { color: '#D2B4A0', points: [locations.christchurch, locations.dunedin, locations.teanau, locations.milford, locations.queenstown, locations.mtcook, locations.christchurch] }
+            };
+            
+            let layers = {};
+            function drawRoutes() {
+                Object.values(layers).forEach(layerGroup => map.removeLayer(layerGroup));
+                layers = {};
+                document.querySelectorAll('.map-toggle:checked').forEach(checkbox => {
+                    const agency = checkbox.dataset.agency;
+                    if (routes[agency]) {
+                        const route = routes[agency];
+                        const layerGroup = L.layerGroup().addTo(map);
+                        const latlngs = route.points.map(p => [p.lat, p.lng]);
+                        L.polyline(latlngs, { color: route.color, weight: 4, opacity: 0.7 }).addTo(layerGroup);
+                        route.points.forEach(p => { L.marker([p.lat, p.lng]).addTo(layerGroup).bindPopup(p.desc); });
+                        layers[agency] = layerGroup;
+                    }
+                });
+            }
+            document.querySelectorAll('.map-toggle').forEach(checkbox => checkbox.addEventListener('change', drawRoutes));
+            drawRoutes();
+
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.dataset.tab;
+                    tabBtns.forEach(b => {
+                        b.classList.remove('active-tab');
+                        b.style.borderColor = 'transparent';
+                    });
+                    btn.classList.add('active-tab');
+                    btn.style.borderColor = '#5D737E';
+
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `tab-${tabId}`) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
