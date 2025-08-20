@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台北至基督城商務艙方案 | 互動式決策SPA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive "Flight Option Explorer" dashboard. This structure prioritizes user decision-making over mirroring the report's linear format. The core components are: 1) A main control panel allowing users to select their primary travel priority (Time, Luxury, Cost). 2) An interactive radar chart that visually compares the three flight options across key metrics. 3) Detailed information cards for each option that provide qualitative context. 4) A prominent, always-visible section for critical decision points (visa, alternatives). This task-oriented design was chosen because it guides the user directly from their core need (e.g., "I want the fastest flight") to the most relevant data and recommendation, making the complex information highly consumable and actionable. -->
+    <!-- Visualization & Content Choices: 1. Main Comparison: Report Info -> Comparing three distinct flight strategies across multiple factors. Goal -> Allow for quick, multi-variate comparison. Viz/Presentation -> Interactive Radar Chart (Chart.js). Interaction -> Users click priority buttons ('Time', 'Luxury', 'Cost') which highlights the corresponding dataset on the chart. This instantly visualizes the best option for their chosen criterion. Justification -> A radar chart is superior to bar charts for showing the overall "balance" of strengths and weaknesses for each option. 2. Detailed Info: Report Info -> Qualitative descriptions of airline services, transfer experiences, and price estimates. Goal -> Provide deeper context after the initial visual comparison. Viz/Presentation -> Styled HTML/CSS cards. Interaction -> Cards are visually highlighted in sync with the chart selections. Justification -> Cards organize detailed text neatly and create a clear visual link to the chart data. 3. Key Decision Points: Report Info -> Critical visa warning and Premium Economy alternative. Goal -> Ensure unmissable, critical information is presented clearly. Viz/Presentation -> Structured HTML with Tailwind CSS and Unicode icons (e.g., '⚠️'). Justification -> High-contrast, non-interactive text with icons ensures maximum readability and immediate comprehension of crucial warnings. Library/Method -> Chart.js for canvas-based charting, Tailwind CSS for layout and styling. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8; /* Warm Neutral Background */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 50vh;
+            max-height: 450px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 45vh;
+            }
+        }
+        .nav-btn {
+            transition: all 0.3s ease;
+        }
+        .nav-btn.active {
+            background-color: #8D7B68 !important; /* Accent Color */
+            color: #FFFFFF !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .card-highlight {
+            box-shadow: 0 0 0 3px #8D7B68;
+            transform: scale(1.02);
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-[#3C3633]">台北至基督城商務艙方案</h1>
+            <p class="text-lg text-gray-600 mt-2">互動式決策儀表板</p>
+            <div class="mt-4 text-sm text-gray-500 bg-white/60 p-3 rounded-lg inline-block shadow-sm">
+                <p><strong>查詢摘要:</strong> 兩人 | 2025年11月-12月 | 台北(TPE) → 基督城(CHC) | 商務艙 | 最少轉機</p>
+                <p><strong>排除選項:</strong> 中華航空、國泰航空</p>
+            </div>
+        </header>
+
+        <main>
+            <section id="decision-tool" class="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-8">
+                <h2 class="text-2xl font-bold text-center mb-2 text-[#3C3633]">您的旅行最重視什麼？</h2>
+                <p class="text-center text-gray-600 mb-6">點選下方按鈕，圖表與卡片將為您突顯最佳方案。</p>
+                <div id="nav-controls" class="flex flex-wrap justify-center gap-3 md:gap-4 mb-8">
+                    <button data-priority="default" class="nav-btn active text-base font-semibold py-3 px-6 bg-gray-200 text-gray-700 rounded-full shadow-sm hover:bg-gray-300">總覽比較</button>
+                    <button data-priority="time" class="nav-btn text-base font-semibold py-3 px-6 bg-gray-200 text-gray-700 rounded-full shadow-sm hover:bg-gray-300">✈️ 時間效率</button>
+                    <button data-priority="luxury" class="nav-btn text-base font-semibold py-3 px-6 bg-gray-200 text-gray-700 rounded-full shadow-sm hover:bg-gray-300">💎 奢華體驗</button>
+                    <button data-priority="cost" class="nav-btn text-base font-semibold py-3 px-6 bg-gray-200 text-gray-700 rounded-full shadow-sm hover:bg-gray-300">💰 成本效益</button>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="flightOptionsChart"></canvas>
+                </div>
+                <p id="chart-helper-text" class="text-center text-gray-500 mt-4 text-sm">圖表中的分數越高代表該項表現越優異。</p>
+            </section>
+
+            <section id="options-details" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-8">
+            </section>
+
+            <section id="key-points" class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
+                <h2 class="text-2xl font-bold text-center mb-6 text-[#3C3633]">關鍵決策點</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-[#FDFBF8] p-6 rounded-lg border border-amber-500/50">
+                        <h3 class="text-xl font-bold mb-3 flex items-center"><span class="text-2xl mr-2">⚠️</span>澳洲過境簽證提醒</h3>
+                        <p class="text-gray-700">持台灣護照旅客，即使只是在澳洲轉機不入境，也<strong>必須</strong>在出發前申請澳洲過境簽證（771類別）或ETA。若未提前辦理，將在台北機場被拒絕登機。此要求為「方案C」增加了額外的行政流程與時間成本。</p>
+                    </div>
+                    <div class="bg-[#FDFBF8] p-6 rounded-lg border border-teal-500/50">
+                        <h3 class="text-xl font-bold mb-3 flex items-center"><span class="text-2xl mr-2">💡</span>高價值替代方案：豪華經濟艙</h3>
+                        <p class="text-gray-700">若追求高性價比，豪華經濟艙是絕佳選擇。它以約 <strong>40%-60% 的成本節省</strong>，換取遠優於經濟艙的舒適度（座椅更寬、可斜躺）。主要差異在於座椅非全平躺，且通常不含貴賓室使用權，是兼顧預算與品質的聰明選項。</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="text-center mt-12 py-4">
+            <p class="text-sm text-gray-500">此為根據提供之報告生成的互動式摘要。所有票價均為估算值，僅供參考，請以預訂時為準。</p>
+        </footer>
+    </div>
+
+    <script>
+        const flightData = {
+            options: [
+                {
+                    id: 'time',
+                    title: '方案A：高效快捷路線',
+                    airline: '紐西蘭航空',
+                    route: '經奧克蘭 (AKL)',
+                    icon: '✈️',
+                    color: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    description: '總耗時最短、轉機最無縫的選擇。全程由紐西蘭航空在其主場樞紐運營，提供一致的「Business Premier™」高品質服務與紐西蘭特色餐酒。',
+                    price: '一般約 NT$ 100,000 起',
+                    scores: {
+                        time: 5,
+                        luxury: 4,
+                        convenience: 5,
+                        cost: 3 
+                    }
+                },
+                {
+                    id: 'luxury',
+                    title: '方案B：奢華中途停留',
+                    airline: '新加坡航空',
+                    route: '經新加坡 (SIN)',
+                    icon: '💎',
+                    color: 'rgba(255, 99, 132, 0.8)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    description: '追求極致體驗的首選。結合全球頂級的商務艙服務與世界級的樟宜機場設施，將轉機時間轉化為一種享受。總航程時間較長。',
+                    price: '市場最高價位 (估約 NT$ 197,000+)',
+                    scores: {
+                        time: 2,
+                        luxury: 5,
+                        convenience: 4,
+                        cost: 1
+                    }
+                },
+                {
+                    id: 'cost',
+                    title: '方案C：跨塔斯曼海連線',
+                    airline: '澳洲航空 / 長榮航空',
+                    route: '經澳洲 (SYD/BNE)',
+                    icon: '💰',
+                    color: 'rgba(75, 192, 192, 0.8)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    description: '兼具價格競爭力與高品質服務的彈性選擇。可搭配豪華經濟艙以達最佳性價比。但需注意，轉機必須預先申請澳洲過境簽證。',
+                    price: '中至高價位 (商務艙)',
+                    scores: {
+                        time: 4,
+                        luxury: 4,
+                        convenience: 3,
+                        cost: 4
+                    }
+                }
+            ],
+            labels: ['飛行效率', '服務品質', '轉機便利性', '價格優勢']
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const optionsContainer = document.getElementById('options-details');
+            flightData.options.forEach(option => {
+                const card = document.createElement('div');
+                card.className = 'option-card bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 ease-in-out';
+                card.id = `card-${option.id}`;
+                card.innerHTML = `
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl mr-3">${option.icon}</span>
+                        <div>
+                            <h3 class="text-xl font-bold text-[#3C3633]">${option.title}</h3>
+                            <p class="text-md font-semibold text-gray-600">${option.airline} ${option.route}</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 mb-4">${option.description}</p>
+                    <div class="bg-gray-100 rounded-lg p-3 text-center">
+                        <p class="text-sm text-gray-600">預估商務艙票價</p>
+                        <p class="text-lg font-bold text-[#8D7B68]">${option.price}</p>
+                    </div>
+                `;
+                optionsContainer.appendChild(card);
+            });
+
+            const ctx = document.getElementById('flightOptionsChart').getContext('2d');
+            const flightChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: flightData.labels,
+                    datasets: flightData.options.map(option => ({
+                        label: option.airline,
+                        data: Object.values(option.scores),
+                        backgroundColor: option.color.replace('0.8', '0.2'),
+                        borderColor: option.borderColor,
+                        borderWidth: 2,
+                        pointBackgroundColor: option.borderColor,
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: option.borderColor
+                    }))
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 14,
+                                    family: "'Noto Sans TC', sans-serif"
+                                },
+                                color: '#3C3633'
+                            },
+                            ticks: {
+                                backdropColor: '#FDFBF8',
+                                color: 'rgba(0, 0, 0, 0.5)',
+                                stepSize: 1,
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            min: 0,
+                            max: 5
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: "'Noto Sans TC', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.r !== null) {
+                                        label += context.parsed.r + '分';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const navControls = document.getElementById('nav-controls');
+            const navButtons = navControls.querySelectorAll('.nav-btn');
+            const chartHelperText = document.getElementById('chart-helper-text');
+
+            navControls.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const priority = e.target.dataset.priority;
+                    
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    flightChart.data.datasets.forEach((dataset, index) => {
+                        const option = flightData.options[index];
+                        const card = document.getElementById(`card-${option.id}`);
+                        card.classList.remove('card-highlight');
+                        
+                        if (priority === 'default' || priority === option.id) {
+                            dataset.borderWidth = (priority === option.id) ? 4 : 2;
+                            dataset.order = (priority === option.id) ? 0 : 1;
+                            if (priority === option.id) {
+                                card.classList.add('card-highlight');
+                            }
+                        } else {
+                            dataset.borderWidth = 1;
+                            dataset.order = 2;
+                        }
+                    });
+
+                    if (priority === 'time') {
+                        chartHelperText.textContent = '✈️ 時間效率：紐西蘭航空在飛行效率與轉機便利性上表現最優。';
+                    } else if (priority === 'luxury') {
+                        chartHelperText.textContent = '💎 奢華體驗：新加坡航空在服務品質上無可匹敵。';
+                    } else if (priority === 'cost') {
+                        chartHelperText.textContent = '💰 成本效益：經澳洲路線在價格上最具優勢（需考慮簽證）。';
+                    } else {
+                        chartHelperText.textContent = '圖表中的分數越高代表該項表現越優異。';
+                    }
+                    
+                    flightChart.update();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
