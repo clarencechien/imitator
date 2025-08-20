@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紐西蘭南島旅遊顧問 | 互動式決策工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: The application is designed as an interactive "Decision Support Dashboard". It transforms the linear source report into a non-linear, user-driven experience. The structure consists of four main parts: 1) A "Persona Selector" to provide a personalized starting point. 2) An "At-a-Glance Comparison" grid for quick, high-level understanding. 3) An "Interactive Bubble Chart" for multi-dimensional visual analysis of the suppliers' positioning. 4) "In-Depth Profiles" for detailed exploration. This task-oriented structure is chosen to empower the user to actively compare and decide, rather than passively reading, thus maximizing usability and comprehension. -->
+    <!-- Visualization & Content Choices: 1. Report Info: Supplier characteristics (flexibility, luxury style, group size). -> Goal: Compare multi-dimensional attributes. -> Viz/Method: Interactive Bubble Chart (Chart.js/Canvas). -> Interaction: Hover for summary tooltip, click to navigate to profile. -> Justification: Effectively visualizes three distinct data dimensions (x-axis: style, y-axis: luxury, size: group size) in a single, intuitive graphic, revealing complex relationships at a glance. 2. Report Info: Traveler personas/scenarios. -> Goal: Guide and personalize the user journey. -> Viz/Method: Clickable persona cards (HTML/CSS/JS). -> Interaction: Clicking a card scrolls to and highlights the recommended supplier profile. -> Justification: Creates an engaging, task-oriented entry point that immediately provides value and directs the user to the most relevant information based on their preferences. 3. Report Info: Supplier comparison matrix. -> Goal: Organize and present detailed comparative data. -> Viz/Method: A structured 4-column grid layout with icons and summary text (HTML/Tailwind). -> Interaction: Each column acts as a button linking to the full profile. -> Justification: Translates a dense data table into a more scannable and visually appealing format, ideal for quick side-by-side evaluation. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F4; /* Warm Neutral Background */
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 60vh;
+            max-height: 500px;
+        }
+        .accent-color { color: #005F73; }
+        .accent-bg { background-color: #005F73; }
+        .accent-bg-light { background-color: #E0FBFC; }
+        .accent-border { border-color: #005F73; }
+        .secondary-bg { background-color: #EAE7E1; }
+        .highlight-card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 95, 115, 0.2), 0 4px 6px -2px rgba(0, 95, 115, 0.1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-2xl font-bold accent-color">
+                <span class="font-serif">NZ</span> 旅遊風格分析儀
+            </div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#persona-selector" class="text-gray-600 hover:accent-color transition-colors duration-300">風格定位</a>
+                <a href="#comparison-chart" class="text-gray-600 hover:accent-color transition-colors duration-300">視覺化比較</a>
+                <a href="#supplier-profiles" class="text-gray-600 hover:accent-color transition-colors duration-300">深度剖析</a>
+                <a href="#final-recommendation" class="text-gray-600 hover:accent-color transition-colors duration-300">最終建議</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12 md:py-20">
+
+        <section id="intro" class="text-center mb-16 md:mb-24">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">找到最適合您的紐西蘭南島之旅</h1>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                這份互動式指南將深度分析四家頂級旅遊供應商，幫助您根據個人風格，精準選擇最完美的旅程。從完全客製化的私人團到頂級全包式體驗，探索哪種旅遊哲學與您最契合。
+            </p>
+        </section>
+
+        <section id="persona-selector" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">第一步：您的旅遊風格是？</h2>
+                <p class="mt-2 text-gray-600">選擇最貼近您想法的描述，我們將為您推薦最合適的旅遊方案。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="persona-card p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer border-2 border-transparent hover:border-teal-500" data-target="star-travel">
+                    <div class="text-4xl mb-4">🎨</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">旅程建築師</h3>
+                    <p class="text-gray-600">追求100%的行程掌控權與私密性，希望旅程的每一刻都為您量身打造。</p>
+                </div>
+                <div class="persona-card p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer border-2 border-transparent hover:border-teal-500" data-target="ets-go">
+                    <div class="text-4xl mb-4">🏆</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">品質鑑賞家</h3>
+                    <p class="text-gray-600">重視品質保證與頂級舒適，偏好結果可預期、零煩惱的全包式豪華體驗。</p>
+                </div>
+                <div class="persona-card p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer border-2 border-transparent hover:border-teal-500" data-target="rayvoluxion">
+                    <div class="text-4xl mb-4">🧭</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">深度探險家</h3>
+                    <p class="text-gray-600">熱衷人際連結與真實的在地感，享受與旅伴共享、探索秘境的冒險精神。</p>
+                </div>
+                <div class="persona-card p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer border-2 border-transparent hover:border-teal-500" data-target="artisan-travel">
+                    <div class="text-4xl mb-4">⚖️</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">務實策略家</h3>
+                    <p class="text-gray-600">尋求信譽品牌所提供的高品質平衡之旅，重視結構完整且物有所值的旅程。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison-chart" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">供應商光譜：視覺化比較</h2>
+                <p class="mt-2 text-gray-600 max-w-2xl mx-auto">這張圖表從「旅遊風格」與「奢華定義」兩個維度，呈現四家供應商的市場定位。圓圈大小代表團體規模，讓您對各家特色一目了然。</p>
+            </div>
+            <div class="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-lg">
+                <div class="chart-container">
+                    <canvas id="supplierBubbleChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="supplier-profiles">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">深度剖析：四大供應商比較</h2>
+                <p class="mt-2 text-gray-600">點擊下方的供應商，查看其詳細的服務哲學、優缺點及理想旅客輪廓。</p>
+            </div>
+            <div id="supplier-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            </div>
+        </section>
+
+        <section id="final-recommendation" class="mt-16 md:mt-24 pt-12 border-t border-gray-200">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">最終建議與決策清單</h2>
+                <p class="mt-2 text-gray-600">根據您的旅遊風格，我們提供了具體的建議。請使用下方的檢核清單，作為您與旅遊業者溝通的下一步。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div id="recommendation-content" class="space-y-6">
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+                    <h3 class="text-2xl font-bold accent-color mb-6">您的決策前最終檢核清單</h3>
+                    <ul class="space-y-4 text-gray-700">
+                        <li class="flex items-start">
+                            <span class="accent-color font-bold mr-3 text-xl">1.</span>
+                            <div>
+                                <strong class="font-semibold text-gray-800">確認出發日期：</strong>
+                                <p>若考慮雷蒙團，請務必直接聯繫，確認其長天數行程中是否有符合您期望的週三、四、五出發日期。</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="accent-color font-bold mr-3 text-xl">2.</span>
+                            <div>
+                                <strong class="font-semibold text-gray-800">索取客製化報價：</strong>
+                                <p>若星程旅遊是您的首選，請提供天數與大致想法，索取初步規劃與報價，以便進行實際的費用比較。</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="accent-color font-bold mr-3 text-xl">3.</span>
+                            <div>
+                                <strong class="font-semibold text-gray-800">詢問領隊背景：</strong>
+                                <p>若選擇尊榮旅遊，可針對感興趣的團體，詢問帶團領隊的背景，並提及您從朋友處獲得的推薦資訊。</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="accent-color font-bold mr-3 text-xl">4.</span>
+                            <div>
+                                <strong class="font-semibold text-gray-800">審閱詳細行程：</strong>
+                                <p>若考慮巨匠旅遊，請仔細查看其「典雅珍享」行程的每日路線，評估行車時間與景點安排是否符合您的期望。</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16 md:mt-24">
+        <div class="container mx-auto px-6 py-8 text-center">
+            <p>&copy; 2025 紐西蘭南島旅遊顧問。基於深度策略分析報告製作。</p>
+            <p class="text-sm text-gray-400 mt-2">此為一個資訊視覺化應用程式，不代表任何旅遊業者。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const supplierData = {
+                'star-travel': {
+                    name: '星程旅遊',
+                    shortName: '星程',
+                    tagline: '個人化旅程的頂級建構師',
+                    icon: '🎨',
+                    philosophy: '核心價值在於「機票自理，落地後全程客製化服務」。他們並非銷售預設產品，而是為期望擁有自主體驗、卻不願承擔繁瑣規劃的旅客，提供無縫、無壓力的在地後勤與體驗合作。',
+                    pros: ['100%客製化與私密性', '在地台灣人「領路人」提供深度服務', '住宿與餐飲選擇極度彈性'],
+                    cons: ['費用最高昂', '需要旅客投入時間參與前期規劃'],
+                    idealTraveler: '將絕對行程控制權、獨一無二的非公式化體驗以及高度個人化服務置於首位的旅客。',
+                    color: 'rgba(0, 95, 115, 0.8)',
+                    borderColor: 'rgba(0, 95, 115, 1)',
+                    bubbleData: { x: 9, y: 9, r: 10 }
+                },
+                'ets-go': {
+                    name: '尊榮旅遊',
+                    shortName: '尊榮',
+                    tagline: '頂級全包式體驗的策劃者',
+                    icon: '🏆',
+                    philosophy: '品牌建立在「品質保證」與「風險規避」之上。透過自有豪華巴士、保證入住頂級飯店等「硬體」優勢，將市場競爭從「價格」轉移到「價值與保障」，提供穩定可靠的豪華旅程。',
+                    pros: ['保證入住特定熱門飯店與房型', '自有三排椅豪華巴士，提升長途舒適度', '行程費用全包，價格透明'],
+                    cons: ['行程固定，缺乏彈性', '大團模式，個人化程度低', '領隊風格可能影響體驗'],
+                    idealTraveler: '高度重視確定性、舒適度與頂級無憂體驗的旅客。願意犧牲客製化彈性，以換取由專業品牌帶來的全然安心。',
+                    color: 'rgba(174, 32, 18, 0.8)',
+                    borderColor: 'rgba(174, 32, 18, 1)',
+                    bubbleData: { x: 2, y: 8, r: 25 }
+                },
+                'rayvoluxion': {
+                    name: '雷蒙團',
+                    shortName: '雷蒙',
+                    tagline: '深度體驗式冒險的引領者',
+                    icon: '🧭',
+                    philosophy: '定位為「反傳統旅行團」的旅行團，為那些既不喜歡大團模式、又對自助旅行感到卻步的旅客提供終極解決方案。核心是透過小團體與共享住宿，創造深度的社群連結與在地體驗。',
+                    pros: ['獨特的小團社群氛圍', '可深入探訪大巴無法進入的私房景點', '餐飲與部分活動選擇彈性高'],
+                    cons: ['需適應與他人共享廚房客廳', '住宿選擇獨特，非傳統五星飯店'],
+                    idealTraveler: '追求真實感、熱衷冒險且享受社交互動的旅行者。他們看重旅途中的人際連結與自發性，而非傳統定義的奢華。',
+                    color: 'rgba(238, 155, 0, 0.8)',
+                    borderColor: 'rgba(238, 155, 0, 1)',
+                    bubbleData: { x: 7, y: 6, r: 15 }
+                },
+                'artisan-travel': {
+                    name: '巨匠旅遊',
+                    shortName: '巨匠',
+                    tagline: '經典綜合行程的專家',
+                    icon: '⚖️',
+                    philosophy: '採取雙軌策略，一方面維持其在大眾市場廣受歡迎的「南北島全覽」產品，另一方面也開發如「南島典雅珍享」等更專業、高端的產品線，以吸引尋求深度遊的旅客。',
+                    pros: ['大型旅行社品牌，信譽良好', '專屬南島行程兼具深度與保障', '具競爭力的價格與附加價值'],
+                    cons: ['部分行程仍可能拉車時間較長', '相較於客製化或小團，彈性較低'],
+                    idealTraveler: '希望從一個信譽良好的主流品牌獲得一趟結構完整、內容豐富且物有所值的旅程的遊客。',
+                    color: 'rgba(0, 127, 115, 0.8)',
+                    borderColor: 'rgba(0, 127, 115, 1)',
+                    bubbleData: { x: 4, y: 4, r: 25 }
+                }
+            };
+
+            const recommendationData = {
+                 'star-travel': {
+                    title: '推薦給「旅程建築師」：星程旅遊',
+                    text: '如果您希望能夠每天自由決定行程的節奏，隨心所欲地選擇餐廳，並擁有一段100%獨一無二的旅行回憶，那麼<strong>星程旅遊</strong>是唯一的選擇。他們能為您和您的旅伴提供一個完全私密的移動空間與專屬的在地嚮導。請準備好接受其較高的單人費用，並投入時間與其顧問共同規劃您的理想行程。'
+                },
+                'ets-go': {
+                    title: '推薦給「品質鑑賞家」：尊榮旅遊',
+                    text: '如果您尋求的是屢獲殊榮的品質保證、頂級飯店的入住保障、舒適的交通工具以及一個全包式的透明價格，那麼<strong>尊榮旅遊</strong>是您的最佳選項。他們將為您處理好所有細節，您只需放鬆享受。為此，您需要接受其固定的行程安排以及更傳統的團體旅遊模式。'
+                },
+                'rayvoluxion': {
+                    title: '推薦給「深度探險家」：雷蒙團',
+                    text: '如果您享受結識志同道合的旅伴，對於在豪華別墅中共享廚房與客廳的模式感到興奮，並且高度重視旅途中的彈性與自發性，那麼<strong>雷蒙團</strong>將提供一種無與倫比的體驗。這更像是一場精心策劃的公路旅行，而非傳統意義上的旅行團。'
+                },
+                'artisan-travel': {
+                    title: '推薦給「務實策略家」：巨匠旅遊',
+                    text: '如果您最初因巨匠旅遊的大眾市場形象而有所猶豫，其專屬的「南島典雅珍享」行程值得您重新認真考慮。它提供了一個由可靠的大型業者執行的、結構完整的深度南島之旅，完全符合您的所有硬性要求，是一個兼具品質與保障的穩健選擇。'
+                }
+            };
+
+            const supplierGrid = document.getElementById('supplier-grid');
+            const recommendationContent = document.getElementById('recommendation-content');
+
+            function renderSupplierCards() {
+                supplierGrid.innerHTML = '';
+                Object.keys(supplierData).forEach(key => {
+                    const supplier = supplierData[key];
+                    const card = document.createElement('div');
+                    card.id = key;
+                    card.className = 'supplier-card bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300';
+                    card.innerHTML = `
+                        <div class="p-6" style="background-color: ${supplier.color.replace('0.8', '0.2')}; border-bottom: 4px solid ${supplier.color};">
+                            <div class="flex items-center space-x-4">
+                                <div class="text-4xl">${supplier.icon}</div>
+                                <div>
+                                    <h3 class="text-2xl font-bold" style="color: ${supplier.borderColor}">${supplier.name}</h3>
+                                    <p class="font-medium text-gray-600">${supplier.tagline}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-gray-800 mb-2">核心哲學</h4>
+                                <p class="text-gray-600 text-sm">${supplier.philosophy}</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 mb-2">核心優勢</h4>
+                                <ul class="list-none space-y-1 text-sm">
+                                    ${supplier.pros.map(pro => `<li class="flex items-start"><span class="text-green-500 mr-2">✔</span><span class="text-gray-700">${pro}</span></li>`).join('')}
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 mb-2">潛在考量</h4>
+                                <ul class="list-none space-y-1 text-sm">
+                                    ${supplier.cons.map(con => `<li class="flex items-start"><span class="text-yellow-500 mr-2">⚠</span><span class="text-gray-700">${con}</span></li>`).join('')}
+                                </ul>
+                            </div>
+                            <div class="pt-4 mt-4 border-t border-gray-200">
+                                <h4 class="font-semibold text-gray-800 mb-2">理想旅客輪廓</h4>
+                                <p class="text-gray-600 text-sm">${supplier.idealTraveler}</p>
+                            </div>
+                        </div>
+                    `;
+                    supplierGrid.appendChild(card);
+                });
+            }
+
+            function updateRecommendation(targetId) {
+                const content = recommendationData[targetId];
+                if (content) {
+                    recommendationContent.innerHTML = `
+                        <div class="bg-white p-8 rounded-xl shadow-lg border-2 accent-border">
+                             <h3 class="text-2xl font-bold text-gray-800 mb-4">${content.title}</h3>
+                             <p class="text-gray-600 leading-relaxed">${content.text}</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            updateRecommendation('star-travel');
+
+            const personaCards = document.querySelectorAll('.persona-card');
+            personaCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const targetId = card.dataset.target;
+                    const targetElement = document.getElementById(targetId);
+                    
+                    document.querySelectorAll('.supplier-card').forEach(c => c.classList.remove('highlight-card'));
+                    
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        targetElement.classList.add('highlight-card');
+                        updateRecommendation(targetId);
+                    }
+                });
+            });
+
+            const ctx = document.getElementById('supplierBubbleChart').getContext('2d');
+            const chartData = {
+                datasets: Object.keys(supplierData).map(key => ({
+                    label: supplierData[key].name,
+                    data: [supplierData[key].bubbleData],
+                    backgroundColor: supplierData[key].color,
+                    borderColor: supplierData[key].borderColor,
+                    borderWidth: 2,
+                }))
+            };
+
+            const bubbleChart = new Chart(ctx, {
+                type: 'bubble',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                font: { size: 14 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const data = context.raw;
+                                    return `${label} (團體規模: ${data.r})`;
+                                }
+                            },
+                            backgroundColor: '#333',
+                            titleFont: { size: 16 },
+                            bodyFont: { size: 14 },
+                            padding: 10,
+                            caretSize: 8,
+                            cornerRadius: 6,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '← 結構化旅行團 · 旅遊風格 · 獨立自主體驗 →',
+                                font: { size: 14, weight: 'bold' },
+                                padding: { top: 20 }
+                            },
+                            min: 0,
+                            max: 10,
+                            ticks: { display: false }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '← 經典綜合價值 · 奢華定義 · 頂級客製體驗 →',
+                                font: { size: 14, weight: 'bold' },
+                                padding: { bottom: 20 }
+                            },
+                            min: 0,
+                            max: 10,
+                            ticks: { display: false }
+                        }
+                    },
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            const datasetIndex = elements[0].datasetIndex;
+                            const targetId = Object.keys(supplierData)[datasetIndex];
+                            const targetElement = document.getElementById(targetId);
+                             if (targetElement) {
+                                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                document.querySelectorAll('.supplier-card').forEach(c => c.classList.remove('highlight-card'));
+                                targetElement.classList.add('highlight-card');
+                                updateRecommendation(targetId);
+                            }
+                        }
+                    }
+                }
+            });
+
+            renderSupplierCards();
+        });
+    </script>
+</body>
+</html>
