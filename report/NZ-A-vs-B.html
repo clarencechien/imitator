@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紐西蘭南島行程互動比較儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Earthy Teal & Sky Blue -->
+    <!-- Application Structure Plan: A single-page dashboard designed for decision-making. It starts with a high-level summary and an interactive radar chart for quick visual comparison. A combined interactive map now shows both routes simultaneously for direct geographical comparison. A side-by-side detailed itinerary and a new checklist table provide granular comparison without user clicks. The flow guides the user from a broad overview to specific details, ending with a clear recommendation. -->
+    <!-- Visualization & Content Choices: Key Metrics (Cards) -> Inform -> HTML/CSS -> Quick overview. Overall Style (Radar Chart) -> Compare -> Chart.js -> Visually represents multi-dimensional strengths. Route (Combined Interactive Map) -> Organize/Compare -> Leaflet.js -> Shows both geographical flows with clickable details, Chinese labels, and a legend. Detailed Itinerary (Side-by-side) -> Compare -> HTML/CSS Grid -> Allows direct daily comparison. Attraction Checklist (Table) -> Compare -> HTML Table (JS generated) -> Quick, scannable feature comparison. Final Advice (Persona Cards) -> Inform -> HTML/CSS -> Gives a clear, actionable conclusion. CONFIRMING NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #0284c7;
+            transform: translateY(-2px);
+        }
+        .map-container {
+            height: 500px;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            margin-top: 1.5rem;
+        }
+        .leaflet-tooltip-permanent {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            font-weight: bold;
+            font-size: 13px;
+            color: #1e293b;
+            text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 2px #fff;
+        }
+        .legend {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-900">紐西蘭行程抉擇</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#overview" class="nav-link text-slate-600 font-medium">快速總覽</a>
+                <a href="#comparison" class="nav-link text-slate-600 font-medium">風格比較</a>
+                <a href="#route" class="nav-link text-slate-600 font-medium">路線一覽</a>
+                <a href="#details" class="nav-link text-slate-600 font-medium">行程比較</a>
+                <a href="#recommendation" class="nav-link text-slate-600 font-medium">最終建議</a>
+            </div>
+            <div class="md:hidden">
+                <select id="mobile-nav" class="bg-white border border-slate-300 rounded-md py-2 px-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <option value="#overview">快速總覽</option>
+                    <option value="#comparison">風格比較</option>
+                    <option value="#route">路線一覽</option>
+                    <option value="#details">行程比較</option>
+                    <option value="#recommendation">最終建議</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <section id="hero" class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold text-sky-800 mb-4">紐西蘭南島行程對決</h2>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto">慢遊典藏 vs. 深度環島，哪一個才是您的夢想之旅？透過這個互動儀表板，發掘最適合您的行程。</p>
+        </section>
+
+        <section id="overview" class="mb-16 scroll-mt-24">
+            <h3 class="text-3xl font-bold text-center mb-10 text-slate-900">關鍵指標・快速總覽</h3>
+            <div class="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8 border-t-4 border-red-500">
+                    <h4 class="text-2xl font-bold text-red-700 mb-4">A: 慢遊典藏・南島精華11天</h4>
+                    <p class="text-slate-600 mb-6">專為追求高品質與悠閒步調的旅客設計，聚焦南島核心景區，享受頂級住宿與美食饗宴。</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="text-3xl font-bold text-red-600">11天</div>
+                            <div class="text-sm text-red-800">旅遊天數</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="text-3xl font-bold text-red-600">$19.8萬起</div>
+                            <div class="text-sm text-red-800">費用(全包)</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg col-span-2 sm:col-span-1">
+                            <div class="text-3xl font-bold text-red-600">經典路線</div>
+                            <div class="text-sm text-red-800">行程風格</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-8 border-t-4 border-blue-500">
+                    <h4 class="text-2xl font-bold text-blue-700 mb-4">B: 雲之巔・東西合進13天</h4>
+                    <p class="text-slate-600 mb-6">一網打盡東西岸的壯麗地貌，體驗多元的獨特活動，適合希望全面探索南島風光的冒險家。</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-3xl font-bold text-blue-600">13天</div>
+                            <div class="text-sm text-blue-800">旅遊天數</div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-3xl font-bold text-blue-600">$18.8萬起</div>
+                            <div class="text-sm text-blue-800">費用(外加)</div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg col-span-2 sm:col-span-1">
+                            <div class="text-3xl font-bold text-blue-600">環島路線</div>
+                            <div class="text-sm text-blue-800">行程風格</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="mb-16 scroll-mt-24">
+            <h3 class="text-3xl font-bold text-center mb-4 text-slate-900">行程風格・雷達圖比較</h3>
+            <p class="text-center text-slate-600 mb-8 max-w-2xl mx-auto">將滑鼠懸停在圖表上，查看各項指標評分。這張圖表能幫助您快速了解兩個行程在不同面向的強弱之處，找到最符合您旅遊偏好的選擇。</p>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <div class="chart-container">
+                    <canvas id="tripRadarChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="route" class="mb-16 scroll-mt-24">
+            <h3 class="text-3xl font-bold text-center mb-10 text-slate-900">路線差異・合併地圖導覽</h3>
+            <p class="text-center text-slate-600 mb-8 max-w-3xl mx-auto">透過這張合併的互動地圖，直觀地探索兩個行程的路線。點擊景點標記可查看簡介，不同顏色的線條描繪了旅程的路徑，讓您輕鬆比較。</p>
+            <div id="combinedMap" class="map-container z-10"></div>
+        </section>
+
+        <section id="details" class="mb-16 scroll-mt-24">
+            <h3 class="text-3xl font-bold text-center mb-4 text-slate-900">每日行程・並排比較</h3>
+             <p class="text-center text-slate-600 mb-8 max-w-3xl mx-auto">無需切換，直接左右對照兩個行程的每日詳細安排。這種並排視圖能幫助您快速比較每一天的住宿、餐食與活動亮點。</p>
+            <div class="grid lg:grid-cols-2 gap-8 lg:gap-12">
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h4 class="text-2xl font-bold text-red-700 mb-6 text-center">A: 慢遊典藏</h4>
+                    <div id="contentA"></div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h4 class="text-2xl font-bold text-blue-700 mb-6 text-center">B: 深度環島</h4>
+                    <div id="contentB"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="checklist" class="mb-16 scroll-mt-24">
+            <h3 class="text-3xl font-bold text-center mb-4 text-slate-900">景點清單・快速檢核</h3>
+            <p class="text-center text-slate-600 mb-8 max-w-2xl mx-auto">這個表格快速總結了兩個行程所包含的主要景點。使用此清單來確認您心儀的景點是否包含在行程中。</p>
+            <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="py-3 px-4 bg-slate-100 font-bold text-slate-700 border-b-2 border-slate-200">景點 / 活動</th>
+                            <th class="py-3 px-4 bg-slate-100 font-bold text-slate-700 border-b-2 border-slate-200 text-center">行程 A</th>
+                            <th class="py-3 px-4 bg-slate-100 font-bold text-slate-700 border-b-2 border-slate-200 text-center">行程 B</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checklistTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="recommendation" class="scroll-mt-24">
+            <h3 class="text-3xl font-bold text-center mb-10 text-slate-900">最終建議・誰適合哪個？</h3>
+            <div class="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center transform hover:scale-105 transition-transform duration-300">
+                    <div class="text-6xl mb-4">🥂</div>
+                    <h4 class="text-2xl font-bold text-red-700 mb-3">推薦選擇 A 行程</h4>
+                    <p class="text-slate-600 mb-4">如果您是...</p>
+                    <ul class="space-y-2 text-left mx-auto max-w-xs">
+                        <li class="flex items-center"><span class="text-red-500 mr-3">✔</span>追求極致舒適與放鬆</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-3">✔</span>重視頂級住宿品質</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-3">✔</span>偏好經典核心景區</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-3">✔</span>希望有更多自由時間</li>
+                    </ul>
+                    <p class="mt-6 font-semibold bg-red-50 text-red-800 rounded-full py-2 px-4">適合蜜月旅行、家庭休閒遊</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center transform hover:scale-105 transition-transform duration-300">
+                    <div class="text-6xl mb-4">🗺️</div>
+                    <h4 class="text-2xl font-bold text-blue-700 mb-3">推薦選擇 B 行程</h4>
+                    <p class="text-slate-600 mb-4">如果您是...</p>
+                    <ul class="space-y-2 text-left mx-auto max-w-xs">
+                        <li class="flex items-center"><span class="text-blue-500 mr-3">✔</span>想看遍南島多樣風貌</li>
+                        <li class="flex items-center"><span class="text-blue-500 mr-3">✔</span>熱愛獨特的體驗活動</li>
+                        <li class="flex items-center"><span class="text-blue-500 mr-3">✔</span>不介意較緊湊的節奏</li>
+                        <li class="flex items-center"><span class="text-blue-500 mr-3">✔</span>攝影愛好者或地理迷</li>
+                    </ul>
+                    <p class="mt-6 font-semibold bg-blue-50 text-blue-800 rounded-full py-2 px-4">適合體力充沛、喜歡探索的旅人</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 mt-16">
+        <div class="container mx-auto px-6 py-8 text-center">
+            <p>&copy; 2024 紐西蘭行程互動比較儀表板. 僅為範例展示用途。</p>
+        </div>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tripData = {
+            radar: {
+                labels: ['悠閒度', '景觀豐富度', '奢華享受', '活動多元性', '行程自由度'],
+                datasets: [{
+                    label: 'A: 慢遊典藏',
+                    data: [9, 7, 9, 6, 8],
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    borderColor: 'rgba(220, 38, 38, 1)',
+                    pointBackgroundColor: 'rgba(220, 38, 38, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(220, 38, 38, 1)'
+                }, {
+                    label: 'B: 深度環島',
+                    data: [6, 10, 7, 9, 5],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(37, 99, 235, 1)',
+                    pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(37, 99, 235, 1)'
+                }]
+            },
+            locations: {
+                A: [
+                    { name: '基督城', lat: -43.5321, lng: 172.6362, desc: '南島第一大城，有「花園城市」美譽。' },
+                    { name: '蒂卡波湖', lat: -44.0065, lng: 170.4771, desc: '不可思議的土耳其藍湖水，湖畔有著名的牧羊人教堂。' },
+                    { name: '庫克山', lat: -43.7343, lng: 170.0962, desc: '紐西蘭第一高峰，入住國寶級隱士飯店所在地。' },
+                    { name: '瓦納卡', lat: -44.6972, lng: 169.1558, desc: '寧靜的湖畔小鎮，以湖中孤樹聞名。' },
+                    { name: '箭鎮', lat: -44.9420, lng: 168.8340, desc: '充滿19世紀淘金時期風情的古色古香小鎮。' },
+                    { name: '蒂阿瑙', lat: -45.4146, lng: 167.7165, desc: '前往峽灣地區的門戶，擁有奇幻的螢火蟲洞。' },
+                    { name: '米佛峽灣', lat: -44.6719, lng: 167.9256, desc: '世界級的自然奇景，被譽為「世界第八大奇蹟」。' },
+                    { name: '皇后鎮', lat: -45.0312, lng: 168.6626, desc: '世界級的冒險天堂，被群山環抱的湖畔貴婦。' }
+                ],
+                B: [
+                    { name: '基督城', lat: -43.5321, lng: 172.6362, desc: '南島第一大城，有「花園城市」美譽。' },
+                    { name: '格雷茅斯', lat: -42.4500, lng: 171.2000, desc: '西海岸最大城鎮，高山火車的終點站。' },
+                    { name: '法蘭茲冰河', lat: -43.4667, lng: 170.1833, desc: '可近距離健行觀賞的壯麗冰河景觀。' },
+                    { name: '瓦納卡', lat: -44.6972, lng: 169.1558, desc: '寧靜的湖畔小鎮，以湖中孤樹聞名。' },
+                    { name: '皇后鎮', lat: -45.0312, lng: 168.6626, desc: '世界級的冒險天堂，被群山環抱的湖畔貴婦。' },
+                    { name: '米佛峽灣', lat: -44.6719, lng: 167.9256, desc: '世界級的自然奇景，被譽為「世界第八大奇蹟」。' },
+                    { name: '蒂阿瑙', lat: -45.4146, lng: 167.7165, desc: '前往峽灣地區的門戶，擁有奇幻的螢火蟲洞。' },
+                    { name: '但尼丁', lat: -45.8788, lng: 170.5028, desc: '充滿蘇格蘭風情的「南方愛丁堡」。' },
+                    { name: '庫克山', lat: -43.7343, lng: 170.0962, desc: '紐西蘭第一高峰，入住國寶級隱士飯店所在地。' },
+                    { name: '蒂卡波湖', lat: -44.0065, lng: 170.4771, desc: '不可思議的土耳其藍湖水，湖畔有著名的牧羊人教堂。' },
+                    { name: '阿卡羅瓦', lat: -43.8039, lng: 172.9697, desc: '充滿法國風情的港口小鎮，紐西蘭唯一的法國移民地。' }
+                ]
+            },
+            checklist: [
+                { name: '基督城', inA: true, inB: true },
+                { name: '蒂卡波湖 / 庫克山', inA: true, inB: true },
+                { name: '塔斯曼冰河船', inA: true, inB: true },
+                { name: '瓦納卡', inA: true, inB: true },
+                { name: '箭鎮', inA: true, inB: true },
+                { name: '皇后鎮', inA: true, inB: true },
+                { name: '蒂阿瑙螢火蟲洞', inA: true, inB: true },
+                { name: '米佛峽灣', inA: true, inB: true },
+                { name: '高山景觀火車', inA: false, inB: true },
+                { name: '西海岸冰河區', inA: false, inB: true },
+                { name: '但尼丁 (東南岸)', inA: false, inB: true },
+                { name: '摩洛奇龍珠石', inA: false, inB: true },
+                { name: '阿卡羅瓦 (法式小鎮)', inA: false, inB: true },
+                { name: '皇后鎮全日自由活動', inA: true, inB: false }
+            ],
+            detailsA: `
+                <ul class="space-y-4 text-slate-700 text-sm">
+                    <li><strong>第一天：</strong>台北 → 奧克蘭 (夜宿機上)</li>
+                    <li><strong>第二天：</strong>奧克蘭 → 基督城 → 雅芳河輕舟之旅</li>
+                    <li><strong>第三天：</strong>基督城 → 蒂卡波湖 → 庫克山國家公園健行 (入住隱士飯店)</li>
+                    <li><strong>第四天：</strong>塔斯曼冰河船 → 普卡基湖 → 瓦納卡 (入住水岸湖濱渡假村)</li>
+                    <li><strong>第五天：</strong>瓦納卡自由時光 → 高山越野環湖農場之旅</li>
+                    <li><strong>第六天：</strong>瓦納卡 → 箭鎮 → 蒂阿瑙螢火蟲洞</li>
+                    <li><strong>第七天：</strong>米佛峽灣遊船 → 皇后鎮 (連泊3晚開始)</li>
+                    <li><strong>第八天：</strong>皇后鎮 → 天際纜車 → 百年蒸汽船與農莊之旅</li>
+                    <li><strong>第九天：</strong>皇后鎮全日自由活動</li>
+                    <li><strong>第十天：</strong>皇后鎮 → 奧克蘭 → 帆船之都港灣巡禮</li>
+                    <li><strong>第十一天：</strong>奧克蘭 → 台北</li>
+                </ul>
+            `,
+            detailsB: `
+                <ul class="space-y-4 text-slate-700 text-sm">
+                    <li><strong>第一天：</strong>桃園 → 奧克蘭 (夜宿機上)</li>
+                    <li><strong>第二天：</strong>奧克蘭 → 基督城 → 市區巡禮</li>
+                    <li><strong>第三天：</strong>南阿爾卑斯高山景觀專列 → 格雷茅斯</li>
+                    <li><strong>第四天：</strong>西海岸樹冠步道 → 法蘭茲約瑟夫冰河谷健行</li>
+                    <li><strong>第五天：</strong>馬松森湖 → 瑞本酒莊 → 瓦納卡</li>
+                    <li><strong>第六天：</strong>箭鎮 → 皇后鎮 → TSS蒸汽船與牧場</li>
+                    <li><strong>第七天：</strong>格萊諾基(魔戒小鎮) → 皇后鎮自由活動</li>
+                    <li><strong>第八天：</strong>米佛峽灣遊船 → 蒂阿瑙螢火蟲洞</li>
+                    <li><strong>第九天：</strong>隧道海灘 → 但尼丁市區觀光</li>
+                    <li><strong>第十天：</strong>摩洛奇龍珠石 → 奧瑪魯 → 庫克山 (入住隱士飯店)</li>
+                    <li><strong>第十一天：</strong>塔斯曼冰河船 → 蒂卡波湖 → 基督城</li>
+                    <li><strong>第十二天：</strong>阿卡羅瓦(法式小鎮) → 奧克蘭告別晚宴</li>
+                    <li><strong>第十三天：</strong>奧克蘭 → 桃園</li>
+                </ul>
+            `
+        };
+
+        const ctx = document.getElementById('tripRadarChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'radar',
+            data: tripData.radar,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                        pointLabels: { font: { size: 14 }, color: '#334155' },
+                        ticks: {
+                            backdropColor: 'rgba(255, 255, 255, 0.75)',
+                            stepSize: 2,
+                            color: '#64748b'
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 10
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 14 },
+                            color: '#1e293b'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.r !== null) {
+                                    label += context.parsed.r + '分';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        function initCombinedMap(mapId, trips) {
+            const map = L.map(mapId).setView([-44.5, 170], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            const allLatLngs = [];
+
+            trips.forEach(trip => {
+                const latLngs = [];
+                trip.locations.forEach(loc => {
+                    const marker = L.circleMarker([loc.lat, loc.lng], {
+                        color: trip.color,
+                        fillColor: trip.color,
+                        fillOpacity: 0.8,
+                        radius: 8
+                    }).addTo(map);
+
+                    marker.bindPopup(`<b>${loc.name}</b><br>${loc.desc}`);
+                    marker.bindTooltip(loc.name, {
+                        permanent: true,
+                        direction: 'right',
+                        offset: [10, 0],
+                        className: 'leaflet-tooltip-permanent'
+                    });
+                    latLngs.push([loc.lat, loc.lng]);
+                    allLatLngs.push([loc.lat, loc.lng]);
+                });
+                L.polyline(latLngs, { color: trip.color, weight: 3, opacity: 0.7 }).addTo(map);
+            });
+            
+            const legend = L.control({position: 'bottomright'});
+            legend.onAdd = function (map) {
+                const div = L.DomUtil.create('div', 'info legend');
+                const labels = [
+                    '<i style="background: #DC2626"></i> 行程 A: 慢遊典藏',
+                    '<i style="background: #2563EB"></i> 行程 B: 深度環島'
+                ];
+                div.innerHTML = labels.join('<br>');
+                return div;
+            };
+            legend.addTo(map);
+
+            if (allLatLngs.length > 0) {
+                map.fitBounds(L.latLngBounds(allLatLngs).pad(0.1));
+            }
+        }
+
+        initCombinedMap('combinedMap', [
+            { locations: tripData.locations.A, color: '#DC2626' },
+            { locations: tripData.locations.B, color: '#2563EB' }
+        ]);
+        
+        document.getElementById('contentA').innerHTML = tripData.detailsA;
+        document.getElementById('contentB').innerHTML = tripData.detailsB;
+
+        const checklistTableBody = document.getElementById('checklistTableBody');
+        tripData.checklist.forEach(item => {
+            const row = `
+                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                    <td class="py-3 px-4 text-slate-800 font-medium">${item.name}</td>
+                    <td class="py-3 px-4 text-center text-lg font-bold text-red-500">${item.inA ? '✔' : '-'}</td>
+                    <td class="py-3 px-4 text-center text-lg font-bold text-blue-500">${item.inB ? '✔' : '-'}</td>
+                </tr>
+            `;
+            checklistTableBody.innerHTML += row;
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+        
+        document.getElementById('mobile-nav').addEventListener('change', function(e) {
+            const targetId = e.target.value;
+            document.querySelector(targetId).scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+    </script>
+</body>
+</html>
