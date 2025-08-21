@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Earthy Teal & Sky Blue -->
-    <!-- Application Structure Plan: A single-page dashboard designed for decision-making. It starts with a high-level summary and an interactive radar chart for quick visual comparison. A combined interactive map now shows both routes simultaneously for direct geographical comparison. A side-by-side detailed itinerary and a new checklist table provide granular comparison without user clicks. The flow guides the user from a broad overview to specific details, ending with a clear recommendation. -->
-    <!-- Visualization & Content Choices: Key Metrics (Cards) -> Inform -> HTML/CSS -> Quick overview. Overall Style (Radar Chart) -> Compare -> Chart.js -> Visually represents multi-dimensional strengths. Route (Combined Interactive Map) -> Organize/Compare -> Leaflet.js -> Shows both geographical flows with clickable details, Chinese labels, and a legend. Detailed Itinerary (Side-by-side) -> Compare -> HTML/CSS Grid -> Allows direct daily comparison. Attraction Checklist (Table) -> Compare -> HTML Table (JS generated) -> Quick, scannable feature comparison. Final Advice (Persona Cards) -> Inform -> HTML/CSS -> Gives a clear, actionable conclusion. CONFIRMING NO SVG/Mermaid used. -->
+    <!-- Application Structure Plan: A single-page dashboard designed for decision-making. It starts with a high-level summary and an interactive radar chart for quick visual comparison. A combined interactive map now shows both routes simultaneously with toggles to filter views, and distinguishes flight vs. ground travel. A side-by-side detailed itinerary and a new, highly-detailed checklist table provide granular comparison. The flow guides the user from a broad overview to specific details, ending with a clear recommendation. -->
+    <!-- Visualization & Content Choices: Key Metrics (Cards) -> Inform -> HTML/CSS -> Quick overview. Overall Style (Radar Chart) -> Compare -> Chart.js -> Visually represents multi-dimensional strengths. Route (Combined Interactive Map with Toggles) -> Organize/Compare -> Leaflet.js -> Shows geographical flows with clickable details, Chinese labels, a legend, and interactive filtering. Detailed Itinerary (Side-by-side) -> Compare -> HTML/CSS Grid -> Allows direct daily comparison. Attraction Checklist (Detailed Table) -> Compare -> HTML Table (JS generated) -> Quick, scannable feature comparison. Final Advice (Persona Cards) -> Inform -> HTML/CSS -> Gives a clear, actionable conclusion. CONFIRMING NO SVG/Mermaid used. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -44,7 +44,6 @@
             height: 500px;
             border-radius: 0.75rem;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            margin-top: 1.5rem;
         }
         .leaflet-tooltip-permanent {
             background: transparent;
@@ -69,6 +68,12 @@
             float: left;
             margin-right: 8px;
             opacity: 0.9;
+        }
+        .map-toggle-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .map-toggle-button.active {
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -111,15 +116,15 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
                         <div class="bg-red-50 p-4 rounded-lg">
                             <div class="text-3xl font-bold text-red-600">11天</div>
-                            <div class="text-sm text-red-800">旅遊天數</div>
+                            <div class="text-base text-red-800">旅遊天數</div>
                         </div>
                         <div class="bg-red-50 p-4 rounded-lg">
                             <div class="text-3xl font-bold text-red-600">$19.8萬起</div>
-                            <div class="text-sm text-red-800">費用(全包)</div>
+                            <div class="text-base text-red-800">費用(全包)</div>
                         </div>
                         <div class="bg-red-50 p-4 rounded-lg col-span-2 sm:col-span-1">
                             <div class="text-3xl font-bold text-red-600">經典路線</div>
-                            <div class="text-sm text-red-800">行程風格</div>
+                            <div class="text-base text-red-800">行程風格</div>
                         </div>
                     </div>
                 </div>
@@ -129,15 +134,15 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
                         <div class="bg-blue-50 p-4 rounded-lg">
                             <div class="text-3xl font-bold text-blue-600">13天</div>
-                            <div class="text-sm text-blue-800">旅遊天數</div>
+                            <div class="text-base text-blue-800">旅遊天數</div>
                         </div>
                         <div class="bg-blue-50 p-4 rounded-lg">
                             <div class="text-3xl font-bold text-blue-600">$18.8萬起</div>
-                            <div class="text-sm text-blue-800">費用(外加)</div>
+                            <div class="text-base text-blue-800">費用(外加)</div>
                         </div>
                         <div class="bg-blue-50 p-4 rounded-lg col-span-2 sm:col-span-1">
                             <div class="text-3xl font-bold text-blue-600">環島路線</div>
-                            <div class="text-sm text-blue-800">行程風格</div>
+                            <div class="text-base text-blue-800">行程風格</div>
                         </div>
                     </div>
                 </div>
@@ -157,6 +162,10 @@
         <section id="route" class="mb-16 scroll-mt-24">
             <h3 class="text-3xl font-bold text-center mb-10 text-slate-900">路線差異・合併地圖導覽</h3>
             <p class="text-center text-slate-600 mb-8 max-w-3xl mx-auto">透過這張合併的互動地圖，直觀地探索兩個行程的路線。點擊景點標記可查看簡介，不同顏色的線條描繪了旅程的路徑，讓您輕鬆比較。</p>
+            <div class="flex justify-center items-center space-x-4 mb-4">
+                <button id="toggleA" class="map-toggle-button active bg-red-500 text-white font-bold py-2 px-4 rounded-full shadow-md">顯示行程 A</button>
+                <button id="toggleB" class="map-toggle-button active bg-blue-500 text-white font-bold py-2 px-4 rounded-full shadow-md">顯示行程 B</button>
+            </div>
             <div id="combinedMap" class="map-container z-10"></div>
         </section>
 
@@ -256,6 +265,7 @@
                 }]
             },
             locations: {
+                AKL: { name: '奧克蘭', lat: -36.8485, lng: 174.7633, desc: '紐西蘭第一大城，國際航班主要進出點。' },
                 A: [
                     { name: '基督城', lat: -43.5321, lng: 172.6362, desc: '南島第一大城，有「花園城市」美譽。' },
                     { name: '蒂卡波湖', lat: -44.0065, lng: 170.4771, desc: '不可思議的土耳其藍湖水，湖畔有著名的牧羊人教堂。' },
@@ -281,92 +291,89 @@
                 ]
             },
             checklist: [
-                { name: '基督城', inA: true, inB: true },
-                { name: '蒂卡波湖 / 庫克山', inA: true, inB: true },
-                { name: '塔斯曼冰河船', inA: true, inB: true },
-                { name: '瓦納卡', inA: true, inB: true },
-                { name: '箭鎮', inA: true, inB: true },
-                { name: '皇后鎮', inA: true, inB: true },
-                { name: '蒂阿瑙螢火蟲洞', inA: true, inB: true },
-                { name: '米佛峽灣', inA: true, inB: true },
-                { name: '高山景觀火車', inA: false, inB: true },
-                { name: '西海岸冰河區', inA: false, inB: true },
-                { name: '但尼丁 (東南岸)', inA: false, inB: true },
-                { name: '摩洛奇龍珠石', inA: false, inB: true },
-                { name: '阿卡羅瓦 (法式小鎮)', inA: false, inB: true },
-                { name: '皇后鎮全日自由活動', inA: true, inB: false }
+                { category: '核心景區', name: '基督城市區', inA: true, inB: true },
+                { category: '核心景區', name: '蒂卡波湖 & 牧羊人教堂', inA: true, inB: true },
+                { category: '核心景區', name: '庫克山國家公園', inA: true, inB: true },
+                { category: '核心景區', name: '瓦納卡湖區', inA: true, inB: true },
+                { category: '核心景區', name: '箭鎮', inA: true, inB: true },
+                { category: '核心景區', name: '皇后鎮', inA: true, inB: true },
+                { category: '核心景區', name: '蒂阿瑙', inA: true, inB: true },
+                { category: '核心景區', name: '米佛峽灣', inA: true, inB: true },
+                { category: 'B行程獨特景區', name: '西海岸 (格雷茅斯/冰河)', inA: false, inB: true },
+                { category: 'B行程獨特景區', name: '東南岸 (但尼丁/奧瑪魯)', inA: false, inB: true },
+                { category: 'B行程獨特景區', name: '阿卡羅瓦 (法式小鎮)', inA: false, inB: true },
+                { category: '特色體驗', name: '塔斯曼冰河船', inA: true, inB: true },
+                { category: '特色體驗', name: '螢火蟲洞', inA: true, inB: true },
+                { category: '特色體驗', name: 'TSS恩斯羅號蒸汽船 & 牧場', inA: true, inB: true },
+                { category: '特色體驗', name: '皇后鎮天際纜車', inA: true, inB: true },
+                { category: '特色體驗', name: '高山景觀火車', inA: false, inB: true },
+                { category: '特色體驗', name: '千層石岩', inA: false, inB: true },
+                { category: '特色體驗', name: '西海岸樹冠步道', inA: false, inB: true },
+                { category: '特色體驗', 'name': '摩洛奇龍珠石', inA: false, inB: true },
+                { category: '特色體驗', 'name': '羊駝牧場', inA: false, inB: true },
+                { category: '特色體驗', 'name': '高山越野環湖農場 Safari', inA: true, inB: false },
+                { category: '特色體驗', 'name': 'Luge 溜溜車', inA: true, inB: false },
+                { category: '特色體驗', 'name': '奧克蘭帆船體驗', inA: true, inB: false },
+                { category: '餐食亮點', name: '隱士飯店自助餐', inA: true, inB: true },
+                { category: '餐食亮點', name: '皇后鎮山頂纜車自助餐', inA: true, inB: true },
+                { category: '餐食亮點', name: '瓦特峰高地農莊 BBQ', inA: true, inB: true },
+                { category: '餐食亮點', name: '奧克蘭天空塔旋轉餐廳', inA: true, inB: true },
+                { category: '餐食亮點', name: '峽灣龍蝦餐', inA: false, inB: true },
+                { category: '餐食亮點', name: '啤酒廠風味料理', inA: false, inB: true },
+                { category: '餐食亮點', name: '酒莊餐酒搭配', inA: true, inB: false },
+                { category: '餐食亮點', name: 'Fergburger 大漢堡', inA: true, inB: false },
+                { category: '行程彈性', name: '皇后鎮「全日」自由活動', inA: true, inB: false },
+                { category: '行程彈性', name: '皇后鎮「半日」自由活動', inA: false, inB: true }
             ],
             detailsA: `
-                <ul class="space-y-4 text-slate-700 text-sm">
-                    <li><strong>第一天：</strong>台北 → 奧克蘭 (夜宿機上)</li>
-                    <li><strong>第二天：</strong>奧克蘭 → 基督城 → 雅芳河輕舟之旅</li>
-                    <li><strong>第三天：</strong>基督城 → 蒂卡波湖 → 庫克山國家公園健行</li>
-                    <li><strong>第四天：</strong>塔斯曼冰河船 → 普卡基湖 → 瓦納卡</li>
-                    <li><strong>第五天：</strong>瓦納卡自由時光 → 高山越野環湖農場之旅
+                <ul class="space-y-6 text-slate-700 text-base">
+                    <li><strong>第一天：台北 → 奧克蘭</strong><br>搭乘紐西蘭航空豪華客機直飛，夜宿機上。</li>
+                    <li><strong>第二天：奧克蘭 → 基督城</strong><br>抵達後轉機至基督城，安排★雅芳河輕舟撐篙之旅。<br><em>晚餐：飯店內西式料理</em><br><em>住宿：Crowne Plaza Christchurch 或同級</em></li>
+                    <li><strong>第三天：基督城 → 蒂卡波湖 → 庫克山</strong><br>前往蒂卡波湖欣賞牧羊人教堂，後深入庫克山國家公園，安排★虎克山谷步道輕健行(1小時)。<br><em>午餐：輕食料理</em><br><em>晚餐：隱士飯店景觀餐廳自助餐(佐酒)</em><br><em>住宿：The Hermitage Aoraki Mount Cook (保證面庫克山房)</em></li>
+                    <li><strong>第四天：庫克山 → 瓦納卡</strong><br>上午參加★塔斯曼冰河船之旅，近距離接觸冰山。途經普卡基湖。<br><em>晚餐：飯店內西式料理</em><br><em>住宿：Edgewater Resort (連泊2晚)</em></li>
+                    <li><strong>第五天：瓦納卡</strong><br>上午自由活動。下午安排★高山越野環湖農場Safari之旅，含戶外下午茶。<br><em>晚餐：中式海鮮料理(佐白葡萄酒)</em><br><em>住宿：Edgewater Resort</em></li>
+                    <li><strong>第六天：瓦納卡 → 箭鎮 → 蒂阿瑙</strong><br>途經克倫威爾水果小鎮、卡瓦勞吊橋。傍晚抵達蒂阿瑙，晚上參加★螢火蟲生態之旅。<br><em>午餐：酒莊餐廳餐酒搭配</em><br><em>晚餐：飯店內西式料理或自助餐</em><br><em>住宿：Distinction Luxmore Te Anau Hotel 或同級</em></li>
+                    <li><strong>第七天：蒂阿瑙 → 米佛峽灣 → 皇后鎮</strong><br>行經米佛景觀大道，搭乘★米佛峽灣遊船。<br><em>午餐：峽灣遊船日式餐盒</em><br><em>晚餐：西式料理</em><br><em>住宿：Crowne Plaza Queenstown 或同級 (連泊3晚)</em></li>
+                    <li><strong>第八天：皇后鎮</strong><br>上午皇后鎮花園輕健行。搭乘★天際纜車+Luge溜溜車，下午搭乘★TSS恩斯羅號古董蒸汽船前往★瓦特峰高地農莊。<br><em>午餐：瓦特峰高地農莊BBQ燒烤</em><br><em>晚餐：包伯峰山頂豪華自助餐</em><br><em>住宿：同前一日</em></li>
+                    <li><strong>第九天：皇后鎮全日自由活動</strong><br>享受無晨喚的悠閒時光，盡情探索冒險之都。<br>
                         <div class="mt-2 pl-4 border-l-2 border-slate-200">
-                            <p class="text-xs font-bold text-slate-500">✧ 可選自費活動：</p>
-                            <ul class="list-disc list-inside text-xs text-slate-500">
-                                <li>湖上獨木舟或SUP立槳</li>
-                                <li>Puzzling World 奇幻世界</li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li><strong>第六天：</strong>瓦納卡 → 箭鎮 → 蒂阿瑙螢火蟲洞</li>
-                    <li><strong>第七天：</strong>米佛峽灣遊船 → 皇后鎮</li>
-                    <li><strong>第八天：</strong>皇后鎮 → 天際纜車 → 百年蒸汽船與農莊之旅</li>
-                    <li><strong>第九天：</strong>皇后鎮全日自由活動
-                        <div class="mt-2 pl-4 border-l-2 border-slate-200">
-                            <p class="text-xs font-bold text-slate-500">✧ 可選自費活動：</p>
-                            <ul class="list-disc list-inside text-xs text-slate-500">
+                            <p class="text-sm font-bold text-slate-500">✧ 可選自費活動：</p>
+                            <ul class="list-disc list-inside text-sm text-slate-500">
                                 <li>高空彈跳 (Bungy Jump)</li>
                                 <li>噴射快艇 (Shotover Jet)</li>
                                 <li>高空跳傘 (Skydive)</li>
-                                <li>魔戒拍攝地之旅</li>
-                                <li>酒莊品酒之旅</li>
+                                <li>熱氣球、滑翔傘</li>
+                                <li>庫克山或史都華島一日遊</li>
                             </ul>
                         </div>
-                    </li>
-                    <li><strong>第十天：</strong>皇后鎮 → 奧克蘭 → 帆船之都港灣巡禮</li>
-                    <li><strong>第十一天：</strong>奧克蘭 → 台北</li>
+                    <em>晚餐：特別安排Fergburger著名大漢堡</em><br><em>住宿：同前一日</em></li>
+                    <li><strong>第十天：皇后鎮 → 奧克蘭</strong><br>上午搭機飛往奧克蘭。安排★乘帆遊奧克蘭港灣。<br><em>晚餐：Orbit 360°天空塔旋轉餐廳西式套餐</em><br><em>住宿：Crowne Plaza Auckland 或同級</em></li>
+                    <li><strong>第十一天：奧克蘭 → 台北</strong><br>整理行囊，前往機場搭機返回溫暖的家。</li>
                 </ul>
             `,
             detailsB: `
-                <ul class="space-y-4 text-slate-700 text-sm">
-                    <li><strong>第一天：</strong>桃園 → 奧克蘭 (夜宿機上)</li>
-                    <li><strong>第二天：</strong>奧克蘭 → 基督城 → 市區巡禮</li>
-                    <li><strong>第三天：</strong>南阿爾卑斯高山景觀專列 → 格雷茅斯</li>
-                    <li><strong>第四天：</strong>西海岸樹冠步道 → 法蘭茲約瑟夫冰河谷健行
+                <ul class="space-y-6 text-slate-700 text-base">
+                    <li><strong>第一天：桃園 → 奧克蘭</strong><br>搭乘紐西蘭航空豪華客機直飛，夜宿機上。</li>
+                    <li><strong>第二天：奧克蘭 → 基督城</strong><br>抵達後轉機至基督城，市區觀光包含★亞芳河撐篙船、New Regent Street、河岸市集。<br><em>午餐：退餐費N$40自理</em><br><em>晚餐：館長之家西班牙風味料理</em><br><em>住宿：Sudima Hotel (City) 或同級</em></li>
+                    <li><strong>第三天：基督城 → 格雷茅斯</strong><br>搭乘★南阿爾卑斯高山景觀火車，穿越亞瑟隘口國家公園。下午參觀★千層石岩，傍晚參加★啤酒廠微醺導覽。<br><em>午餐：印度風味料理</em><br><em>晚餐：海港啤酒廠風味料理</em><br><em>住宿：Copthrone Hotel Greymouth 或同級</em></li>
+                    <li><strong>第四天：格雷茅斯 → 法蘭茲約瑟夫冰河</strong><br>前往霍奇蒂卡，體驗★西海岸樹冠探索空中步道，下午進行★探訪冰河谷遺跡健行。<br><em>午餐：紐西蘭鄉村風味料理</em><br><em>晚餐：冰河飯店主廚推薦三道式料理</em><br><em>住宿：Te Waonui Forest Retreat 或同級</em></li>
+                    <li><strong>第五天：冰河區 → 瓦納卡</strong><br>清晨前往馬松森湖健行，拜訪★瑞本酒莊品酒。下午參觀★瓦卡納迷宮世界與湖中之樹。<br><em>午餐：酒莊餐廳或橡木桶風味餐</em><br><em>晚餐：飯店主廚推薦料理</em><br><em>住宿：Edgewater Hotel Lake Wanaka 或同級</em></li>
+                    <li><strong>第六天：瓦納卡 → 皇后鎮</strong><br>途經高空彈跳發源地，漫步箭鎮。抵達皇后鎮後搭乘★TSS恩斯洛號古董蒸汽船及★華特峰高原牧場。<br><em>午餐：華特峰牧場湖畔B.B.Q.風味餐</em><br><em>晚餐：全球十大景觀餐廳自助餐(SKYLINE)</em><br><em>住宿：Hilton Queenstown Resort & Spa 或同級</em></li>
+                    <li><strong>第七天：皇后鎮 (魔戒小鎮)</strong><br>前往格萊諾基(魔戒小鎮)與潟湖步道。下午為皇后鎮自由活動時間。<br>
                         <div class="mt-2 pl-4 border-l-2 border-slate-200">
-                            <p class="text-xs font-bold text-slate-500">✧ 可選自費活動：</p>
-                            <ul class="list-disc list-inside text-xs text-slate-500">
-                                <li>冰河直升機健行 (Heli-Hike)</li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li><strong>第五天：</strong>馬松森湖 → 瑞本酒莊 → 瓦納卡</li>
-                    <li><strong>第六天：</strong>箭鎮 → 皇后鎮 → TSS蒸汽船與牧場</li>
-                    <li><strong>第七天：</strong>格萊諾基(魔戒小鎮) → 皇后鎮自由活動
-                        <div class="mt-2 pl-4 border-l-2 border-slate-200">
-                            <p class="text-xs font-bold text-slate-500">✧ 可選自費活動：</p>
-                            <ul class="list-disc list-inside text-xs text-slate-500">
+                            <p class="text-sm font-bold text-slate-500">✧ 可選自費活動：</p>
+                            <ul class="list-disc list-inside text-sm text-slate-500">
                                 <li>高空彈跳 (Bungy Jump)</li>
                                 <li>噴射快艇 (Shotover Jet)</li>
                             </ul>
                         </div>
-                    </li>
-                    <li><strong>第八天：</strong>米佛峽灣遊船 → 蒂阿瑙螢火蟲洞</li>
-                    <li><strong>第九天：</strong>隧道海灘 → 但尼丁市區觀光</li>
-                    <li><strong>第十天：</strong>摩洛奇龍珠石 → 奧瑪魯 → 庫克山</li>
-                    <li><strong>第十一天：</strong>塔斯曼冰河船 → 蒂卡波湖 → 基督城</li>
-                    <li><strong>第十二天：</strong>阿卡羅瓦(法式小鎮) → 奧克蘭告別晚宴
-                        <div class="mt-2 pl-4 border-l-2 border-slate-200">
-                            <p class="text-xs font-bold text-slate-500">✧ 可選自費活動：</p>
-                            <ul class="list-disc list-inside text-xs text-slate-500">
-                                <li>港灣生態巡遊 / 與海豚共泳</li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li><strong>第十三天：</strong>奧克蘭 → 桃園</li>
+                    <em>晚餐：全球知名網站卓越獎得獎餐廳</em><br><em>住宿：同前一日</em></li>
+                    <li><strong>第八天：皇后鎮 → 蒂阿瑙</strong><br>前往米佛峽灣搭乘★峽灣遊船。傍晚返回蒂阿瑙，參加★活性鐘乳石洞與螢火蟲生態之旅。<br><em>午餐：峽灣遊船自助餐</em><br><em>晚餐：中式料理七菜一湯(含峽灣龍蝦每人半隻)</em><br><em>住宿：Distinction Luxmore hotel 或同級</em></li>
+                    <li><strong>第九天：蒂阿瑙 → 但尼丁</strong><br>參觀Shoes Fence臭鞋牆，探訪隧道海灘。抵達但尼丁後市區觀光(八角廣場、火車站、世界最陡街道等)。<br><em>午餐：中式料理七菜一湯</em><br><em>晚餐：第一酒廠風味料理(含啤酒)</em><br><em>住宿：Scenic Hotel Southern Cross 或同級</em></li>
+                    <li><strong>第十天：但尼丁 → 庫克山</strong><br>前往摩洛奇龍珠石，參觀奧瑪魯白砂岩之城。下午進入庫克山國家公園。<br><em>午餐：8號公路特色餐廳</em><br><em>晚餐：隱士飯店內景觀餐廳自助餐</em><br><em>住宿：HERMITAGE HOTEL (保證入住面山房)</em></li>
+                    <li><strong>第十一天：庫克山 → 基督城</strong><br>上午參加★塔斯曼冰河船之旅。後前往蒂卡波湖參觀牧羊人教堂。<br><em>午餐：湖畔得獎餐廳頂級日式定食</em><br><em>晚餐：中式精緻料理+海鮮盤</em><br><em>住宿：Sudima Hotel (City) 或同級</em></li>
+                    <li><strong>第十二天：基督城 → 奧克蘭</strong><br>前往阿卡羅瓦(法式小鎮)，參觀★羊駝牧場。傍晚搭機返回奧克蘭。<br><em>午餐：紐西蘭網紅名店-英式風味餐</em><br><em>晚餐：360°天空塔旋轉餐廳</em><br><em>住宿：Pullman Auckland Hotel 或同級</em></li>
+                    <li><strong>第十三天：奧克蘭 → 桃園</strong><br>上午前往機場，搭機返回台灣。</li>
                 </ul>
             `
         };
@@ -418,64 +425,104 @@
             }
         });
         
-        function initCombinedMap(mapId, trips) {
-            const map = L.map(mapId).setView([-44.5, 170], 6);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+        const map = L.map('combinedMap').setView([-44.5, 170], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-            const allLatLngs = [];
+        const layerA = L.layerGroup();
+        const layerB = L.layerGroup();
 
-            trips.forEach(trip => {
-                const latLngs = [];
-                trip.locations.forEach(loc => {
-                    const marker = L.circleMarker([loc.lat, loc.lng], {
-                        color: trip.color,
-                        fillColor: trip.color,
-                        fillOpacity: 0.8,
-                        radius: 8
-                    }).addTo(map);
+        const akl = tripData.locations.AKL;
+        const chc = tripData.locations.A.find(loc => loc.name === '基督城');
+        const zqn = tripData.locations.A.find(loc => loc.name === '皇后鎮');
 
-                    marker.bindPopup(`<b>${loc.name}</b><br>${loc.desc}`);
-                    marker.bindTooltip(loc.name, {
-                        permanent: true,
-                        direction: 'right',
-                        offset: [10, 0],
-                        className: 'leaflet-tooltip-permanent'
-                    });
-                    latLngs.push([loc.lat, loc.lng]);
-                    allLatLngs.push([loc.lat, loc.lng]);
+        function createTripLayers(tripLocations, color, layerGroup) {
+            const latLngs = [];
+            tripLocations.forEach(loc => {
+                const marker = L.circleMarker([loc.lat, loc.lng], {
+                    color: color, fillColor: color, fillOpacity: 0.8, radius: 8
                 });
-                L.polyline(latLngs, { color: trip.color, weight: 3, opacity: 0.7 }).addTo(map);
+                marker.bindPopup(`<b>${loc.name}</b><br>${loc.desc}`);
+                marker.bindTooltip(loc.name, {
+                    permanent: true, direction: 'right', offset: [10, 0], className: 'leaflet-tooltip-permanent'
+                });
+                layerGroup.addLayer(marker);
+                latLngs.push([loc.lat, loc.lng]);
             });
-            
-            const legend = L.control({position: 'bottomright'});
-            legend.onAdd = function (map) {
-                const div = L.DomUtil.create('div', 'info legend');
-                const labels = [
-                    '<i style="background: #DC2626"></i> 行程 A: 慢遊典藏',
-                    '<i style="background: #2563EB"></i> 行程 B: 深度環島'
-                ];
-                div.innerHTML = labels.join('<br>');
-                return div;
-            };
-            legend.addTo(map);
-
-            if (allLatLngs.length > 0) {
-                map.fitBounds(L.latLngBounds(allLatLngs).pad(0.1));
-            }
+            L.polyline(latLngs, { color: color, weight: 3, opacity: 0.7 }).addTo(layerGroup);
         }
 
-        initCombinedMap('combinedMap', [
-            { locations: tripData.locations.A, color: '#DC2626' },
-            { locations: tripData.locations.B, color: '#2563EB' }
-        ]);
+        createTripLayers(tripData.locations.A, '#DC2626', layerA);
+        createTripLayers(tripData.locations.B, '#2563EB', layerB);
         
+        L.polyline([[akl.lat, akl.lng], [chc.lat, chc.lng]], { color: '#DC2626', weight: 2, opacity: 0.8, dashArray: '5, 10' }).addTo(layerA);
+        L.polyline([[zqn.lat, zqn.lng], [akl.lat, akl.lng]], { color: '#DC2626', weight: 2, opacity: 0.8, dashArray: '5, 10' }).addTo(layerA);
+        
+        L.polyline([[akl.lat, akl.lng], [chc.lat, chc.lng]], { color: '#2563EB', weight: 2, opacity: 0.8, dashArray: '5, 10' }).addTo(layerB);
+        L.polyline([[chc.lat, chc.lng], [akl.lat, akl.lng]], { color: '#2563EB', weight: 2, opacity: 0.8, dashArray: '5, 10' }).addTo(layerB);
+        
+        const aklMarker = L.circleMarker([akl.lat, akl.lng], { color: '#4b5563', fillColor: '#f9fafb', fillOpacity: 0.8, radius: 8 });
+        aklMarker.bindPopup(`<b>${akl.name}</b><br>${akl.desc}`);
+        aklMarker.bindTooltip(akl.name, { permanent: true, direction: 'right', offset: [10, 0], className: 'leaflet-tooltip-permanent' });
+        aklMarker.addTo(map);
+
+        layerA.addTo(map);
+        layerB.addTo(map);
+
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            const labels = [
+                '<i style="background: #DC2626"></i> 行程 A: 慢遊典藏',
+                '<i style="background: #2563EB"></i> 行程 B: 深度環島'
+            ];
+            div.innerHTML = labels.join('<br>');
+            return div;
+        };
+        legend.addTo(map);
+
+        const allLatLngs = [...tripData.locations.A.map(l => [l.lat, l.lng]), ...tripData.locations.B.map(l => [l.lat, l.lng]), [akl.lat, akl.lng]];
+        if (allLatLngs.length > 0) {
+            map.fitBounds(L.latLngBounds(allLatLngs).pad(0.1));
+        }
+
+        const toggleA = document.getElementById('toggleA');
+        const toggleB = document.getElementById('toggleB');
+        toggleA.addEventListener('click', () => {
+            toggleA.classList.toggle('active');
+            toggleA.style.backgroundColor = toggleA.classList.contains('active') ? '#ef4444' : '#9ca3af';
+            if (map.hasLayer(layerA)) {
+                map.removeLayer(layerA);
+            } else {
+                map.addLayer(layerA);
+            }
+        });
+        toggleB.addEventListener('click', () => {
+            toggleB.classList.toggle('active');
+            toggleB.style.backgroundColor = toggleB.classList.contains('active') ? '#3b82f6' : '#9ca3af';
+            if (map.hasLayer(layerB)) {
+                map.removeLayer(layerB);
+            } else {
+                map.addLayer(layerB);
+            }
+        });
+
         document.getElementById('contentA').innerHTML = tripData.detailsA;
         document.getElementById('contentB').innerHTML = tripData.detailsB;
 
         const checklistTableBody = document.getElementById('checklistTableBody');
+        let currentCategory = "";
         tripData.checklist.forEach(item => {
+            if (item.category !== currentCategory) {
+                currentCategory = item.category;
+                const categoryRow = `
+                    <tr class="bg-slate-50">
+                        <td colspan="3" class="pt-6 pb-2 px-4 text-slate-600 font-semibold text-base">${currentCategory}</td>
+                    </tr>
+                `;
+                checklistTableBody.innerHTML += categoryRow;
+            }
             const row = `
                 <tr class="border-b border-slate-200 hover:bg-slate-50">
                     <td class="py-3 px-4 text-slate-800 font-medium">${item.name}</td>
@@ -502,4 +549,4 @@
     });
     </script>
 </body>
-</ht
+</html>
