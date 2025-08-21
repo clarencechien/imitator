@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紐西蘭南島行程互動比較分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: 升級為五大頁籤的互動儀表板。1.「總覽與推薦」提供質化分析與雷達圖。2.新增「航班與時差」專頁，詳細解析飛行體驗與時差調適策略。3.「行程路線地圖」提供地理空間比較。4.「每日行程對照」導入創新的「舒適度指標」(體力、拉車、住宿、亮點)，讓使用者能模擬每日感受。5.「景點清單檢查表」提供全面的景點覆蓋比較。此結構從宏觀比較、飛行體驗、地理路線，到微觀的每日感受，提供了一個全方位的決策輔助流程。 -->
+    <!-- Visualization & Content Choices: 總覽頁使用Chart.js雷達圖。地圖頁籤使用Leaflet.js搭配永久中文標籤。每日行程頁籤使用JS動態生成包含Unicode圖示的舒適度指標卡片，將抽象的旅遊體驗數據化。航班資訊頁籤使用HTML/CSS結構化呈現時間軸。景點清單使用JS動態生成表格。所有互動由Vanilla JS驅動，確保流暢的單頁應用體驗。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #f8f9fa; }
+        .tab-btn { transition: all 0.3s ease; border-bottom: 3px solid transparent; white-space: nowrap; }
+        .tab-btn.active { border-bottom-color: #1e40af; color: #1e40af; font-weight: 600; }
+        .itinerary-btn { transition: all 0.3s ease; }
+        .itinerary-btn.active { background-color: #1e40af; color: white; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .summary-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .summary-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .table-cell-checked { color: #16a34a; font-weight: bold; font-size: 1.5rem; }
+        .chart-container { position: relative; width: 100%; max-width: 700px; margin-left: auto; margin-right: auto; height: 40vh; max-height: 500px; }
+        #map { height: 65vh; border-radius: 0.75rem; border: 1px solid #e5e7eb; }
+        .leaflet-tooltip-permanent { background-color: rgba(255, 255, 255, 0.8); border: 1px solid #3388ff; border-radius: 4px; padding: 2px 5px; font-weight: bold; color: #1e40af; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .leaflet-popup-content { font-family: 'Noto Sans TC', sans-serif; }
+        .comfort-metric { display: flex; align-items: center; margin-top: 4px; font-size: 0.875rem; }
+        .comfort-metric span:first-child { margin-right: 0.5rem; }
+        .timeline::before { content: ''; position: absolute; left: 1.25rem; top: 1rem; bottom: 1rem; width: 2px; background-color: #d1d5db; }
+        .timeline-item { position: relative; padding-left: 3.5rem; }
+        .timeline-dot { position: absolute; left: 0.75rem; top: 0.5rem; width: 1.25rem; height: 1.25rem; }
+        @media (max-width: 768px) { .chart-container { height: 50vh; } #map { height: 50vh; } }
+    </style>
+</head>
+<body class="bg-stone-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-5xl font-bold text-blue-900">紐西蘭南島行程互動比較分析</h1>
+            <p class="mt-2 md:mt-4 text-lg text-gray-600">為熟齡旅客量身打造的決策工具</p>
+            <p class="mt-2 text-gray-500 max-w-3xl mx-auto">請點選下方行程按鈕，或透過頁籤切換不同比較維度，幫助您輕鬆找到最適合的紐西蘭之旅。</p>
+        </header>
+
+        <main>
+            <div id="controls" class="bg-white p-4 rounded-xl shadow-md mb-8 sticky top-4 z-10">
+                <h2 class="text-xl font-semibold text-center mb-4 text-gray-700">請選擇您想比較的行程</h2>
+                <div class="flex flex-wrap justify-center gap-2 md:gap-4">
+                    <button class="itinerary-btn px-4 py-2 rounded-full bg-gray-200 text-gray-700 font-semibold" data-itinerary="A">行程 A (11天)</button>
+                    <button class="itinerary-btn px-4 py-2 rounded-full bg-gray-200 text-gray-700 font-semibold" data-itinerary="B">行程 B (10天)</button>
+                    <button class="itinerary-btn px-4 py-2 rounded-full bg-gray-200 text-gray-700 font-semibold" data-itinerary="C">行程 C (13天)</button>
+                    <button class="itinerary-btn px-4 py-2 rounded-full bg-gray-200 text-gray-700 font-semibold" data-itinerary="D">行程 D (10天)</button>
+                    <button class="itinerary-btn px-4 py-2 rounded-full bg-gray-200 text-gray-700 font-semibold" data-itinerary="E">行程 E (10天)</button>
+                    <button class="itinerary-btn px-4 py-2 rounded-full bg-blue-800 text-white font-semibold active" data-itinerary="all">比較全部</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg">
+                <div id="tabs" class="flex border-b border-gray-200 px-4 md:px-8 overflow-x-auto">
+                    <button class="tab-btn py-4 px-3 md:px-6 text-gray-500 active" data-tab="overview">總覽與推薦</button>
+                    <button class="tab-btn py-4 px-3 md:px-6 text-gray-500" data-tab="flight">航班與時差</button>
+                    <button class="tab-btn py-4 px-3 md:px-6 text-gray-500" data-tab="map">行程路線地圖</button>
+                    <button class="tab-btn py-4 px-3 md:px-6 text-gray-500" data-tab="daily">每日行程對照</button>
+                    <button class="tab-btn py-4 px-3 md:px-6 text-gray-500" data-tab="checklist">景點清單檢查表</button>
+                </div>
+
+                <div id="tab-content" class="p-4 md:p-8">
+                    <div id="overview-content">
+                        <section id="summary-section" class="mb-8"></section>
+                        <section>
+                            <h3 class="text-2xl font-bold text-center mb-4 text-blue-800">行程風格雷達圖分析</h3>
+                            <div class="chart-container"><canvas id="radarChart"></canvas></div>
+                        </section>
+                    </div>
+                    <div id="flight-content" class="hidden">
+                        <h2 class="text-2xl md:text-3xl font-bold text-blue-800 mb-2 text-center">航班體驗與時差調適指南</h2>
+                        <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">飛行是旅程的第一步，也是影響體力與心情的關鍵。此處為您解析兩種主要的飛行方式，大部分行程採用紐西蘭航空直飛，部分行程E的日期則提供國泰航空轉機選項。</p>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                                <h3 class="text-xl font-semibold text-blue-900 mb-4 flex items-center"><img src="https://dc.travel.net.tw:8443/Images/DPC/TO/logo_060055/NZ.png" class="h-6 mr-2" alt="紐西蘭航空"> 紐西蘭航空 (NZ) - 直飛</h3>
+                                <div class="mb-4 p-4 bg-white rounded-md">
+                                    <h4 class="font-bold text-lg mb-2">✈️ 去程 (晚去早回)</h4>
+                                    <div class="relative timeline">
+                                        <div class="timeline-item mb-4"><div class="timeline-dot bg-blue-500 rounded-full"></div><p class="font-bold">台灣時間 18:30 (NZ78)</p><p class="text-gray-700">從桃園機場 (TPE) 起飛。</p></div>
+                                        <div class="timeline-item mb-4"><div class="timeline-dot bg-blue-500 rounded-full"></div><p class="font-bold">飛行途中 (約 11 小時)</p></div>
+                                        <div class="timeline-item"><div class="timeline-dot bg-blue-500 rounded-full"></div><p class="font-bold">紐西蘭時間 隔日 10:20</p><p class="text-gray-700">抵達奧克蘭 (AKL)。</p></div>
+                                    </div>
+                                </div>
+                                <div class="mb-4 p-4 bg-white rounded-md">
+                                    <h4 class="font-bold text-lg mb-2">✈️ 回程 (晚去早回)</h4>
+                                    <div class="relative timeline">
+                                        <div class="timeline-item mb-4"><div class="timeline-dot bg-blue-500 rounded-full"></div><p class="font-bold">紐西蘭時間 10:40 (NZ77)</p><p class="text-gray-700">從奧克蘭 (AKL) 起飛。</p></div>
+                                        <div class="timeline-item mb-4"><div class="timeline-dot bg-blue-500 rounded-full"></div><p class="font-bold">飛行途中 (約 11.5 小時)</p></div>
+                                        <div class="timeline-item"><div class="timeline-dot bg-blue-500 rounded-full"></div><p class="font-bold">台灣時間 同日 17:25</p><p class="text-gray-700">抵達桃園機場 (TPE)。</p></div>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-4 rounded-md">
+                                    <h4 class="font-bold text-lg mb-2">優點分析</h4>
+                                    <p class="text-gray-700">無須轉機，總飛行時間最短，是體力負擔最小、最舒適的選擇，特別適合熟齡旅客。抵達與離開的時間點有利於時差調整。</p>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                                <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center"><img src="https://dc.travel.net.tw:8443/Images/DPC/TO/logo_060055/CX.png" class="h-6 mr-2" alt="國泰航空"> 國泰航空 (CX) - 轉機</h3>
+                                <div class="mb-4 p-4 bg-white rounded-md">
+                                    <h4 class="font-bold text-lg mb-2">✈️ 去程 (午去午回)</h4>
+                                    <div class="relative timeline">
+                                        <div class="timeline-item mb-4"><div class="timeline-dot bg-gray-500 rounded-full"></div><p class="font-bold">台灣時間 13:15</p><p class="text-gray-700">桃園 (TPE) → 香港 (HKG)。</p></div>
+                                        <div class="timeline-item mb-4"><div class="timeline-dot bg-gray-500 rounded-full"></div><p class="font-bold">香港時間 19:00</p><p class="text-gray-700">香港 (HKG) → 奧克蘭 (AKL)。</p></div>
+                                        <div class="timeline-item"><div class="timeline-dot bg-gray-500 rounded-full"></div><p class="font-bold">紐西蘭時間 隔日 10:05</p><p class="text-gray-700">抵達奧克蘭 (AKL)。</p></div>
+                                    </div>
+                                </div>
+                                <div class="mb-4 p-4 bg-white rounded-md">
+                                    <h4 class="font-bold text-lg mb-2">✈️ 回程 (午去午回)</h4>
+                                    <div class="relative timeline">
+                                        <div class="timeline-item mb-4"><div class="timeline-dot bg-gray-500 rounded-full"></div><p class="font-bold">紐西蘭時間 14:50</p><p class="text-gray-700">奧克蘭 (AKL) → 香港 (HKG)。</p></div>
+                                        <div class="timeline-item mb-4"><div class="timeline-dot bg-gray-500 rounded-full"></div><p class="font-bold">香港時間 隔日 05:05</p><p class="text-gray-700">香港 (HKG) → 桃園 (TPE)。</p></div>
+                                        <div class="timeline-item"><div class="timeline-dot bg-gray-500 rounded-full"></div><p class="font-bold">台灣時間 隔日 07:00</p><p class="text-gray-700">抵達桃園機場 (TPE)。</p></div>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-4 rounded-md">
+                                    <h4 class="font-bold text-lg mb-2">優點/考量點分析</h4>
+                                    <p class="text-gray-700">部分日期提供此選項，可能在價格上更有彈性。但需在香港轉機，總旅行時間較長，且回程為清晨抵達，對體力恢復是較大的考驗。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="map-content" class="hidden">
+                         <div id="map-controls" class="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2"></div>
+                         <div id="map"></div>
+                    </div>
+                    <div id="daily-content" class="hidden"></div>
+                    <div id="checklist-content" class="hidden"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const data = {
+            tours: {
+                'A': { name: '行程 A (上順) - 南島精華11天', price: 'NT$198,000 起', duration: '11天9夜', core: '皇后鎮深度慢遊', highlights: ['皇后鎮連泊3晚，瓦納卡連泊2晚', '皇后鎮享整日自由活動', '奧克蘭帆船遊港體驗'], pros: '步調最悠閒，大幅減少更換飯店的頻率，適合喜歡深度定點、不愛奔波的旅客。', cons: '景點獨特性相對較少，屬於經典路線的優化版，費用也較高。', recommendation: '追求極致悠閒與行程彈性的旅客', scores: [5, 4, 3, 2, 3], color: '#ef4444' },
+                'B': { name: '行程 B (上順) - 南島精華10天', price: 'NT$192,800 起', duration: '10天8夜', core: '基督城周邊特色景點', highlights: ['探訪法國風情小鎮阿卡羅阿', '莎瑪拉羊駝牧場親密互動', '皇后鎮連泊2晚，步調適中'], pros: '行程獨特，包含可愛動物與人文小鎮，能體驗到不同於純自然風光的樂趣。', cons: '行程較為緊湊，每日移動距離不短，需要一定的體力。', recommendation: '喜愛人文風情與動物互動的旅客', scores: [3, 4, 4, 3, 4], color: '#3b82f6' },
+                'C': { name: '行程 C (尊榮) - 南島深度13天', price: 'NT$188,800 起', duration: '13天11夜', core: '南島東西岸全覽', highlights: ['搭乘世界級高山觀景火車', '雙冰河體驗 (塔斯曼+法蘭茲約瑟夫)', '西海岸千層岩奇景'], pros: '景觀最全面，能一次飽覽南島東西兩岸截然不同的地貌，火車體驗舒適且難忘。', cons: '天數最長，整體拉車距離也最長，對體力是一大考驗。', recommendation: '想一次看遍南島多樣地貌的風景愛好者', scores: [3, 5, 5, 4, 4], color: '#f97316' },
+                'D': { name: '行程 D (尊榮) - 南島漫遊10天', price: 'NT$154,800 起', duration: '10天8夜', core: '五湖四High，海陸空體驗', highlights: ['直升機觀光飛行，俯瞰冰河', '瓦納卡湖遊船與環湖自行車', '活動豐富，動感十足'], pros: '體驗最多元，包含海陸空三種視角，活動安排充滿驚喜與樂趣。', cons: '活動性質較動態，如自行車等項目，對體能有一定要求。', recommendation: '體力充沛，追求獨特感官體驗的旅客', scores: [2, 4, 5, 5, 5], color: '#10b981' },
+                'E': { name: '行程 E (尊榮) - 愛戀南島10天', price: 'NT$134,800 起', duration: '10天8夜', core: '東海岸經典路線', highlights: ['價格最具競爭力', '涵蓋東海岸所有經典景點', '皇家信天翁生態體驗'], pros: '性價比最高，用最經濟的預算遊覽南島東岸精華，路線經典順暢。', cons: '未安排在皇后鎮或瓦納卡連泊，行程緊湊度較高，住宿體驗較為基礎。', recommendation: '預算有限但不想錯過經典的旅客', scores: [3, 3, 3, 3, 5], color: '#8b5cf6' }
+            },
+            daily: [
+                { day: 1, A: {text:'✈️ 桃園→奧克蘭', exertion:1, driveTime:'-', lodging:'機上', highlight:'搭機'}, B: {text:'✈️ 桃園→奧克蘭', exertion:1, driveTime:'-', lodging:'機上', highlight:'搭機'}, C: {text:'✈️ 桃園→奧克蘭', exertion:1, driveTime:'-', lodging:'機上', highlight:'搭機'}, D: {text:'✈️ 桃園→奧克蘭', exertion:1, driveTime:'-', lodging:'機上', highlight:'搭機'}, E: {text:'✈️ 桃園→奧克蘭', exertion:1, driveTime:'-', lodging:'機上', highlight:'搭機'} },
+                { day: 2, A: {text:'✈️ 奧克蘭→基督城', exertion:2, driveTime:'約 1.5 小時', lodging:'基督城市區', highlight:'亞芳河撐篙船'}, B: {text:'✈️ 奧克蘭→基督城', exertion:2, driveTime:'約 1.5 小時', lodging:'基督城市區', highlight:'亞芳河撐篙船'}, C: {text:'✈️ 奧克蘭→基督城', exertion:2, driveTime:'約 1.5 小時', lodging:'基督城市區', highlight:'亞芳河撐篙船'}, D: {text:'✈️ 奧克蘭→基督城', exertion:2, driveTime:'約 1.5 小時', lodging:'基督城市區', highlight:'亞芳河撐篙船'}, E: {text:'✈️ 奧克蘭→基督城', exertion:2, driveTime:'約 1.5 小時', lodging:'基督城市區', highlight:'亞芳河撐篙船'} },
+                { day: 3, A: {text:'🏞️ 基督城→庫克山', exertion:3, driveTime:'約 4 小時', lodging:'隱士飯店(面山房)', highlight:'塔斯曼冰河船'}, B: {text:'🏞️ 基督城→庫克山', exertion:3, driveTime:'約 4 小時', lodging:'隱士飯店(面山房)', highlight:'塔斯曼冰河船'}, C: {text:'🚂 基督城→高山火車→格雷茅斯', exertion:2, driveTime:'約 2.5 小時', lodging:'格雷茅斯', highlight:'高山觀景火車'}, D: {text:'🏞️ 基督城→蒂卡波湖', exertion:2, driveTime:'約 3 小時', lodging:'蒂卡波湖區', highlight:'約翰山天文台'}, E: {text:'🏞️ 基督城→庫克山', exertion:3, driveTime:'約 4 小時', lodging:'隱士飯店(面山房)', highlight:'塔斯曼冰河船'} },
+                { day: 4, A: {text:'🏞️ 庫克山→皇后鎮', exertion:3, driveTime:'約 3.5 小時', lodging:'皇后鎮連泊 (1/3)', highlight:'入住皇后鎮'}, B: {text:'🏞️ 庫克山→皇后鎮', exertion:3, driveTime:'約 3.5 小時', lodging:'皇后鎮連泊 (1/2)', highlight:'入住皇后鎮'}, C: {text:'🏞️ 格雷茅斯→西海岸冰河區', exertion:4, driveTime:'約 3 小時', lodging:'冰河區飯店', highlight:'法蘭茲約瑟夫冰河谷健行'}, D: {text:'🚁 庫克山→直升機→瓦納卡', exertion:3, driveTime:'約 2.5 小時', lodging:'瓦納卡湖濱', highlight:'直升機雪地降落'}, E: {text:'🏞️ 庫克山→皇后鎮', exertion:3, driveTime:'約 3.5 小時', lodging:'皇后鎮市區', highlight:'Skyline纜車晚餐'} },
+                { day: 5, A: {text:'🚶 皇后鎮(全日自由活動)', exertion:1, driveTime:'-', lodging:'皇后鎮連泊 (2/3)', highlight:'全日自由彈性安排'}, B: {text:'🏞️ 皇后鎮→箭鎮', exertion:2, driveTime:'約 2 小時', lodging:'皇后鎮連泊 (2/2)', highlight:'TSS蒸汽船'}, C: {text:'🏞️ 冰河區→瓦納卡', exertion:3, driveTime:'約 4 小時', lodging:'瓦納卡湖區連泊 (1/2)', highlight:'迷幻世界'}, D: {text:'🚢 瓦納卡→遊船→皇后鎮', exertion:2, driveTime:'約 1.5 小時', lodging:'皇后鎮連泊 (1/2)', highlight:'瓦納卡湖遊船'}, E: {text:'🏞️ 皇后鎮→箭鎮', exertion:2, driveTime:'約 2 小時', lodging:'皇后鎮市區', highlight:'TSS蒸汽船'} },
+                { day: 6, A: {text:'🚢 皇后鎮→米佛峽灣→第阿納', exertion:4, driveTime:'約 4 小時', lodging:'第阿納湖區', highlight:'米佛峽灣遊船'}, B: {text:'🚢 皇后鎮→米佛峽灣→第阿納', exertion:4, driveTime:'約 4 小時', lodging:'第阿納湖區', highlight:'米佛峽灣遊船'}, C: {text:'🏞️ 瓦納卡→皇后鎮', exertion:2, driveTime:'約 1.5 小時', lodging:'皇后鎮連泊 (1/2)', highlight:'Skyline纜車晚餐'}, D: {text:'🚲 皇后鎮→環湖自行車', exertion:3, driveTime:'約 1 小時', lodging:'皇后鎮連泊 (2/2)', highlight:'環湖自行車'}, E: {text:'🚢 皇后鎮→米佛峽灣→第阿納', exertion:4, driveTime:'約 4 小時', lodging:'第阿納湖區', highlight:'米佛峽灣遊船'} },
+                { day: 7, A: {text:'🏞️ 第阿納→瓦納卡', exertion:3, driveTime:'約 3 小時', lodging:'瓦納卡連泊 (1/2)', highlight:'螢火蟲洞'}, B: {text:'🏞️ 第阿納→但尼丁', exertion:3, driveTime:'約 4 小時', lodging:'但尼丁市區', highlight:'螢火蟲洞'}, C: {text:'🚶 皇后鎮→格萊諾基', exertion:2, driveTime:'約 2 小時', lodging:'皇后鎮連泊 (2/2)', highlight:'半日自由活動'}, D: {text:'🚢 皇后鎮→米佛峽灣→第阿納', exertion:4, driveTime:'約 4 小時', lodging:'第阿納湖區', highlight:'米佛峽灣遊船'}, E: {text:'🏞️ 第阿納→但尼丁', exertion:4, driveTime:'約 4 小時', lodging:'但尼丁市區', highlight:'皇家信天翁保護區'} },
+                { day: 8, A: {text:'✈️ 瓦納卡→奧克蘭', exertion:2, driveTime:'約 1.5 小時', lodging:'奧克蘭市區', highlight:'瓦納卡湖畔悠閒時光'}, B: {text:'🏞️ 但尼丁→基督城', exertion:3, driveTime:'約 4.5 小時', lodging:'基督城市區', highlight:'摩洛奇龍珠石'}, C: {text:'🚢 皇后鎮→米佛峽灣→第阿納', exertion:4, driveTime:'約 4 小時', lodging:'第阿納湖區', highlight:'米佛峽灣遊船'}, D: {text:'🏞️ 第阿納→但尼丁', exertion:3, driveTime:'約 4 小時', lodging:'但尼丁市區', highlight:'螢火蟲洞'}, E: {text:'🏞️ 但尼丁→基督城', exertion:3, driveTime:'約 4.5 小時', lodging:'基督城市區', highlight:'摩洛奇龍珠石'} },
+                { day: 9, A: {text:'🚢 奧克蘭→帆船遊港', exertion:2, driveTime:'-', lodging:'奧克蘭市區', highlight:'奧克蘭帆船體驗'}, B: {text:'🏞️ 基督城→阿卡羅阿', exertion:3, driveTime:'約 3 小時', lodging:'基督城市區', highlight:'羊駝牧場'}, C: {text:'🏞️ 第阿納→但尼丁', exertion:4, driveTime:'約 4 小時', lodging:'但尼丁市區', highlight:'皇家信天翁保護區'}, D: {text:'🏞️ 但尼丁→基督城', exertion:3, driveTime:'約 4.5 小時', lodging:'基督城市區', highlight:'摩洛奇龍珠石'}, E: {text:'✈️ 基督城→奧克蘭', exertion:2, driveTime:'約 1.5 小時', lodging:'奧克蘭市區', highlight:'天空塔晚餐'} },
+                { day: 10, A: {text:'✈️ 奧克蘭→桃園', exertion:1, driveTime:'-', lodging:'機上', highlight:'返家'}, B: {text:'✈️ 基督城→奧克蘭→桃園', exertion:1, driveTime:'-', lodging:'機上', highlight:'返家'}, C: {text:'🏞️ 但尼丁→庫克山', exertion:3, driveTime:'約 4 小時', lodging:'隱士飯店(面山房)', highlight:'塔斯曼冰河船'}, D: {text:'✈️ 基督城→奧克蘭→桃園', exertion:1, driveTime:'-', lodging:'機上', highlight:'返家'}, E: {text:'✈️ 奧克蘭→桃園', exertion:1, driveTime:'-', lodging:'機上', highlight:'返家'} },
+                { day: 11, A: {text:'🏠 抵達桃園', exertion:1, driveTime:'-', lodging:'溫暖的家', highlight:'抵達台灣'}, B: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'}, C: {text:'🏞️ 庫克山→基督城', exertion:3, driveTime:'約 4 小時', lodging:'基督城市區', highlight:'蒂卡波湖'}, D: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'}, E: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'} },
+                { day: 12, A: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'}, B: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'}, C: {text:'🏞️ 基督城→阿卡羅阿', exertion:3, driveTime:'約 3 小時', lodging:'基督城市區', highlight:'羊駝牧場'}, D: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'}, E: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'} },
+                { day: 13, A: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'}, B: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'}, C: {text:'✈️ 基督城→奧克蘭→桃園', exertion:1, driveTime:'-', lodging:'機上', highlight:'返家'}, D: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'}, E: {text:'-', exertion:0, driveTime:'-', lodging:'-', highlight:'-'} },
+            ],
+            checklist: [
+                { category: '庫克山', items: [
+                    { name: '庫克山國家公園', A: true, B: true, C: true, D: true, E: true, lat: -43.731, lng: 170.096, desc: '紐西蘭最高峰所在地，擁有壯麗的冰河與高山景色。' },
+                    { name: '隱士飯店住宿', A: true, B: true, C: true, D: false, E: true, lat: -43.731, lng: 170.093, desc: '位於國家公園內，享有絕佳庫克山景觀的標誌性飯店。' },
+                    { name: '塔斯曼冰河船', A: true, B: true, C: true, D: true, E: true, lat: -43.682, lng: 170.160, desc: '搭船近距離觀賞紐西蘭最大冰河的壯麗冰山。' },
+                    { name: '庫克山步道健行', A: true, B: true, C: true, D: true, E: true, lat: -43.718, lng: 170.090, desc: '親身體驗國家公園的壯麗，步道難易度選擇多。' },
+                    { name: '直升機觀光飛行', A: false, B: false, C: false, D: true, E: false, lat: -43.733, lng: 170.098, desc: '從空中俯瞰庫克山與冰河，是獨一無二的視覺饗宴。' },
+                ]},
+                { category: '湖區', items: [
+                    { name: '蒂卡波湖/牧羊人教堂', A: true, B: true, C: true, D: true, E: true, lat: -44.004, lng: 170.481, desc: '以夢幻般的牛奶藍湖水和湖畔的古樸教堂聞名。' },
+                    { name: '瓦納卡湖', A: true, B: true, C: true, D: true, E: true, lat: -44.700, lng: 169.133, desc: '南島第四大湖，景色優美，是戶外活動的天堂。' },
+                    { name: '瓦納卡湖中樹', A: true, B: true, C: true, D: true, E: false, lat: -44.700, lng: 169.122, desc: '孤獨佇立在湖中的柳樹，是世界知名的攝影景點。' },
+                    { name: '瓦納卡湖遊船', A: false, B: false, C: false, D: true, E: false, lat: -44.695, lng: 169.145, desc: '乘船探索湖中小島，享受湖光山色。' },
+                ]},
+                { category: '皇后鎮', items: [
+                    { name: '皇后鎮連泊', A: true, B: true, C: true, D: true, E: false, lat: -45.031, lng: 168.662, desc: '多次入住同一飯店，減少打包行李的辛勞。' },
+                    { name: '皇后鎮自由活動', A: true, B: false, C: true, D: false, E: false, lat: -45.031, lng: 168.662, desc: '自由探索小鎮，享受悠閒時光或參加自費活動。' },
+                    { name: 'Skyline天空纜車+晚餐', A: true, B: true, C: true, D: true, E: true, lat: -45.027, lng: 168.656, desc: '搭乘南半球最陡纜車，在高空景觀餐廳享用自助餐。' },
+                    { name: 'TSS百年蒸汽船', A: true, B: true, C: true, D: true, E: true, lat: -45.033, lng: 168.659, desc: '搭乘古董燃煤蒸汽船，暢遊瓦卡蒂波湖。' },
+                    { name: '箭鎮 (魔戒小鎮)', A: true, B: true, C: true, D: true, E: true, lat: -44.945, lng: 168.831, desc: '保留淘金時期風貌的歷史小鎮，也是魔戒電影場景。' },
+                    { name: '環湖自行車', A: false, B: false, C: false, D: true, E: false, lat: -45.031, lng: 168.662, desc: '以悠閒的方式欣賞瓦卡蒂波湖畔的絕美風光。' },
+                ]},
+                { category: '峽灣', items: [
+                    { name: '米佛峽灣遊船', A: true, B: true, C: true, D: true, E: true, lat: -44.671, lng: 167.925, desc: '世界第八大奇景，搭船巡航於壯麗的冰河峽灣中。' },
+                    { name: '第阿納螢火蟲洞', A: true, B: true, C: true, D: true, E: true, lat: -45.414, lng: 167.716, desc: '搭船進入地下洞穴，觀賞南半球特有的藍光螢火蟲。' },
+                ]},
+                { category: '東海岸', items: [
+                    { name: '但尼丁市區觀光', A: false, B: true, C: true, D: true, E: true, lat: -45.874, lng: 170.503, desc: '充滿蘇格蘭風情的城市，擁有許多歷史建築。' },
+                    { name: '皇家信天翁保護區', A: false, B: false, C: true, D: false, E: true, lat: -45.775, lng: 170.728, desc: '全球唯一的內陸皇家信天翁繁殖地。' },
+                    { name: '摩洛奇龍珠石', A: false, B: true, C: true, D: true, E: true, lat: -45.345, lng: 170.826, desc: '海灘上散落著巨大的圓形奇石，是地質奇觀。' },
+                    { name: '奧瑪魯 (白砂岩之城)', A: false, B: true, C: true, D: true, E: true, lat: -45.097, lng: 170.971, desc: '以白色石灰岩建築聞名，並可觀賞藍企鵝歸巢。' },
+                    { name: '阿卡羅阿 (法國小鎮)', A: false, B: true, C: true, D: false, E: false, lat: -43.803, lng: 172.968, desc: '紐西蘭唯一的法國移民小鎮，充滿歐洲風情。' },
+                    { name: '羊駝牧場', A: false, B: true, C: true, D: false, E: false, lat: -43.780, lng: 172.905, desc: '與可愛的羊駝近距離接觸和餵食。' },
+                ]},
+                { category: '西海岸', items: [
+                    { name: '高山觀景火車', A: false, B: false, C: true, D: false, E: false, lat: -42.943, lng: 171.562, desc: '穿越亞瑟隘口國家公園，世界級的景觀火車路線。' },
+                    { name: '法蘭茲約瑟夫冰河', A: false, B: false, C: true, D: false, E: false, lat: -43.468, lng: 170.187, desc: '世界上最容易到達的冰河之一，可進行谷地健行。' },
+                    { name: '千層岩', A: false, B: false, C: true, D: false, E: false, lat: -42.115, lng: 171.327, desc: '西海岸的石灰岩奇景，岩石層層堆疊如鬆餅。' },
+                    { name: '西海岸樹冠步道', A: false, B: false, C: true, D: false, E: false, lat: -42.973, lng: 170.812, desc: '行走於溫帶雨林的樹冠之上，享受獨特視角。' },
+                ]}
+            ]
+        };
+
+        let radarChart, map;
+        let currentSelection = 'all';
+        let layerGroups = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupControls();
+            setupTabs();
+            updateDisplay();
+        });
+        
+        function initMap() {
+            if (map) return;
+            map = L.map('map').setView([-43.5, 170.5], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+        }
+
+        function setupControls() {
+            const buttons = document.querySelectorAll('.itinerary-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    currentSelection = button.dataset.itinerary;
+                    updateDisplay();
+                });
+            });
+        }
+
+        function setupTabs() {
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('#tab-content > div');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    tabContents.forEach(content => content.classList.add('hidden'));
+                    const activeContent = document.getElementById(`${button.dataset.tab}-content`);
+                    if (activeContent) {
+                        activeContent.classList.remove('hidden');
+                    }
+                    if (button.dataset.tab === 'map') {
+                        initMap();
+                        setTimeout(() => map.invalidateSize(), 10);
+                    }
+                    updateDisplay();
+                });
+            });
+        }
+
+        function updateDisplay() {
+            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+            if (activeTab === 'overview') {
+                renderSummary();
+                renderRadarChart();
+            } else if (activeTab === 'map') {
+                renderMapControls();
+                drawMapElements();
+            } else if (activeTab === 'daily') {
+                renderDailyItinerary();
+            } else if (activeTab === 'checklist') {
+                renderChecklist();
+            }
+        }
+        
+        function renderSummary() {
+            const container = document.getElementById('summary-section');
+            let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
+            const selections = currentSelection === 'all' ? Object.keys(data.tours) : [currentSelection];
+
+            selections.forEach(key => {
+                const tour = data.tours[key];
+                html += `
+                    <div class="summary-card bg-white border border-gray-200 rounded-lg shadow-sm p-6 flex flex-col">
+                        <h3 class="text-xl font-bold text-blue-800">${tour.name}</h3>
+                        <p class="text-2xl font-bold my-2" style="color: ${tour.color};">${tour.price}</p>
+                        <p class="text-gray-600 font-medium">${tour.duration} | <span class="font-bold text-blue-700">${tour.core}</span></p>
+                        <ul class="mt-4 space-y-2 text-gray-700 list-disc list-inside flex-grow">
+                            ${tour.highlights.map(h => `<li>${h}</li>`).join('')}
+                        </ul>
+                        <div class="mt-4 bg-green-50 p-3 rounded-md border-l-4 border-green-500">
+                            <p class="font-semibold text-green-800">優勢：${tour.pros}</p>
+                        </div>
+                        <div class="mt-2 bg-amber-50 p-3 rounded-md border-l-4 border-amber-500">
+                            <p class="font-semibold text-amber-800">考量點：${tour.cons}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function renderRadarChart() {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            const labels = ['悠閒度', '景觀豐富度', '活動獨特性', '體力要求', '性價比'];
+            const selections = currentSelection === 'all' ? Object.keys(data.tours) : [currentSelection];
+
+            const datasets = selections.map((key) => {
+                const tour = data.tours[key];
+                return {
+                    label: `行程 ${key}`, data: tour.scores,
+                    backgroundColor: tour.color + '66', borderColor: tour.color,
+                    borderWidth: 2, pointBackgroundColor: tour.color, pointRadius: 4
+                };
+            });
+
+            if (radarChart) radarChart.destroy();
+            radarChart = new Chart(ctx, {
+                type: 'radar', data: { labels: labels, datasets: datasets },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: { r: {
+                        angleLines: { color: 'rgba(0, 0, 0, 0.1)' }, grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                        pointLabels: { font: { size: 14, family: "'Noto Sans TC', sans-serif" }, color: '#333' },
+                        ticks: { beginAtZero: true, max: 5, stepSize: 1, backdropColor: 'rgba(255, 255, 255, 0.75)', font: { weight: 'bold' } }
+                    }},
+                    plugins: { legend: { position: 'top', labels: { font: { size: 14, family: "'Noto Sans TC', sans-serif" }}}}
+                }
+            });
+        }
+        
+        function renderMapControls() {
+            const container = document.getElementById('map-controls');
+            const selections = currentSelection === 'all' ? Object.keys(data.tours) : [currentSelection];
+            let html = selections.map(key => `
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="map-toggle-checkbox" data-itinerary="${key}" checked>
+                    <span class="ml-2" style="color: ${data.tours[key].color}; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;">■</span>
+                    <span class="ml-1 font-semibold">${data.tours[key].name.split('-')[0]}</span>
+                </label>
+            `).join('');
+            container.innerHTML = html;
+
+            document.querySelectorAll('.map-toggle-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', drawMapElements);
+            });
+        }
+
+        function drawMapElements() {
+            Object.values(layerGroups).forEach(group => map.removeLayer(group));
+            layerGroups = {};
+            
+            const allPois = {};
+            data.checklist.forEach(cat => cat.items.forEach(item => {
+                allPois[item.name] = item;
+            }));
+
+            const visibleItineraries = Array.from(document.querySelectorAll('.map-toggle-checkbox:checked')).map(cb => cb.dataset.itinerary);
+            
+            visibleItineraries.forEach(key => {
+                const tour = data.tours[key];
+                const tourLayerGroup = L.layerGroup();
+                const routePoints = [];
+
+                data.checklist.forEach(category => {
+                    category.items.forEach(item => {
+                        if (item[key]) {
+                            const poi = allPois[item.name];
+                            if (poi && poi.lat && poi.lng) {
+                                const marker = L.marker([poi.lat, poi.lng], {
+                                    icon: L.divIcon({
+                                        className: 'custom-div-icon',
+                                        html: `<div style="background-color:${tour.color};" class="w-3 h-3 rounded-full border-2 border-white shadow-md"></div>`,
+                                        iconSize: [12, 12],
+                                        iconAnchor: [6, 6]
+                                    })
+                                });
+                                marker.bindTooltip(poi.name, { permanent: true, direction: 'top', offset: [0, -10], className: 'leaflet-tooltip-permanent' });
+                                marker.bindPopup(`<b>${poi.name}</b><br>${poi.desc}`);
+                                marker.addTo(tourLayerGroup);
+                                routePoints.push([poi.lat, poi.lng]);
+                            }
+                        }
+                    });
+                });
+                
+                if (routePoints.length > 1) {
+                    const polyline = L.polyline(routePoints, { color: tour.color, weight: 3, opacity: 0.7 });
+                    polyline.addTo(tourLayerGroup);
+                }
+                
+                layerGroups[key] = tourLayerGroup;
+                tourLayerGroup.addTo(map);
+            });
+        }
+
+        function renderDailyItinerary() {
+            const container = document.getElementById('daily-content');
+            const selections = currentSelection === 'all' ? Object.keys(data.tours) : [currentSelection];
+            let headerHtml = selections.map(key => `<th class="p-2 md:p-4 text-left text-sm md:text-base font-semibold text-white sticky top-0" style="background-color: ${data.tours[key].color};">${data.tours[key].name.split('-')[0].trim()}</th>`).join('');
+            
+            let bodyHtml = data.daily.map(day => {
+                if (selections.every(key => day[key].text === '-')) return '';
+                let rowHtml = selections.map(key => {
+                    const dayData = day[key];
+                    if (dayData.text === '-') return `<td class="p-2 md:p-4 border-t border-gray-200 align-top">-</td>`;
+                    
+                    const stars = '☀️'.repeat(dayData.exertion) + '<span class="text-gray-300">' + '☀️'.repeat(5 - dayData.exertion) + '</span>';
+                    
+                    return `
+                        <td class="p-2 md:p-4 border-t border-gray-200 align-top">
+                            <p class="font-semibold">${dayData.text}</p>
+                            <div class="mt-2 pt-2 border-t border-gray-100 space-y-1 text-gray-600">
+                                <div class="comfort-metric"><span>⭐</span><strong>當日精華:</strong> ${dayData.highlight}</div>
+                                <div class="comfort-metric"><span>☀️</span><strong>體力指數:</strong> ${stars}</div>
+                                <div class="comfort-metric"><span>🚌</span><strong>拉車時間:</strong> ${dayData.driveTime}</div>
+                                <div class="comfort-metric"><span>🛌</span><strong>住宿亮點:</strong> ${dayData.lodging}</div>
+                            </div>
+                        </td>
+                    `;
+                }).join('');
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-2 md:p-4 border-t border-gray-200 font-bold text-blue-800 text-center sticky left-0 bg-gray-100 align-top">第 ${day.day} 天</td>
+                        ${rowHtml}
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="p-2 md:p-4 text-center text-sm md:text-base font-semibold text-white sticky top-0 left-0 bg-blue-900 z-10">天數</th>
+                                ${headerHtml}
+                            </tr>
+                        </thead>
+                        <tbody>${bodyHtml}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderChecklist() {
+            const container = document.getElementById('checklist-content');
+            const selections = currentSelection === 'all' ? Object.keys(data.tours) : [currentSelection];
+            let headerHtml = selections.map(key => `<th class="p-3 text-center font-semibold text-gray-600">行程 ${key}</th>`).join('');
+            
+            let bodyHtml = data.checklist.map(category => `
+                <tr class="bg-blue-50">
+                    <td colspan="${selections.length + 1}" class="p-3 font-bold text-blue-800">${category.category}</td>
+                </tr>
+                ${category.items.map(item => `
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="p-3 font-medium text-gray-800">${item.name}</td>
+                        ${selections.map(key => `<td class="p-3 text-center table-cell-checked">${item[key] ? '✔️' : '—'}</td>`).join('')}
+                    </tr>
+                `).join('')}
+            `).join('');
+
+            container.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="p-3 text-left font-semibold text-gray-600 w-2/5">景點/活動名稱</th>
+                                ${headerHtml}
+                            </tr>
+                        </thead>
+                        <tbody>${bodyHtml}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
