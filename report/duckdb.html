@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuckDB 近兩年更新互動式總覽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Stone, Blue) -->
+    <!-- Application Structure Plan: A thematic dashboard combined with an interactive timeline. The primary navigation is a horizontal timeline allowing chronological exploration. Secondary navigation consists of thematic filter buttons (e.g., Stability, Performance, Ecosystem) for goal-oriented exploration. A central content area dynamically displays feature cards based on user selections. A Chart.js visualization provides a high-level overview of development focus across versions. This structure was chosen to transform the linear report into a multi-faceted, user-driven experience, catering to different user interests and providing both a macro and micro view of DuckDB's evolution. -->
+    <!-- Visualization & Content Choices: 
+        - Timeline (HTML/CSS): Goal: Show chronology. Interaction: Click to filter features by version. Justification: Intuitive for understanding the progression.
+        - Feature Cards (HTML/CSS Grid): Goal: Organize features. Interaction: Click to expand details (in a future iteration, for now, they display key info). Filtered by JS. Justification: Modular and responsive display of information.
+        - Development Focus Chart (Chart.js Stacked Bar): Goal: Compare development themes over time. Interaction: Hover for tooltips. Justification: Provides a quantitative, at-a-glance summary of the report's key narrative about shifting priorities.
+        - Ecosystem Explorer (HTML/CSS Grid): Goal: Showcase extension breadth. Interaction: Filter by category. Justification: Organizes a large amount of categorical data in an accessible way.
+        - Library/Method: Vanilla JS for state management and DOM manipulation, Chart.js for canvas-based charting. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F5F5F4; /* stone-100 */
+            color: #44403C; /* stone-700 */
+        }
+        .timeline-item {
+            transition: all 0.3s ease;
+        }
+        .timeline-item.active {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
+        }
+        .feature-card, .extension-card {
+            display: flex; /* Ensure anchor tag behaves like a block */
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #E7E5E4; /* stone-200 */
+        }
+        .tag {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .tag.active {
+            transform: scale(1.05);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+                max-height: 500px;
+            }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-800 mb-2">DuckDB 的蛻變</h1>
+            <p class="text-lg md:text-xl text-stone-600">深入分析兩年來的轉型性成長 (2023-2025)</p>
+        </header>
+
+        <main>
+            <section id="timeline-nav" class="mb-8">
+                <h2 class="text-2xl font-bold text-center mb-6 text-stone-700">版本演進時間軸</h2>
+                <div id="timeline-container" class="flex flex-wrap justify-center gap-4">
+                </div>
+            </section>
+            
+            <section id="thematic-filters" class="mb-10">
+                 <h2 class="text-2xl font-bold text-center mb-6 text-stone-700">主題探索</h2>
+                <div id="tags-container" class="flex flex-wrap justify-center gap-3">
+                </div>
+            </section>
+
+            <section id="focus-chart" class="mb-12 bg-white rounded-xl shadow-md p-4 md:p-6">
+                <h2 class="text-2xl font-bold text-center mb-4 text-stone-700">各版本開發焦點</h2>
+                <p class="text-center text-stone-500 mb-6 max-w-3xl mx-auto">此圖表視覺化呈現了 DuckDB 在不同版本的核心主題投入。從早期專注於「穩定性」與「互通性」，到 1.0.0 里程碑後，在「效能」與「生態系」上的加速創新，其發展策略的轉變清晰可見。</p>
+                <div class="chart-container">
+                    <canvas id="versionsChart"></canvas>
+                </div>
+            </section>
+
+            <section id="features-display">
+                <h2 id="features-title" class="text-2xl font-bold text-center mb-8 text-stone-700">主要功能亮點</h2>
+                <div id="features-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </section>
+
+             <section id="ecosystem" class="mt-16">
+                <h2 class="text-2xl font-bold text-center mb-8 text-stone-700">蓬勃發展的擴充套件生態系</h2>
+                <p class="text-center text-stone-500 mb-8 max-w-3xl mx-auto">DuckDB 的核心設計哲學是保持精簡，並透過擴充套件增加功能。以下展示了其生態系統的廣度與深度，點擊類別以探索相關套件。</p>
+                <div id="extension-filters" class="flex flex-wrap justify-center gap-3 mb-8"></div>
+                <div id="extensions-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            </section>
+
+        </main>
+
+        <footer class="text-center mt-16 py-6 border-t border-stone-300">
+            <p class="text-stone-500">此互動式報告基於 DuckDB 官方發布的更新日誌綜合分析而成。</p>
+        </footer>
+    </div>
+
+    <script>
+        const dbData = {
+            versions: [
+                { id: '0.9.0', name: 'Undulata', date: '2023-09-26', theme: '突破記憶體限制、提升易用性' },
+                { id: '0.10.0', name: 'Fusca', date: '2024-02-13', theme: '奠定穩定性基石、強化互通性' },
+                { id: '1.0.0', name: 'Nivis', date: '2024-06-03', theme: '生產級穩定性里程碑' },
+                { id: '1.1.0', name: 'Eatoni', date: '2024-09-09', theme: '釋放效能與 SQL 表達力' },
+                { id: '1.2.0', name: 'Histrionicus', date: '2025-02-05', theme: '精煉核心、賦能生態系' },
+                { id: '1.3.0', name: 'Ossivalis', date: '2025-05-21', theme: '優化資料存取與查詢韌性' }
+            ],
+            themes: {
+                stability: { name: '穩定性', color: 'bg-blue-500', textColor: 'text-blue-500', borderColor: 'border-blue-500', chartColor: 'rgba(59, 130, 246, 0.7)', chartBorderColor: '#3b82f6' },
+                performance: { name: '效能', color: 'bg-green-500', textColor: 'text-green-500', borderColor: 'border-green-500', chartColor: 'rgba(34, 197, 94, 0.7)', chartBorderColor: '#22c55e' },
+                usability: { name: '易用性', color: 'bg-yellow-500', textColor: 'text-yellow-500', borderColor: 'border-yellow-500', chartColor: 'rgba(234, 179, 8, 0.7)', chartBorderColor: '#eab308' },
+                ecosystem: { name: '生態系', color: 'bg-purple-500', textColor: 'text-purple-500', borderColor: 'border-purple-500', chartColor: 'rgba(168, 85, 247, 0.7)', chartBorderColor: '#a855f7' },
+                interoperability: { name: '互通性', color: 'bg-sky-500', textColor: 'text-sky-500', borderColor: 'border-sky-500', chartColor: 'rgba(14, 165, 233, 0.7)', chartBorderColor: '#0ea5e9' },
+                ai_ml: { name: 'AI/ML', color: 'bg-pink-500', textColor: 'text-pink-500', borderColor: 'border-pink-500', chartColor: 'rgba(236, 72, 153, 0.7)', chartBorderColor: '#ec4899' },
+                geospatial: { name: '地理空間', color: 'bg-teal-500', textColor: 'text-teal-500', borderColor: 'border-teal-500', chartColor: 'rgba(20, 184, 166, 0.7)', chartBorderColor: '#14b8a6' }
+            },
+            features: [
+                { version: '0.9.0', title: '超出記憶體的雜湊聚合', desc: '支援磁碟溢寫，能夠處理遠大於記憶體的資料集進行分組聚合。', theme: 'performance', major: true, url: 'https://duckdb.org/2023/09/26/announcing-duckdb-090.html' },
+                { version: '0.9.0', title: '擴充套件自動載入', desc: '查詢時自動下載、安裝並載入所需的核心擴充套件，大幅改善使用者體驗。', theme: 'usability', major: true, url: 'https://duckdb.org/2023/09/26/announcing-duckdb-090.html' },
+                { version: '0.9.0', title: 'AWS/Azure 雲端整合', desc: '推出官方 AWS 擴充套件及實驗性 Azure 擴充套件，強化雲端資料存取。', theme: 'ecosystem', major: false, url: 'https://duckdb.org/2023/09/26/announcing-duckdb-090.html' },
+                { version: '0.9.0', title: '壓縮具現化', desc: '對進入聚合或排序操作的資料進行即時壓縮，優化記憶體使用。', theme: 'performance', major: false, url: 'https://duckdb.org/2023/09/26/announcing-duckdb-090.html' },
+                { version: '0.10.0', title: '向後相容的儲存格式', desc: '首次實現儲存格式的向後相容，是邁向生產級應用的關鍵一步。', theme: 'stability', major: true, url: 'https://duckdb.org/2024/02/13/announcing-duckdb-0100.html' },
+                { version: '0.10.0', title: '多資料庫支援', desc: '可直接 ATTACH 並查詢 MySQL, PostgreSQL, SQLite，成為聯邦查詢引擎。', theme: 'interoperability', major: true, url: 'https://duckdb.org/2024/02/13/announcing-duckdb-0100.html' },
+                { version: '0.10.0', title: '固定長度陣列 (向量)', desc: '引入固定長度陣列及相似度計算函數，為向量搜尋奠定基礎。', theme: 'ai_ml', major: true, url: 'https://duckdb.org/2024/02/13/announcing-duckdb-0100.html' },
+                { version: '0.10.0', title: '秘密管理器', desc: '提供統一且安全的介面來管理 S3, GCS, R2, Azure 的憑證。', theme: 'usability', major: false, url: 'https://duckdb.org/2024/02/13/announcing-duckdb-0100.html' },
+                { version: '1.0.0', title: '長期相容性保證', desc: '正式承諾 1.0.0 建立的資料庫將與未來版本相容，給予使用者長期使用的信心。', theme: 'stability', major: true, url: 'https://duckdb.org/2024/06/03/announcing-duckdb-100.html' },
+                { version: '1.0.0', title: '核心穩定性與強化', desc: '專注於對現有程式碼庫進行嚴格測試和強化，而非增加新功能。', theme: 'stability', major: false, url: 'https://duckdb.org/2024/06/03/announcing-duckdb-100.html' },
+                { version: '1.0.0', title: 'API 穩定性承諾', desc: '承諾將謹慎對待 SQL 方言和 C API 的變更，為生態系提供穩定平台。', theme: 'ecosystem', major: false, url: 'https://duckdb.org/2024/06/03/announcing-duckdb-100.html' },
+                { version: '1.1.0', title: 'Join 查詢的動態篩選器下推', desc: '執行期間動態建立篩選器並下推至儲存層，大幅減少掃描資料量。', theme: 'performance', major: true, url: 'https://duckdb.org/2024/09/09/announcing-duckdb-110.html' },
+                { version: '1.1.0', title: 'R-Tree 空間索引', desc: '在 spatial 擴充套件中引入 R-Tree 索引，極大加速地理空間查詢。', theme: 'geospatial', major: true, url: 'https://duckdb.org/2024/09/09/announcing-duckdb-110.html' },
+                { version: '1.1.0', title: '自動 CTE 具現化', desc: '智慧判斷並快取高成本 CTE 的結果，避免重複計算。', theme: 'performance', major: false, url: 'https://duckdb.org/2024/09/09/announcing-duckdb-110.html' },
+                { version: '1.1.0', title: 'SQL 變數與 histogram()', desc: '增加 SQL 變數支援與內建直方圖函數，提升 SQL 表達力。', theme: 'usability', major: false, url: 'https://duckdb.org/2024/09/09/announcing-duckdb-110.html' },
+                { version: '1.2.0', title: '為擴充套件設計的穩定 C API', desc: '提供穩定的 C API，賦能 Go、Rust 等語言開發擴充套件。', theme: 'ecosystem', major: true, url: 'https://duckdb.org/news/2025-02-05-announcing-duckdb-120' },
+                { version: '1.2.0', title: 'ALTER TABLE... ADD PRIMARY KEY', desc: '支援對已存在的資料表添加主鍵約束，提升資料模型演進的靈活性。', theme: 'usability', major: false, url: 'https://duckdb.org/news/2025-02-05-announcing-duckdb-120' },
+                { version: '1.3.0', title: '外部檔案快取', desc: '查詢遠端檔案時，將資料區塊暫存於記憶體，加速重複查詢。', theme: 'performance', major: true, url: 'https://duckdb.org/news/2025-05-21-announcing-duckdb-130' },
+                { version: '1.3.0', title: 'TRY 表達式', desc: '允許表達式在出錯時返回 NULL 而非中斷查詢，增強 ETL 管線韌性。', theme: 'stability', major: false, url: 'https://duckdb.org/news/2025-05-21-announcing-duckdb-130' },
+                { version: '1.3.0', title: 'CLI 可直接查詢資料檔案', desc: 'CLI 支援直接開啟 Parquet 等檔案進行查詢，簡化臨時分析流程。', theme: 'usability', major: false, url: 'https://duckdb.org/news/2025-05-21-announcing-duckdb-130' }
+            ],
+             extensions: [
+                { name: 'aws', category: 'cloud', type: '核心', desc: '與 AWS S3 原生整合。', url: 'https://duckdb.org/docs/extensions/aws' },
+                { name: 'azure', category: 'cloud', type: '核心', desc: '與 Azure Blob 儲存原生整合。', url: 'https://duckdb.org/docs/extensions/azure' },
+                { name: 'postgres', category: 'cloud', type: '核心', desc: '直接讀寫 PostgreSQL 資料庫。', url: 'https://duckdb.org/docs/extensions/postgres' },
+                { name: 'mysql', category: 'cloud', type: '核心', desc: '直接讀寫 MySQL 資料庫。', url: 'https://duckdb.org/docs/extensions/mysql' },
+                { name: 'iceberg', category: 'big_data', type: '核心', desc: '支援 Apache Iceberg 資料湖格式。', url: 'https://duckdb.org/docs/extensions/iceberg' },
+                { name: 'delta', category: 'big_data', type: '核心', desc: '支援 Delta Lake 資料湖格式。', url: 'https://duckdb.org/docs/extensions/delta' },
+                { name: 'spatial', category: 'geospatial', type: '核心', desc: '完整的地理空間資料類型、函數與索引。', url: 'https://duckdb.org/docs/extensions/spatial' },
+                { name: 'vss', category: 'ai_ml', type: '核心', desc: '提供 HNSW 索引，用於高效向量相似度搜尋。', url: 'https://duckdb.org/docs/extensions/vss' },
+                { name: 'quackformers', category: 'ai_ml', type: '社群', desc: '在 SQL 中直接生成文字嵌入。', url: 'https://github.com/I-am-a-robot/quackformers' },
+                { name: 'json', category: 'format', type: '核心', desc: '高效讀寫 JSON 檔案。', url: 'https://duckdb.org/docs/extensions/json' },
+                { name: 'parquet', category: 'format', type: '核心', desc: '高效讀寫 Parquet 檔案。', url: 'https://duckdb.org/docs/guides/file_formats/parquet' },
+                { name: 'sqlite', category: 'format', type: '核心', desc: '直接讀寫 SQLite 資料庫檔案。', url: 'https://duckdb.org/docs/extensions/sqlite' },
+                { name: 'httpfs', category: 'tools', type: '核心', desc: '透過 HTTP(S) 讀寫遠端檔案。', url: 'https://duckdb.org/docs/extensions/httpfs' },
+                { name: 'duckpgq', category: 'tools', type: '社群', desc: '增加對 SQL/PGQ 圖形查詢的支援。', url: 'https://duckdb.org/docs/extensions/duckpgq' },
+                { name: 'substrait', category: 'tools', type: '社群', desc: '支援 Substrait 跨引擎查詢計畫表示法。', url: 'https://duckdb.org/docs/extensions/substrait' }
+            ],
+            extensionCategories: {
+                all: '全部類別',
+                cloud: '雲端與資料庫',
+                big_data: '大數據',
+                geospatial: '地理空間',
+                ai_ml: 'AI與向量',
+                format: '資料格式',
+                tools: '開發者工具'
+            }
+        };
+
+        let currentState = {
+            selectedVersion: 'all',
+            selectedTheme: 'all',
+            selectedExtensionCategory: 'all'
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTimeline();
+            initTags();
+            initChart();
+            renderFeatures();
+            initExtensionFilters();
+            renderExtensions();
+
+            document.getElementById('timeline-container').addEventListener('click', handleTimelineClick);
+            document.getElementById('tags-container').addEventListener('click', handleTagClick);
+            document.getElementById('extension-filters').addEventListener('click', handleExtensionFilterClick);
+        });
+
+        function initTimeline() {
+            const container = document.getElementById('timeline-container');
+            let itemsHtml = `<div class="timeline-item bg-blue-500 text-white p-4 rounded-lg shadow-md cursor-pointer w-full sm:w-auto text-center active" data-version="all">
+                                <div class="font-bold text-lg">全部版本</div>
+                                <div class="text-sm opacity-80">顯示所有功能</div>
+                             </div>`;
+            dbData.versions.forEach(v => {
+                itemsHtml += `<div class="timeline-item bg-white p-4 rounded-lg shadow-md cursor-pointer w-full sm:w-auto text-center" data-version="${v.id}">
+                                <div class="font-bold text-lg">v${v.id}</div>
+                                <div class="text-sm text-stone-500">${v.date}</div>
+                                <div class="text-xs text-stone-400 mt-1">${v.name}</div>
+                              </div>`;
+            });
+            container.innerHTML = itemsHtml;
+        }
+
+        function initTags() {
+            const container = document.getElementById('tags-container');
+            let tagsHtml = `<span class="tag px-4 py-2 rounded-full text-sm font-semibold border-2 border-blue-500 bg-blue-500 text-white active" data-theme="all">全部主題</span>`;
+            Object.entries(dbData.themes).forEach(([key, theme]) => {
+                tagsHtml += `<span class="tag px-4 py-2 rounded-full text-sm font-semibold border-2 ${theme.borderColor} ${theme.textColor} bg-white" data-theme="${key}">${theme.name}</span>`;
+            });
+            container.innerHTML = tagsHtml;
+        }
+
+        function handleTimelineClick(event) {
+            const target = event.target.closest('.timeline-item');
+            if (!target) return;
+
+            const version = target.dataset.version;
+            currentState.selectedVersion = version;
+            currentState.selectedTheme = 'all'; 
+
+            document.querySelectorAll('#timeline-container .timeline-item').forEach(item => {
+                item.classList.remove('active', 'bg-blue-500', 'text-white');
+                item.classList.add('bg-white');
+            });
+            target.classList.add('active', 'bg-blue-500', 'text-white');
+            target.classList.remove('bg-white');
+            
+            updateActiveTag();
+            renderFeatures();
+        }
+
+        function handleTagClick(event) {
+            const target = event.target.closest('.tag');
+            if (!target) return;
+
+            const theme = target.dataset.theme;
+            currentState.selectedTheme = theme;
+            currentState.selectedVersion = 'all';
+
+            document.querySelectorAll('#timeline-container .timeline-item').forEach(item => {
+                item.classList.remove('active', 'bg-blue-500', 'text-white');
+                item.classList.add('bg-white');
+                if (item.dataset.version === 'all') {
+                    item.classList.add('active', 'bg-blue-500', 'text-white');
+                    item.classList.remove('bg-white');
+                }
+            });
+            
+            updateActiveTag();
+            renderFeatures();
+        }
+        
+        function updateActiveTag() {
+            document.querySelectorAll('#tags-container .tag').forEach(tag => {
+                const themeKey = tag.dataset.theme;
+                tag.classList.remove('active');
+                if (themeKey === 'all') {
+                    tag.classList.remove('bg-blue-500', 'text-white');
+                    tag.classList.add('text-blue-500', 'bg-white');
+                } else {
+                    const themeInfo = dbData.themes[themeKey];
+                    tag.classList.remove(themeInfo.color, 'text-white');
+                    tag.classList.add(themeInfo.textColor, 'bg-white');
+                }
+
+                if (themeKey === currentState.selectedTheme) {
+                    tag.classList.add('active');
+                    if (themeKey === 'all') {
+                        tag.classList.add('bg-blue-500', 'text-white');
+                    } else {
+                        const themeInfo = dbData.themes[themeKey];
+                        tag.classList.add(themeInfo.color, 'text-white');
+                    }
+                }
+            });
+        }
+
+        function renderFeatures() {
+            const grid = document.getElementById('features-grid');
+            const title = document.getElementById('features-title');
+            
+            let filteredFeatures = dbData.features;
+
+            if (currentState.selectedVersion !== 'all') {
+                filteredFeatures = filteredFeatures.filter(f => f.version === currentState.selectedVersion);
+                const versionInfo = dbData.versions.find(v => v.id === currentState.selectedVersion);
+                title.textContent = `v${versionInfo.id} (${versionInfo.name}) 的主要功能`;
+            } else if (currentState.selectedTheme !== 'all') {
+                filteredFeatures = filteredFeatures.filter(f => f.theme === currentState.selectedTheme);
+                title.textContent = `${dbData.themes[currentState.selectedTheme].name} 相關功能`;
+            } else {
+                title.textContent = '主要功能亮點';
+            }
+
+            if (filteredFeatures.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-stone-500">沒有找到符合條件的功能。</p>`;
+                return;
+            }
+
+            let featuresHtml = '';
+            filteredFeatures.forEach(f => {
+                const themeInfo = dbData.themes[f.theme];
+                featuresHtml += `
+                    <a href="${f.url}" target="_blank" rel="noopener noreferrer" class="feature-card relative bg-white rounded-xl shadow-md p-6 hover:shadow-xl hover:-translate-y-1 transform transition-all duration-300 no-underline text-current">
+                        ${f.major ? `<span class="absolute top-0 right-0 -mt-2 -mr-2 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">重大更新</span>` : ''}
+                        <div class="flex-grow flex flex-col">
+                            <div class="flex items-center mb-3">
+                                <span class="text-xs font-semibold ${themeInfo.textColor} ${themeInfo.color.replace('bg-', 'bg-opacity-10')} px-2 py-1 rounded-full">${themeInfo.name}</span>
+                                <span class="ml-auto text-sm font-medium text-stone-400">v${f.version}</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-stone-800 mb-2">${f.title}</h3>
+                            <p class="text-stone-600 text-base flex-grow">${f.desc}</p>
+                        </div>
+                    </a>
+                `;
+            });
+            grid.innerHTML = featuresHtml;
+            grid.classList.remove('fade-in');
+            void grid.offsetWidth; 
+            grid.classList.add('fade-in');
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('versionsChart').getContext('2d');
+            
+            const labels = dbData.versions.map(v => `v${v.id}`);
+            const themeKeys = Object.keys(dbData.themes);
+            
+            const datasets = themeKeys.map(themeKey => {
+                const themeInfo = dbData.themes[themeKey];
+                return {
+                    label: themeInfo.name,
+                    data: dbData.versions.map(version => {
+                        return dbData.features.filter(f => f.version === version.id && f.theme === themeKey).length;
+                    }),
+                    backgroundColor: themeInfo.chartColor, 
+                    borderColor: themeInfo.chartBorderColor,
+                    borderWidth: 1
+                };
+            });
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        legend: {
+                            position: 'bottom',
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '主要功能數量'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initExtensionFilters() {
+            const container = document.getElementById('extension-filters');
+            let filtersHtml = '';
+            Object.entries(dbData.extensionCategories).forEach(([key, name]) => {
+                const isActive = key === 'all';
+                filtersHtml += `<button class="tag px-4 py-2 rounded-full text-sm font-semibold border-2 ${isActive ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-purple-500 border-purple-500'}" data-category="${key}">${name}</button>`;
+            });
+            container.innerHTML = filtersHtml;
+        }
+
+        function handleExtensionFilterClick(event) {
+            const target = event.target.closest('button');
+            if (!target) return;
+
+            currentState.selectedExtensionCategory = target.dataset.category;
+
+            document.querySelectorAll('#extension-filters button').forEach(btn => {
+                btn.classList.remove('bg-purple-500', 'text-white');
+                btn.classList.add('bg-white', 'text-purple-500');
+            });
+            target.classList.add('bg-purple-500', 'text-white');
+            target.classList.remove('bg-white', 'text-purple-500');
+            
+            renderExtensions();
+        }
+
+        function renderExtensions() {
+            const grid = document.getElementById('extensions-grid');
+            let filteredExtensions = dbData.extensions;
+
+            if (currentState.selectedExtensionCategory !== 'all') {
+                filteredExtensions = dbData.extensions.filter(e => e.category === currentState.selectedExtensionCategory);
+            }
+
+            let extensionsHtml = '';
+            filteredExtensions.forEach(ext => {
+                const categoryInfo = dbData.extensionCategories[ext.category];
+                const typeColor = ext.type === '核心' ? 'bg-sky-100 text-sky-800' : 'bg-green-100 text-green-800';
+                extensionsHtml += `
+                    <a href="${ext.url}" target="_blank" rel="noopener noreferrer" class="extension-card bg-white rounded-lg shadow p-5 hover:shadow-lg hover:-translate-y-1 transform transition-all duration-300 no-underline text-current">
+                         <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-bold text-stone-800">${ext.name}</h3>
+                            <span class="text-xs font-medium px-2.5 py-0.5 rounded-full ${typeColor}">${ext.type}</span>
+                        </div>
+                        <p class="text-stone-600 text-sm flex-grow">${ext.desc}</p>
+                        <div class="mt-4">
+                            <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">${categoryInfo}</span>
+                        </div>
+                    </a>
+                `;
+            });
+            grid.innerHTML = extensionsHtml;
+            grid.classList.remove('fade-in');
+            void grid.offsetWidth;
+            grid.classList.add('fade-in');
+        }
+
+    </script>
+</body>
+</html>
