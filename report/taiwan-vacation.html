@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣休假變革：互動式分析儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: A thematic, scroll-based narrative SPA with a top navigation for quick access. The structure progresses from the 2016 problem, through corporate reactions, to the 2025 solution, culminating in an interactive holiday planner. This story-driven approach makes the complex legal history digestible, while the planner provides immediate practical value, enhancing user engagement and understanding. -->
+    <!-- Visualization & Content Choices: 1. 2016 Holiday Change: Goal-Compare. Method-Bar Chart (Chart.js) & HTML cards. Interaction-Static viz for clarity. Justification-Directly shows the impact of the "7-day gap". 2. 2025 Holiday Restoration: Goal-Show change. Method-Donut Chart (Chart.js). Justification-Visually segments the original 7 holidays into "restored" vs. "not restored". 3. 2025/2026 Planner: Goal-Inform & Plan. Method-Dynamic Bar Chart (Chart.js) & HTML grid. Interaction-User clicks year buttons to update both the grid and chart. Justification-Provides a practical, forward-looking tool that makes the report's data actionable for the user. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #C0846E;
+            border-bottom-color: #C0846E;
+        }
+        .btn-year.active {
+            background-color: #C0846E;
+            color: #FFFFFF;
+        }
+        .btn-year {
+            transition: background-color 0.3s, color 0.3s;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-[#4A4A4A]">台灣休假變革</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#history" class="nav-link pb-1">歷史演進</a>
+                <a href="#response" class="nav-link pb-1">企業應對</a>
+                <a href="#reversal" class="nav-link pb-1">2025新局</a>
+                <a href="#planner" class="nav-link pb-1">假期規劃</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-12">
+
+        <section id="intro" class="text-center mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-5xl font-bold text-[#C0846E] mb-4">一場長達十年的假期拉鋸戰</h2>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                從2016年的「一例一休」改革與七天國定假日的消失，到2025年「還假於民」的立法逆轉。本頁將帶您深入了解台灣休假制度的演變，並提供未來兩年的實用假期規劃。
+            </p>
+        </section>
+
+        <section id="history" class="mb-16 md:mb-24">
+            <h3 class="text-2xl md:text-3xl font-bold text-center mb-2 text-[#4A4A4A]">2016年的典範轉移</h3>
+            <p class="text-center text-gray-500 mb-12">為推動單週40工時，政府進行了「一例一休」改革，但其配套措施是取消了勞工原有的七天國定假日，引發了巨大的社會爭議。</p>
+            
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="font-bold text-lg mb-4 text-[#C0846E]">消失的七天國定假日</h4>
+                    <p class="text-gray-600 mb-4">這次「以假換時」的改革，雖然降低了年度總工時，卻實質減少了勞工可自由支配的假日天數，被視為剝奪既有權利。</p>
+                    <ul class="space-y-2 text-gray-700">
+                        <li class="flex items-center"><span class="text-red-500 mr-2 text-xl">−</span> 1/2 開國紀念日翌日</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2 text-xl">−</span> 3/29 青年節</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2 text-xl">−</span> 9/28 教師節</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2 text-xl">−</span> 10/25 台灣光復節</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2 text-xl">−</span> 10/31 蔣公誕辰</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2 text-xl">−</span> 11/12 國父誕辰</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2 text-xl">−</span> 12/25 行憲紀念日</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="chart-container">
+                        <canvas id="workHoursChart"></canvas>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-gray-500">法定工時與假日的變化示意圖</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="response" class="mb-16 md:mb-24">
+            <h3 class="text-2xl md:text-3xl font-bold text-center mb-2 text-[#4A4A4A]">企業在新格局下的應對</h3>
+            <p class="text-center text-gray-500 mb-12">法定假日的減少，促使企業發展出彈性的福利措施來吸引與留住人才，填補修法帶來的「休假缺口」。</p>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-[#D9BFA9]">
+                    <h4 class="font-bold text-lg mb-2">豁免「補班日」</h4>
+                    <p class="text-gray-600">政府的補班規定僅對公務機關有強制力。許多企業選擇在補班日直接放假，作為一種隱性福利，提升員工滿意度。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-[#D9BFA9]">
+                    <h4 class="font-bold text-lg mb-2">自訂「福利假」</h4>
+                    <p class="text-gray-600">科技業等競爭激烈的產業，開始提供如生日假、公司紀念假等法規外的休假，在人才市場中建立雇主品牌優勢。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-[#D9BFA9]">
+                    <h4 class="font-bold text-lg mb-2">「旅遊假」的法律風險</h4>
+                    <p class="text-gray-600">公司旅遊若具強制性，則視為工時延伸，需給薪且不可扣特休。雇主誤將福利凌駕於法規之上，是常見的勞資爭議來源。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="reversal" class="mb-16 md:mb-24">
+            <h3 class="text-2xl md:text-3xl font-bold text-center mb-2 text-[#4A4A4A]">2025年的立法逆轉：「還假於民」</h3>
+            <p class="text-center text-gray-500 mb-12">經過長達八年的爭取，立法院在2025年通過「4+1」假日法案，不僅恢復部分舊假日，更將勞動節全國一致化。</p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                 <div>
+                    <div class="chart-container">
+                        <canvas id="restoredHolidaysChart"></canvas>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-gray-500">原七天假日的恢復情況分析</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="font-bold text-lg mb-4 text-[#C0846E]">「4+1」新增假日內容</h4>
+                    <p class="text-gray-600 mb-4">此法案將假日制定提升至法律位階，增加了休假制度的穩定性，明確回應了社會長期以來的訴求。</p>
+                     <ul class="space-y-2 text-gray-700">
+                        <li class="flex items-center"><span class="text-green-500 mr-2 text-xl">+</span> 小年夜 (正式納入春節)</li>
+                        <li class="flex items-center"><span class="text-green-500 mr-2 text-xl">+</span> 5/1 勞動節 (全國放假)</li>
+                        <li class="flex items-center"><span class="text-green-500 mr-2 text-xl">+</span> 9/28 教師節 (恢復)</li>
+                        <li class="flex items-center"><span class="text-green-500 mr-2 text-xl">+</span> 10/25 台灣光復節 (恢復)</li>
+                        <li class="flex items-center"><span class="text-green-500 mr-2 text-xl">+</span> 12/25 行憲紀念日 (恢復)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="planner">
+            <h3 class="text-2xl md:text-3xl font-bold text-center mb-2 text-[#4A4A4A]">未來假期規劃儀表板</h3>
+            <p class="text-center text-gray-500 mb-8">新法確立了「只補假，不補班」原則，大幅增加連續假期。請選擇年份，查看假期詳情與請假攻略。</p>
+            
+            <div class="flex justify-center mb-8">
+                <button id="btn2025" class="btn-year px-6 py-2 rounded-l-full border border-gray-300 active">2025年</button>
+                <button id="btn2026" class="btn-year px-6 py-2 rounded-r-full border border-gray-300">2026年</button>
+            </div>
+
+            <div class="grid md:grid-cols-5 gap-8">
+                <div class="md:col-span-3 bg-white p-6 rounded-xl shadow-md">
+                    <h4 id="calendarTitle" class="font-bold text-lg mb-4 text-[#C0846E]">2025年下半年 連續假期一覽</h4>
+                    <div id="holiday-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                </div>
+                <div class="md:col-span-2">
+                     <div class="chart-container h-80 md:h-96">
+                        <canvas id="longWeekendChart"></canvas>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-gray-500">該年度3天以上連續假期統計</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-100 mt-16 md:mt-24">
+        <div class="container mx-auto px-6 py-8 text-center text-gray-500">
+            <p>&copy; 2025 台灣休假變革互動式分析。本頁面資訊僅供參考，實際假日以政府公告為準。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const holidayData = {
+                '2025': {
+                    title: '2025年下半年 連續假期一覽',
+                    holidays: [
+                        { name: '教師節', date: '9/27(六) - 9/29(一)', days: 3, tip: '因9/28(日)於週一補假' },
+                        { name: '中秋節', date: '10/4(六) - 10/6(一)', days: 3, tip: '無需補班的三日連假' },
+                        { name: '國慶日', date: '10/10(五) - 10/12(日)', days: 3, tip: '無需補班的三日連假' },
+                        { name: '台灣光復節', date: '10/24(五) - 10/26(日)', days: 3, tip: '因10/25(六)於週五補假' },
+                        { name: '行憲紀念日', date: '12/25(四)', days: 1, tip: '請12/26(五)可連休4天' },
+                        { name: '請假攻略', date: '請3天特休', days: 9, tip: '請10/7-10/9，可連休9天' }
+                    ],
+                    chartData: {
+                        labels: ['3天連假', '4天連假', '9天以上連假'],
+                        data: [4, 0, 1] 
+                    }
+                },
+                '2026': {
+                    title: '2026年 全年度連續假期一覽',
+                    holidays: [
+                        { name: '農曆春節', date: '2/14(六) - 2/22(日)', days: 9, tip: '長達九天的黃金假期' },
+                        { name: '228和平紀念日', date: '2/27(五) - 3/1(日)', days: 3, tip: '無需補班的三日連假' },
+                        { name: '兒童/清明節', date: '4/3(五) - 4/6(一)', days: 4, tip: '無需補班的四日連假' },
+                        { name: '勞動節', date: '5/1(五) - 5/3(日)', days: 3, tip: '無需補班的三日連假' },
+                        { name: '端午節', date: '6/19(五) - 6/21(日)', days: 3, tip: '無需補班的三日連假' },
+                        { name: '中秋/教師節', date: '9/25(五) - 9/28(一)', days: 4, tip: '兩節合併的四日連假' },
+                        { name: '國慶日', date: '10/9(五) - 10/11(日)', days: 3, tip: '無需補班的三日連假' },
+                        { name: '台灣光復節', date: '10/24(六) - 10/26(一)', days: 3, tip: '因10/25(日)於週一補假' },
+                        { name: '行憲紀念日', date: '12/25(五) - 12/27(日)', days: 3, tip: '無需補班的三日連假' }
+                    ],
+                    chartData: {
+                        labels: ['3天連假', '4天連假', '9天以上連假'],
+                        data: [6, 2, 1]
+                    }
+                }
+            };
+
+            const holidayGrid = document.getElementById('holiday-grid');
+            const calendarTitle = document.getElementById('calendarTitle');
+            const btn2025 = document.getElementById('btn2025');
+            const btn2026 = document.getElementById('btn2026');
+
+            let longWeekendChart;
+
+            function updatePlanner(year) {
+                const data = holidayData[year];
+                calendarTitle.textContent = data.title;
+                
+                holidayGrid.innerHTML = '';
+                data.holidays.forEach(h => {
+                    const isStrategy = h.name === '請假攻略';
+                    const card = `
+                        <div class="p-4 rounded-lg ${isStrategy ? 'bg-amber-100' : 'bg-gray-50'}">
+                            <div class="flex justify-between items-baseline">
+                                <h5 class="font-bold ${isStrategy ? 'text-amber-800' : 'text-gray-800'}">${h.name}</h5>
+                                <span class="text-sm font-semibold px-2 py-0.5 rounded-full ${isStrategy ? 'bg-amber-500 text-white' : 'bg-[#C0846E] text-white'}">${h.days} 天</span>
+                            </div>
+                            <p class="text-sm ${isStrategy ? 'text-amber-700' : 'text-gray-600'} mt-1">${h.date}</p>
+                            <p class="text-xs ${isStrategy ? 'text-amber-600' : 'text-gray-500'} mt-2">${h.tip}</p>
+                        </div>
+                    `;
+                    holidayGrid.innerHTML += card;
+                });
+
+                longWeekendChart.data.datasets[0].data = data.chartData.data;
+                longWeekendChart.update();
+
+                btn2025.classList.toggle('active', year === '2025');
+                btn2026.classList.toggle('active', year === '2026');
+            }
+
+            const ctxWorkHours = document.getElementById('workHoursChart').getContext('2d');
+            new Chart(ctxWorkHours, {
+                type: 'bar',
+                data: {
+                    labels: ['2016改革前', '2016改革後'],
+                    datasets: [
+                        {
+                            label: '年度總工時 (小時)',
+                            data: [2184, 2080],
+                            backgroundColor: '#D9BFA9',
+                            borderColor: '#C0846E',
+                            borderWidth: 1,
+                            yAxisID: 'yHours',
+                        },
+                        {
+                            label: '國定假日 (天)',
+                            data: [19, 12],
+                            backgroundColor: '#EAE0D5',
+                            borderColor: '#C0846E',
+                            borderWidth: 1,
+                            yAxisID: 'yDays',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: '2016年工時與假日天數比較' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        yHours: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: '小時'
+                            }
+                        },
+                        yDays: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '天'
+                            },
+                            grid: {
+                                drawOnChartArea: false, 
+                            },
+                            ticks: {
+                                stepSize: 5
+                            }
+                        }
+                    }
+                }
+            });
+
+            const ctxRestored = document.getElementById('restoredHolidaysChart').getContext('2d');
+            new Chart(ctxRestored, {
+                type: 'doughnut',
+                data: {
+                    labels: ['已恢復 (3天)', '未恢復 (4天)'],
+                    datasets: [{
+                        data: [3, 4],
+                        backgroundColor: ['#A9C5A0', '#EAE0D5'],
+                        borderColor: ['#89A482', '#D9BFA9'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: '原七天假恢復狀況' },
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+
+            const ctxLongWeekend = document.getElementById('longWeekendChart').getContext('2d');
+            longWeekendChart = new Chart(ctxLongWeekend, {
+                type: 'bar',
+                data: {
+                    labels: holidayData['2025'].chartData.labels,
+                    datasets: [{
+                        label: '連假數量',
+                        data: holidayData['2025'].chartData.data,
+                        backgroundColor: ['#EAE0D5', '#D9BFA9', '#C0846E'],
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: '連續假期數量統計' }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+
+            btn2025.addEventListener('click', () => updatePlanner('2025'));
+            btn2026.addEventListener('click', () => updatePlanner('2026'));
+
+            updatePlanner('2025');
+        });
+    </script>
+</body>
+</html>
