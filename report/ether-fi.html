@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ether.fi 互動式分析報告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Tech -->
+    <!-- Application Structure Plan: The application is designed as a tab-based single-page application (SPA) to provide a non-linear, user-driven exploration experience. This structure is superior to a simple long-scroll page because the source report contains distinct, complex topics (e.g., card features, systemic risks, governance). Users, who may have different interests, can directly navigate to the section they care about most—a user interested in the debit card can ignore the governance details, while a risk-averse user can dive straight into the risk assessment. This enhances usability by empowering users to control their information discovery path. Key interactions include tab navigation to switch between content panes and interactive charts that reveal detailed data on hover, making dense information more digestible. -->
+    <!-- Visualization & Content Choices: 1. Report Info: Reward Structure -> Goal: Show composition -> Viz: Stacked Bar Chart (Chart.js) -> Interaction: Hover for details -> Justification: Clearly illustrates how multiple yield sources stack up. 2. Report Info: Governance Token Allocation -> Goal: Show proportion -> Viz: Donut Chart (Chart.js) -> Interaction: Hover for percentage -> Justification: Standard and effective for showing parts of a whole. 3. Report Info: Ether.fi vs. Terra/Anchor Risk Profile -> Goal: Compare complex multi-faceted risk -> Viz: Radar Chart (Chart.js) -> Interaction: Hover over axes -> Justification: Provides a powerful, at-a-glance visual summary of the fundamental differences in model robustness across multiple criteria, which is more impactful than a simple table. 4. Report Info: Staking Process -> Goal: Explain a flow -> Viz: HTML/CSS Diagram -> Interaction: Static -> Justification: A simple visual flow is easier to understand than text, without needing a complex library. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F7F4;
+            color: #333333;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active {
+            border-bottom-color: #5A7D7C;
+            color: #5A7D7C;
+            font-weight: 700;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .btn {
+            transition: background-color 0.3s ease;
+        }
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .tag-green {
+            background-color: #E6F2F2;
+            color: #5A7D7C;
+        }
+        .tag-red {
+            background-color: #FEF3C7;
+            color: #D97706;
+        }
+        .flow-diagram > div {
+            position: relative;
+            padding-right: 2.5rem;
+        }
+        .flow-diagram > div:not(:last-child)::after {
+            content: '→';
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            color: #9CA3AF;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#333333]">Ether.fi 互動式分析報告</h1>
+            <p class="mt-2 text-lg text-gray-600">一個針對功能、風險與模型穩健性的深度剖析</p>
+        </header>
+
+        <nav class="flex justify-center border-b border-gray-200 mb-8 flex-wrap">
+            <a href="#" class="nav-link active py-4 px-6 text-gray-600 hover:text-[#5A7D7C]" data-target="overview">總覽</a>
+            <a href="#" class="nav-link py-4 px-6 text-gray-600 hover:text-[#5A7D7C]" data-target="features">核心功能</a>
+            <a href="#" class="nav-link py-4 px-6 text-gray-600 hover:text-[#5A7D7C]" data-target="card">Cash 金融卡</a>
+            <a href="#" class="nav-link py-4 px-6 text-gray-600 hover:text-[#5A7D7C]" data-target="risks">風險評估</a>
+            <a href="#" class="nav-link py-4 px-6 text-gray-600 hover:text-[#5A7D7C]" data-target="governance">治理模型</a>
+        </nav>
+
+        <main>
+            <section id="overview" class="content-section active">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 card p-6">
+                        <h2 class="text-2xl font-bold mb-4">執行摘要</h2>
+                        <p class="text-gray-700 leading-relaxed">Ether.fi 作為流動性再質押 (LRT) 的市場領導者，提供了一個整合「儲蓄、增長、消費」的生態系。其核心是非託管質押協議，利用 EigenLayer 產生多層次獎勵，同時用戶保留私鑰控制權。對台灣用戶而言，最大的亮點是 Ether.fi Cash 簽帳卡，它將鏈上資產與現實世界消費無縫連接，並提供簡便的 KYC 流程與高額現金回饋。然而，協議也面臨源自 EigenLayer 的系統性風險、eETH 代幣的脫鉤風險及智能合約的技術風險。與 Terra/Anchor 相比，其收益模型更具可持續性，但並非對「銀行擠兌」式的負反饋循環完全免疫。</p>
+                    </div>
+                    <div class="card p-6 flex flex-col justify-center items-center">
+                        <h3 class="text-xl font-bold text-gray-800">總鎖定價值 (TVL)</h3>
+                        <p class="text-5xl font-bold text-[#5A7D7C] mt-2">$11.9B+</p>
+                        <p class="text-sm text-gray-500 mt-1">截至報告發布時</p>
+                    </div>
+                </div>
+                 <div class="card p-6 mt-6">
+                    <h2 class="text-2xl font-bold mb-4 text-center">「儲蓄、增長、消費」生態系統</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mt-4">
+                        <div>
+                            <div class="text-4xl mb-2">💰</div>
+                            <h3 class="text-xl font-semibold">Stake (儲蓄)</h3>
+                            <p class="text-gray-600 mt-1">非託管的 ETH 流動性再質押，賺取多層次收益。</p>
+                        </div>
+                        <div>
+                            <div class="text-4xl mb-2">📈</div>
+                            <h3 class="text-xl font-semibold">Liquid (增長)</h3>
+                            <p class="text-gray-600 mt-1">自動化的 DeFi 策略金庫，優化並複利您的收益。</p>
+                        </div>
+                        <div>
+                            <div class="text-4xl mb-2">💳</div>
+                            <h3 class="text-xl font-semibold">Cash (消費)</h3>
+                            <p class="text-gray-600 mt-1">非託管 Visa 卡，將您的鏈上資產用於日常消費。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="features" class="content-section">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="card p-6">
+                        <h2 class="text-2xl font-bold mb-4">核心機制：從 ETH 到多層收益</h2>
+                        <p class="text-gray-700 mb-6">Ether.fi 的核心是將用戶的 ETH 透過一個非託管的流程，轉化為具備流動性且能賺取多重獎勵的資產 eETH，並透過 EigenLayer 進一步放大收益潛力。</p>
+                        <div class="flow-diagram flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4 text-center">
+                            <div class="w-full md:w-auto">
+                                <p class="font-bold text-lg">1. 用戶存入 ETH</p>
+                                <p class="text-sm text-gray-500">保留私鑰控制權</p>
+                            </div>
+                            <div class="w-full md:w-auto">
+                                <p class="font-bold text-lg">2. 鑄造 eETH</p>
+                                <p class="text-sm text-gray-500">流動性再質押代幣</p>
+                            </div>
+                            <div class="w-full md:w-auto">
+                                <p class="font-bold text-lg">3. 原生再質押至 EigenLayer</p>
+                                <p class="text-sm text-gray-500">為其他協議提供安全</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <h2 class="text-2xl font-bold mb-4">多層次獎勵結構</h2>
+                        <p class="text-gray-700 mb-4">您的質押收益由多個部分疊加而成，顯著高於單純的 ETH 質押。</p>
+                        <div class="chart-container h-80 md:h-96">
+                            <canvas id="rewardsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="card" class="content-section">
+                <h2 class="text-3xl font-bold text-center mb-8">Ether.fi Cash 金融卡：台灣用戶指南</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <div class="lg:col-span-2 card p-6 flex flex-col items-center justify-center">
+                        <div class="w-64 h-40 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 flex flex-col justify-between text-white shadow-2xl">
+                            <div>
+                                <span class="text-xs font-semibold">ether.fi cash</span>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-mono text-lg tracking-widest">**** **** **** 1234</p>
+                                <p class="text-xs">VISA</p>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-center text-gray-600">一張非託管 Visa 卡，無縫連接您的加密資產與現實世界消費。</p>
+                    </div>
+                    <div class="lg:col-span-3 card p-6">
+                        <h3 class="text-xl font-bold mb-4">關鍵特色</h3>
+                        <ul class="space-y-3 text-gray-700">
+                            <li><span class="tag tag-green mr-2">雙模式</span> 可選「直接支付」或以資產抵押的「借貸模式」。</li>
+                            <li><span class="tag tag-green mr-2">非託管</span> 資金在交易前始終在您自己的錢包，安全性高。</li>
+                            <li><span class="tag tag-green mr-2">便捷KYC</span> 支援台灣身分證，10-20分鐘完成，無需地址證明。</li>
+                            <li><span class="tag tag-green mr-2">高額回饋</span> 推廣期享 3% 現金回饋，獎勵為 SCR 或 ETHFI 代幣。</li>
+                            <li><span class="tag tag-green mr-2">本地整合</span> 完美支援 Apple Pay, Google Pay 及 LINE Pay。</li>
+                            <li><span class="tag tag-red mr-2">提款限制</span> 資金僅能透過 Scroll 網絡提出，出金流程較為繁瑣。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="risks" class="content-section">
+                <h2 class="text-3xl font-bold text-center mb-2">深度風險分析</h2>
+                <p class="text-center text-gray-600 mb-8">高收益伴隨著多層次的複雜風險，了解它們至關重要。</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="card p-6">
+                        <h3 class="text-xl font-bold mb-2">智能合約與技術風險</h3>
+                        <p class="text-gray-700">儘管經過多次審計，但協議的複雜性意味著漏洞風險依然存在。過去的審計曾發現並修復了3個「嚴重」級別的漏洞，顯示了潛在的攻擊面。</p>
+                    </div>
+                    <div class="card p-6 border-2 border-red-200">
+                        <h3 class="text-xl font-bold mb-2 text-red-700">經濟與系統性風險 (核心風險)</h3>
+                        <ul class="space-y-2 text-gray-700 list-disc list-inside">
+                            <li><b>EigenLayer 罰沒風險：</b>繼承自 EigenLayer 的新穎風險，一次 AVS 故障可能導致質押的 ETH 被大量罰沒。</li>
+                            <li><b>eETH 脫鉤風險：</b>在市場恐慌時，eETH 在二級市場的價格可能與 ETH 脫鉤，引發流動性危機。</li>
+                            <li><b>流動性與贖回風險：</b>官方贖回渠道有延遲，在危機中，用戶可能被迫在流動性枯竭的二級市場以重大損失出售。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="text-xl font-bold mb-2">卡片特定風險</h3>
+                        <p class="text-gray-700">使用「借貸模式」時，若抵押品價值下跌，將面臨資產被清算的風險。此外，現金回饋的代幣價格存在波動性。</p>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <h2 class="text-2xl font-bold mb-4 text-center">殷鑑不遠：與 Terra/Anchor 的對比</h2>
+                    <p class="text-center text-gray-600 mb-6">Ether.fi 的模型是否能避免類似 Terra 的「死亡螺旋」？透過下圖的比較，我們可以發現其模型在根本上更為穩健，但並非沒有弱點。</p>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="governance" class="content-section">
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="card p-6">
+                        <h2 class="text-2xl font-bold mb-4">治理與去中心化</h2>
+                        <p class="text-gray-700 mb-4">協議由 ETHFI 代幣持有者組成的 DAO 進行治理，目標是實現驗證者集合的去中心化。然而，目前的去中心化程度仍有其限制。</p>
+                        <ul class="space-y-3 text-gray-700">
+                            <li><b>DAO 角色：</b> 投票決定協議升級、費用設定、資金庫管理等關鍵決策。</li>
+                            <li><b>中心化風險：</b> 大量代幣分配給團隊和投資者 (合計超過 55%)，在早期構成了治理中心化的風險。</li>
+                            <li><b>去中心化悖論：</b> 為了保護用戶資金，協議必須以中心化的方式來審核和選擇其驗證者可以支持的 AVS，這與完全去中心化的理念存在矛盾。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6">
+                        <h2 class="text-2xl font-bold mb-4">ETHFI 代幣分配</h2>
+                        <div class="chart-container h-80 md:h-96">
+                            <canvas id="tokenomicsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    
+                    navLinks.forEach(nav => nav.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const targetId = this.getAttribute('data-target');
+                    
+                    contentSections.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            const wrapText = (ctx, text, x, y, maxWidth, lineHeight) => {
+                const words = text.split(' ');
+                let line = '';
+                for(let n = 0; n < words.length; n++) {
+                    const testLine = line + words[n] + ' ';
+                    const metrics = ctx.measureText(testLine);
+                    const testWidth = metrics.width;
+                    if (testWidth > maxWidth && n > 0) {
+                        ctx.fillText(line, x, y);
+                        line = words[n] + ' ';
+                        y += lineHeight;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                ctx.fillText(line, x, y);
+            };
+            
+            Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
+            Chart.defaults.color = '#6b7280';
+
+            const rewardsCtx = document.getElementById('rewardsChart');
+            if (rewardsCtx) {
+                new Chart(rewardsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['總收益構成'],
+                        datasets: [
+                            { label: '基礎 ETH 質押獎勵', data: [3.5], backgroundColor: '#60A5FA', },
+                            { label: 'EigenLayer 再質押獎勵', data: [2.5], backgroundColor: '#34D399', },
+                            { label: 'Ether.fi 忠誠度積分', data: [2], backgroundColor: '#FBBF24', },
+                            { label: 'DeFi 額外收益', data: [1.5], backgroundColor: '#F87171', }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: true, text: '假設性年化收益率 (%)', padding: { bottom: 20 } },
+                            tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.raw}%` } },
+                            legend: { position: 'bottom' }
+                        },
+                        scales: { x: { stacked: true, title: { display: true, text: 'APY (%)' } }, y: { stacked: true } }
+                    }
+                });
+            }
+
+            const comparisonCtx = document.getElementById('comparisonChart');
+            if (comparisonCtx) {
+                new Chart(comparisonCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['收益可持續性', '資產支持', '模型穩健性', '風險分散度', '透明度'],
+                        datasets: [{
+                            label: 'Ether.fi',
+                            data: [8, 9, 7, 5, 8],
+                            fill: true,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            pointBackgroundColor: 'rgb(54, 162, 235)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(54, 162, 235)'
+                        }, {
+                            label: 'Terra/Anchor',
+                            data: [2, 1, 1, 2, 3],
+                            fill: true,
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            pointBackgroundColor: 'rgb(255, 99, 132)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(255, 99, 132)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: true, text: '風險模型穩健性評分 (1-10)', padding: { bottom: 20 } },
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 10,
+                                pointLabels: { font: { size: 12 } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const tokenomicsCtx = document.getElementById('tokenomicsChart');
+            if (tokenomicsCtx) {
+                new Chart(tokenomicsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['投資者', '團隊', '空投', 'DAO 資金庫', '合作夥伴', '流動性'],
+                        datasets: [{
+                            label: '代幣分配',
+                            data: [32.5, 23.26, 11, 27.24, 6, 3],
+                            backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280'],
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: true, text: '總供應量：10億枚', padding: { bottom: 20 } },
+                            legend: { position: 'bottom' },
+                             tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += context.parsed + '%';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
