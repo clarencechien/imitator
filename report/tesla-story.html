@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>特斯拉200倍選擇權報酬分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: 應用程式已重構為一個嚴格遵循時間線的單頁敘事結構。使用者將從2019年的市場低谷開始，按時間順序經歷基本面反轉、散戶集結、股票分割軋空、S&P 500終極軋空等關鍵事件。在故事高潮後，才揭示實現驚人回報的「武器」（選擇權），並提供互動模擬器。這種電影般的敘事結構能極大化故事張力，讓使用者身臨其境地理解這場「完美風暴」是如何一步步形成的。 -->
+    <!-- Visualization & Content Choices: 
+        1. 報告資訊：特斯拉2019-2021年股價。目標：展示價格的劇烈上漲。視覺化：Chart.js 折線圖。互動：懸停提示框和關鍵事件的靜態註解。理由：這是展示時間序列數據並為市場波動提供背景的最佳方式。
+        2. 報告資訊：部落客的投資主張（16萬美元 → 3000萬美元）。目標：展示選擇權槓桿如何實現這一點。視覺化：HTML互動控制項（滑塊、輸入框）與第二個 Chart.js 折線圖（顯示投資組合價值）。互動：使用者調整投資參數（日期、履約價），即時查看回報倍數和圖表更新。理由：這種互動模擬將抽象的選擇權槓桿概念具體化，並直接驗證了主張的合理性。
+        3. 報告資訊：成功原因分析。目標：清晰總結關鍵結論。視覺化：使用 HTML/Tailwind 設計的資訊卡片及圖標。互動：無。理由：一個清晰、靜態的視覺摘要，便於快速理解。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .brand-gradient {
+            background: linear-gradient(90deg, #8E2DE2 0%, #4A00E0 100%);
+        }
+        .text-shadow {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .btn-primary {
+            background-color: #6D28D9;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #5B21B6;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #6D28D9;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #6D28D9;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="py-6 md:py-10">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-3xl md:text-5xl font-bold text-gray-800 text-shadow">一場史詩級對決：特斯拉散戶的200倍復仇</h1>
+            <p class="mt-4 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">一位部落客聲稱在空頭圍剿下，將16萬美元變成3000萬美元。這是一場世紀豪賭，還是一次精準的狙擊？讓我們按時間順序，重返戰場。</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 space-y-12 md:space-y-20">
+
+        <!-- Prologue -->
+        <section id="prologue" class="card p-6 md:p-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-2 text-gray-800">序幕：風暴前夕 (2019年中)</h2>
+            <p class="text-center text-gray-600 mb-6 max-w-2xl mx-auto">2019年的特斯拉，是華爾街的棄兒。深陷「產能地獄」、燒錢不斷、破產傳聞甚囂塵上。股價跌至谷底，成為空頭最愛的獵物。市場的共識是：特斯拉即將崩潰。</p>
+            <div class="chart-container">
+                <canvas id="tslaStockChart"></canvas>
+            </div>
+            <p class="text-center text-gray-600 max-w-2xl mx-auto mt-6">正是在這個市場最悲觀、最恐懼的時刻，故事的主角，一位名不見經傳的部落客，憑藉自己的深度研究，做出了與全世界為敵的決定——他不僅沒有賣出，反而<strong class="text-purple-700">全倉押上</strong>，並動用了極高風險的槓桿工具。</p>
+        </section>
+
+        <!-- Act I -->
+        <section id="act1" class="card p-6 md:p-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-2 text-gray-800">第一幕：散戶集結 (2019年底 - 2020年初)</h2>
+            <p class="text-center text-gray-600 mb-6 max-w-2xl mx-auto">奇蹟開始發生。上海超級工廠以驚人速度建成投產，Model 3產能問題解決，公司首次實現持續盈利。基本面開始反轉，股價應聲上漲，狠狠打擊了空頭。更重要的是，一股新的力量正在崛起。</p>
+            <div class="chart-container">
+                <canvas id="ownershipChart"></canvas>
+            </div>
+            <p class="text-center text-gray-600 max-w-2xl mx-auto mt-6">隨著公司前景轉好，全球散戶投資者開始大量湧入，他們不受華爾街的噪音影響，信念堅定。這批「鑽石手」的出現，為市場的供應端埋下了一顆定時炸彈：<strong class="text-green-700">可供交易的流通股越來越少</strong>，為接下來的史詩級軋空鋪平了道路。</p>
+        </section>
+
+        <!-- Act II -->
+        <section id="act2" class="card p-6 md:p-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-2 text-gray-800">第二幕：第一次引爆 - 股票分割 (2020年8月)</h2>
+            <p class="text-center text-gray-600 mb-6 max-w-3xl mx-auto">特斯拉宣布「五比一」股票分割，成為引爆市場的第一個導火線。一個關於「裸賣空（Naked Short Selling）」的理論浮出水面，這或許是理解這波瘋狂漲勢的關鍵鑰匙。</p>
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <div>
+                    <h3 class="font-bold text-xl text-gray-700 mb-2">什麼是裸賣空？</h3>
+                    <p class="text-gray-600 mb-4">與普通賣空（先借券再賣出）不同，裸賣空是<strong class="text-red-600">在沒有借到股票的情況下直接賣出</strong>，造成「未能交割（Failure-to-Deliver, FTD）」。這在常規交易中是違規的，但期權造市商等特定實體擁有豁免權，以便於對沖和提供市場流動性。</p>
+                    <h3 class="font-bold text-xl text-gray-700 mb-2">股票分割如何引發軋空？</h3>
+                    <p class="text-gray-600">當時的理論是：對於普通空頭，其債務會被自動調整（欠1股變欠5股）。但對於長期積累的「未能交割」部位，清算系統可能<strong class="text-purple-700">不會自動調整</strong>。這將產生災難性後果：</p>
+                </div>
+                <div class="p-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
+                    <h4 class="font-bold text-lg mb-2">空頭的噩夢情境</h4>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li><strong>分割前：</strong>裸空者欠經紀商 1 股特斯拉股票（當時約 $2000）。</li>
+                        <li><strong>分割後：</strong>如果系統未調整，裸空者依然只欠 1 股（現在只值 $400）。</li>
+                        <li><strong>經紀商的災難：</strong>但經紀商欠客戶的是 5 股（價值 $2000）。中間的 4 股差額 ($1600) 將成為經紀商的巨大損失。</li>
+                    </ul>
+                    <p class="mt-4 font-semibold">為了避免這種災難，經紀商會在股票分割生效前，強制要求裸賣空者<strong class="text-red-600">不計代價地回補市場上的股票</strong>，從而觸發毀滅性的軋空行情。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Act III -->
+        <section id="act3" class="card p-6 md:p-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-2 text-gray-800">第三幕：終局之戰 - S&P 500 納入 (2020年底)</h2>
+            <p class="text-center text-gray-600 mb-6 max-w-3xl mx-auto">如果說股票分割是點燃戰火的火花，那麼特斯拉被納入S&P 500指數，就是一場無法避免的終極軋空風暴。這不是猜測，而是一道簡單卻殘酷的數學題。</p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="p-6 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                    <h3 class="font-bold text-xl text-blue-800 mb-4">不可阻擋的買方：指數基金</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li><strong>任務：</strong>追蹤S&P 500指數的基金（如Vanguard, BlackRock）<strong class="text-blue-600">「必須」</strong>買入特斯拉股票以匹配其在指數中的權重。</li>
+                        <li><strong>規模：</strong>據估算，這意味著有<strong class="text-blue-600">超過 2,600 萬股</strong>（分割後）的「價格不敏感」買盤需求。</li>
+                        <li><strong>時限：</strong>這些買盤必須在納入指數生效日前後極短的時間內完成。</li>
+                    </ul>
+                    <p class="mt-4 font-semibold">他們不在乎股價是$400還是$600，他們的唯一任務就是買入規定數量的股票。</p>
+                </div>
+                <div class="p-6 bg-gray-50 border-l-4 border-gray-400 rounded-r-lg">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">堅定不移的賣方：高信念股東</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li><strong>組成：</strong>特斯拉的股東中有大量像Ron Baron、Baillie Gifford以及無數散戶這樣的「鑽石手」。</li>
+                        <li><strong>信念：</strong>他們相信公司十年後的價值是現在的數倍，不會因為短期的20-30%漲幅就輕易賣出。</li>
+                        <li><strong>結果：</strong>市場上可供交易的流通股（Supply）極其稀少。</li>
+                    </ul>
+                    <p class="mt-4 font-semibold">當「無限的資金」追逐「有限的股票」時，價格的唯一出路就是向上。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Act IV -->
+        <section id="act4" class="card p-6 md:p-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-2 text-gray-800">第四幕：勝利的武器 - 選擇權的威力</h2>
+            <p class="text-center text-gray-600 mb-6 max-w-2xl mx-auto">股價的史詩級飆升解釋了為何能賺錢，但無法解釋為何能賺到<strong class="text-purple-700">近200倍</strong>。答案在於主角選擇的武器：一種被稱為「金融核武」的工具——買權 (Call Option)。</p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="space-y-4">
+                    <h3 class="font-bold text-xl text-gray-700">什麼是買權？</h3>
+                    <p>買權賦予您在「未來特定日期前」，以「約定好的價格（履約價）」購買股票的「權利」，而非義務。為此權利，您需要支付一筆「權利金」。</p>
+                    <h3 class="font-bold text-xl text-gray-700">槓桿如何產生？</h3>
+                    <p>假設股價$20，您認為未來會大漲。您可以花$20買一股，或者花$2買一個履約價$30的遠期買權。</p>
+                     <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li><span class="font-bold text-red-500">如果股價跌了：</strong>買股票虧損$20，買選擇權最多只虧損權利金$2。</li>
+                        <li><span class="font-bold text-green-500">如果股價暴漲到$100：</span>股票賺了$80 (4倍)。選擇權的價值約為 $100 - $30 = $70，您用$2賺了$68 (34倍)！</li>
+                    </ul>
+                    <p class="font-semibold text-purple-700">這就是終極槓桿：用極小的代價，去賭一個巨大變動的可能性。賭錯了，代價有限；賭對了，回報驚人。</p>
+                </div>
+                 <div class="p-6 bg-white rounded-lg border text-center">
+                    <h4 class="font-bold text-lg mb-4">主角的戰果</h4>
+                    <div class="flex flex-col items-center justify-center gap-4">
+                        <div class="flex flex-col items-center">
+                            <span class="text-3xl md:text-4xl font-bold text-purple-700">$160,000</span>
+                            <span class="mt-1 text-gray-500">投入的權利金 (2019)</span>
+                        </div>
+                        <div class="text-2xl md:text-4xl font-extrabold text-gray-400">⇩</div>
+                        <div class="flex flex-col items-center">
+                            <span class="text-3xl md:text-4xl font-bold text-green-600">$30,000,000</span>
+                            <span class="mt-1 text-gray-500">選擇權價值 (2020)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Act V -->
+        <section id="act5" class="card p-6 md:p-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-2 text-gray-800">第五幕：沙盤推演 — 重現世紀豪賭</h2>
+            <p class="text-center text-gray-600 mb-6 max-w-2xl mx-auto">我們能否回到過去，複製這次操作？透過下面的模擬器，調整你的入場時機與賭注大小，親身體驗這場驚心動魄的財富轉移。注意：選擇權價格為簡化估算。</p>
+            
+            <div class="grid md:grid-cols-3 gap-6 p-6 bg-gray-50 rounded-lg">
+                <div>
+                    <label for="investmentAmount" class="block font-medium text-gray-700">總投資金額 (美元)</label>
+                    <input type="number" id="investmentAmount" value="160000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+                 <div>
+                    <label for="purchaseDate" class="block font-medium text-gray-700">買入月份 (2019)</label>
+                    <input type="range" id="purchaseDate" min="5" max="11" value="6" class="mt-2 block w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500 px-1">
+                        <span>六月</span>
+                        <span>九月</span>
+                        <span>十二月</span>
+                    </div>
+                </div>
+                <div>
+                    <label for="strikePrice" class="block font-medium text-gray-700">選擇權履約價 (美元)</label>
+                    <input type="number" id="strikePrice" value="30" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+            </div>
+
+            <div class="mt-8 grid md:grid-cols-2 gap-8">
+                <div id="results" class="p-6 bg-white rounded-lg border border-gray-200 space-y-4">
+                    <h3 class="font-bold text-xl text-center">模擬結果</h3>
+                    <div class="text-center">
+                        <p class="text-gray-600">最終投資組合價值 (2020年底)</p>
+                        <p id="finalValue" class="text-4xl font-bold text-green-600 my-2">$0</p>
+                    </div>
+                     <div class="text-center">
+                        <p class="text-gray-600">總投資回報率</p>
+                        <p id="returnMultiple" class="text-4xl font-bold text-purple-700 my-2">0 倍</p>
+                    </div>
+                    <div class="text-sm text-gray-500 space-y-2 pt-4 border-t">
+                        <p><strong>買入時股價:</strong> <span id="entryStockPrice">-</span></p>
+                        <p><strong>估計權利金/股:</strong> <span id="optionPremium">-</span></p>
+                        <p><strong>可購買合約數 (每張100股):</strong> <span id="contractsPurchased">-</span></p>
+                        <p><strong>2020年底股價:</strong> <span id="exitStockPrice">-</span></p>
+                    </div>
+                </div>
+                 <div class="chart-container h-[400px] md:h-auto">
+                    <canvas id="portfolioChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Finale -->
+        <section id="finale" class="card p-6 md:p-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">終章：完美風暴的啟示</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">結論是：<strong class="text-green-700">這絕對可能</strong>。但它不是單純的運氣，而是多個要素按時間順序完美結合的「完美風暴」，一場可遇不可求的金融奇蹟：</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6 text-center">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="text-4xl mb-2">🧠</div>
+                    <h4 class="font-bold text-lg">極致的逆向信念</h4>
+                    <p class="text-sm text-gray-600">在市場最恐慌時，敢於與全世界為敵，重倉下注。</p>
+                </div>
+                 <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="text-4xl mb-2">📈</div>
+                    <h4 class="font-bold text-lg">確鑿的基本面反轉</h4>
+                    <p class="text-sm text-gray-600">公司用實績證明了自己，吸引了第一批支持者，奠定上漲基礎。</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="text-4xl mb-2">💥</div>
+                    <h4 class="font-bold text-lg">雙重軋空催化劑</h4>
+                    <p class="text-sm text-gray-600">股票分割與S&P 500納入，先後觸發了兩次巨大且價格不敏感的強制性買盤。</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="text-4xl mb-2">⚖️</div>
+                    <h4 class="font-bold text-lg">槓桿的極限運用</h4>
+                    <p class="text-sm text-gray-600">選擇了被市場低估的遠期買權，將時代級的漲幅轉化為百倍收益。</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="text-4xl mb-2">🎯</div>
+                    <h4 class="font-bold text-lg">神準的狙擊時機</h4>
+                    <p class="text-sm text-gray-600">在市場定價最錯誤的時刻進場，以最低成本捕獲了最大潛力。</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8 mt-12 border-t">
+        <p class="text-gray-500">免責聲明：本分析僅為教育目的，不構成任何投資建議。選擇權交易風險極高。</p>
+    </footer>
+
+    <script>
+        const tslaData = [
+            { date: '2019-01-01', price: 20.67 }, { date: '2019-02-01', price: 21.30 },
+            { date: '2019-03-01', price: 18.61 }, { date: '2019-04-01', price: 15.89 },
+            { date: '2019-05-01', price: 12.33 }, { date: '2019-06-01', price: 14.89 },
+            { date: '2019-07-01', price: 15.53 }, { date: '2019-08-01', price: 14.99 },
+            { date: '2019-09-01', price: 16.09 }, { date: '2019-10-01', price: 21.08 },
+            { date: '2019-11-01', price: 21.93 }, { date: '2019-12-01', price: 27.89 },
+            { date: '2020-01-01', price: 43.37 }, { date: '2020-02-01', price: 44.54 },
+            { date: '2020-03-01', price: 34.83 }, { date: '2020-04-01', price: 52.12 },
+            { date: '2020-05-01', price: 55.66 }, { date: '2020-06-01', price: 71.99 },
+            { date: '2020-07-01', price: 99.03 }, { date: '2020-08-01', price: 166.11 },
+            { date: '2020-09-01', price: 143.00 }, { date: '2020-10-01', price: 127.35 },
+            { date: '2020-11-01', price: 191.95 }, { date: '2020-12-01', price: 235.22 }
+        ];
+
+        const ownershipData = {
+            labels: ['2019', '2020', '2021', '2022', '2023', '2024', '2025 (Est.)'],
+            datasets: [
+                {
+                    label: '散戶 (Retail)',
+                    data: [20, 30, 40, 43, 41, 40, 38],
+                    backgroundColor: 'rgba(109, 40, 217, 0.7)',
+                    borderColor: 'rgba(109, 40, 217, 1)',
+                    fill: true,
+                },
+                {
+                    label: '機構 (Institutional)',
+                    data: [60, 55, 48, 47, 50, 52, 55],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    fill: true,
+                },
+                {
+                    label: '內部人士 (Insider)',
+                    data: [20, 15, 12, 10, 9, 8, 7],
+                    backgroundColor: 'rgba(255, 206, 86, 0.7)',
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    fill: true,
+                }
+            ]
+        };
+
+        let stockChart, portfolioChart, ownershipChart;
+
+        function renderStockChart() {
+            const ctx = document.getElementById('tslaStockChart').getContext('2d');
+            stockChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: tslaData.map(d => d.date.substring(0, 7)),
+                    datasets: [{
+                        label: '特斯拉分割調整後股價 (美元)',
+                        data: tslaData.map(d => d.price),
+                        borderColor: '#6D28D9',
+                        backgroundColor: 'rgba(109, 40, 217, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `股價: $${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderOwnershipChart() {
+            const ctx = document.getElementById('ownershipChart').getContext('2d');
+            ownershipChart = new Chart(ctx, {
+                type: 'line',
+                data: ownershipData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += `${context.parsed.y.toFixed(1)}%`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: '特斯拉股東結構變化 (2019-2025)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '年份'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '持股比例 (%)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            if (value >= 1_000_000) {
+                return `$${(value / 1_000_000).toFixed(2)} 百萬`;
+            }
+             if (value >= 1_000) {
+                return `$${(value / 1_000).toFixed(1)} 千`;
+            }
+            return `$${value.toFixed(2)}`;
+        }
+        
+        function calculateAndDisplay() {
+            const investment = parseFloat(document.getElementById('investmentAmount').value) || 160000;
+            const purchaseMonthIndex = parseInt(document.getElementById('purchaseDate').value); // 5 to 11 for June to Dec
+            const strikePrice = parseFloat(document.getElementById('strikePrice').value) || 30;
+
+            const purchaseDataPoint = tslaData[purchaseMonthIndex];
+            const entryStockPrice = purchaseDataPoint.price;
+            
+            const exitDataPoint = tslaData[tslaData.length - 1];
+            const exitStockPrice = exitDataPoint.price;
+
+            const timeToExpiryFactor = 2; 
+            const volatilityFactor = 0.8;
+            const interestRateFactor = 0.02;
+
+            const premiumPerShare = Math.max(0.1, 
+                (entryStockPrice * volatilityFactor * Math.sqrt(timeToExpiryFactor) / 10) + 
+                Math.max(0, entryStockPrice - strikePrice) + 
+                (strikePrice * interestRateFactor * timeToExpiryFactor / 10)
+            );
+
+            const contracts = Math.floor(investment / (premiumPerShare * 100));
+            const totalSharesControlled = contracts * 100;
+
+            let portfolioHistory = [];
+            let foundStart = false;
+            for(const data of tslaData) {
+                if(data.date === purchaseDataPoint.date) {
+                    foundStart = true;
+                }
+                if(foundStart) {
+                     const valuePerShare = Math.max(0, data.price - strikePrice);
+                     portfolioHistory.push({
+                        date: data.date,
+                        value: valuePerShare * totalSharesControlled
+                     });
+                }
+            }
+            
+            const finalValue = portfolioHistory.length > 0 ? portfolioHistory[portfolioHistory.length-1].value : 0;
+            const returnMultiple = investment > 0 ? finalValue / investment : 0;
+
+            document.getElementById('finalValue').textContent = formatCurrency(finalValue);
+            document.getElementById('returnMultiple').textContent = `${returnMultiple.toFixed(1)} 倍`;
+            document.getElementById('entryStockPrice').textContent = `$${entryStockPrice.toFixed(2)}`;
+            document.getElementById('optionPremium').textContent = `$${premiumPerShare.toFixed(2)}`;
+            document.getElementById('contractsPurchased').textContent = `${contracts.toLocaleString()}`;
+            document.getElementById('exitStockPrice').textContent = `$${exitStockPrice.toFixed(2)}`;
+            
+            updatePortfolioChart(portfolioHistory);
+        }
+
+        function updatePortfolioChart(history) {
+             const ctx = document.getElementById('portfolioChart').getContext('2d');
+             if(portfolioChart) {
+                portfolioChart.destroy();
+             }
+             portfolioChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: history.map(d => d.date.substring(0,7)),
+                    datasets: [{
+                        label: '投資組合價值 (美元)',
+                        data: history.map(d => d.value),
+                        borderColor: '#16A34A',
+                        backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `價值: ${formatCurrency(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 1000000) return `$${value/1000000}M`;
+                                    if (value >= 1000) return `$${value/1000}K`;
+                                    return `$${value}`;
+                                }
+                            }
+                        }
+                    }
+                }
+             });
+        }
+
+
+        window.onload = function() {
+            renderStockChart();
+            renderOwnershipChart();
+            
+            const inputs = ['investmentAmount', 'purchaseDate', 'strikePrice'];
+            inputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', calculateAndDisplay);
+            });
+
+            calculateAndDisplay();
+        };
+
+    </script>
+</body>
+</html>
+
