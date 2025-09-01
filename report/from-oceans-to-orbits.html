@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>從海洋到軌道：兩個大發現時代</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Cosmic Neutrals -->
+    <!-- Application Structure Plan: 本應用程式採用三段式敘事結構。第一部分「歷史的迴響」並列比較海洋與太空兩大時代，建立核心類比。第二部分「成本革命」是核心，透過互動圖表具象化運輸成本的崩跌，這是推動時代變革的關鍵引擎。第三部分「未來商機」則借鑑荷蘭東印度公司的歷史模式，展望太空商業化所開啟的全新產業。此結構旨在引導使用者逐步理解報告的論點，從歷史類比到數據佐證，最後到未來展望，比原文的線性結構更具說服力與探索性。 -->
+    <!-- Visualization & Content Choices: 
+        1. 海運/太空成本下降 -> 目標: 比較與呈現變化 -> 視覺化: 兩個並排的Chart.js圖表（海運為線圖，太空為對數標尺長條圖） -> 互動: 滑鼠懸浮提示 -> 理由: 線圖適合呈現時間趨勢，而對數長條圖能最有效地凸顯太空梭與星艦之間巨大的成本數量級差異。
+        2. 探索的三階段模型 -> 目標: 組織資訊 -> 呈現方式: 使用HTML/CSS建構的互動式步驟元件 -> 互動: 點擊切換階段內容 -> 理由: 將線性的發展過程以互動步驟呈現，比靜態列表更能吸引使用者參與。
+        3. 荷蘭東印度公司(VOC) -> 目標: 比較與提供深度資訊 -> 視覺化: 包含Chart.js長條圖的彈出式視窗 -> 互動: 點擊按鈕觸發 -> 理由: VOC作為歷史佐證，其驚人市值是個震撼的數據點。使用彈出視窗既能呈現詳細資訊，又不會干擾主敘事流程。
+        4. 未來太空產業 -> 目標: 告知與組織 -> 呈現方式: 互動式卡片網格 -> 互動: 滑鼠懸浮顯示簡介 -> 理由: 以視覺化、易於掃視的方式呈現多個未來概念，吸引使用者探索。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f9fa;
+            color: #1f2937;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .nav-link:hover {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .active-link {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-900">從海洋到軌道</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#analogy" class="nav-link text-slate-600 pb-1 border-b-2 border-transparent">歷史的迴響</a>
+                <a href="#revolution" class="nav-link text-slate-600 pb-1 border-b-2 border-transparent">成本革命</a>
+                <a href="#opportunity" class="nav-link text-slate-600 pb-1 border-b-2 border-transparent">未來商機</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden text-slate-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden bg-white">
+            <a href="#analogy" class="block text-center py-3 px-4 text-slate-600 hover:bg-slate-100">歷史的迴響</a>
+            <a href="#revolution" class="block text-center py-3 px-4 text-slate-600 hover:bg-slate-100">成本革命</a>
+            <a href="#opportunity" class="block text-center py-3 px-4 text-slate-600 hover:bg-slate-100">未來商機</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-16">
+
+        <section class="text-center mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-5xl font-bold mb-4 text-slate-900">兩個大發現時代</h2>
+            <p class="max-w-3xl mx-auto text-lg md:text-xl text-slate-600">歷史不會重演，但總會驚人地相似。一場徹底顛覆經濟規則的運輸革命，正如同19世紀的蒸汽船，再次準備為人類解鎖一個價值數兆美元的全新疆界。</p>
+        </section>
+
+        <section id="analogy" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl md:text-3xl font-bold text-slate-900">歷史的迴響：從海洋到軌道</h3>
+                <p class="mt-2 text-slate-600">正如蒸汽船將海洋從屏障變為通途，可重複使用的火箭正為我們鋪設一條通往太陽系的商業高速公路。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 h-full">
+                    <div class="flex items-center mb-4">
+                        <span class="text-4xl mr-4">🚢</span>
+                        <h4 class="text-2xl font-bold text-sky-700">海洋時代：蒸汽革命</h4>
+                    </div>
+                    <p class="text-slate-600 mb-4">在帆船時代，高昂的海運成本是經濟發展的巨大壁壘。對於像生鐵這樣的低價商品，運費就佔了1870年最終市價的五分之一。蒸汽船的出現，以其壓倒性的效率與運力，徹底粉碎了這道屏障。</p>
+                    <ul class="space-y-2 list-disc list-inside text-slate-700">
+                        <li><span class="font-semibold">關鍵技術：</span>蒸汽機、鋼殼船體</li>
+                        <li><span class="font-semibold">經濟影響：</span>貨運成本在一個半世紀內累計崩跌79%</li>
+                        <li><span class="font-semibold">時代成果：</span>催生第一次全球化，加速新大陸的工業化與城市建設</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 h-full">
+                    <div class="flex items-center mb-4">
+                        <span class="text-4xl mr-4">🚀</span>
+                        <h4 class="text-2xl font-bold text-indigo-700">太空時代：星艦革命</h4>
+                    </div>
+                    <p class="text-slate-600 mb-4">直到現在，天文數字般的發射成本使太空經濟成為空想。太空梭單次任務成本高達15億美元，使任何大規模太空建設都變得不可能。星艦的完全可重複使用性，旨在從根本上改寫這一切。</p>
+                     <ul class="space-y-2 list-disc list-inside text-slate-700">
+                        <li><span class="font-semibold">關鍵技術：</span>完全且快速的可重複使用性</li>
+                        <li><span class="font-semibold">經濟影響：</span>目標是將入軌成本降低超過99%，從每公斤$50,000+降至$200以下</li>
+                        <li><span class="font-semibold">時代潛力：</span>解鎖真正的太空經濟，實現月球基地、小行星採礦與火星殖民</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="revolution" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl md:text-3xl font-bold text-slate-900">成本革命：新時代的引擎</h3>
+                <p class="mt-2 text-slate-600 max-w-3xl mx-auto">新疆界的開啟，其關鍵催化劑永遠是相同的：每噸運輸成本的歷史性崩跌。這種指數級的成本降低，是引爆商業活動、創造龐大財富的點火開關。</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 flex flex-col items-center">
+                    <h4 class="text-xl font-bold text-center mb-4 text-sky-700">第一次革命：海運成本的崩跌</h4>
+                    <div class="chart-container">
+                        <canvas id="seaFreightChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <p class="text-4xl font-bold text-sky-600">-79%</p>
+                        <p class="text-sm text-slate-500">1850-1910年運費指數降幅</p>
+                    </div>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 flex flex-col items-center">
+                    <h4 class="text-xl font-bold text-center mb-4 text-indigo-700">第二次革命：入軌成本的崩跌</h4>
+                     <div class="chart-container">
+                        <canvas id="spaceLaunchChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <p class="text-4xl font-bold text-indigo-600">-99.6%</p>
+                        <p class="text-sm text-slate-500">星艦目標相對太空梭的成本降幅</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="opportunity" class="scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl md:text-3xl font-bold text-slate-900">歷史劇本與未來商機</h3>
+                <p class="mt-2 text-slate-600 max-w-3xl mx-auto">太空的商業化正遵循著一套500年歷史的經濟劇本。了解過去的模式，有助於我們預見即將被解鎖的數兆美元市場。</p>
+            </div>
+            
+            <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
+                <h4 class="text-xl font-bold text-center mb-6">從王權到公司：一條被證實的路徑</h4>
+                <div id="funding-model-container" class="flex flex-col md:flex-row justify-center items-stretch gap-4">
+                </div>
+                <div id="funding-model-content" class="mt-6 p-6 bg-slate-100 rounded-lg text-slate-700 min-h-[150px]">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-12">
+                <div class="text-center md:text-left">
+                    <h4 class="text-2xl font-bold text-amber-700 mb-2">歷史的借鑑：荷蘭東印度公司</h4>
+                    <p class="text-slate-600 mb-4">歷史上最強大的公司，並非今日的科技巨頭，而是17世紀的荷蘭東印度公司(VOC)。它展示了當一個新領域向商業完全開放時，能夠創造出多麼驚人的價值。</p>
+                    <button id="voc-modal-button" class="bg-amber-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-amber-700 transition-colors">深入了解 VOC</button>
+                </div>
+                <div class="text-center">
+                    <p class="text-6xl md:text-8xl font-bold text-amber-500" id="voc-value-display">0</p>
+                    <p class="text-slate-500 mt-2">VOC 巔峰時期經通膨調整後的估值 (兆美元)</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 my-12">
+                <h4 class="text-xl font-bold text-center mb-4">⚠️ 風險與機遇：太空大掃除</h4>
+                <p class="text-center text-slate-600 max-w-3xl mx-auto">新的賽道並非暢行無阻。目前有數千噸危險的太空垃圾以驚人速度環繞地球，威脅著現有及未來的衛星資產。然而，這也催生了一個關鍵的「太空清理」產業，將風險轉化為一個全新的商業藍海，專注於捕獲並清除軌道碎片。</p>
+            </div>
+
+            <div>
+                <h4 class="text-xl font-bold text-center mb-6">新領域，新財富：即將爆發的太空經濟</h4>
+                <div id="future-industries-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="voc-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full relative transform transition-all duration-300 scale-95 opacity-0">
+            <button id="close-voc-modal" class="absolute top-4 right-4 text-slate-500 hover:text-slate-800 text-3xl leading-none">&times;</button>
+            <h3 class="text-2xl font-bold mb-4 text-amber-700">荷蘭東印度公司 (VOC)</h3>
+            <p class="text-slate-600 mb-4">成立於1602年，VOC不僅是史上第一家跨國公司，更是一個擁有軍隊、可以殖民和發動戰爭的商業帝國。它憑藉政府授予的21年亞洲貿易壟斷權，主宰全球香料貿易近兩世紀。</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm">
+                <ul class="space-y-2 list-disc list-inside text-slate-700">
+                    <li><span class="font-semibold">權力：</span>可發動戰爭、建立殖民地</li>
+                    <li><span class="font-semibold">規模：</span>曾雇用超過一百萬人</li>
+                    <li><span class="font-semibold">創新：</span>世界第一家發行股票的公司</li>
+                </ul>
+                <div>
+                    <h5 class="font-semibold mb-1">最終衰落原因：</h5>
+                    <ul class="space-y-1 list-disc list-inside text-slate-600">
+                        <li><span class="font-semibold">腐敗橫行：</span>員工私下交易侵蝕利潤</li>
+                        <li><span class="font-semibold">激烈競爭：</span>英國東印度公司崛起</li>
+                        <li><span class="font-semibold">成本高昂：</span>維持私人軍隊與官僚體系</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="text-slate-600 mb-4 font-semibold text-center">其巔峰市值，經通膨調整後超過10兆美元，遠超今日任何科技巨頭。</p>
+            <div class="chart-container h-56 md:h-64">
+                <canvas id="vocChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="text-center py-8 mt-12 border-t border-slate-200">
+        <p class="text-slate-500">*非投資建議 - 請自行研究</p>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const seaFreightData = {
+            labels: ['1850', '1870', '1890', '1910'],
+            datasets: [{
+                label: '實際乾散貨運費率指數',
+                data: [100, 60, 35, 21],
+                borderColor: 'rgb(2, 132, 199)',
+                backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                fill: true,
+                tension: 0.1
+            }]
+        };
+
+        const spaceLaunchData = {
+            labels: ['太空梭', '星艦 (目標)'],
+            datasets: [{
+                label: '每公斤入軌成本 (美元)',
+                data: [54500, 200],
+                backgroundColor: ['rgb(99, 102, 241)', 'rgb(167, 139, 250)'],
+                borderColor: ['rgb(67, 56, 202)', 'rgb(124, 58, 237)'],
+                borderWidth: 1
+            }]
+        };
+
+        const vocData = {
+            labels: ['VOC 巔峰', 'Apple (2025)', 'Microsoft (2025)', 'Google (2025)'],
+            datasets: [{
+                label: '市值 (兆美元)',
+                data: [10, 3.2, 2.9, 2.1],
+                backgroundColor: ['rgb(217, 119, 6)', 'rgb(107, 114, 128)', 'rgb(107, 114, 128)', 'rgb(107, 114, 128)'],
+            }]
+        };
+        
+        const fundingModelData = [
+            { id: 'stage1', title: '1. 國家贊助的冒險', content: '初期探索成本與風險極高，只有國家力量能承擔。例如西班牙王室資助哥倫布，或NASA的阿波羅計畫，其動機是地緣政治利益而非商業回報。' },
+            { id: 'stage2', title: '2. 公私合營夥伴關係', content: '當疆界被初步打開，政府會引入私人企業分攤風險。例如君主授予商人貿易壟斷權，或NASA付費給SpaceX運送貨物，作為錨定客戶，幫助私營部門降低技術風險。' },
+            { id: 'stage3', title: '3. 完全商業化企業', content: '當路線成熟、技術可靠後，純粹的商業市場便會爆發。這催生了像荷蘭東印度公司這樣的巨頭，也正是太空領域即將進入的階段。' }
+        ];
+
+        const futureIndustriesData = [
+            { icon: '🛰️', title: '全球衛星網路', description: '部署數萬顆衛星，為地球編織一張無縫的數位通訊網。' },
+            { icon: '✈️', title: '極音速地球旅行', description: '將跨洲際旅行縮短至一小時內，徹底顛覆全球交通格局。' },
+            { icon: '🔬', title: '太空製造', description: '利用零重力環境，生產地球上無法合成的完美藥物與超材料。' },
+            { icon: '⛏️', title: '地外資源', description: '開採小行星蘊藏的萬億級貴金屬，或在月球建立能源前哨。' },
+            { icon: '🧹', title: '主動碎片清除', description: '將環繞地球的危險太空垃圾轉化為商機，成為軌道上的清道夫。' },
+            { icon: '🏗️', title: '軌道建設', description: '在太空中3D列印和組裝巨型結構，為星際航行打下基礎。' }
+        ];
+
+        function createChart(ctx, type, data, options) {
+            new Chart(ctx, { type, data, options });
+        }
+        
+        const chartOptions = {
+            maintainAspectRatio: false,
+            responsive: true,
+            plugins: { legend: { display: false } }
+        };
+
+        createChart(document.getElementById('seaFreightChart').getContext('2d'), 'line', seaFreightData, chartOptions);
+        createChart(document.getElementById('spaceLaunchChart').getContext('2d'), 'bar', spaceLaunchData, { ...chartOptions, scales: { y: { type: 'logarithmic', ticks: { callback: (value) => '$' + value.toLocaleString() } } } });
+        
+        const fundingContainer = document.getElementById('funding-model-container');
+        const fundingContent = document.getElementById('funding-model-content');
+        
+        fundingModelData.forEach((stage, index) => {
+            const button = document.createElement('button');
+            button.className = 'funding-stage-btn flex-1 py-3 px-2 text-center rounded-lg transition-colors border-2 ';
+            button.dataset.content = stage.content;
+            button.textContent = stage.title;
+            if (index === 0) {
+                button.classList.add('bg-slate-800', 'text-white', 'border-slate-800');
+            } else {
+                button.classList.add('bg-white', 'text-slate-700', 'border-slate-300', 'hover:bg-slate-100');
+            }
+            fundingContainer.appendChild(button);
+        });
+        
+        fundingContent.textContent = fundingModelData[0].content;
+
+        fundingContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('funding-stage-btn')) {
+                fundingContainer.querySelectorAll('.funding-stage-btn').forEach(btn => {
+                    btn.classList.remove('bg-slate-800', 'text-white', 'border-slate-800');
+                    btn.classList.add('bg-white', 'text-slate-700', 'border-slate-300', 'hover:bg-slate-100');
+                });
+                e.target.classList.add('bg-slate-800', 'text-white', 'border-slate-800');
+                e.target.classList.remove('bg-white', 'text-slate-700', 'border-slate-300', 'hover:bg-slate-100');
+                fundingContent.textContent = e.target.dataset.content;
+            }
+        });
+
+        const industriesGrid = document.getElementById('future-industries-grid');
+        futureIndustriesData.forEach(industry => {
+            const card = document.createElement('div');
+            card.className = 'bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center transform hover:-translate-y-1 transition-transform';
+            card.innerHTML = `
+                <div class="text-5xl mb-4">${industry.icon}</div>
+                <h5 class="font-bold text-lg mb-2">${industry.title}</h5>
+                <p class="text-slate-600 text-sm">${industry.description}</p>
+            `;
+            industriesGrid.appendChild(card);
+        });
+
+        const modal = document.getElementById('voc-modal');
+        const modalContent = modal.querySelector('div');
+        let vocChartInstance = null;
+        document.getElementById('voc-modal-button').addEventListener('click', () => {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                if (!vocChartInstance) {
+                    vocChartInstance = new Chart(document.getElementById('vocChart').getContext('2d'), { type: 'bar', data: vocData, options: { ...chartOptions, indexAxis: 'y', scales: { x: { ticks: { callback: (value) => '$' + value + 'T' } } } } });
+                }
+            }, 10);
+        });
+        document.getElementById('close-voc-modal').addEventListener('click', () => {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.getElementById('close-voc-modal').click();
+            }
+        });
+
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        const navLinks = document.querySelectorAll('.nav-link, #mobile-menu a');
+        
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (mobileMenu.classList.contains('hidden') === false) {
+                    mobileMenu.classList.add('hidden');
+                }
+            });
+        });
+
+        const sections = document.querySelectorAll('section[id]');
+        const vocValueDisplay = document.getElementById('voc-value-display');
+
+        const animateValue = (obj, start, end, duration) => {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = `> $${(progress * (end - start) + start).toFixed(1)}T`;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerHTML = `> $${end.toFixed(1)}T`;
+                }
+            };
+            window.requestAnimationFrame(step);
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateValue(vocValueDisplay, 0, 10, 1500);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        observer.observe(vocValueDisplay);
+
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active-link');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active-link');
+                }
+            });
+        });
+
+    });
+    </script>
+</body>
+</html>
+
