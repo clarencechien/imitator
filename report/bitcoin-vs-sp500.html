@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>華爾街最強操盤手揭密：比特幣投資洞察</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony Neutrals -->
+    <!-- Application Structure Plan: 本應用程式採用主題式單頁佈局，設有頂部導航欄，可快速跳轉至「市場洞察」、「機構觀點」、「投資策略」和「Blockstream 基金」四大核心區塊。此結構將訪談的對話式內容，重組為邏輯清晰的主題，讓使用者能根據自身興趣快速找到重點。例如，退休基金經理可能直接關注「機構觀點」，而個人投資者可能對「投資策略」更感興趣。透過互動式圖表、時間軸和標籤頁等元素，將複雜的數據和觀點以更直觀、易於吸收的方式呈現，提升使用者體驗與資訊傳達效率，而非單純地線性展示訪談內容。 -->
+    <!-- Visualization & Content Choices: 
+    - 比特幣 vs. 標普500 關鍵日: 目標:告知 -> 呈現方式:HTML/CSS 關鍵數據卡片 -> 互動:無 -> 理由:快速傳達「錯過關鍵日即錯過全年報酬」的核心論點。
+    - 風險調整後報酬比較 (夏普/索提諾比率): 目標:比較 -> 呈現方式:Chart.js 長條圖 -> 互動:滑鼠懸停提示確切數值 -> 理由:視覺化比特幣優越的風險調整後報酬，這是說服機構的關鍵數據。
+    - 機構採用時間軸: 目標:組織 -> 呈現方式:HTML/CSS 水平時間軸 -> 互動:點擊節點顯示詳細資訊 -> 理由:將敘事轉化為結構化的歷史概覽，清晰呈現機構採用的過程。
+    - Blockstream 三大基金: 目標:組織 -> 呈現方式:HTML/CSS/JS 標籤頁介面 -> 互動:點擊標籤切換內容 -> 理由:最有效地並列呈現三種不同但相關的產品。
+    - 個人交易教訓: 目標:告知 -> 呈現方式:HTML/CSS 故事卡片 -> 互動:點擊揭示故事發展 -> 理由:將個人軼事變得更具吸引力和記憶點。
+    - 市值潛力比較 (比特幣 vs. 黃金): 目標:比較 -> 呈現方式:HTML/CSS 比例長條 -> 互動:滑鼠懸停提示 -> 理由:直觀地展示「增長空間」的論點。
+    - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F5F2;
+            color: #434242;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #E0A75E;
+            border-bottom-color: #E0A75E;
+        }
+        .tab-button.active {
+            background-color: #E0A75E;
+            color: #FFFFFF;
+        }
+        .timeline-item-content {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-[#434242]">比特幣投資洞察</h1>
+                </div>
+                <nav class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#market-insights" class="nav-link text-gray-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">市場洞察</a>
+                        <a href="#institutional-view" class="nav-link text-gray-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">機構觀點</a>
+                        <a href="#investment-strategy" class="nav-link text-gray-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">投資策略</a>
+                        <a href="#blockstream-funds" class="nav-link text-gray-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">Blockstream 基金</a>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-[#434242] leading-tight">華爾街最強操盤手揭密</h2>
+            <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">專訪 Blockstream 投資長 Sean Bill，深入解析比特幣的機構採用、投資哲學與未來價值。</p>
+        </div>
+
+        <section id="market-insights" class="mb-16 scroll-mt-20">
+            <h3 class="text-2xl font-bold text-center mb-8 text-[#E0A75E]">市場洞察：時間的價值</h3>
+            <p class="text-center text-gray-600 mb-10 max-w-3xl mx-auto">Sean Bill 強調，在波動的市場中，「留在市場的時間」遠比「預測進場時機」重要。錯過幾個關鍵的交易日，可能就意味著錯失全年的大部分回報。這部分將探討比特幣的價格潛力與其獨特的市場動態。</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h4 class="font-bold text-lg mb-2">關鍵日決定全年漲幅</h4>
+                        <p class="text-gray-700">錯過市場表現最好的日子，對長期報酬有巨大影響。</p>
+                        <div class="mt-4 flex justify-around text-center">
+                            <div>
+                                <p class="text-3xl font-bold text-[#F2BE22]">12 天</p>
+                                <p class="text-sm text-gray-500">比特幣</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold text-gray-400">24 天</p>
+                                <p class="text-sm text-gray-500">標普 500</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h4 class="font-bold text-lg mb-2">價格潛力預測</h4>
+                        <p class="text-gray-700">基於強勁的供需失衡（ETF、企業購買 vs. 新幣產出），Sean 預期價格將有顯著增長。</p>
+                        <p class="mt-4 text-3xl font-bold text-center text-[#E0A75E]">> $200,000</p>
+                        <p class="text-center text-sm text-gray-500">在未來 6-12 個月</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h4 class="font-bold text-lg mb-2 text-center">市值增長潛力：數位黃金</h4>
+                    <p class="text-gray-700 text-center mb-4">若比特幣的市值達到與黃金相當的水平，意味著巨大的增長空間。</p>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-base font-medium text-gray-700">比特幣</span>
+                                <span class="text-sm font-medium text-gray-500">~ $2 兆美元</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-6">
+                                <div class="bg-[#F2BE22] h-6 rounded-full" style="width: 10%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-base font-medium text-gray-700">黃金</span>
+                                <span class="text-sm font-medium text-gray-500">~ $20 兆美元</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-6">
+                                <div class="bg-gray-400 h-6 rounded-full" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-center mt-4 text-gray-500">這是一個 10 倍的潛在增長空間。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="institutional-view" class="mb-16 scroll-mt-20">
+            <h3 class="text-2xl font-bold text-center mb-8 text-[#E0A75E]">機構觀點：從懷疑到採納</h3>
+            <p class="text-center text-gray-600 mb-10 max-w-3xl mx-auto">本節深入探討了機構投資者如何看待比特幣。從早期退休基金的謹慎嘗試，到貝萊德等巨頭的入場，我們將通過數據和時間線，揭示機構採用比特幣的曲折歷程與關鍵考量。</p>
+            
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h4 class="font-bold text-lg mb-4 text-center">機構採用之路時間軸</h4>
+                <div id="timeline" class="relative">
+                    <div class="absolute left-1/2 h-full w-0.5 bg-gray-200"></div>
+                    <div class="space-y-12">
+                        <div class="timeline-item flex justify-start w-full">
+                            <div class="w-1/2 pr-8 text-right">
+                                <div class="bg-[#E0A75E] text-white font-bold p-2 rounded-md inline-block">2019</div>
+                                <div class="timeline-item-content mt-2 p-4 bg-gray-100 rounded-lg shadow max-h-0 opacity-0 overflow-hidden">
+                                    <h5 class="font-semibold">首次叩關</h5>
+                                    <p class="text-sm">Sean Bill 團隊開始向美國退休基金提案，歷時 18 個月進行教育與溝通，邀請多位業界專家進行講座。</p>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="timeline-item flex justify-end w-full">
+                            <div class="w-1/2 pl-8 text-left">
+                                <div class="bg-[#E0A75E] text-white font-bold p-2 rounded-md inline-block">2021</div>
+                                <div class="timeline-item-content mt-2 p-4 bg-gray-100 rounded-lg shadow max-h-0 opacity-0 overflow-hidden">
+                                    <h5 class="font-semibold">成功佈局</h5>
+                                    <p class="text-sm">透過支持 Skybridge 基金，該退休基金首次間接配置比特幣，部位為 45 個基點。此舉為其他機構開創了先例。</p>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="timeline-item flex justify-start w-full">
+                            <div class="w-1/2 pr-8 text-right">
+                                <div class="bg-[#E0A75E] text-white font-bold p-2 rounded-md inline-block">2024</div>
+                                <div class="timeline-item-content mt-2 p-4 bg-gray-100 rounded-lg shadow max-h-0 opacity-0 overflow-hidden">
+                                    <h5 class="font-semibold">巨頭入場</h5>
+                                    <p class="text-sm">貝萊德（BlackRock）推出比特幣 ETF，成為史上增長最快的 ETF，為機構投資者提供了重要的信任背書與合規的投資管道。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-center text-sm text-gray-500 mt-4">點擊年份以查看詳細資訊。</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                     <h4 class="font-bold text-lg mb-4 text-center">風險調整後報酬</h4>
+                     <p class="text-sm text-center text-gray-600 mb-4">使用索提諾比率（僅考慮下檔風險），比特幣展現出遠超傳統資產的吸引力。</p>
+                     <div class="chart-container">
+                        <canvas id="riskReturnChart"></canvas>
+                     </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md flex flex-col justify-center">
+                    <h4 class="font-bold text-lg mb-4 text-center">採用現況：仍在早期</h4>
+                    <p class="text-sm text-center text-gray-600 mb-6">在一次針對機構投資者的調查中，個人持有率遠高於機構持有率，顯示市場仍有巨大潛力。</p>
+                    <div class="space-y-4">
+                        <div class="text-center">
+                            <p class="text-4xl font-bold text-[#E0A75E]">~50%</p>
+                            <p class="text-gray-600">與會者個人持有比特幣</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-4xl font-bold text-gray-400">3 家</p>
+                            <p class="text-gray-600">與會者所屬機構持有比特幣</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 bg-white p-8 rounded-lg shadow-md">
+                <h4 class="text-xl font-bold text-center mb-2">關鍵指標：衡量投資的「CP值」</h4>
+                <p class="text-center text-gray-600 mb-6 max-w-3xl mx-auto">夏普與索提諾比率是衡量「風險調整後報酬」的關鍵指標，白話來說，就是評估一項投資「划不划算」。它們幫助我們比較，在承擔了不同程度的風險後，哪項資產能帶來更好的回報。</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h5 class="font-semibold text-lg mb-2">如何解讀比率分數？</h5>
+                        <ul class="space-y-2 text-sm">
+                            <li><span class="font-bold text-red-600">&lt; 1：</span>不划算。承受的每一分風險，換來的回報不到一分。</li>
+                            <li><span class="font-bold text-gray-600">= 1：</span>普通。風險與回報成正比，一分風險換一分回報。</li>
+                            <li><span class="font-bold text-green-600">&gt; 1：</span>划算！承受的每一分風險，能換來超過一分的回報。數字越高，CP值越高。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h5 class="font-semibold text-lg mb-2">為何索提諾比率對比特幣更重要？</h5>
+                        <p class="text-sm text-gray-700">傳統的夏普比率會將「暴漲」也視為風險，這會懲罰像比特幣這樣常有驚人漲幅的資產。索提諾比率只關注「賠錢的風險」，更能反映投資者真實的感受，因此是評估比特幣CP值的更佳工具。</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">資產類別</th>
+                                <th scope="col" class="px-6 py-3 text-center">夏普比率 (總風險)</th>
+                                <th scope="col" class="px-6 py-3 text-center">索提諾比率 (下檔風險)</th>
+                                <th scope="col" class="px-6 py-3">CP值解讀</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-white border-b hover:bg-amber-50">
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">比特幣</th>
+                                <td class="px-6 py-4 text-center font-bold text-green-600">~1.11</td>
+                                <td class="px-6 py-4 text-center font-bold text-green-700 text-lg">~2.42</td>
+                                <td class="px-6 py-4">即便考慮總風險也算划算；若只看虧損風險，則是極度划算的投資。</td>
+                            </tr>
+                            <tr class="bg-white border-b hover:bg-gray-50">
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">標普500 (美股)</th>
+                                <td class="px-6 py-4 text-center text-red-600">~0.72</td>
+                                <td class="px-6 py-4 text-center text-green-600">~1.15</td>
+                                <td class="px-6 py-4">整體風險報酬比不佳，但因上漲較平穩，若只看下檔風險則剛好及格。</td>
+                            </tr>
+                            <tr class="bg-white border-b hover:bg-gray-50">
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">美國國債</th>
+                                <td class="px-6 py-4 text-center text-red-600">~0.50</td>
+                                <td class="px-6 py-4 text-center text-red-600">~0.70</td>
+                                <td class="px-6 py-4">傳統的避險資產，報酬低，因此風險調整後的CP值也偏低。</td>
+                            </tr>
+                            <tr class="bg-white hover:bg-gray-50">
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">現金 (短期國庫券)</th>
+                                <td class="px-6 py-4 text-center text-gray-500">0</td>
+                                <td class="px-6 py-4 text-center text-gray-500">0</td>
+                                <td class="px-6 py-4">基準的無風險資產，沒有超額報酬，自然也就沒有所謂的CP值。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="investment-strategy" class="mb-16 scroll-mt-20">
+            <h3 class="text-2xl font-bold text-center mb-8 text-[#E0A75E]">投資策略與哲學</h3>
+            <p class="text-center text-gray-600 mb-10 max-w-3xl mx-auto">這一部分聚焦於 Sean Bill 的個人投資哲學和從錯誤中學到的寶貴教訓。他認為，對於像比特幣這樣具有長期巨大潛力的資產，簡單的長期持有策略，遠勝於頻繁的擇時交易。</p>
+             <div class="bg-white p-8 rounded-lg shadow-md text-center">
+                <h4 class="text-xl font-bold mb-4">核心哲學：在市場中的時間 vs. 預測市場時機</h4>
+                <p class="text-gray-700 max-w-2xl mx-auto">"在一個年複合增長率超過 65% 的市場，你必須非常小心，不要錯過上漲的機會。我們認為機會更多在於相對價值類型的交易，而不是預測市場時機。"</p>
+                <div class="mt-8 bg-gray-50 p-6 rounded-lg">
+                    <h5 class="font-semibold text-lg mb-4">一個昂貴的教訓</h5>
+                    <p class="text-gray-600 mb-4">Sean 分享了他早期試圖「擇時交易」的慘痛經歷，這個故事凸顯了長期持有的重要性：</p>
+                    <div id="story-container" class="relative h-48 flex items-center justify-center">
+                        <div class="story-slide absolute inset-0 transition-opacity duration-500 ease-in-out opacity-100 text-center">
+                            <p class="text-lg">在 $456 買入比特幣，於 $12,000 賣出，<strong class="text-green-600">自以為是地</strong>獲得了 38 倍的驚人回報。</p>
+                        </div>
+                        <div class="story-slide absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 text-center">
+                             <p class="text-lg">但他隨後<strong class="text-red-600">痛苦地</strong>看著價格飆升至 $20,000，然後是 $60,000，完美錯過了更大的漲幅。</p>
+                        </div>
+                        <div class="story-slide absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 text-center">
+                            <p class="font-bold text-xl text-[#E0A75E]">"這是一個非常痛苦的教訓...<br>在 17,000 美元重新進場後，我再也沒賣過。"</p>
+                        </div>
+                    </div>
+                     <button id="next-story" class="mt-4 bg-[#E0A75E] text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition">繼續看下去</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="blockstream-funds" class="scroll-mt-20">
+            <h3 class="text-2xl font-bold text-center mb-8 text-[#E0A75E]">Blockstream 的金融服務</h3>
+             <p class="text-center text-gray-600 mb-10 max-w-3xl mx-auto">Blockstream 不僅是技術公司，也正在建構比特幣生態的金融基礎設施。他們的三大基金分別針對不同需求的投資者，旨在解鎖比特幣的流動性、創造收益，並利用市場的無效率來獲取超額回報。</p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex justify-center border-b border-gray-200 mb-6">
+                    <button data-tab="yield" class="tab-button active px-6 py-3 font-medium text-gray-600 transition">收益型 (Yield)</button>
+                    <button data-tab="income" class="tab-button px-6 py-3 font-medium text-gray-600 transition">入息型 (Income)</button>
+                    <button data-tab="alpha" class="tab-button px-6 py-3 font-medium text-gray-600 transition">阿爾法型 (Alpha)</button>
+                </div>
+
+                <div id="tab-content" class="min-h-[250px]">
+                    <div id="yield-content" class="tab-panel grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                        <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">目標客群</h5>
+                            <p>希望在不出售比特幣的前提下，安全地讓資產增值的長期持有者 (HODlers) 和企業金庫。</p>
+                        </div>
+                         <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">目標報酬</h5>
+                            <p class="text-2xl font-bold text-[#F2BE22]">2-4%</p>
+                            <p>追求低風險、穩定收益，類似於比特幣世界的貨幣市場基金。</p>
+                        </div>
+                         <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">主要策略</h5>
+                            <p>透過保守的市場中性策略產生收益，例如賣出賣權（Put Options）以賺取權利金，或將比特幣出借給需要短期流動性的 ETF 發行商或礦工。</p>
+                        </div>
+                    </div>
+                     <div id="income-content" class="tab-panel hidden grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                        <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">目標客群</h5>
+                            <p>坐擁大量比特幣但需要美元流動性的巨鯨或早期投資者，解決他們不想因出售而觸發稅務事件的痛點。</p>
+                        </div>
+                         <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">核心業務</h5>
+                            <p class="text-xl font-bold">美元貸款</p>
+                            <p>提供以比特幣為超額抵押品的貸款服務，為中東主權基金、美國退休基金等美元持有者提供投資管道。</p>
+                        </div>
+                         <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">利率結構</h5>
+                            <p>利率約在 7.5% - 12% 之間，根據貸款價值比 (LTV 25%-65%) 和貸款期限（最長12個月）進行矩陣定價。</p>
+                        </div>
+                    </div>
+                     <div id="alpha-content" class="tab-panel hidden grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                        <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">目標客群</h5>
+                            <p>已有比特幣被動曝險（如持有 ETF），並尋求主動管理以增強回報的機構投資者或高淨值人士。</p>
+                        </div>
+                         <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">核心理念</h5>
+                            <p class="text-xl font-bold">捕捉市場無效率</p>
+                            <p>利用當前加密貨幣市場（尤其是比特幣相關衍生品）中存在的套利機會。"從以太坊、Solana 吸金，轉換成比特幣"。</p>
+                        </div>
+                         <div class="text-center p-4">
+                            <h5 class="font-bold text-lg mb-2">主要策略</h5>
+                            <p>採用類似 Millennium 或 Citadel 的多策略平台模式，包括高頻交易、選擇權造市、基差交易、跨交易所套利等。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-gray-500">
+            <p>&copy; 2025 比特幣投資洞察。基於 Sean Bill 訪談內容製作。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('riskReturnChart').getContext('2d');
+            const riskReturnChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['比特幣', '標普 500'],
+                    datasets: [{
+                        label: '夏普比率 (Sharpe Ratio)',
+                        data: [1.11, 0.72],
+                        backgroundColor: 'rgba(128, 128, 128, 0.6)',
+                        borderColor: 'rgba(128, 128, 128, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: '索提諾比率 (Sortino Ratio)',
+                        data: [2.42, 1.15],
+                        backgroundColor: 'rgba(242, 190, 34, 0.6)',
+                        borderColor: 'rgba(242, 190, 34, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '比率值'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '資產風險調整後報酬比較'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('main section');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.4
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+            
+            navLinks.forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            const timelineItems = document.querySelectorAll('.timeline-item');
+            timelineItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const content = item.querySelector('.timeline-item-content');
+                    if (content.style.maxHeight === '0px' || content.style.maxHeight === '') {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        content.style.opacity = '1';
+                        content.style.marginTop = '0.5rem';
+                    } else {
+                        content.style.maxHeight = '0px';
+                        content.style.opacity = '0';
+                        content.style.marginTop = '0';
+                    }
+                });
+            });
+            
+            const tabs = document.querySelectorAll('.tab-button');
+            const panels = document.querySelectorAll('.tab-panel');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(item => item.classList.remove('active'));
+                    tab.classList.add('active');
+                    const target = tab.getAttribute('data-tab');
+                    panels.forEach(panel => {
+                        if (panel.id === `${target}-content`) {
+                            panel.classList.remove('hidden');
+                        } else {
+                            panel.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            const storySlides = document.querySelectorAll('.story-slide');
+            const nextStoryBtn = document.getElementById('next-story');
+            let currentStoryIndex = 0;
+            nextStoryBtn.addEventListener('click', () => {
+                storySlides[currentStoryIndex].classList.remove('opacity-100');
+                storySlides[currentStoryIndex].classList.add('opacity-0');
+                currentStoryIndex = (currentStoryIndex + 1) % storySlides.length;
+                storySlides[currentStoryIndex].classList.remove('opacity-0');
+                storySlides[currentStoryIndex].classList.add('opacity-100');
+            });
+        });
+    </script>
+</body>
+</html>
+
