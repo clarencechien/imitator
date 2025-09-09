@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台北老派約會餐廳指南 (完整資訊版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFCF8;
+            color: #4B4237;
+        }
+        h1, h2, h3, h4, .font-serif {
+            font-family: 'Noto Serif TC', serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .active-filter {
+            background-color: #A16207;
+            color: #FDFCF8;
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-stone-50">
+
+    <header class="text-center py-12 md:py-16 bg-stone-100 border-b-2 border-stone-200">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl md:text-5xl font-bold text-amber-900 tracking-wider">台北老派約會指南</h1>
+            <p class="mt-4 text-lg text-stone-600 max-w-2xl mx-auto">Taipei Classic & Nostalgic Dining</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        <section id="intro" class="text-center mb-12">
+            <div class="max-w-3xl mx-auto bg-white/60 p-6 rounded-lg shadow-sm">
+                <p class="text-lg text-stone-700 leading-relaxed">
+                    在凡事講求效率的時代，我們習慣了速食的交友文化，卻也漸漸遺忘了慢火細燉的浪漫。然而，在台北的某些角落，一些老派西餐廳仍然固執地守護著舊日時光。這裡不僅是用餐的場所，更是一個個承載著城市記憶與浪漫情懷的空間，邀請您暫時逃離快-節奏的生活，體驗一場必要的老派約會。
+                </p>
+            </div>
+        </section>
+
+        <section id="explorer" class="mb-12">
+            <div id="filters" class="flex flex-wrap justify-center gap-3 mb-8">
+                <button data-filter="all" class="filter-btn active-filter transition-all duration-300 ease-in-out bg-white hover:bg-amber-100 text-amber-800 font-semibold py-2 px-5 border border-amber-200 rounded-full shadow-sm">全部餐廳</button>
+                <button data-filter="live-music" class="filter-btn transition-all duration-300 ease-in-out bg-white hover:bg-amber-100 text-amber-800 font-semibold py-2 px-5 border border-amber-200 rounded-full shadow-sm">現場音樂</button>
+                <button data-filter="buffet" class="filter-btn transition-all duration-300 ease-in-out bg-white hover:bg-amber-100 text-amber-800 font-semibold py-2 px-5 border border-amber-200 rounded-full shadow-sm">特色自助吧</button>
+                <button data-filter="24-hour" class="filter-btn transition-all duration-300 ease-in-out bg-white hover:bg-amber-100 text-amber-800 font-semibold py-2 px-5 border border-amber-200 rounded-full shadow-sm">深夜食堂</button>
+                <button data-filter="history" class="filter-btn transition-all duration-300 ease-in-out bg-white hover:bg-amber-100 text-amber-800 font-semibold py-2 px-5 border border-amber-200 rounded-full shadow-sm">日治時期</button>
+            </div>
+             <div class="bg-white/60 p-4 rounded-lg shadow-sm">
+                <h2 class="text-2xl font-bold text-amber-900 text-center mb-4">餐廳歷史時間軸</h2>
+                <p class="text-center text-stone-600 mb-4">點擊下方圖表中的餐廳，可直接查看詳細介紹。</p>
+                <div class="chart-container">
+                    <canvas id="restaurantsTimeline"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="restaurant-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8 mt-12 bg-stone-100 border-t-2 border-stone-200">
+        <p class="text-stone-500">台北老派約會指南 &copy; 2024</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const restaurantsData = [
+                {
+                    id: 'bolero',
+                    name: '波麗路西餐廳 BOLERO',
+                    year: 1934,
+                    address: '台北市大同區民生西路314號',
+                    hours: '11:30–21:30',
+                    rating: '4.1 ★',
+                    description: '台北現存最古老的西餐廳，走過日治時期，是早期文人雅士的聚集地。裝潢融合了古早台味與西式浪漫，見證了台北的風華歲月。',
+                    signature: '豪華特餐 (沙拉附滷雞翅、紅醬鮑魚丁、焗烤明蝦)、紅炖牛舌、德國豬腳。',
+                    atmosphere: '時光倒流般的懷舊氛圍，彷彿走進台灣早期電影場景。',
+                    tags: ['history']
+                },
+                {
+                    id: 'zhan-mei',
+                    name: '沾美西餐廳',
+                    year: 1949,
+                    address: '台北市大安區仁愛路四段77號B1',
+                    hours: '11:30–15:00, 17:30–22:30',
+                    rating: '4.5 ★',
+                    description: '位於仁愛圓環的地下一樓，是許多台北人的共同記憶。親切的服務、經典的紅絲絨與木質裝潢，數十年來溫暖了無數人的胃與心。',
+                    signature: '鮮鴨肝紐西蘭牛排、法式洋蔥湯、自助沙拉吧。',
+                    atmosphere: '優雅的鋼琴現場演奏，昏黃燈光下充滿溫馨、高雅的用餐氣氛。',
+                    tags: ['live-music', 'buffet']
+                },
+                {
+                    id: 'persons',
+                    name: '雙葉西餐廳',
+                    year: 1965,
+                    address: '台北市中山區中山北路二段11巷11號',
+                    hours: '11:30–21:30 (週一公休)',
+                    rating: '4.2 ★',
+                    description: '開業超過半世紀，是中山區一帶的老字號。這裡保留了非常傳統的台式西餐風格，從裝潢到菜單都讓人感受到濃厚的懷舊氣息。',
+                    signature: '酥皮濃湯、菲力牛排、雞排/豬排雙拼。',
+                    atmosphere: '家庭式經營的親切感，樸實無華卻充滿人情味的用餐環境。',
+                    tags: []
+                },
+                {
+                    id: 'alexanders',
+                    name: '亞里士餐廳',
+                    year: 1970,
+                    address: '台北市中山區長安東路一段27號B1',
+                    hours: '11:30–14:30, 17:30–22:00',
+                    rating: '4.5 ★',
+                    description: '隱身於地下室的經典餐廳，料理風格受早期美軍與歐式餐飲影響。夜晚點上蠟燭，搭配鎮店之寶真空管音響播放的音樂，氛圍絕佳。',
+                    signature: '戰斧豬排、炭烤牛排、手炒熱可可。',
+                    atmosphere: '價值不菲的真空管音響，營造出獨一無二的音樂饗宴與高雅氣氛。',
+                    tags: ['live-music']
+                },
+                {
+                    id: 'governor',
+                    name: '總督西餐廳',
+                    year: 1979,
+                    address: '台北市大安區忠孝東路四段104號2樓',
+                    hours: '11:30–22:00',
+                    rating: '4.2 ★',
+                    description: '位於東區商辦大樓內的老店，空間保有80年代的獨特氛圍。排餐水準穩定，但其自助吧的台式熱炒、滷味、芋泥等菜色更讓人津津樂道。',
+                    signature: '主廚推薦牛排、自助吧的滷味、炒麵、燒賣、芋泥。',
+                    atmosphere: '80年代的華麗復古風格，自助吧充滿驚喜，是其最大特色。',
+                    tags: ['buffet']
+                },
+                {
+                    id: 'little-tree',
+                    name: '小樹西餐廳',
+                    year: 1983,
+                    address: '台北市士林區天母東路8巷69號',
+                    hours: '11:30–14:30, 17:30–21:30',
+                    rating: '4.3 ★',
+                    description: '在天母地區屹立不搖的老牌西餐廳，以實在的用料和親民的價格聞名。家庭式的溫馨氛圍，是許多天母人從小吃到大的回憶。',
+                    signature: '美國頂級肋眼牛排、酥皮海鮮濃湯、蒜味烤田螺。',
+                    atmosphere: '溫馨舒適的家庭餐廳感，服務親切，適合全家大小聚餐。',
+                    tags: []
+                },
+                {
+                    id: 'romantic-life',
+                    name: '浪漫一生西餐廳',
+                    year: 1983,
+                    address: '台北市中山區民生東路二段79號',
+                    hours: '24小時營業',
+                    rating: '3.9 ★',
+                    description: '台北少見的24小時營業西餐廳，是許多夜貓族或需要深夜談心人們的避風港。餐點選擇極為多樣，從排餐到中式粥品應有盡有。',
+                    signature: '各式排餐、義大利麵、牛肉炒飯、皮蛋瘦肉粥。',
+                    atmosphere: '無論何時都為你點亮一盞燈，適合深夜長談的獨特存在。',
+                    tags: ['24-hour', 'live-music']
+                },
+                {
+                    id: 'center-steak',
+                    name: '中信牛排館',
+                    year: 1992,
+                    address: '台北市內湖區成功路五段452號',
+                    hours: '11:30–21:00 (週末至21:30)',
+                    rating: '4.2 ★',
+                    description: '內湖的老字號牛排館，以大塊、實在的牛排和豐盛的自助沙拉吧著稱。裝潢雖然樸實，但數十年如一日的穩定品質，培養了許多忠實顧客。',
+                    signature: '厚片沙朗牛排、菲力牛排、豐富的自助沙拉吧。',
+                    atmosphere: '經典台式牛排館風格，氣氛熱鬧，CP值高，適合大口吃肉。',
+                    tags: ['buffet']
+                }
+            ];
+
+            const restaurantList = document.getElementById('restaurant-list');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const timelineCtx = document.getElementById('restaurantsTimeline').getContext('2d');
+            let timelineChart;
+            
+            restaurantsData.sort((a, b) => a.year - b.year);
+
+            function renderCards(filter = 'all') {
+                restaurantList.innerHTML = '';
+                const filteredData = filter === 'all' 
+                    ? restaurantsData 
+                    : restaurantsData.filter(r => r.tags.includes(filter));
+
+                if (filteredData.length === 0) {
+                    restaurantList.innerHTML = `<p class="col-span-full text-center text-stone-500">暫無符合條件的餐廳。</p>`;
+                    return;
+                }
+
+                filteredData.forEach(r => {
+                    const card = document.createElement('article');
+                    card.id = `restaurant-${r.id}`;
+                    card.className = 'bg-white rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 ease-in-out border border-stone-200/80';
+                    card.innerHTML = `
+                        <div class="p-6">
+                            <div class="flex justify-between items-baseline mb-2">
+                                <h3 class="text-2xl font-bold text-amber-800">${r.name}</h3>
+                                <span class="text-sm font-semibold bg-amber-100 text-amber-800 px-3 py-1 rounded-full">${r.year}年創立</span>
+                            </div>
+                            <p class="text-stone-600 mb-4 leading-relaxed">${r.description}</p>
+                            
+                            <div class="border-t border-b border-stone-200 my-4 py-3 text-sm text-stone-700 space-y-2">
+                                <p class="flex items-start gap-2">
+                                    <span class="w-4 text-center mt-1">📍</span>
+                                    <span>${r.address}</span>
+                                </p>
+                                <p class="flex items-center gap-2">
+                                    <span class="w-4 text-center">🕒</span>
+                                    <span>${r.hours}</span>
+                                </p>
+                                <p class="flex items-center gap-2">
+                                    <span class="w-4 text-center">⭐</span>
+                                    <span>Google 評分: ${r.rating}</span>
+                                </p>
+                            </div>
+
+                            <div class="mt-4">
+                                <h4 class="font-semibold text-stone-800 mb-1">招牌推薦</h4>
+                                <p class="text-stone-600 text-sm">${r.signature}</p>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="font-semibold text-stone-800 mb-1">氛圍特色</h4>
+                                <p class="text-stone-600 text-sm">${r.atmosphere}</p>
+                            </div>
+                        </div>
+                    `;
+                    restaurantList.appendChild(card);
+                });
+            }
+            
+            function createTimelineChart() {
+                const labels = restaurantsData.map(r => r.name);
+                const data = restaurantsData.map(r => r.year);
+
+                timelineChart = new Chart(timelineCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '創立年份',
+                            data: data,
+                            backgroundColor: 'rgba(161, 98, 7, 0.6)',
+                            borderColor: 'rgba(161, 98, 7, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        maintainAspectRatio: false,
+                        responsive: true,
+                        scales: {
+                            x: {
+                                beginAtZero: false,
+                                min: 1930,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `創立於 ${context.raw} 年`;
+                                    }
+                                }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            if (elements.length > 0) {
+                                const index = elements[0].index;
+                                const restaurantId = restaurantsData[index].id;
+                                const cardElement = document.getElementById(`restaurant-${restaurantId}`);
+                                if (cardElement) {
+                                    filterBtns.forEach(btn => {
+                                        btn.classList.remove('active-filter');
+                                        if(btn.dataset.filter === 'all') btn.classList.add('active-filter');
+                                    });
+                                    renderCards('all');
+                                    
+                                    setTimeout(() => {
+                                        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        cardElement.style.transition = 'all 0.3s ease';
+                                        cardElement.style.boxShadow = '0 0 25px rgba(161, 98, 7, 0.5)';
+                                        setTimeout(() => {
+                                            cardElement.style.boxShadow = '';
+                                        }, 1500);
+                                    }, 100);
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => b.classList.remove('active-filter'));
+                    btn.classList.add('active-filter');
+                    renderCards(btn.dataset.filter);
+                });
+            });
+
+            renderCards();
+            createTimelineChart();
+        });
+    </script>
+</body>
+</html>
