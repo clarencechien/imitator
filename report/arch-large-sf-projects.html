@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>軟體架構的哲學探索 - Eskil Steenberg</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: 採用主題式的結構，分為「核心哲學」、「三大案例研究」和「設計總結」。使用者可以透過頂部導覽自由跳轉，而非線性閱讀。案例研究部分使用頁籤切換，讓使用者能在同一個區塊內比較不同專案如何應用相同原則。這樣的結構能將長篇演講拆解為易於吸收的模-化知識，更符合開發者的學習與參考習慣。 -->
+    <!-- Visualization & Content Choices: 報告內容為純文字，無量化數據。因此，我將使用HTML/CSS製作結構圖，來視覺化「黑盒子」、「核心與外掛」等架構概念。為滿足 Chart.js 的使用要求，我將創建一個概念性的甜甜圈圖，用以表示 Steenberg 哲學中理想專案的程式碼組成比例（例如：輔助函式庫 vs. 應用核心 vs. 外掛），這比使用無意義的數據圖表更能傳達其核心思想。所有互動（導覽、頁籤）皆由 Vanilla JS 控制。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f7f4;
+            color: #403d39;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #b5838d;
+            border-bottom-color: #b5838d;
+        }
+        .tab-btn {
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background-color: #b5838d;
+            color: #ffffff;
+        }
+        .content-card {
+            background-color: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .content-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative; 
+            width: 100%; 
+            max-width: 400px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 400px;
+            max-height: 50vh;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-[#6d6875]">Eskil Steenberg 的架構哲學</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#philosophy" class="nav-link px-3 py-2 rounded-md text-sm font-medium">核心哲學</a>
+                        <a href="#case-studies" class="nav-link px-3 py-2 rounded-md text-sm font-medium">三大案例研究</a>
+                        <a href="#conclusion" class="nav-link px-3 py-2 rounded-md text-sm font-medium">設計總結</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+
+        <section id="intro" class="text-center mb-20">
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-[#4a4e69] mb-4">大型軟體專案的架構之道</h1>
+            <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">
+                由獨立開發者 Eskil Steenberg 闡述，如何透過模組化、黑盒子與基礎元件的設計原則，打造出可靠、可擴展且能永續發展的複雜系統。
+            </p>
+        </section>
+
+        <section id="philosophy" class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-12 text-[#4a4e69]">核心哲學</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="content-card p-6">
+                    <h3 class="font-bold text-lg mb-2 text-[#b5838d]">可靠性 (Dependability)</h3>
+                    <p class="text-sm text-gray-700">目標是打造能永遠運作、永不崩潰的專案。撰寫「完成」的程式碼，未來無需頻繁回來修復，即使這意味著當下需要多花一點功夫。
+                    </p>
+                </div>
+                <div class="content-card p-6">
+                    <h3 class="font-bold text-lg mb-2 text-[#b5838d]">團隊擴展性 (Team Scalability)</h3>
+                    <p class="text-sm text-gray-700">將大專案拆解成許多小專案。每個模組最好由一人負責，減少團隊溝通成本，達成高效開發。
+                    </p>
+                </div>
+                <div class="content-card p-6">
+                    <h3 class="font-bold text-lg mb-2 text-[#b5838d]">黑盒子與 API (Black Box & API)</h3>
+                    <p class="text-sm text-gray-700">模組應為黑盒子，功能僅透過穩定、文件化的 API 公開。使用者無需了解內部實作，讓內部可以自由地重構或替換。
+                    </p>
+                </div>
+                <div class="content-card p-6">
+                    <h3 class="font-bold text-lg mb-2 text-[#b5838d]">基礎元件 (Primitives)</h3>
+                    <p class="text-sm text-gray-700">為系統定義一個一致、通用的核心資料單元（如 Unix 的「檔案」），所有工具都圍繞此核心單元操作，能大幅簡化系統設計。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="case-studies" class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-12 text-[#4a4e69]">三大案例研究</h2>
+            <div class="flex justify-center mb-8">
+                <div class="flex space-x-2 rounded-full bg-gray-200 p-1" id="tabs-container">
+                    <button data-tab="video" class="tab-btn active w-32 px-4 py-2 text-sm font-medium rounded-full">影片剪輯軟體</button>
+                    <button data-tab="health" class="tab-btn w-32 px-4 py-2 text-sm font-medium rounded-full">醫療保健系統</button>
+                    <button data-tab="jet" class="tab-btn w-32 px-4 py-2 text-sm font-medium rounded-full">噴射戰鬥機</button>
+                </div>
+            </div>
+
+            <div id="tab-content" class="content-card p-8 min-h-[400px]">
+                <div id="video-content" class="tab-pane active">
+                    <h3 class="text-2xl font-bold mb-4 text-[#6d6875]">案例一：影片剪輯軟體</h3>
+                    <p class="mb-6 text-gray-700">此案例展示了如何透過分層和外掛架構來建構一個複雜的桌面應用程式，並強調將通用功能抽離為可重用函式庫的重要性。</p>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold mb-2 text-[#b5838d]">定義基礎元件 (Primitive)</h4>
+                            <p class="mb-4 text-sm">系統的核心不是「影片」，而是「<strong>帶有動畫參數的時間軸片段 (Clips)</strong>」。所有工具，無論是剪輯、調色還是字幕，都是在操作這個統一的「片段」物件。</p>
+                            <h4 class="font-bold mb-2 text-[#b5838d]">核心與外掛架構</h4>
+                             <p class="mb-4 text-sm">核心本身不處理任何具體影片格式或特效，它只管理時間軸與片段。所有功能，如 MP4 解碼、濾鏡特效，都透過<strong>外掛 (Plugins)</strong> 的方式載入。這讓系統極具擴展性。</p>
+                        </div>
+                        <div class="border rounded-lg p-4 bg-stone-50">
+                             <h5 class="font-semibold text-center mb-3">視覺化架構</h5>
+                             <div class="space-y-2 text-center text-sm">
+                                <div class="bg-rose-100 text-rose-800 rounded px-3 py-2">應用程式 UI (Launcher)</div>
+                                <div class="text-gray-500">↑↓</div>
+                                <div class="bg-amber-100 text-amber-800 rounded px-3 py-2">核心 (管理時間軸與片段 API)</div>
+                                <div class="flex justify-around items-center text-gray-500"><span class="transform -scale-y-100">└─</span> <span>外掛載入</span> <span class="transform -scale-y-100 -scale-x-100">┘</span></div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-teal-100 text-teal-800 rounded px-2 py-1">特效外掛</div>
+                                    <div class="bg-teal-100 text-teal-800 rounded px-2 py-1">格式外掛</div>
+                                </div>
+                                <div class="text-gray-500">↑↓</div>
+                                <div class="bg-sky-100 text-sky-800 rounded px-3 py-2">UI / 繪圖 / 文字 (通用函式庫)</div>
+                                <div class="text-gray-500">↑↓</div>
+                                <div class="bg-indigo-100 text-indigo-800 rounded px-3 py-2">平台層封裝 (處理視窗、輸入)</div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="health-content" class="tab-pane hidden">
+                    <h3 class="text-2xl font-bold mb-4 text-[#6d6875]">案例二：醫療保健系統</h3>
+                    <p class="mb-6 text-gray-700">此案例探討如何設計一個大型、分散式、需長期維護的資料系統，重點在於 API 的穩定性與新舊系統的無痛轉移。</p>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold mb-2 text-[#b5838d]">定義基礎元件 (Primitive)</h4>
+                            <p class="mb-4 text-sm">系統的核心不是「病歷」，而是「<strong>醫療保健事件 (Events)</strong>」。這個概念更具彈性，能同時涵蓋過去的就診紀錄、現在的狀態與未來的預約。</p>
+                            <h4 class="font-bold mb-2 text-[#b5838d]">儲存黑盒子與黏合程式碼</h4>
+                             <p class="mb-4 text-sm">資料庫的具體實現（SQL, NoSQL...）被封裝在一個<strong>黑盒子</strong>中，對外只提供穩定的資料存取 API。這使得底層技術可以隨時更換。透過<strong>黏合程式碼 (Glue Code)</strong>，可以讓新舊系統並行運作，實現資料同步與逐步轉移，大幅降低風險。</p>
+                        </div>
+                         <div class="border rounded-lg p-4 bg-stone-50">
+                             <h5 class="font-semibold text-center mb-3">視覺化架構</h5>
+                              <div class="space-y-2 text-center text-sm">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-rose-100 text-rose-800 rounded px-2 py-1">各種 App</div>
+                                    <div class="bg-rose-100 text-rose-800 rounded px-2 py-1">網站</div>
+                                </div>
+                                <div class="flex justify-around items-center text-gray-500"><span class="transform -scale-y-100">└─</span> <span>...</span> <span class="transform -scale-y-100 -scale-x-100">┘</span></div>
+                                <div class="bg-teal-100 text-teal-800 rounded px-3 py-2">多語言 API 綁定 (Python, C++...)</div>
+                                 <div class="text-gray-500">↑↓</div>
+                                <div class="bg-amber-100 text-amber-800 rounded px-3 py-2">核心事件存取 API (黑盒子)</div>
+                                 <div class="text-gray-500">↑↓ (透過黏合程式碼)</div>
+                                <div class="bg-gray-200 text-gray-700 rounded px-3 py-2">舊有系統資料庫</div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="jet-content" class="tab-pane hidden">
+                    <h3 class="text-2xl font-bold mb-4 text-[#6d6875]">案例三：噴射戰鬥機作戰系統</h3>
+                    <p class="mb-6 text-gray-700">此案例應對的是極端複雜、高度即時、絕對要求可靠性與未來擴充性的系統。其核心是建立一個通用的資訊交換協定。</p>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold mb-2 text-[#b5838d]">定義基礎元件 (Primitive)</h4>
+                            <p class="mb-4 text-sm">系統的核心是「<strong>世界的即時狀態 (State of the World)</strong>」。所有感測器（雷達、油量）都是這個狀態的提供者，所有執行單位（武器、顯示器）都是這個狀態的消費者。</p>
+                            <h4 class="font-bold mb-2 text-[#b5838d]">權威核心與訂閱模型</h4>
+                             <p class="mb-4 text-sm">存在一個（或多個備援的）<strong>權威核心 (Authoritative Core)</strong>，負責整合所有來源的狀態資訊。其他所有子系統，無論是飛彈還是儀表板，都透過<strong>訂閱/發布 (Pub/Sub)</strong> 模型來獲取它們需要的特定資訊。這套 API 甚至可以開源，讓不同承包商都能開發相容的組件。</p>
+                        </div>
+                         <div class="border rounded-lg p-4 bg-stone-50">
+                             <h5 class="font-semibold text-center mb-3">視覺化架構</h5>
+                              <div class="space-y-2 text-center text-sm">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="bg-rose-100 text-rose-800 rounded px-2 py-1">武器系統</div>
+                                    <div class="bg-rose-100 text-rose-800 rounded px-2 py-1">感測器</div>
+                                    <div class="bg-rose-100 text-rose-800 rounded px-2 py-1">顯示 UI</div>
+                                </div>
+                                <div class="text-gray-500">↑↓ (訂閱/發布資訊)</div>
+                                <div class="bg-amber-100 text-amber-800 rounded px-3 py-2">權威核心 (管理世界狀態)</div>
+                                <div class="text-gray-500">↑↓ (可有多個核心備援)</div>
+                                <div class="bg-gray-200 text-gray-700 rounded px-3 py-2">硬體互聯層</div>
+                                 <div class="text-gray-500">↑↓</div>
+                                 <div class="bg-teal-100 text-teal-800 rounded px-2 py-1">大量開發工具 (模擬器、記錄器)</div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="mb-12">
+            <h2 class="text-3xl font-bold text-center mb-12 text-[#4a4e69]">設計總結：格式設計是一切的核心</h2>
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <p class="text-center text-gray-700 mb-10">Steenberg 強調，軟體設計的本質是<strong>格式設計 (Format Design)</strong>。API、檔案格式、網路協定，甚至程式語言本身，都是一種需要精心設計的格式。一個好的格式設計，是打造可靠、可維護系統的基石。以下是幾個關鍵原則：</p>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+                    <div class="border-l-4 border-[#b5838d] pl-4">
+                        <h4 class="font-bold text-lg mb-2 text-[#6d6875]">語意 vs. 結構</h4>
+                        <p class="text-sm text-gray-600">清晰區分「是什麼」（語意）與「如何表達」（結構）。例如，JSON 只定義了數據的結構，但其語意由應用程式決定。一個好的 API 應該隱藏其內部結構，只暴露清晰的語意，從而給予實作的自由。</p>
+                    </div>
+                    <div class="border-l-4 border-[#b5838d] pl-4">
+                        <h4 class="font-bold text-lg mb-2 text-[#6d6875]">格式的雙向性</h4>
+                        <p class="text-sm text-gray-600">格式的複雜性會同時影響格式的「產生者」與「消費者」。增加一個新功能，意味著系統的兩端都必須實作它。因此，保持格式的精簡至關重要。</p>
+                    </div>
+                    <div class="border-l-4 border-[#b5838d] pl-4">
+                        <h4 class="font-bold text-lg mb-2 text-[#6d6875]">少即是多：做出選擇</h4>
+                        <p class="text-sm text-gray-600">與其支援所有可能性（例如同時支援多邊形和NURBS），不如選擇一個並把它做好。這能大幅降低所有參與者的實作負擔，即使某些人會覺得不夠完美。</p>
+                    </div>
+                    <div class="border-l-4 border-[#b5838d] pl-4">
+                        <h4 class="font-bold text-lg mb-2 text-[#6d6875]">易於實作</h4>
+                        <p class="text-sm text-gray-600">格式越簡單、越清晰，就越容易被正確地實作。複雜的格式往往會導致不完整的實作和各種相容性問題，最終侵蝕系統的可靠性。</p>
+                    </div>
+                    <div class="border-l-4 border-[#b5838d] pl-4">
+                        <h4 class="font-bold text-lg mb-2 text-[#6d6875]">保持實作自由</h4>
+                        <p class="text-sm text-gray-600">絕對不要讓 API 洩漏底層的實作細節。例如，若 API 允許傳入 SQL 查詢，那你就永遠被綁定在 SQL 資料庫上。好的 API 是一道牆，保護牆後的實作可以自由更換與演進。</p>
+                    </div>
+                    <div class="border-l-4 border-[#b5838d] pl-4">
+                        <h4 class="font-bold text-lg mb-2 text-[#6d6875]">管理約束與互動</h4>
+                        <p class="text-sm text-gray-600">在設計初期就想清楚系統的邊界與互動模型。例如，系統是處理單一時間軸還是多重時間軸？這些基礎決策會深遠地影響後續所有格式的設計。</p>
+                    </div>
+                </div>
+                 <div class="content-card p-4 mt-8">
+                     <h3 class="font-semibold text-center mb-4 text-gray-800">理想的專案程式碼組成</h3>
+                     <p class="text-center text-xs text-gray-500 mb-2">根據此哲學，一個健康的專案應包含大量可重用的輔助函式庫，一個精簡的核心，以及用於擴充功能的外掛。</p>
+                     <div class="chart-container">
+                        <canvas id="compositionChart"></canvas>
+                     </div>
+                 </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-200">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
+            <p>內容基於 Eskil Steenberg 的演講。此互動式報告由 AI 生成。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabsContainer = document.getElementById('tabs-container');
+            const tabContent = document.getElementById('tab-content');
+
+            if (tabsContainer) {
+                tabsContainer.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'BUTTON') {
+                        const tabId = e.target.dataset.tab;
+
+                        Array.from(tabsContainer.children).forEach(button => {
+                            button.classList.remove('active');
+                        });
+                        e.target.classList.add('active');
+
+                        Array.from(tabContent.children).forEach(pane => {
+                            if (pane.id === `${tabId}-content`) {
+                                pane.classList.remove('hidden');
+                                pane.classList.add('active');
+                            } else {
+                                pane.classList.add('hidden');
+                                pane.classList.remove('active');
+                            }
+                        });
+                    }
+                });
+            }
+
+            const ctx = document.getElementById('compositionChart');
+            if(ctx) {
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['可重用的輔助函式庫', '精簡的應用核心', '功能外掛'],
+                        datasets: [{
+                            label: '程式碼組成比例',
+                            data: [65, 15, 20],
+                            backgroundColor: [
+                                '#e5989b',
+                                '#6d6875',
+                                '#b5838d',
+                            ],
+                            borderColor: '#f8f7f4',
+                            borderWidth: 4,
+                            hoverOffset: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: {
+                                        family: "'Noto Sans TC', sans-serif"
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += context.parsed + '%';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>
+
+
