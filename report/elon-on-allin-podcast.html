@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>伊隆·馬斯克訪談精華</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: 本應用程式採用主題式儀表板結構，而非訪談的線性順序。頂部設有導覽列，包含「未來願景」、「特斯拉 & AI」、「SpaceX & 星辰大海」、「星鏈 & 通訊」、「xAI & 智慧」以及「西方世界 & 人類未來」六大主題。使用者點擊任一主題即可載入對應的內容區塊，預設顯示「未來願景」作為總覽。每個區塊內使用資訊卡片、數據圖表和互動式文字來呈現重點，將長篇訪談轉化為主動探索的體驗。選擇此結構是為了讓使用者能快速跳轉至感興趣的話題，並透過視覺化方式更容易地理解複雜概念，大幅提升資訊的易讀性與使用者參與度。 -->
+    <!-- Visualization & Content Choices: 
+        1. 特斯拉 & AI: 
+           - 資訊: Optimus 成本與規格、AI 晶片 AI4 vs AI5 效能。
+           - 目標: 比較、告知。
+           - 視覺化: 使用 Chart.js 長條圖比較 AI4 與 AI5 在運算、記憶體等方面的倍數提升。
+           - 互動: 圖表工具提示顯示具體倍數。
+           - 理由: 長條圖能直觀地展示新舊晶片間巨大的效能差距，比純文字更具衝擊力。
+        2. SpaceX & 星辰大海:
+           - 資訊: 獵鷹重型 vs. 星艦的載荷能力、火星殖民時間線。
+           - 目標: 比較、展示進程。
+           - 視覺化: 使用 Chart.js 環圈圖比較兩種火箭的載荷噸數；使用 HTML/Tailwind 製作的簡易時間軸呈現火星計畫。
+           - 互動: 環圈圖的圖例清晰標示。
+           - 理由: 環圈圖清晰地顯示了星艦在載荷上的壓倒性優勢。時間軸則將一個長達數十年的複雜計畫簡化為幾個易於理解的階段。
+        3. 關鍵數據呈現:
+           - 資訊: Optimus 成本、Starlink 頻譜收購價、火星計畫時間等。
+           - 目標: 告知、強調。
+           - 視覺化: 使用帶有圖標和放大字體的 HTML/Tailwind 資訊卡片。
+           - 互動: 無，純展示。
+           - 理由: 將訪談中散落的關鍵數字提取出來，以醒目的視覺方式呈現，加深使用者印象。
+        Library/Method: Chart.js for charts, Tailwind CSS and Unicode characters for diagrams and layouts. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fdfdfc;
+            color: #383838;
+        }
+        .nav-btn {
+            @apply px-3 py-2 sm:px-4 text-sm sm:text-base font-medium text-gray-600 rounded-lg transition-all duration-300 ease-in-out whitespace-nowrap;
+        }
+        .nav-btn.active, .nav-btn:hover {
+            @apply bg-amber-100 text-amber-800 shadow-md transform scale-105;
+        }
+        .content-section {
+            display: none;
+            opacity: 0;
+        }
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .card {
+            @apply bg-white p-6 rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-2xl hover:border-amber-200 hover:-translate-y-1;
+        }
+        .stat-card {
+            @apply bg-amber-50 p-6 rounded-xl shadow-md border border-amber-200 text-center;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-amber-900 mb-2">伊隆·馬斯克的未來藍圖</h1>
+            <p class="text-lg text-gray-600">一場關於 AI、太空與人類文明未來的深度對談</p>
+        </header>
+
+        <nav id="navigation" class="flex flex-nowrap overflow-x-auto justify-start sm:justify-center gap-2 sm:gap-4 mb-12 pb-2">
+            <button class="nav-btn active" data-target="vision">🚀 未來願景</button>
+            <button class="nav-btn" data-target="tesla">🤖 特斯拉 & AI</button>
+            <button class="nav-btn" data-target="spacex">🌌 SpaceX & 火星</button>
+            <button class="nav-btn" data-target="starlink">🛰️ 星鏈 & 通訊</button>
+            <button class="nav-btn" data-target="xai">🧠 xAI & 智慧</button>
+            <button class="nav-btn" data-target="humanity">🌍 西方世界 & 未來</button>
+        </nav>
+
+        <main id="content-container">
+
+            <section id="vision" class="content-section active">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">總覽：一場好奇心的哲學</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        在這場訪談中，伊隆·馬斯克不僅分享了他旗下公司的驚人進展，更深入探討了驅動他前行的核心思想——對宇宙本質的好奇心。他認為，人類需要一個能激發興奮感與樂觀精神的共同目標，而探索星辰、擴展意識的範疇，正是這樣一個宏偉的願景。本頁面將訪談內容拆解為數個主題，讓您一窺他如何透過特斯拉、SpaceX 和 xAI 等工具，實踐他對未來的想像。
+                    </p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="card text-center">
+                        <div class="text-4xl mb-4">🤖</div>
+                        <h3 class="text-xl font-bold mb-2">特斯拉 & AI</h3>
+                        <p class="text-gray-600">從人形機器人 Optimus 到自動駕駛，探索 AI 如何重塑物理世界。</p>
+                    </div>
+                    <div class="card text-center">
+                        <div class="text-4xl mb-4">🌌</div>
+                        <h3 class="text-xl font-bold mb-2">SpaceX & 火星</h3>
+                        <p class="text-gray-600">星艦的完全可重複使用性，以及將人類文明擴展至火星的宏偉計畫。</p>
+                    </div>
+                     <div class="card text-center">
+                        <div class="text-4xl mb-4">🛰️</div>
+                        <h3 class="text-xl font-bold mb-2">星鏈 & 全球通訊</h3>
+                        <p class="text-gray-600">打破地理限制，建立一個從衛星直達手機的全球高速網路。</p>
+                    </div>
+                    <div class="card text-center">
+                        <div class="text-4xl mb-4">🧠</div>
+                        <h3 class="text-xl font-bold mb-2">xAI & 智慧</h3>
+                        <p class="text-gray-600">Grok 如何透過創新的訓練方式，邁向超越人類智慧總和的未來。</p>
+                    </div>
+                     <div class="card text-center md:col-span-2 lg:col-span-1">
+                        <div class="text-4xl mb-4">🌍</div>
+                        <h3 class="text-xl font-bold mb-2">西方世界 & 人類未來</h3>
+                        <p class="text-gray-600">對文明發展的深刻憂慮，以及重燃樂觀精神對人類存續的重要性。</p>
+                    </div>
+                     <div class="card text-center bg-amber-50 border-amber-200">
+                        <div class="text-4xl mb-4">💡</div>
+                        <h3 class="text-xl font-bold mb-2">核心驅動力</h3>
+                        <p class="text-gray-600">「我有一種好奇心的哲學... 我只是想知道發生了什麼事。」</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tesla" class="content-section">
+                 <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">特斯拉 & AI：驅動現實世界的智慧</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        馬斯克將大量心力投入於解決「現實世界 AI」的挑戰，其核心體現在 Optimus 人形機器人與特斯拉的自動駕駛技術上。這不僅是軟體上的突破，更涉及從第一性原理出發，重新打造整個硬體供應鏈。此區塊將展示 AI 技術如何從雲端走向現實，改變我們的生活。
+                    </p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 items-start">
+                    <div class="card space-y-4">
+                        <h3 class="text-2xl font-bold">Optimus：史上最偉大的產品</h3>
+                        <p>馬斯克相信 Optimus 將是人類史上最偉大的產品，其三大核心是：<span class="font-bold text-amber-700">與人類相當的靈巧雙手</span>、<span class="font-bold text-amber-700">能理解現實的 AI 心智</span>，以及<span class="font-bold text-amber-700">極大規模的量產能力</span>。</p>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-center mb-2">人手的複雜性：工程的終極挑戰</h4>
+                            <p class="text-sm text-gray-600 mb-3">馬斯克強調，包含前臂在內的「手部」是整個計畫中工程難度最高的部分，因為人手是演化的奇蹟，能執行極端多樣化的任務：</p>
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">✓ 揮舞球棒 (力量)</span>
+                                <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">✓ 穿針引線 (精細)</span>
+                                <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">✓ 彈奏樂器 (靈巧)</span>
+                                <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">✓ 組裝汽車 (通用)</span>
+                            </div>
+                        </div>
+                         <div class="grid grid-cols-2 gap-4 pt-2">
+                            <div class="stat-card">
+                                <p class="text-3xl font-bold text-amber-800">$2萬</p>
+                                <p class="text-sm text-gray-600">預估量產成本</p>
+                            </div>
+                            <div class="stat-card">
+                                <p class="text-3xl font-bold text-amber-800">26個</p>
+                                <p class="text-sm text-gray-600">單臂致動器數量</p>
+                            </div>
+                        </div>
+                         <p class="pt-2">他強調，現有供應鏈完全無法滿足需求，所有致動器、馬達和電子設備都必須從零開始設計，這是一項比打造任何一款特斯拉汽車都還要困難的挑戰。</p>
+                    </div>
+                    <div class="card">
+                        <h3 class="text-2xl font-bold mb-4">AI 晶片革命：從 AI4 到 AI5</h3>
+                        <p class="mb-4">特斯拉的 AI 硬體與軟體團隊緊密合作，共同設計晶片，從而實現了驚人的效能飛躍。新的 AI5 晶片在某些指標上，效能將是 AI4 的 <span class="font-bold text-red-600">40 倍</span>。這將大幅提升全自動輔助駕駛（FSD）的品質與安全性，目標是達到比人類駕駛安全 2-3 倍，甚至 10 倍。</p>
+                        <div class="chart-container">
+                            <canvas id="aiChipChart"></canvas>
+                        </div>
+                         <p class="text-center text-xs text-gray-500 mt-2">AI5 相較於 AI4 的效能提升倍數</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="spacex" class="content-section">
+                 <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">SpaceX & 火星：成為多行星物種</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        SpaceX 的終極目標是讓人類文明的火種得以延續，避免因地球上的災難（如戰爭、病毒或隕石撞擊）而導致單點故障。這一切的關鍵在於「星艦」（Starship）—— 一個能完全重複使用的軌道火箭，它是將文明擴展到火星的唯一途徑。
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8 items-start">
+                     <div class="card">
+                        <h3 class="text-2xl font-bold mb-4">星艦：通往火星的方舟</h3>
+                        <p class="mb-4">馬斯克預計明年將能實現星艦的完全可重複使用，包括成功回收推進器與飛船本身。完全可重複使用的星艦能將超過 <span class="font-bold text-amber-700">100 噸</span>的載荷送入有用軌道，這是目前最強火箭的數倍之多。</p>
+                         <div class="chart-container">
+                            <canvas id="payloadChart"></canvas>
+                        </div>
+                        <p class="text-center text-xs text-gray-500 mt-2">載荷能力比較（噸）</p>
+                    </div>
+                    <div class="card space-y-4">
+                        <h3 class="text-2xl font-bold">火星殖民三部曲</h3>
+                        <p>馬斯克認為，在火星建立一個<span class="font-bold text-red-600">自給自足</span>的城市是人類文明續存的關鍵。這不僅是送幾個人上去，而是要運送足夠的物資和設備，建立完整的工業基礎。</p>
+                        <div class="space-y-6 border-l-2 border-amber-300 ml-3 pl-6 mt-4">
+                            <div class="relative">
+                                <div class="absolute -left-[31px] top-1 h-3 w-3 rounded-full bg-amber-500 ring-4 ring-white"></div>
+                                <h4 class="font-bold">第一階段：技術驗證 (明年)</h4>
+                                <p class="text-sm text-gray-600">實現星艦的完全可重複使用性。</p>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute -left-[31px] top-1 h-3 w-3 rounded-full bg-amber-500 ring-4 ring-white"></div>
+                                <h4 class="font-bold">第二階段：指數級運輸</h4>
+                                <p class="text-sm text-gray-600">利用每兩年一次的火星轉移窗口，將噸數呈指數級增長地運往火星。</p>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute -left-[31px] top-1 h-3 w-3 rounded-full bg-amber-500 ring-4 ring-white"></div>
+                                <h4 class="font-bold">第三階段：城市自給自足 (約 25 年內)</h4>
+                                <p class="text-sm text-gray-600">使火星城市具備在沒有地球補給的情況下，仍能繁榮發展的能力。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="starlink" class="content-section">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">星鏈 & 通訊：無所不在的連結</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                       除了探索深空，SpaceX 旗下的星鏈計畫也正致力於連接地球的每一個角落。透過最近一筆鉅額的頻譜收購，星鏈的目標是實現從衛星直接向標準手機提供高速網路服務，讓使用者無論身在何處都能觀看高畫質影片。
+                    </p>
+                </div>
+                <div class="grid lg:grid-cols-3 gap-8 items-start">
+                    <div class="lg:col-span-2 card">
+                        <h3 class="text-2xl font-bold mb-4">衛星直連手機服務時間線</h3>
+                        <p class="mb-6">這項服務的實現需要衛星、手機晶片和頻譜三方面的配合。馬斯克預計，支援此服務的手機將在約兩年後開始出貨。</p>
+                        <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-24 h-24 flex items-center justify-center bg-amber-100 rounded-full text-3xl mb-2">📡</div>
+                                <h4 class="font-bold">頻譜收購</h4>
+                                <p class="text-sm text-gray-600">已完成</p>
+                            </div>
+                             <div class="w-full h-px md:w-auto md:h-0 md:flex-1 border-t-2 border-dashed border-amber-300 my-4 md:my-0"></div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-24 h-24 flex items-center justify-center bg-amber-100 rounded-full text-3xl mb-2">🛰️📱</div>
+                                <h4 class="font-bold">衛星 & 手機晶片開發</h4>
+                                <p class="text-sm text-gray-600">約 2 年</p>
+                            </div>
+                             <div class="w-full h-px md:w-auto md:h-0 md:flex-1 border-t-2 border-dashed border-amber-300 my-4 md:my-0"></div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-24 h-24 flex items-center justify-center bg-amber-100 rounded-full text-3xl mb-2">🎬</div>
+                                <h4 class="font-bold">全球服務上線</h4>
+                                <p class="text-sm text-gray-600">手機上市後</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card space-y-4 text-center">
+                        <h3 class="text-2xl font-bold">關鍵投資</h3>
+                        <div class="stat-card mt-4">
+                            <p class="text-4xl font-bold text-amber-800">$170億</p>
+                            <p class="text-gray-600">無線頻譜收購金額</p>
+                        </div>
+                        <p class="text-sm text-gray-600 pt-4">這筆投資將讓星鏈能夠提供一個全球性的行動網路選項，與現有的電信商（如 AT&T, Verizon）並存，而非完全取代它們。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="xai" class="content-section">
+                 <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">xAI & 智慧：超越人類的臨界點</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        馬斯克的人工智慧公司 xAI 正在開發名為 Grok 的模型，其獨特之處在於訓練數據的產生方式。他預測，AI 的智慧將呈對數級增長，很快就會在單一領域超越任何人類，並在 2030 年前超越全人類智慧的總和。
+                    </p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 items-start">
+                    <div class="card">
+                        <h3 class="text-2xl font-bold mb-4">Grok 的創新訓練法</h3>
+                        <p>傳統 AI 模型依賴現有的網路數據（Common Crawl）。Grok 則更進一步，它利用大量的推論運算來「思考」和「推理」現有的人類知識語料庫（如維基百科、書籍、網站等）。</p>
+                        <div class="mt-6 space-y-4">
+                            <p class="text-center font-semibold">Grok 的數據精煉流程：</p>
+                            <div class="flex items-center justify-center p-4 bg-amber-50 rounded-lg text-sm text-center">
+                                <span>原始數據</span>
+                                <span class="mx-2 text-amber-500 font-bold text-2xl">→</span>
+                                <span>分析<br/>(真/假/遺漏)</span>
+                                <span class="mx-2 text-amber-500 font-bold text-2xl">→</span>
+                                <span>修正/補充<br/>(產生合成數據)</span>
+                                <span class="mx-2 text-amber-500 font-bold text-2xl">→</span>
+                                <span>新的訓練集</span>
+                            </div>
+                        </div>
+                        <p class="mt-4">這個過程就像是讓 AI 成為一個超凡的編輯，它會主動修正錯誤、補充遺漏的脈絡，從而創造出更高品質的「合成數據」來進行下一輪訓練。馬斯克甚至考慮推出一個基於此技術的「Grok 百科」。</p>
+                    </div>
+                    <div class="card space-y-4">
+                        <h3 class="text-2xl font-bold">智慧的未來時間線</h3>
+                        <p>馬斯克對於 AI 發展的速度提出了驚人的預測：</p>
+                        <ul class="list-none space-y-3 text-gray-700">
+                            <li class="flex items-start"><span class="text-amber-600 font-bold text-xl mr-2 mt-1">→</span><div><span class="font-bold text-amber-700">明年:</span> AI 可能在任何<span class="underline">單一</span>領域都比最頂尖的人類專家更聰明。</div></li>
+                            <li class="flex items-start"><span class="text-amber-600 font-bold text-xl mr-2 mt-1">→</span><div><span class="font-bold text-amber-700">2030 年前:</span> AI 的智慧可能超越<span class="underline">所有人類智慧的總和</span>。</div></li>
+                        </ul>
+                         <div class="bg-gray-50 p-4 rounded-lg mt-4">
+                            <p class="text-sm text-gray-600">他引用《銀河便車指南》的哲學：<span class="font-semibold">「答案就是宇宙，但真正困難的是提出正確的問題。」</span>他認為，發展 AI 的最終目的，是為了幫助我們理解宇宙，甚至知道該問些什麼問題。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="humanity" class="content-section">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">西方世界 & 人類未來：尋找樂觀的理由</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        訪談的後半段，馬斯克表達了他對西方文明現狀的深切憂慮。他觀察到，從低出生率到缺乏自信的文化氛圍，許多現象都顯示出一種「自殺式」的趨勢。他認為，解決之道在於重新找到一個能讓人們對未來感到興奮與樂觀的共同哲學。
+                    </p>
+                </div>
+
+                <div class="space-y-8 max-w-4xl mx-auto">
+                    <div class="card">
+                        <h3 class="text-2xl font-bold mb-4">文明的警訊</h3>
+                        <p>馬斯克直言：「西方的行為與自殺無異。」他指出了幾個讓他憂心的現象：</p>
+                        <ul class="list-disc list-inside space-y-2 mt-4 text-gray-700">
+                            <li><span class="font-bold">出生率低於更替水平：</span>這是最直接的警訊，意味著文明無法自我繁衍。他認為生小孩本身就是一種對未來的樂觀行為。</li>
+                            <li><span class="font-bold">普遍的悲觀情緒：</span>尤其在歐洲，很難找到對未來感到樂觀的人。</li>
+                            <li><span class="font-bold">宗教真空被填補：</span>當傳統宗教的價值觀消失後，其留下的真空被一些他認為具自我毀滅性的「反烏托邦的事實上的宗教」（如覺醒思想病毒）所填補。</li>
+                        </ul>
+                    </div>
+                    <div class="card bg-amber-50 border-amber-200">
+                        <h3 class="text-2xl font-bold mb-4">解方：一場好奇心的哲學</h3>
+                        <p class="mb-2">面對這些挑戰，馬斯克提出的並非政治或經濟方案，而是一種哲學上的號召：</p>
+                        <blockquote class="border-l-4 border-amber-400 pl-4 italic text-gray-800">
+                            「對我來說，那是一種好奇心的哲學。我對宇宙的本質感到好奇，我想到外太空去，我希望人類能到外太空探索星辰... 為了知道發生了什麼事，我們必須擴大意識的範疇和規模。」
+                        </blockquote>
+                        <p class="mt-4">他認為，將「探索宇宙、理解萬物」作為人類的共同目標，能自然地帶來興奮感、目的感和樂觀精神。這不僅能激勵人們去月球建立基地、去火星建立城市，更能從根本上為人類文明注入生存下去的活力與理由。</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const contentSections = document.querySelectorAll('.content-section');
+            let activeChartInstances = {};
+
+            function destroyChart(chartId) {
+                if (activeChartInstances[chartId]) {
+                    activeChartInstances[chartId].destroy();
+                    delete activeChartInstances[chartId];
+                }
+            }
+
+            function showSection(targetId) {
+                Object.keys(activeChartInstances).forEach(destroyChart);
+                
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                });
+
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    if (targetId === 'tesla') {
+                        renderAiChipChart();
+                    } else if (targetId === 'spacex') {
+                        renderPayloadChart();
+                    }
+                }
+            }
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+
+                    navButtons.forEach(btn => btn.classList.remove('active', 'scale-105'));
+                    button.classList.add('active', 'scale-105');
+
+                    showSection(targetId);
+                });
+            });
+
+            function renderAiChipChart() {
+                const ctx = document.getElementById('aiChipChart');
+                if (!ctx) return;
+                destroyChart('aiChipChart');
+                activeChartInstances['aiChipChart'] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['原始運算能力', '記憶體容量', '記憶體頻寬', 'Softmax 效能'],
+                        datasets: [{
+                            label: 'AI5 vs AI4 提升倍數',
+                            data: [8, 9, 5, 40],
+                            backgroundColor: [
+                                'rgba(217, 119, 6, 0.2)',
+                                'rgba(217, 119, 6, 0.4)',
+                                'rgba(217, 119, 6, 0.6)',
+                                'rgba(217, 119, 6, 0.8)'
+                            ],
+                            borderColor: 'rgba(217, 119, 6, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: 'AI5 晶片效能躍進' }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: { display: true, text: '提升倍數 (x)' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            function renderPayloadChart() {
+                const ctx = document.getElementById('payloadChart');
+                if (!ctx) return;
+                destroyChart('payloadChart');
+                activeChartInstances['payloadChart'] = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['獵鷹重型 (可回收)', '星艦 (完全可回收)'],
+                        datasets: [{
+                            label: '近地軌道載荷 (噸)',
+                            data: [40, 100],
+                            backgroundColor: [ 'rgba(120, 113, 108, 0.7)', 'rgba(217, 119, 6, 0.7)' ],
+                            borderColor: '#fdfdfc',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: '火箭載荷能力比較' }
+                        }
+                    }
+                });
+            }
+            
+            showSection('vision');
+        });
+    </script>
+
+</body>
+</html>
+
