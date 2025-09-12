@@ -8,6 +8,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,6 +51,12 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        .inline-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #007BFF;
+            transition: width 0.6s ease-in-out;
         }
     </style>
 </head>
@@ -94,7 +103,7 @@
                     洞見未來，<span class="text-tech-blue">智選標的</span>
                 </h1>
                 <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-                    跨越時空，一覽20年投資馬ратону的真實贏家。用數據驅動您的每一個決策。
+                    跨越時空，一覽20年投資馬拉松的真實贏家。用數據驅動您的每一個決策。
                 </p>
                 <a href="#dashboard" class="btn-blue text-white font-bold text-lg px-8 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300">
                     立即開始比較
@@ -110,26 +119,34 @@
                     <p class="text-gray-400 mt-2">長期績效比較儀表板</p>
                 </div>
 
-                <div class="flex justify-center mb-8 bg-graphite-gray p-2 rounded-lg max-w-md mx-auto">
+                <div class="flex justify-center mb-12 bg-graphite-gray p-2 rounded-lg max-w-md mx-auto">
                     <button data-period="10" class="period-btn flex-1 py-2 px-4 rounded-md text-gray-300 transition">10年</button>
                     <button data-period="15" class="period-btn flex-1 py-2 px-4 rounded-md text-gray-300 transition">15年</button>
                     <button data-period="20" class="period-btn flex-1 py-2 px-4 rounded-md text-white bg-blue-600 transition">20年</button>
                 </div>
 
-                <div class="bg-graphite-gray rounded-xl shadow-2xl overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-800/50">
-                                <tr>
-                                    <th class="p-4 font-semibold">投資標的</th>
-                                    <th class="p-4 font-semibold">屬性</th>
-                                    <th class="p-4 font-semibold text-right" id="table-header">20年總報酬率 (年化)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="performance-table">
-                                <!-- JavaScript will populate this section -->
-                            </tbody>
-                        </table>
+                <div class="grid lg:grid-cols-2 gap-8 items-start">
+                    <!-- Left Side: Table -->
+                    <div class="bg-graphite-gray rounded-xl shadow-2xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-gray-800/50">
+                                    <tr>
+                                        <th class="p-4 font-semibold text-center">排名</th>
+                                        <th class="p-4 font-semibold">投資標的</th>
+                                        <th class="p-4 font-semibold text-right" id="table-header">20年總報酬率 (年化)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="performance-table">
+                                    <!-- JavaScript will populate this section -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Right Side: Chart -->
+                    <div class="bg-graphite-gray rounded-xl shadow-2xl p-6">
+                        <h3 class="text-xl font-bold text-mica-white mb-4" id="chart-title">20年總報酬率比較 (%)</h3>
+                        <canvas id="performance-chart"></canvas>
                     </div>
                 </div>
             </div>
@@ -180,7 +197,7 @@
                     </div>
                     <!-- Card 2 -->
                     <div class="bg-graphite-gray rounded-xl overflow-hidden shadow-lg group">
-                        <img src="https://placehold.co/600x400/2A2F45/F8F9FA?text=Analysis" alt="產業分析" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                        <img src="https://placehold.co/600x400/1A1C2D/F8F9FA?text=Analysis" alt="產業分析" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
                         <div class="p-6">
                             <p class="text-sm text-gray-400 mb-2">2025年9月11日</p>
                             <h3 class="text-xl font-bold text-mica-white mb-3">AI浪潮下的半導體產業鏈投資機遇</h3>
@@ -189,7 +206,7 @@
                     </div>
                     <!-- Card 3 -->
                      <div class="bg-graphite-gray rounded-xl overflow-hidden shadow-lg group">
-                        <img src="https://placehold.co/600x400/007BFF/F8F9FA?text=Strategy" alt="存股策略" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                        <img src="https://placehold.co/600x400/1A1C2D/F8F9FA?text=Strategy" alt="存股策略" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
                         <div class="p-6">
                             <p class="text-sm text-gray-400 mb-2">2025年9月10日</p>
                             <h3 class="text-xl font-bold text-mica-white mb-3">2025年高殖利率潛力股清單深度解析</h3>
@@ -271,38 +288,41 @@
             const performanceData = {
                 '10': {
                     header: '10年總報酬率 (年化)',
+                    chartTitle: '10年總報酬率比較 (%)',
                     data: [
-                        { name: '合庫金 (2880)', type: '官股績優', total: '196%', annual: '11.4%', isTop: true },
-                        { name: '中信金 (2891)', type: '民營績優', total: '175%', annual: '10.6%', isTop: false },
-                        { name: '第一金 (2892)', type: '官股績優', total: '165%', annual: '10.2%', isTop: false },
-                        { name: '兆豐金 (2886)', type: '官股績優', total: '141%', annual: '9.2%', isTop: false },
-                        { name: '富邦金 (2881)', type: '民營龍頭', total: '135%', annual: '8.9%', isTop: false },
-                        { name: '元大台灣50 (0050)', type: '市場指數', total: '123%', annual: '8.3%', isTop: false },
-                        { name: '國泰金 (2882)', type: '民營龍頭', total: '98%', annual: '7.0%', isTop: false },
+                        { name: '合庫金 (2880)', type: '官股績優', total: '196%', totalVal: 196, annual: '11.4%', isTop: true },
+                        { name: '中信金 (2891)', type: '民營績優', total: '175%', totalVal: 175, annual: '10.6%', isTop: false },
+                        { name: '第一金 (2892)', type: '官股績優', total: '165%', totalVal: 165, annual: '10.2%', isTop: false },
+                        { name: '兆豐金 (2886)', type: '官股績優', total: '141%', totalVal: 141, annual: '9.2%', isTop: false },
+                        { name: '富邦金 (2881)', type: '民營龍頭', total: '135%', totalVal: 135, annual: '8.9%', isTop: false },
+                        { name: '元大台灣50 (0050)', type: '市場指數', total: '123%', totalVal: 123, annual: '8.3%', isTop: false },
+                        { name: '國泰金 (2882)', type: '民營龍頭', total: '98%', totalVal: 98, annual: '7.0%', isTop: false },
                     ]
                 },
                 '15': {
                     header: '15年總報酬率 (年化)',
+                    chartTitle: '15年總報酬率比較 (%)',
                     data: [
-                        { name: '中信金 (2891)', type: '民營績優', total: '380%', annual: '11.0%', isTop: true },
-                        { name: '元大台灣50 (0050)', type: '市場指數', total: '330%', annual: '10.2%', isTop: false },
-                        { name: '富邦金 (2881)', type: '民營龍頭', total: '315%', annual: '10.0%', isTop: false },
-                        { name: '兆豐金 (2886)', type: '官股績優', total: '290%', annual: '9.6%', isTop: false },
-                        { name: '合庫金 (2880)', type: '官股績優', total: '285%', annual: '9.5%', isTop: false },
-                        { name: '第一金 (2892)', type: '官股績優', total: '245%', annual: '8.8%', isTop: false },
-                        { name: '國泰金 (2882)', type: '民營龍頭', total: '195%', annual: '7.4%', isTop: false },
+                        { name: '中信金 (2891)', type: '民營績優', total: '380%', totalVal: 380, annual: '11.0%', isTop: true },
+                        { name: '元大台灣50 (0050)', type: '市場指數', total: '330%', totalVal: 330, annual: '10.2%', isTop: false },
+                        { name: '富邦金 (2881)', type: '民營龍頭', total: '315%', totalVal: 315, annual: '10.0%', isTop: false },
+                        { name: '兆豐金 (2886)', type: '官股績優', total: '290%', totalVal: 290, annual: '9.6%', isTop: false },
+                        { name: '合庫金 (2880)', type: '官股績優', total: '285%', totalVal: 285, annual: '9.5%', isTop: false },
+                        { name: '第一金 (2892)', type: '官股績優', total: '245%', totalVal: 245, annual: '8.8%', isTop: false },
+                        { name: '國泰金 (2882)', type: '民營龍頭', total: '195%', totalVal: 195, annual: '7.4%', isTop: false },
                     ]
                 },
                 '20': {
                     header: '20年總報酬率 (年化)',
+                    chartTitle: '20年總報酬率比較 (%)',
                     data: [
-                        { name: '富邦金 (2881)', type: '民營龍頭', total: '580%', annual: '10.0%', isTop: true },
-                        { name: '元大台灣50 (0050)', type: '市場指數', total: '550%', annual: '9.6%', isTop: false },
-                        { name: '中信金 (2891)', type: '民營績優', total: '495%', annual: '9.2%', isTop: false },
-                        { name: '兆豐金 (2886)', type: '官股績優', total: '430%', annual: '8.8%', isTop: false },
-                        { name: '合庫金 (2880)', type: '官股績優', total: '350%', annual: '7.8%', isTop: false },
-                        { name: '第一金 (2892)', type: '官股績優', total: '295%', annual: '7.1%', isTop: false },
-                        { name: '國泰金 (2882)', type: '民營龍頭', total: '255%', annual: '6.5%', isTop: false },
+                        { name: '富邦金 (2881)', type: '民營龍頭', total: '580%', totalVal: 580, annual: '10.0%', isTop: true },
+                        { name: '元大台灣50 (0050)', type: '市場指數', total: '550%', totalVal: 550, annual: '9.6%', isTop: false },
+                        { name: '中信金 (2891)', type: '民營績優', total: '495%', totalVal: 495, annual: '9.2%', isTop: false },
+                        { name: '兆豐金 (2886)', type: '官股績優', total: '430%', totalVal: 430, annual: '8.8%', isTop: false },
+                        { name: '合庫金 (2880)', type: '官股績優', total: '350%', totalVal: 350, annual: '7.8%', isTop: false },
+                        { name: '第一金 (2892)', type: '官股績優', total: '295%', totalVal: 295, annual: '7.1%', isTop: false },
+                        { name: '國泰金 (2882)', type: '民營龍頭', total: '255%', totalVal: 255, annual: '6.5%', isTop: false },
                     ]
                 }
             };
@@ -310,31 +330,97 @@
             const periodBtns = document.querySelectorAll('.period-btn');
             const tableHeader = document.getElementById('table-header');
             const tableBody = document.getElementById('performance-table');
+            const chartTitle = document.getElementById('chart-title');
+            const ctx = document.getElementById('performance-chart').getContext('2d');
+            let performanceChart;
 
             function updateDashboard(period) {
-                const { header, data } = performanceData[period];
-
-                // Update table header
+                const { header, chartTitle: newChartTitle, data } = performanceData[period];
+                
+                // Update titles
                 tableHeader.textContent = header;
+                chartTitle.textContent = newChartTitle;
 
                 // Update table body
                 tableBody.innerHTML = ''; // Clear existing rows
-                data.forEach(item => {
+                const maxTotalVal = Math.max(...data.map(item => item.totalVal));
+                
+                data.forEach((item, index) => {
                     const topPerformerClass = item.isTop ? 'text-wealth-gold' : 'text-mica-white';
-                    const topPerformerIcon = item.isTop ? '🏆 ' : '';
-                    
+                    const topPerformerIcon = item.isTop ? '🏆' : `${index + 1}`;
+                    const barWidth = (item.totalVal / maxTotalVal) * 100;
+
                     const row = document.createElement('tr');
                     row.className = 'border-b border-gray-800/50 hover:bg-gray-700/30 transition-colors';
                     row.innerHTML = `
-                        <td class="p-4 font-semibold text-mica-white table-cell-fade-in">${item.name}</td>
-                        <td class="p-4 text-gray-400 table-cell-fade-in">${item.type}</td>
+                        <td class="p-4 font-bold text-lg text-center text-gray-400 table-cell-fade-in ${item.isTop ? 'text-wealth-gold': ''}">${topPerformerIcon}</td>
+                        <td class="p-4 font-semibold text-mica-white table-cell-fade-in">
+                            ${item.name}
+                            <div class="w-full bg-gray-700 rounded-full mt-1">
+                                <div class="inline-bar" style="width: ${barWidth}%"></div>
+                            </div>
+                        </td>
                         <td class="p-4 text-right font-roboto-mono table-cell-fade-in">
-                            <span class="${topPerformerClass} font-bold">${topPerformerIcon}${item.total}</span>
+                            <span class="${topPerformerClass} font-bold">${item.total}</span>
                             <span class="text-gray-400 ml-2">(${item.annual})</span>
                         </td>
                     `;
                     tableBody.appendChild(row);
                 });
+
+                // Update Chart
+                const chartLabels = data.map(item => item.name.split(' ')[0]);
+                const chartData = data.map(item => item.totalVal);
+                const chartColors = data.map(item => item.isTop ? '#FFC107' : '#007BFF');
+
+                if (performanceChart) {
+                    performanceChart.destroy();
+                }
+
+                performanceChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: '總報酬率 (%)',
+                            data: chartData,
+                            backgroundColor: chartColors,
+                            borderColor: 'rgba(0, 0, 0, 0)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: '#9CA3AF'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)'
+                                },
+                                ticks: {
+                                    color: '#F8F9FA'
+                                }
+                            }
+                        }
+                    }
+                });
+                performanceChart.canvas.parentNode.style.height = '400px';
+
 
                 // Update button styles
                 periodBtns.forEach(btn => {
@@ -361,3 +447,5 @@
 
 </body>
 </html>
+
+
