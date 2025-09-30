@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>從晶圓廠到魔法吧台：Bruce 的人生選擇題</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Enchanted Night -->
+    <!-- Application Structure Plan: 我設計了一個主題式單頁應用程式，而非傳統的線性報告。頂部有固定導覽列（The Leap, Two Worlds, The Blueprint, The Spark, The Journey, The Sanctuary），讓使用者能依興趣自由跳轉，探索Bruce人生的不同面向。這種結構將一個長篇故事拆解成數個易於理解的互動模組，透過視覺化圖表和點擊互動來呈現關鍵資訊（如財務計畫和職涯挑戰），比靜態閱讀更能吸引使用者投入，深入了解其心路歷程。 -->
+    <!-- Visualization & Content Choices: 1. 職涯對比 -> 目標:比較 -> 呈現方式:雙欄卡片 -> 互動:點擊顯示細節 -> 理由:直觀呈現兩種人生的巨大差異。 2. 財務規劃 -> 目標:告知 -> 呈現方式:Chart.js圓餅圖 + 步驟流程圖 -> 互動:懸停提示 -> 理由:將複雜的財務策略視覺化，簡單易懂。 3. 創業歷程 -> 目標:呈現變化 -> 呈現方式:時間軸 -> 互動:點擊顯示事件詳情 -> 理由:清晰展示創業期間的關鍵節點與挑戰。 4. 核心理念 -> 目標:告知 -> 呈現方式:圖示與文字區塊 -> 互動:無 -> 理由:直接傳達創立餐酒館的核心價值與初衷。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1a202c;
+            color: #cbd5e1;
+        }
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #FBBF24;
+            border-bottom-color: #FBBF24;
+        }
+        .card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -0.7rem;
+            transform: translateY(-50%);
+            width: 1.4rem;
+            height: 1.4rem;
+            border-radius: 50%;
+            background-color: #1a202c;
+            border: 4px solid #4a5568;
+            z-index: 1;
+            transition: border-color 0.3s;
+        }
+        .timeline-item:hover::before {
+            border-color: #FBBF24;
+        }
+        .timeline-content {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+        .timeline-content.show {
+            opacity: 1;
+            max-height: 500px;
+        }
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-in-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-300">
+    <header class="bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 shadow-lg shadow-black/20">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold font-cinzel text-white">Bruce's Story</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#leap" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">The Leap</a>
+                        <a href="#worlds" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">Two Worlds</a>
+                        <a href="#blueprint" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">The Blueprint</a>
+                        <a href="#spark" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">The Spark</a>
+                        <a href="#journey" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">The Journey</a>
+                        <a href="#sanctuary" class="nav-link px-3 py-2 text-sm font-medium border-b-2 border-transparent">The Sanctuary</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="leap" class="min-h-screen flex items-center bg-slate-900">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-4xl md:text-6xl font-bold font-cinzel text-white leading-tight">一張員工證，兩種人生</h2>
+                <p class="mt-4 md:mt-6 text-lg md:text-xl max-w-3xl mx-auto text-slate-400">
+                    在台積電股價屢創新高的光環下，他選擇交出員工證，拾起撲克牌。這不是一時衝動，而是一場經過精密計算的、勇敢的人生賭注。
+                </p>
+                <div class="mt-8 text-3xl animate-bounce text-amber-400">↓</div>
+            </div>
+        </section>
+
+        <section id="worlds" class="py-20 fade-in-section">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold font-cinzel text-white">兩個世界：工程師 vs 魔術師</h2>
+                    <p class="mt-2 text-lg text-slate-400">點擊卡片，窺探 Bruce 在兩種截然不同身份下的生活樣貌。</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
+                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
+                        <h3 class="text-2xl font-bold font-cinzel mb-4 text-center text-sky-400">台積電工程師</h3>
+                        <div class="space-y-4">
+                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「我是桃園楊梅人，從中興物理系一路念到台大光電所。選擇理工純粹是為了好找工作，目標非常明確。」">
+                                <h4 class="font-semibold text-white">身份背景</h4>
+                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            </div>
+                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「面試時主管說『我們部門五六點就下班了』，結果當然不是。但我會利用走路去廁所、午休的零碎時間把玩撲克牌，練習手感。」">
+                                <h4 class="font-semibold text-white">日常工作</h4>
+                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            </div>
+                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「在台積電工作，讓我累積了足夠的資本，這是我後來敢於創業的底氣。」">
+                                <h4 class="font-semibold text-white">最大收穫</h4>
+                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
+                        <h3 class="text-2xl font-bold font-cinzel mb-4 text-center text-amber-400">魔術師 & 創業者</h3>
+                        <div class="space-y-4">
+                             <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「高中在新竹高中加入魔術社，從此栽進這個世界。魔術對我來說不只是興趣，是我想提升其藝術地位的熱情所在。」">
+                                <h4 class="font-semibold text-white">身份背景</h4>
+                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            </div>
+                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「週末到店裡表演，同時觀察客人反應、收集回饋，並與股東開會。每天都在處理人與人的問題，跟面對機器完全不同。」">
+                                <h4 class="font-semibold text-white">日常工作</h4>
+                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            </div>
+                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「做自己喜歡的事是最重要的。同時，也為我熱愛的魔術藝術，打造了一個專屬的舞台。」">
+                                <h4 class="font-semibold text-white">最大收穫</h4>
+                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="blueprint" class="py-20 bg-slate-800/50 fade-in-section">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold font-cinzel text-white">離職的藍圖：半桶金財務自由法</h2>
+                    <p class="mt-2 text-lg text-slate-400">Bruce 的離職並非衝動，而是一套經過精密計算的財務策略。</p>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="bg-slate-700/50 p-6 rounded-lg">
+                        <h4 class="text-xl font-cinzel text-amber-400 mb-4">情感的催化劑</h4>
+                        <p class="text-slate-300">「看到高以翔、Kobe Bryant 等名人驟逝，讓我深刻體會到人生無常。我不想等到退休才享受人生，因為沒人知道明天會如何。我遲早要去認真做我想做的事。」</p>
+                    </div>
+                    <div class="chart-container w-full max-w-md mx-auto h-64 md:h-80 relative">
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                </div>
+                 <div class="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                    <div class="bg-slate-800 p-4 rounded-lg">
+                        <div class="text-2xl font-bold font-cinzel text-amber-400 mb-2">1</div>
+                        <h4 class="text-lg font-semibold text-white">設定目標</h4>
+                        <p class="text-sm text-slate-400">定義明確的財務自由金額。</p>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-lg">
+                        <div class="text-2xl font-bold font-cinzel text-amber-400 mb-2">2</div>
+                        <h4 class="text-lg font-semibold text-white">存下 50%</h4>
+                        <p class="text-sm text-slate-400">在職期間存下目標一半的啟動金。</p>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-lg">
+                        <div class="text-2xl font-bold font-cinzel text-amber-400 mb-2">3</div>
+                        <h4 class="text-lg font-semibold text-white">投入大盤</h4>
+                        <p class="text-sm text-slate-400">將資金放入穩健的ETF靜待複利。</p>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-lg">
+                        <div class="text-2xl font-bold font-cinzel text-amber-400 mb-2">4</div>
+                        <h4 class="text-lg font-semibold text-white">熱情維生</h4>
+                        <p class="text-sm text-slate-400">靠副業打平生活開銷，不碰本金。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="spark" class="py-20 fade-in-section">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold font-cinzel text-white">創辦的火花：一份來自熱炒店的決心</h2>
+                    <p class="mt-2 text-lg text-slate-400">創立餐酒館的念頭，源自於身為魔術師時，一次次感受到的心痛與不被尊重。</p>
+                </div>
+                <div class="max-w-3xl mx-auto bg-slate-800/50 rounded-lg p-8 shadow-lg">
+                    <p class="text-center text-xl italic text-amber-300">「在熱炒店表演，客人會說『我不想看，不要打擾我』...」</p>
+                    <p class="mt-4 text-center text-xl italic text-amber-300">「或是覺得那只是騙小孩的東西...」</p>
+                    <p class="mt-6 text-slate-300">Bruce分享，他千錘百鍊的技藝，在不對的場合，被輕易地歸類為餘興節目。這份不被理解的失落感，讓他萌生了一個強烈的念頭：</p>
+                    <p class="mt-4 text-center text-2xl font-semibold text-white">「我必須為魔術，創造一個真正屬於它的舞台。」</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="journey" class="py-20 fade-in-section">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                 <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold font-cinzel text-white">創業的試煉之路</h2>
+                    <p class="mt-2 text-lg text-slate-400">從決定創業到站穩腳步，這段旅程充滿了挑戰與堅持。點擊時間點查看當時的故事。</p>
+                </div>
+                <div class="relative max-w-2xl mx-auto">
+                    <div class="absolute left-1/2 -translate-x-1/2 h-full w-0.5 bg-slate-700"></div>
+                    <div class="space-y-12">
+                        <div class="timeline-item relative pl-8 cursor-pointer group" data-year="~2016">
+                            <h4 class="text-lg font-bold text-white">進入台積電</h4>
+                            <div class="timeline-content">
+                                <p class="mt-2 text-slate-400">服研發替代役，正式成為台積電工程師。雖然嚮往外商的彈性工時，但也開始為日後的夢想累積資本。</p>
+                            </div>
+                        </div>
+                         <div class="timeline-item relative pl-8 cursor-pointer group" data-year="~2018">
+                            <h4 class="text-lg font-bold text-white">創立餐酒館</h4>
+                             <div class="timeline-content">
+                                <p class="mt-2 text-slate-400">工作第二年，投入超過千萬資金，在台北東區一級戰區，開始打造專屬魔術的舞台，同時開啟了三份工作並行的斜槓人生。</p>
+                            </div>
+                        </div>
+                         <div class="timeline-item relative pl-8 cursor-pointer group" data-year="2020">
+                            <h4 class="text-lg font-bold text-white">正面迎擊疫情</h4>
+                            <div class="timeline-content">
+                                <p class="mt-2 text-slate-400">開業不久就遇上三級警戒，餐廳每月都在虧錢。憑藉著台積電的薪水和不想輕易放棄的信念，硬是撐過了近半年的黑暗期。</p>
+                            </div>
+                        </div>
+                         <div class="timeline-item relative pl-8 cursor-pointer group" data-year="2023.07">
+                            <h4 class="text-lg font-bold text-white">離開台積電</h4>
+                            <div class="timeline-content">
+                                <p class="mt-2 text-slate-400">在同時兼顧三份工作三年多後，餐酒館營運趨於穩定，他認為時機成熟，決定離開台積電，全心投入魔術與餐酒館的經營。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="sanctuary" class="py-20 bg-slate-800/50 fade-in-section">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold font-cinzel text-white">魔術的聖殿：魔藥學餐酒館</h2>
+                    <p class="mt-2 text-lg text-slate-400">這不只是一間酒吧，更是 Bruce 為提升台灣魔術藝術地位而打造的夢想基地。</p>
+                </div>
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-slate-900/70 rounded-lg shadow-lg p-8">
+                         <div class="grid md:grid-cols-2 gap-8 text-center mt-8">
+                            <div>
+                                <div class="text-4xl mb-2">✨</div>
+                                <h4 class="text-xl font-semibold mb-2 text-white">打造專屬舞台</h4>
+                                <p class="text-slate-400">哈利波特風格的魔幻裝潢，讓客人在燈光、氛圍都恰到好處的環境中，真正沉浸並享受魔術表演。</p>
+                            </div>
+                            <div>
+                               <div class="text-4xl mb-2">🥃</div>
+                                <h4 class="text-xl font-semibold mb-2 text-white">堅持做好「本事」</h4>
+                                <p class="text-slate-400">深知主題餐廳不能只靠噱頭。在餐點、酒水（如奶油啤酒）、服務上都下足功夫，確保完美的綜合體驗。</p>
+                            </div>
+                            <div>
+                                <div class="text-4xl mb-2">🎩</div>
+                                <h4 class="text-xl font-semibold mb-2 text-white">頂尖魔術師匯集</h4>
+                                <p class="text-slate-400">利用在魔術圈十多年的人脈，邀請真正有實力的魔術師駐店，確保每一場表演都是最高水準的藝術饗宴。</p>
+                            </div>
+                             <div>
+                                <div class="text-4xl mb-2">📅</div>
+                                <h4 class="text-xl font-semibold mb-2 text-white">成為店家特色</h4>
+                                <p class="text-slate-400">將魔術表演定在週五、六晚間 7-12 點，讓魔術不再是點綴，而是餐酒館不可或缺的核心特色。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900/50">
+        <div class="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center">
+            <p class="font-cinzel text-xl text-white">"Your magic is waiting."</p>
+            <p class="mt-2 text-slate-400">如果 Bruce 的故事感動了你，不妨親自去他的魔法世界看看。</p>
+            <div class="mt-6 flex justify-center items-center space-x-4">
+                <a href="https://maps.app.goo.gl/sUgUGvvBcbetkdZW9" target="_blank" class="inline-block bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-full transition-colors shadow-lg shadow-amber-500/20">
+                    前往魔藥學餐酒館
+                </a>
+                 <a href="https://www.instagram.com/potionsmagicbar/" target="_blank" class="text-amber-400 hover:text-amber-300 transition-colors text-sm">
+                    追蹤 Instagram
+                </a>
+            </div>
+        </div>
+    </footer>
+    
+    <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-6 max-w-md w-full relative">
+            <button id="modal-close" class="absolute top-2 right-3 text-3xl font-bold text-slate-500 hover:text-white">&times;</button>
+            <p id="modal-content" class="text-lg text-slate-200"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('main section');
+
+            const sectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                        });
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { root: null, rootMargin: '0px', threshold: 0.4 });
+
+            sections.forEach(section => {
+                sectionObserver.observe(section);
+            });
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['已存下 50% 啟動金', '待投資增長的 50%'],
+                    datasets: [{
+                        data: [50, 50],
+                        backgroundColor: ['#4A5568', '#2D3748'],
+                        borderColor: ['#FBBF24', '#4A5568'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8' }
+                        },
+                        tooltip: {
+                             bodyColor: '#e2e8f0',
+                             titleColor: '#f1f5f9',
+                             callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.parsed}%`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            const cards = document.querySelectorAll('.card');
+            const modal = document.getElementById('card-modal');
+            const modalContent = document.getElementById('modal-content');
+            const modalClose = document.getElementById('modal-close');
+
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    modalContent.textContent = card.getAttribute('data-content');
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+            });
+
+            const closeModal = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            modalClose.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    item.querySelector('.timeline-content').classList.toggle('show');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
