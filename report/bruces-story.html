@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Enchanted Night -->
     <!-- Application Structure Plan: 我設計了一個主題式單頁應用程式，而非傳統的線性報告。頂部有固定導覽列（The Leap, Two Worlds, The Blueprint, The Spark, The Journey, The Sanctuary），讓使用者能依興趣自由跳轉，探索Bruce人生的不同面向。這種結構將一個長篇故事拆解成數個易於理解的互動模組，透過視覺化圖表和點擊互動來呈現關鍵資訊（如財務計畫和職涯挑戰），比靜態閱讀更能吸引使用者投入，深入了解其心路歷程。 -->
-    <!-- Visualization & Content Choices: 1. 職涯對比 -> 目標:比較 -> 呈現方式:雙欄卡片 -> 互動:點擊顯示細節 -> 理由:直觀呈現兩種人生的巨大差異。 2. 財務規劃 -> 目標:告知 -> 呈現方式:Chart.js圓餅圖 + 步驟流程圖 -> 互動:懸停提示 -> 理由:將複雜的財務策略視覺化，簡單易懂。 3. 創業歷程 -> 目標:呈現變化 -> 呈現方式:時間軸 -> 互動:點擊顯示事件詳情 -> 理由:清晰展示創業期間的關鍵節點與挑戰。 4. 核心理念 -> 目標:告知 -> 呈現方式:圖示與文字區塊 -> 互動:無 -> 理由:直接傳達創立餐酒館的核心價值與初衷。 -->
+    <!-- Visualization & Content Choices: 1. 職涯對比 -> 目標:比較 -> 呈現方式:雙欄3D翻轉卡片 -> 互動:點擊翻轉顯示細節 -> 理由:直觀呈現兩種人生，並用翻牌動畫增加魔術主題感。 2. 財務規劃 -> 目標:告知 -> 呈現方式:Chart.js圓餅圖 + 步驟流程圖 -> 互動:懸停提示 -> 理由:將複雜的財務策略視覺化，簡單易懂。 3. 創業歷程 -> 目標:呈現變化 -> 呈現方式:時間軸 -> 互動:點擊顯示事件詳情 -> 理由:清晰展示創業期間的關鍵節點與挑戰。 4. 核心理念 -> 目標:告知 -> 呈現方式:圖示與文字區塊 -> 互動:無 -> 理由:直接傳達創立餐酒館的核心價值與初衷。 -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -29,13 +29,38 @@
             color: #FBBF24;
             border-bottom-color: #FBBF24;
         }
-        .card {
-            transition: transform 0.3s, box-shadow 0.3s;
+        .card-container {
+            perspective: 1000px;
             cursor: pointer;
         }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        .card-flipper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card-container:hover .card-flipper {
+            transform: translateY(-5px) rotateY(5deg);
+        }
+        .card-flipper.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-container:hover .is-flipped {
+            transform: translateY(-5px) rotateY(175deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .card-back {
+            transform: rotateY(180deg);
+            background-image: radial-gradient(circle at top left, rgba(251, 191, 36, 0.1), transparent 40%), radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.1), transparent 40%);
         }
         .timeline-item::before {
             content: '';
@@ -111,40 +136,64 @@
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-12">
                     <h2 class="text-3xl font-bold font-cinzel text-white">兩個世界：工程師 vs 魔術師</h2>
-                    <p class="mt-2 text-lg text-slate-400">點擊卡片，窺探 Bruce 在兩種截然不同身份下的生活樣貌。</p>
+                    <p class="mt-2 text-lg text-slate-400">翻開卡牌，窺探 Bruce 在兩種截然不同身份下的生活樣貌。</p>
                 </div>
                 <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
                     <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
                         <h3 class="text-2xl font-bold font-cinzel mb-4 text-center text-sky-400">台積電工程師</h3>
-                        <div class="space-y-4">
-                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「我是桃園楊梅人，從中興物理系一路念到台大光電所。選擇理工純粹是為了好找工作，目標非常明確。」">
-                                <h4 class="font-semibold text-white">身份背景</h4>
-                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                        <div class="space-y-6">
+                            <div class="card-container h-40" data-content="「我是桃園楊梅人，從中興物理系一路念到台大光電所。選擇理工純粹是為了好找工作，目標非常明確。」">
+                                <div class="card-flipper">
+                                    <div class="card-front bg-slate-700/50 flex flex-col justify-center items-center p-4">
+                                        <div class="text-5xl text-sky-300">♦</div><h4 class="font-semibold text-white mt-2 text-xl">身份背景</h4>
+                                    </div>
+                                    <div class="card-back bg-slate-700/80 flex items-center justify-center p-4 text-center"><p></p></div>
+                                </div>
                             </div>
-                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「面試時主管說『我們部門五六點就下班了』，結果當然不是。但我會利用走路去廁所、午休的零碎時間把玩撲克牌，練習手感。」">
-                                <h4 class="font-semibold text-white">日常工作</h4>
-                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            <div class="card-container h-40" data-content="「面試時主管說『我們部門五六點就下班了』，結果當然不是。但我會利用走路去廁所、午休的零碎時間把玩撲克牌，練習手感。」">
+                                <div class="card-flipper">
+                                    <div class="card-front bg-slate-700/50 flex flex-col justify-center items-center p-4">
+                                         <div class="text-5xl text-sky-300">♣</div><h4 class="font-semibold text-white mt-2 text-xl">日常工作</h4>
+                                    </div>
+                                    <div class="card-back bg-slate-700/80 flex items-center justify-center p-4 text-center"><p></p></div>
+                                </div>
                             </div>
-                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「在台積電工作，讓我累積了足夠的資本，這是我後來敢於創業的底氣。」">
-                                <h4 class="font-semibold text-white">最大收穫</h4>
-                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            <div class="card-container h-40" data-content="「在台積電工作，讓我累積了足夠的資本，這是我後來敢於創業的底氣。」">
+                                <div class="card-flipper">
+                                    <div class="card-front bg-slate-700/50 flex flex-col justify-center items-center p-4">
+                                         <div class="text-5xl text-sky-300">♦</div><h4 class="font-semibold text-white mt-2 text-xl">最大收穫</h4>
+                                    </div>
+                                    <div class="card-back bg-slate-700/80 flex items-center justify-center p-4 text-center"><p></p></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
                         <h3 class="text-2xl font-bold font-cinzel mb-4 text-center text-amber-400">魔術師 & 創業者</h3>
-                        <div class="space-y-4">
-                             <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「高中在新竹高中加入魔術社，從此栽進這個世界。魔術對我來說不只是興趣，是我想提升其藝術地位的熱情所在。」">
-                                <h4 class="font-semibold text-white">身份背景</h4>
-                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                        <div class="space-y-6">
+                             <div class="card-container h-40" data-content="「高中在新竹高中加入魔術社，從此栽進這個世界。魔術對我來說不只是興趣，是我想提升其藝術地位的熱情所在。」">
+                                <div class="card-flipper">
+                                    <div class="card-front bg-slate-700/50 flex flex-col justify-center items-center p-4">
+                                         <div class="text-5xl text-amber-300">♥</div><h4 class="font-semibold text-white mt-2 text-xl">身份背景</h4>
+                                    </div>
+                                    <div class="card-back bg-slate-700/80 flex items-center justify-center p-4 text-center"><p></p></div>
+                                </div>
+                             </div>
+                            <div class="card-container h-40" data-content="「週末到店裡表演，同時觀察客人反應、收集回饋，並與股東開會。每天都在處理人與人的問題，跟面對機器完全不同。」">
+                                <div class="card-flipper">
+                                    <div class="card-front bg-slate-700/50 flex flex-col justify-center items-center p-4">
+                                         <div class="text-5xl text-amber-300">♠</div><h4 class="font-semibold text-white mt-2 text-xl">日常工作</h4>
+                                    </div>
+                                    <div class="card-back bg-slate-700/80 flex items-center justify-center p-4 text-center"><p></p></div>
+                                </div>
                             </div>
-                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「週末到店裡表演，同時觀察客人反應、收集回饋，並與股東開會。每天都在處理人與人的問題，跟面對機器完全不同。」">
-                                <h4 class="font-semibold text-white">日常工作</h4>
-                                <p class="text-sm text-slate-400">點擊查看詳情</p>
-                            </div>
-                            <div class="card bg-slate-700/50 rounded-lg p-4" data-content="「做自己喜歡的事是最重要的。同時，也為我熱愛的魔術藝術，打造了一個專屬的舞台。」">
-                                <h4 class="font-semibold text-white">最大收穫</h4>
-                                <p class="text-sm text-slate-400">點擊查看詳情</p>
+                            <div class="card-container h-40" data-content="「做自己喜歡的事是最重要的。同時，也為我熱愛的魔術藝術，打造了一個專屬的舞台。」">
+                                <div class="card-flipper">
+                                    <div class="card-front bg-slate-700/50 flex flex-col justify-center items-center p-4">
+                                         <div class="text-5xl text-amber-300">♥</div><h4 class="font-semibold text-white mt-2 text-xl">最大收穫</h4>
+                                    </div>
+                                    <div class="card-back bg-slate-700/80 flex items-center justify-center p-4 text-center"><p></p></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -296,13 +345,6 @@
         </div>
     </footer>
     
-    <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-6 max-w-md w-full relative">
-            <button id="modal-close" class="absolute top-2 right-3 text-3xl font-bold text-slate-500 hover:text-white">&times;</button>
-            <p id="modal-content" class="text-lg text-slate-200"></p>
-        </div>
-    </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const navLinks = document.querySelectorAll('.nav-link');
@@ -365,27 +407,17 @@
                     cutout: '60%'
                 }
             });
-
-            const cards = document.querySelectorAll('.card');
-            const modal = document.getElementById('card-modal');
-            const modalContent = document.getElementById('modal-content');
-            const modalClose = document.getElementById('modal-close');
-
-            cards.forEach(card => {
-                card.addEventListener('click', () => {
-                    modalContent.textContent = card.getAttribute('data-content');
-                    modal.classList.remove('hidden');
-                    modal.classList.add('flex');
+            
+            const cardContainers = document.querySelectorAll('.card-container');
+            cardContainers.forEach(container => {
+                const flipper = container.querySelector('.card-flipper');
+                const backP = container.querySelector('.card-back p');
+                backP.textContent = container.dataset.content;
+                
+                container.addEventListener('click', () => {
+                    flipper.classList.toggle('is-flipped');
                 });
             });
-
-            const closeModal = () => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-
-            modalClose.addEventListener('click', closeModal);
-            modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
 
             document.querySelectorAll('.timeline-item').forEach(item => {
                 item.addEventListener('click', () => {
