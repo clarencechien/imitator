@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海外投資與財富傳承決策儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony Neutrals -->
+    <!-- Application Structure Plan: The application is designed as an interactive decision-making dashboard. Instead of a linear report, it uses a task-oriented structure. The user is guided through three stages: 1) A side-by-side comparison dashboard for a quick overview. 2) An interactive "Scenario Simulator" where users can input their asset value to see a personalized visualization of the inheritance process and potential tax impact, making the abstract consequences tangible. 3) A dynamically highlighted "Strategic Recommendation" section based on their input. This structure was chosen to transform passive reading into active exploration, empowering users to understand the critical trade-offs (especially the US estate tax) and find the strategy that best suits their financial situation. -->
+    <!-- Visualization & Content Choices: 
+        - US Estate Tax: Report Info -> US estate tax for NRA is 40% over a $60k exemption. Goal -> Dramatically illustrate the tax impact. Viz -> Interactive Bar Chart (Chart.js). Interaction -> A slider controls the asset value, which dynamically updates the chart and a calculated tax text display. Justification -> This makes the single most important financial consequence in the report immediately personal and understandable. Library -> Chart.js.
+        - Inheritance Process: Report Info -> The overseas process is complex, while the domestic one is simple. Goal -> Visually compare process complexity. Viz -> Two side-by-side flow diagrams. Presentation Method -> Structured HTML with Tailwind CSS classes to represent steps. Justification -> A visual flowchart is more intuitive than paragraphs of text for comparing processes.
+        - Strategic Advice: Report Info -> Three tiers of advice based on asset levels. Goal -> Provide clear, personalized recommendations. Viz -> Three distinct content cards. Interaction -> The relevant card is highlighted based on the user's slider input. Justification -> This actively guides the user to the most relevant advice, enhancing usability.
+        - Professional Advice: Report Info -> Text-heavy sections on choosing lawyers and banks. Goal -> Organize content without cluttering the main view. Viz -> HTML accordion. Interaction -> Click to expand/collapse. Justification -> Keeps supplementary information neatly organized and accessible on demand.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8F9FA;
+            color: #343A40;
+        }
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #005F73;
+        }
+        .btn-primary {
+            background-color: #0A9396;
+            color: white;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #005F73;
+        }
+        .tab {
+            cursor: pointer;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            border-color: #0A9396;
+            color: #0A9396;
+            font-weight: 700;
+        }
+        .flow-step {
+            position: relative;
+            padding: 0.75rem;
+            background-color: #EEF7F7;
+            border-radius: 0.5rem;
+            text-align: center;
+            border: 1px solid #94D2BD;
+            color: #005F73;
+        }
+        .flow-step-complex {
+             background-color: #FFF1F1;
+             border: 1px solid #EE9B00;
+             color: #9B2226;
+        }
+        .flow-arrow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 2rem;
+            color: #94D2BD;
+        }
+        .recommendation-card {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+        .recommendation-card.highlight {
+            opacity: 1;
+            transform: scale(1);
+            border: 2px solid #0A9396;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #0A9396;
+            cursor: pointer;
+            margin-top: -8px;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
+            <h1 class="text-3xl font-bold text-[#005F73]">海外投資與財富傳承決策儀表板</h1>
+            <p class="mt-2 text-lg text-gray-600">互動式比較海外券商與國內複委託，助您做出最佳財務決策。</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        
+        <section id="simulator" class="card p-6 md:p-8 mb-12">
+            <h2 class="section-title">情境模擬器：您的傳承路徑與稅務衝擊</h2>
+            <p class="text-center text-gray-600 mb-6 max-w-3xl mx-auto">請拖曳下方滑桿，設定您預計投入的總資產金額。下方的圖表與策略建議將會即時更新，為您模擬不同投資管道下的傳承結果。</p>
+            
+            <div class="max-w-3xl mx-auto">
+                <div class="flex justify-between items-center mb-2 font-medium">
+                    <span class="text-gray-600">總資產 (美元)</span>
+                    <span id="assetValueDisplay" class="text-2xl font-bold text-[#0A9396]">$500,000</span>
+                </div>
+                <input id="assetSlider" type="range" min="10000" max="3000000" value="500000" step="10000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                <div class="flex justify-between text-sm text-gray-500 mt-1">
+                    <span>$1萬</span>
+                    <span>$150萬</span>
+                    <span>$300萬</span>
+                </div>
+            </div>
+
+            <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div>
+                    <h3 class="card-title text-center mb-4">傳承路徑比較</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="p-4 rounded-lg bg-gray-50">
+                            <h4 class="font-bold text-center text-lg mb-4 text-[#9B2226]">海外券商</h4>
+                            <div class="space-y-2">
+                                <div class="flow-step flow-step-complex">身故，帳戶凍結</div>
+                                <div class="flow-arrow">▼</div>
+                                <div class="flow-step flow-step-complex">繼承人聘請美國律師</div>
+                                <div class="flow-arrow">▼</div>
+                                <div class="flow-step flow-step-complex">向IRS申報遺產稅</div>
+                                <div class="flow-arrow">▼</div>
+                                <div class="flow-step flow-step-complex">繳清美國遺產稅</div>
+                                <div class="flow-arrow">▼</div>
+                                <div class="flow-step flow-step-complex">取得完稅證明</div>
+                                <div class="flow-arrow">▼</div>
+                                <div class="flow-step flow-step-complex">資產轉移 (耗時1年以上)</div>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-lg bg-gray-50">
+                             <h4 class="font-bold text-center text-lg mb-4 text-[#005F73]">國內複委託</h4>
+                             <div class="space-y-2">
+                                <div class="flow-step">身故</div>
+                                <div class="flow-arrow">▼</div>
+                                <div class="flow-step">繼承人備妥國內文件</div>
+                                <div class="flow-arrow">▼</div>
+                                <div class="flow-step">向國內券商申請繼承</div>
+                                <div class="flow-arrow">▼</div>
+                                <div class="flow-step">資產轉移 (流程相對快速)</div>
+                                <div class="flow-arrow text-white">▼</div>
+                                <div class="flow-step invisible">placeholder</div>
+                                <div class="flow-arrow text-white">▼</div>
+                                <div class="flow-step invisible">placeholder</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="card-title text-center mb-4">美國遺產稅衝擊模擬</h3>
+                    <div class="chart-container">
+                        <canvas id="estateTaxChart"></canvas>
+                    </div>
+                    <div class="text-center mt-4 p-4 bg-red-50 rounded-lg">
+                        <p class="text-gray-700">使用海外券商，預估美國遺產稅：</p>
+                        <p id="taxAmountDisplay" class="text-3xl font-bold text-red-600">$176,000</p>
+                        <p class="text-sm text-gray-500 mt-1">(非美國居民免稅額僅6萬美元，超額部分稅率最高40%)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="recommendation">
+            <h2 class="section-title">基於您總資產的策略建議</h2>
+            <div id="recommendation-cards" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div id="rec1" class="card p-6 recommendation-card">
+                    <h3 class="card-title">第一階段 (< $6萬美元)</h3>
+                    <p class="mt-2 text-gray-600">此階段無美國遺產稅問題。可依據交易成本與便利性自由選擇。積極交易者可考慮海外券商的零手續費優勢。</p>
+                </div>
+                <div id="rec2" class="card p-6 recommendation-card">
+                    <h3 class="card-title">第二階段 (> $6萬美元)</h3>
+                    <p class="mt-2 text-gray-600">強烈建議將「國內複委託」作為核心投資管道。其提供的「傳承確定性」價值，遠超過交易成本，是為家庭資產建立防火牆的關鍵決策。</p>
+                </div>
+                <div id="rec3" class="card p-6 recommendation-card">
+                    <h3 class="card-title">高資產族群</h3>
+                    <p class="mt-2 text-gray-600">建議採「核心-衛星」混合策略。70-80%核心資產放「複委託」確保傳承；20-30%衛星資產放「海外券商」追求彈性與低成本操作。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="details" class="mt-12">
+            <h2 class="section-title">全方位優劣比較</h2>
+            <div class="card overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="p-4 font-semibold">項目</th>
+                            <th class="p-4 font-semibold">海外券商</th>
+                            <th class="p-4 font-semibold">國內券商複委託</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-4 font-medium">遺產繼承</td>
+                            <td class="p-4 text-red-600">極複雜、高稅負、高風險</td>
+                            <td class="p-4 text-green-600">極單純、免美國遺產稅</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-4 font-medium">交易成本</td>
+                            <td class="p-4 text-green-600">極低 (多為零手續費)</td>
+                            <td class="p-4 text-orange-600">較高 (約0.15%~0.5%)</td>
+                        </tr>
+                         <tr class="hover:bg-gray-50">
+                            <td class="p-4 font-medium">資金存取</td>
+                            <td class="p-4 text-orange-600">較繁瑣 (國際電匯)</td>
+                            <td class="p-4 text-green-600">極方便 (國內銀行)</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-4 font-medium">客戶服務</td>
+                            <td class="p-4 text-orange-600">英文、有時差</td>
+                            <td class="p-4 text-green-600">中文、無時差</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-4 font-medium">投資人保護</td>
+                            <td class="p-4 text-green-600">直接、保障額度高 (SIPC)</td>
+                            <td class="p-4 text-green-600">間接、受國內法規保障</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="professional-advice" class="mt-12">
+            <h2 class="section-title">尋求專業建議</h2>
+            <div class="card p-6 md:p-8">
+                <div id="accordion">
+                    <div class="accordion-item border-b">
+                        <button class="accordion-header w-full text-left py-4 flex justify-between items-center text-lg font-medium text-gray-800">
+                            <span>如何選擇合適的律師？</span>
+                            <span class="transform transition-transform duration-300">▼</span>
+                        </button>
+                        <div class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+                            <div class="p-4 pt-0 text-gray-600 space-y-2">
+                                <p><strong>1. 專業領域：</strong>優先尋找專精於家事法、繼承法、信託法，且具備稅務規劃與跨國繼承實務經驗的律師。</p>
+                                <p><strong>2. 執業經驗：</strong>選擇有多年經驗，且能提出相似案件處理經驗的律師。</p>
+                                <p><strong>3. 溝通風格：</strong>律師應能將複雜法律術語，轉化為您能理解的語言。</p>
+                                <p><strong>4. 收費方式：</strong>事先了解諮詢費（行情約每小時 NT$6,000 至 $12,000），並要求清晰報價。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <button class="accordion-header w-full text-left py-4 flex justify-between items-center text-lg font-medium text-gray-800">
+                            <span>銀行財富管理部門的角色？</span>
+                            <span class="transform transition-transform duration-300">▼</span>
+                        </button>
+                        <div class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+                            <div class="p-4 pt-0 text-gray-600 space-y-2">
+                                <p><strong>1. 資源整合者：</strong>他們能扮演「專案經理」，為您對接銀行內部的信託、保險專家，甚至是合作的會計師與律師。</p>
+                                <p><strong>2. 工具提供者：</strong>他們是信託、保險、投資等金融商品的直接銷售與執行單位。</p>
+                                <p><strong>3. 注意事項：</strong>理專建議可能受銷售目標影響，且他們並非律師或會計師，無法提供正式法律意見。最終決策仍需由獨立專業人士把關。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white mt-12 py-6">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500">
+            <p>本工具資訊僅供參考，並非投資或法律建議。所有決策前，請務必諮詢合格的專業人士。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const assetSlider = document.getElementById('assetSlider');
+            const assetValueDisplay = document.getElementById('assetValueDisplay');
+            const taxAmountDisplay = document.getElementById('taxAmountDisplay');
+            const recCards = {
+                rec1: document.getElementById('rec1'),
+                rec2: document.getElementById('rec2'),
+                rec3: document.getElementById('rec3')
+            };
+
+            const usEstateTaxExemption = 60000;
+            const usEstateTaxRate = 0.40;
+
+            let estateTaxChart;
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                }).format(value);
+            }
+
+            function calculateTax(assetValue) {
+                return Math.max(0, (assetValue - usEstateTaxExemption) * usEstateTaxRate);
+            }
+
+            function updateUI(assetValue) {
+                const tax = calculateTax(assetValue);
+
+                assetValueDisplay.textContent = formatCurrency(assetValue);
+                taxAmountDisplay.textContent = formatCurrency(tax);
+
+                updateChart(assetValue, tax);
+                updateRecommendation(assetValue);
+            }
+
+            function updateRecommendation(assetValue) {
+                Object.values(recCards).forEach(card => card.classList.remove('highlight'));
+                if (assetValue < usEstateTaxExemption) {
+                    recCards.rec1.classList.add('highlight');
+                } else {
+                    const highAssetThreshold = 1000000; 
+                    if (assetValue >= highAssetThreshold) {
+                         recCards.rec3.classList.add('highlight');
+                    } else {
+                         recCards.rec2.classList.add('highlight');
+                    }
+                }
+            }
+
+            function createChart() {
+                const ctx = document.getElementById('estateTaxChart').getContext('2d');
+                estateTaxChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['海外券商', '國內複委託'],
+                        datasets: [{
+                            label: '預估美國遺產稅 (美元)',
+                            data: [0, 0],
+                            backgroundColor: [
+                                'rgba(220, 38, 38, 0.6)',
+                                'rgba(5, 150, 105, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(220, 38, 38, 1)',
+                                'rgba(5, 150, 105, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return formatCurrency(context.raw);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value, index, values) {
+                                        return formatCurrency(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateChart(assetValue, tax) {
+                if (estateTaxChart) {
+                    estateTaxChart.data.datasets[0].data[0] = tax;
+                    estateTaxChart.data.datasets[0].data[1] = 0;
+                    estateTaxChart.update();
+                }
+            }
+
+            assetSlider.addEventListener('input', (event) => {
+                updateUI(parseInt(event.target.value));
+            });
+
+            const accordionHeaders = document.querySelectorAll('.accordion-header');
+            accordionHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('span:last-child');
+                    
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                });
+            });
+
+            createChart();
+            updateUI(parseInt(assetSlider.value));
+        });
+    </script>
+</body>
+</html>
