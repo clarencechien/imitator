@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE BIG SHORT: 2008 CRASH</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Serif+TC:wght@300;500;700;900&family=Roboto+Mono:wght@300;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-main: #e5e5e5;
+            --accent-red: #bc0000;
+            --accent-gold: #c5a059;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Noto Serif TC', serif;
+            overflow-x: hidden;
+        }
+
+        /* 字體設定 */
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .font-mono { font-family: 'Roboto Mono', monospace; }
+
+        /* 1. 電影膠卷雜訊 (Film Grain) */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.07;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+        }
+
+        /* 2. 暈影 (Vignette) */
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.9) 100%);
+            pointer-events: none;
+            z-index: 998;
+        }
+
+        /* 3. 掃描線效果 */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 997;
+        }
+
+        /* 4. 圖片濾鏡風格 */
+        .archive-photo {
+            filter: grayscale(100%) contrast(120%) brightness(0.9);
+            transition: filter 0.8s ease, transform 0.8s ease;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .archive-photo:hover {
+            filter: grayscale(0%) contrast(100%) brightness(1);
+            transform: scale(1.02);
+        }
+
+        .photo-wrapper {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #333;
+            background-color: #111;
+        }
+
+        .photo-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(188, 0, 0, 0.1) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        /* 滾動揭示動畫 (Scroll Reveal) */
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(60px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .reveal-up.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 文字特效 */
+        .text-glow {
+            text-shadow: 0 0 20px rgba(188, 0, 0, 0.6);
+        }
+
+        .glitch-text:hover {
+            animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+            color: var(--accent-red);
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        /* 圖表動畫：預設高度 0，用 JS 驅動 */
+        .bar-anim {
+            height: 0;
+            transition: height 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* 進度條 */
+        .progress-bar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 3px;
+            background: var(--accent-red);
+            z-index: 1000;
+            width: 0%;
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 視覺特效層 -->
+    <div class="noise-overlay"></div>
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- 導航/水印 -->
+    <nav class="fixed top-6 w-full px-6 flex justify-between items-center z-50 mix-blend-difference">
+        <div class="font-mono text-xs tracking-widest text-red-500 animate-pulse">
+            ● REC [DOC_MODE]
+        </div>
+        <div class="font-cinzel text-sm text-gray-400 tracking-[0.3em]">
+            THE BIG SHORT
+        </div>
+    </nav>
+
+    <!-- HEADER: 引言 -->
+    <header class="h-screen flex flex-col justify-center items-center relative px-4 text-center overflow-hidden">
+        <div class="absolute inset-0 z-[-1] opacity-30">
+            <img src="https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?q=80&w=1920&auto=format&fit=crop" 
+                 class="w-full h-full object-cover grayscale" 
+                 alt="City Night"
+                 onerror="this.onerror=null; this.src='https://placehold.co/1920x1080/111/666?text=CITY+LIGHTS';">
+        </div>
+        
+        <div class="reveal-up active space-y-6 max-w-4xl">
+            <p class="font-mono text-red-500 text-xs md:text-sm tracking-[0.5em] uppercase">Based on a True Story</p>
+            <h1 class="font-cinzel text-5xl md:text-8xl font-black leading-none text-white drop-shadow-2xl">
+                2008<br><span class="text-red-700 glitch-text cursor-pointer">CRASH</span>
+            </h1>
+            <div class="h-[1px] w-24 bg-red-600 mx-auto my-6"></div>
+            <p class="font-serif text-gray-400 text-lg md:text-xl italic max-w-xl mx-auto">
+                "他們在賭美國夢會崩潰。<br>而他們贏了。"
+            </p>
+        </div>
+        
+        <div class="absolute bottom-10 animate-bounce">
+            <i data-lucide="chevron-down" class="text-gray-500 w-8 h-8"></i>
+        </div>
+    </header>
+
+    <!-- ACT 1: 繁榮的假象 -->
+    <section class="min-h-screen py-24 px-6 md:px-24 relative border-t border-gray-900 flex items-center">
+        <div class="container mx-auto grid md:grid-cols-2 gap-16 items-center">
+            <!-- 文字區 -->
+            <div class="space-y-8 order-2 md:order-1">
+                <div class="reveal-up border-l-4 border-red-700 pl-6">
+                    <span class="font-mono text-red-500 text-sm tracking-widest mb-2 block">ACT I : 2001 - 2005</span>
+                    <h2 class="font-cinzel text-4xl md:text-5xl font-bold text-white mb-4">繁榮的假象</h2>
+                </div>
+                <p class="reveal-up text-gray-400 leading-loose text-lg">
+                    這一切始於一個簡單的想法：<span class="text-white font-bold">每個人都應該擁有自己的家。</span>
+                    <br><br>
+                    為了刺激經濟，聯準會大幅降息。資金變得廉價，銀行急著把錢借出去。
+                    即使你沒有工作、沒有收入、沒有資產 (NINJA Loans)，你依然能貸到幾百萬美元買房。
+                    人們相信房價永遠只會上漲。
+                </p>
+                
+                <!-- CSS 房價圖表模擬 -->
+                <div class="reveal-up bg-gray-900/50 p-6 border border-gray-800 mt-8 rounded relative overflow-hidden chart-container">
+                    <div class="absolute top-0 right-0 p-2 text-xs font-mono text-gray-600">INDEX</div>
+                    <!-- h-40 = 10rem = 160px height -->
+                    <div class="flex justify-between items-end h-40 gap-4 font-mono text-xs text-gray-500" id="chart-act1">
+                        <!-- Bar 1 -->
+                        <div class="w-full bg-gray-800 relative group rounded-t h-full">
+                            <div class="absolute bottom-0 w-full bg-red-900/40 bar-anim rounded-t" data-height="30%"></div>
+                            <span class="absolute bottom-[-25px] w-full text-center">2001</span>
+                        </div>
+                        <!-- Bar 2 -->
+                        <div class="w-full bg-gray-800 relative group rounded-t h-full">
+                            <div class="absolute bottom-0 w-full bg-red-800/70 bar-anim rounded-t" data-height="50%"></div>
+                            <span class="absolute bottom-[-25px] w-full text-center">2003</span>
+                        </div>
+                        <!-- Bar 3 -->
+                        <div class="w-full bg-gray-800 relative group rounded-t h-full">
+                            <div class="absolute bottom-0 w-full bg-red-600 bar-anim text-glow rounded-t" data-height="95%"></div>
+                            <span class="absolute bottom-[-25px] w-full text-center text-white font-bold">2006</span>
+                        </div>
+                    </div>
+                    <p class="text-center mt-10 text-xs text-gray-500 uppercase tracking-widest">U.S. Housing Price Index</p>
+                </div>
+            </div>
+
+            <!-- 圖片區 -->
+            <div class="reveal-up order-1 md:order-2">
+                <div class="photo-wrapper transform rotate-2 hover:rotate-0 transition-transform duration-500 shadow-2xl shadow-black h-[500px]">
+                    <img src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=1000&auto=format&fit=crop" 
+                         class="archive-photo" 
+                         alt="American Suburban House"
+                         onerror="this.onerror=null; this.src='https://placehold.co/1000x800/111/666?text=SUBURBIA';">
+                    <div class="absolute bottom-0 left-0 bg-black/80 text-red-500 font-mono text-xs p-2 border-t border-red-700 w-full z-20">
+                        FILE_ID: SUBURBIA_BUBBLE // FLORIDA
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ACT 2: 貪婪的煉金術 -->
+    <section class="min-h-screen py-24 px-6 md:px-24 relative bg-gray-900/30 flex items-center">
+        <div class="container mx-auto">
+            <div class="text-center mb-16 reveal-up">
+                <span class="font-mono text-gray-500 text-sm tracking-widest mb-2 block">ACT II : THE INVENTION</span>
+                <h2 class="font-cinzel text-4xl md:text-6xl font-bold text-white mb-4">貪婪的煉金術</h2>
+                <p class="text-gray-400 max-w-2xl mx-auto italic">"華爾街發現了一種將屎變成黃金的方法。"</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 items-start">
+                <!-- 左側：解釋 CDO -->
+                <div class="reveal-up space-y-6">
+                    <div class="relative photo-wrapper border-red-900/50 border-2 h-[400px]">
+                        <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000&auto=format&fit=crop" 
+                             class="archive-photo" 
+                             alt="Wall Street Skyscrapers"
+                             onerror="this.onerror=null; this.src='https://placehold.co/1000x800/111/666?text=WALL+STREET';">
+                         <div class="absolute top-4 right-4 bg-red-600 text-black font-bold px-3 py-1 font-mono text-sm rotate-3 z-20">
+                            AAA RATED
+                        </div>
+                    </div>
+                    <div class="font-serif text-gray-300 space-y-4 text-lg">
+                        <p>
+                            銀行將成千上萬筆高風險房貸捆綁在一起，創造了 <strong class="text-red-500">MBS (房貸抵押證券)</strong>。
+                        </p>
+                        <p>
+                            然後，他們將沒人要的垃圾債券重新分層、重新包裝，發明了 <strong class="text-gold-500 text-[#c5a059]">CDO (擔保債務憑證)</strong>。
+                            信評機構收了錢，閉著眼睛給這些垃圾蓋上 <span class="text-white font-bold border border-white px-1">AAA</span> 的標籤。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 右側：視覺化積木 (Jenga) -->
+                <div class="reveal-up bg-black p-8 border border-gray-800 h-[400px] flex flex-col justify-center items-center relative">
+                    <div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    
+                    <h3 class="text-xl font-mono text-gray-400 mb-8">CDO STRUCTURE</h3>
+                    
+                    <!-- Stack -->
+                    <div class="flex flex-col gap-1 w-64 relative z-10">
+                        <div class="h-12 bg-green-800/80 border border-green-500 flex items-center justify-center text-green-200 font-mono text-sm relative group cursor-help hover:bg-green-700 transition-colors">
+                            AAA (SAFE?)
+                        </div>
+                        <div class="h-12 bg-yellow-800/80 border border-yellow-500 flex items-center justify-center text-yellow-200 font-mono text-sm w-[90%] self-center">
+                            BBB (OKAY)
+                        </div>
+                        <div class="h-12 bg-red-900/80 border border-red-500 flex items-center justify-center text-red-200 font-mono text-sm w-[80%] self-center animate-pulse">
+                            SUBPRIME (TOXIC)
+                        </div>
+                        <div class="h-12 bg-red-950 border border-red-900 flex items-center justify-center text-red-500 font-mono text-xs w-[70%] self-center italic">
+                            DOG SH*T
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 text-center">
+                        <p class="text-xs font-mono text-red-500 blink">WARNING: UNSTABLE FOUNDATION</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ACT 3: 骨牌效應 -->
+    <section class="min-h-screen py-24 px-6 md:px-24 relative bg-red-950/10 flex flex-col justify-center">
+        <div class="container mx-auto">
+            <div class="reveal-up flex flex-col md:flex-row items-end gap-8 mb-12 border-b border-red-800 pb-8">
+                 <div>
+                    <span class="font-mono text-red-600 text-sm tracking-widest block">ACT III : SEPTEMBER 15, 2008</span>
+                    <h2 class="font-cinzel text-5xl md:text-7xl font-black text-white mt-2">骨牌效應</h2>
+                 </div>
+                 <div class="md:ml-auto font-mono text-red-500 text-xl animate-pulse">
+                    LEHMAN BROTHERS: BANKRUPT
+                 </div>
+            </div>
+
+            <div class="grid md:grid-cols-12 gap-8">
+                <!-- 大圖：股市崩盤 -->
+                <div class="md:col-span-8 reveal-up h-[500px]">
+                    <div class="photo-wrapper h-full">
+                         <img src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=1000&auto=format&fit=crop" 
+                              class="archive-photo grayscale brightness-50 contrast-150 hover:brightness-100 transition-all duration-1000" 
+                              alt="Stock Market Crash"
+                              onerror="this.onerror=null; this.src='https://placehold.co/1000x800/330000/FFF?text=MARKET+CRASH';">
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none mix-blend-overlay">
+                            <span class="text-[12vw] font-black text-red-600 opacity-20 rotate-12 select-none">ERROR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 時間軸 -->
+                <div class="md:col-span-4 space-y-6 reveal-up">
+                    <div class="bg-black border-l-2 border-red-600 p-6 hover:bg-red-950/20 transition-colors cursor-crosshair">
+                        <span class="text-gray-500 text-xs font-mono">MAR 2008</span>
+                        <h3 class="text-white font-bold text-lg">貝爾斯登倒閉</h3>
+                        <p class="text-gray-400 text-sm mt-2">以每股 $2 美元賤賣給摩根大通。這只是開始。</p>
+                    </div>
+                    
+                    <div class="bg-black border-l-2 border-red-600 p-6 hover:bg-red-950/20 transition-colors transform scale-105 shadow-lg shadow-red-900/20 cursor-crosshair border-r border-t border-b border-red-900/30">
+                        <span class="text-red-500 text-xs font-mono font-bold">SEPT 15, 2008</span>
+                        <h3 class="text-white font-bold text-xl text-glow">雷曼兄弟破產</h3>
+                        <p class="text-gray-300 text-sm mt-2">負債 6130 億美元。全球金融心臟驟停。</p>
+                    </div>
+
+                    <div class="bg-black border-l-2 border-gray-600 p-6 hover:bg-gray-900/20 transition-colors cursor-crosshair">
+                        <span class="text-gray-500 text-xs font-mono">SEPT 16, 2008</span>
+                        <h3 class="text-gray-300 font-bold text-lg">AIG 接受接管</h3>
+                        <p class="text-gray-500 text-sm mt-2">保險巨頭倒下，政府被迫介入紓困。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ACT 4: 廢墟 -->
+    <section class="min-h-screen py-24 px-6 md:px-24 flex items-center justify-center bg-black relative">
+        <div class="max-w-4xl mx-auto text-center reveal-up">
+             <span class="font-mono text-gray-600 text-sm tracking-widest mb-6 block">ACT IV : THE AFTERMATH</span>
+            
+            <!-- FIXED: 更換為新的穩定 Unsplash 圖片 (Grayscale Architecture/Ruins vibe) -->
+            <div class="mb-12 relative inline-block photo-wrapper w-full max-w-2xl">
+                 <img src="https://images.unsplash.com/photo-1481277542470-605612bd2d61?q=80&w=1000&auto=format&fit=crop" 
+                      class="w-full h-[400px] object-cover archive-photo" 
+                      alt="Abandoned House"
+                      onerror="this.onerror=null; this.src='https://placehold.co/1000x600/111/666?text=FORECLOSED+HOME';">
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="border-4 border-white/80 p-2 md:p-4 backdrop-blur-sm bg-black/20 mx-2">
+                        <!-- text-[10vw] 保證手機不裁切 -->
+                        <span class="text-white font-black text-[10vw] uppercase tracking-wide mix-blend-overlay opacity-90 block text-center leading-none">
+                            Foreclosed
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="font-cinzel text-3xl md:text-5xl text-white mb-8">代價是什麼？</h2>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-8 text-center">
+                <div class="p-4 border border-gray-800 hover:border-red-800 transition-colors">
+                    <div class="text-4xl md:text-5xl font-mono text-red-600 font-bold mb-2">$5 T</div>
+                    <div class="text-xs text-gray-500 uppercase">退休金蒸發</div>
+                </div>
+                <div class="p-4 border border-gray-800 hover:border-red-800 transition-colors">
+                    <div class="text-4xl md:text-5xl font-mono text-white font-bold mb-2">8 M</div>
+                    <div class="text-xs text-gray-500 uppercase">失業人口</div>
+                </div>
+                <div class="p-4 border border-gray-800 col-span-2 md:col-span-1 hover:border-red-800 transition-colors">
+                    <div class="text-4xl md:text-5xl font-mono text-white font-bold mb-2">6 M</div>
+                    <div class="text-xs text-gray-500 uppercase">無家可歸</div>
+                </div>
+            </div>
+
+            <div class="mt-16 text-gray-500 font-serif italic text-lg max-w-2xl mx-auto">
+                "只有一個人因為這次危機進了監獄。<br>其他的銀行家？他們拿著獎金回家了。"
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="py-12 border-t border-gray-900 text-center bg-black z-10 relative">
+        <p class="font-cinzel text-2xl text-white mb-4">THE BIG SHORT</p>
+        <p class="font-mono text-xs text-gray-600">
+            A WEB DOCUMENTARY EXPERIENCE<br>
+            DESIGNED BY GEMINI AI
+        </p>
+    </footer>
+
+    <script>
+        // 初始化 Lucide icons
+        lucide.createIcons();
+
+        // 滾動進度條邏輯
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById("progressBar").style.width = scrolled + "%";
+        });
+
+        // Intersection Observer 用於滾動動畫與圖表觸發
+        const observerOptions = {
+            threshold: 0.15, 
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    
+                    // 圖表動畫修復邏輯：
+                    if(entry.target.classList.contains('chart-container')) {
+                        const bars = entry.target.querySelectorAll('.bar-anim');
+                        bars.forEach((bar, index) => {
+                            setTimeout(() => {
+                                bar.style.height = bar.getAttribute('data-height');
+                            }, index * 250);
+                        });
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal-up').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
