@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動態資料流架構圖 - 完美對齊版</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- 動畫定義 --- */
+        @keyframes flowHorizontal {
+            0% { background-position: 24px 0; }
+            100% { background-position: 0 0; }
+        }
+
+        @keyframes flowVertical {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 24px; }
+        }
+
+        @keyframes wave {
+            0% { transform: translateX(0) translateY(-5px); }
+            50% { transform: translateX(-25%) translateY(5px); }
+            100% { transform: translateX(0) translateY(-5px); }
+        }
+
+        @keyframes drop {
+            0% { transform: translateY(-20px); opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(40px); opacity: 0; }
+        }
+
+        @keyframes pulse-border {
+            0% { border-color: #99f6e4; box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.4); }
+            70% { border-color: #2dd4bf; box-shadow: 0 0 0 6px rgba(45, 212, 191, 0); }
+            100% { border-color: #99f6e4; box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* --- 管道樣式 --- */
+        .pipe-h {
+            height: 4px;
+            width: 100%;
+            background: #e2e8f0;
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+        .pipe-h.active::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #3b82f6 25%, transparent 25%, transparent 50%, #3b82f6 50%, #3b82f6 75%, transparent 75%, transparent);
+            background-size: 24px 100%;
+            animation: flowHorizontal 1s linear infinite;
+        }
+
+        .pipe-v {
+            width: 4px;
+            height: 100%;
+            min-height: 40px;
+            background: #e2e8f0;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+            border-radius: 2px;
+        }
+        .pipe-v.active::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, #ef4444 25%, transparent 25%, transparent 50%, #ef4444 50%, #ef4444 75%, transparent 75%, transparent);
+            background-size: 100% 24px;
+            animation: flowVertical 1s linear infinite;
+        }
+
+        /* --- 箭頭 --- */
+        .arrow-right {
+            width: 0; 
+            height: 0; 
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 8px solid #94a3b8;
+        }
+        
+        .arrow-down {
+            width: 0; 
+            height: 0; 
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #94a3b8;
+        }
+
+        /* --- 水波紋與水滴 --- */
+        .liquid-wave {
+            animation: wave 3s ease-in-out infinite;
+        }
+        .data-drop {
+            animation: drop 1.5s linear infinite;
+        }
+
+        /* --- 互動樣式 --- */
+        .dashboard-active {
+            animation: pulse-border 3s infinite;
+        }
+
+        .node-card {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .node-card:active {
+            transform: scale(0.95) !important;
+        }
+        .node-card.selected {
+            ring: 2px solid #3b82f6;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Tooltip */
+        .tooltip-box {
+            animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 50;
+        }
+        .tooltip-arrow::before {
+            content: "";
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
+
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen" onclick="handleBodyClick(event)">
+
+    <div class="container mx-auto p-4 max-w-[1600px]">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <div class="mb-4 md:mb-0">
+                <h1 class="text-2xl font-bold text-slate-900">Custom Data Flow Architecture</h1>
+                <p class="text-slate-500 text-sm mt-1">點擊各元件可查看詳細說明 | Flowable → Airbyte → ClickHouse → Cube.js → Superset</p>
+            </div>
+            <button id="toggleBtn" class="px-5 py-2.5 rounded-lg font-medium transition-all bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-2 shadow-sm active:scale-95">
+                <span>🌊</span> <span>暫停流動</span>
+            </button>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-lg border border-slate-200 overflow-hidden relative select-none">
+            
+            <!-- 背景層 (桌機版顯示分層背景) -->
+            <!-- 比例：12% | 22% | 22% | 22% | 12% | flex-1 (~10%) -->
+            <div class="hidden lg:flex absolute inset-0 pointer-events-none z-0">
+                <div class="w-[12%] h-full"></div> <!-- Spacer for Source -->
+                <div class="w-[22%] h-full bg-orange-50/50 border-r border-orange-100/50 flex flex-col pt-2"><span class="text-center text-xs font-bold text-orange-800 tracking-wider opacity-60">BRONZE LAYER</span></div>
+                <div class="w-[22%] h-full bg-slate-100/50 border-r border-slate-200/50 flex flex-col pt-2"><span class="text-center text-xs font-bold text-slate-700 tracking-wider opacity-60">SILVER LAYER</span></div>
+                <div class="w-[22%] h-full bg-yellow-50/50 border-r border-yellow-100/50 flex flex-col pt-2"><span class="text-center text-xs font-bold text-yellow-800 tracking-wider opacity-60">GOLD LAYER</span></div>
+                <div class="w-[12%] h-full bg-purple-50/50 border-r border-purple-100/50 flex flex-col pt-2"><span class="text-center text-xs font-bold text-purple-800 tracking-wider opacity-60">SEMANTIC</span></div>
+                <div class="flex-1 h-full bg-teal-50/30 flex flex-col pt-2"><span class="text-center text-xs font-bold text-teal-800 tracking-wider opacity-60">BI LAYER</span></div>
+            </div>
+
+            <!-- Mobile Layer Labels -->
+            <div class="lg:hidden flex flex-wrap gap-2 mb-6 justify-center">
+                <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-bold rounded">Bronze</span>
+                <span class="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded">Silver</span>
+                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded">Gold</span>
+                <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-bold rounded">Semantic</span>
+            </div>
+
+            <!-- Diagram Flow -->
+            <div class="relative z-10 flex flex-col lg:flex-row items-center lg:items-stretch justify-between gap-4 lg:gap-0 lg:h-[500px]">
+
+                <!-- 1. Source: Flowable (佔據背景 12% 區域) -->
+                <div class="flex flex-col items-center justify-center min-w-[100px] z-20 lg:w-[12%] lg:flex-none">
+                    <div class="node-card w-28 p-4 bg-white border-2 border-green-200 rounded-xl shadow-sm flex flex-col items-center hover:shadow-md"
+                         data-title="Flowable"
+                         data-desc="BPM 業務流程管理平台。負責定義與執行資料處理的工作流程，並觸發 Airbyte 進行資料同步任務。">
+                        <div class="p-2 bg-green-50 rounded-full mb-2 pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm pointer-events-none">Flowable</h3>
+                    </div>
+                </div>
+
+                <!-- 2. Connection Pipe (Positioned absolutely or with negative margins in grid, but here strict width works) -->
+                <!-- The pipe should actually be part of the flow. Let's make it span the gap. -->
+                <!-- Airbyte is the vertical bar separation. It's conceptually between Source and Bronze. -->
+                
+                <div class="hidden lg:flex items-center justify-center" style="width: 20px;">
+                    <!-- A small pipe connector -->
+                    <div class="pipe-h active w-full"></div><div class="arrow-right"></div>
+                </div>
+
+                <div class="lg:hidden h-8 w-full flex justify-center items-center"><div class="pipe-v active h-full"></div></div>
+
+                <!-- 2. Airbyte (Vertical Bar) -->
+                <div class="flex flex-col items-center justify-center z-20">
+                    <div class="node-card lg:h-full lg:w-14 w-48 h-16 bg-white border-2 border-blue-200 rounded-xl shadow-sm flex lg:flex-col flex-row items-center justify-center relative p-2 hover:shadow-md"
+                         data-title="Airbyte (EL)"
+                         data-desc="EL (Extract & Load) 工具。負責連接各種來源資料庫，將原始資料抽取並載入到 ClickHouse Bronze 層。">
+                        <div class="absolute -left-1 top-1/2 w-2 h-4 bg-blue-300 rounded hidden lg:block"></div>
+                        <div class="absolute -right-1 top-1/2 w-2 h-4 bg-blue-300 rounded hidden lg:block"></div>
+                        <span class="font-bold text-blue-600 lg:-rotate-90 whitespace-nowrap text-sm lg:text-lg pointer-events-none">Airbyte (EL)</span>
+                    </div>
+                </div>
+
+                <!-- Connection -->
+                <div class="hidden lg:flex items-center justify-center" style="width: 20px;">
+                    <div class="pipe-h active w-full"></div><div class="arrow-right"></div>
+                </div>
+                <div class="lg:hidden h-8 w-full flex justify-center items-center"><div class="pipe-v active h-full"></div></div>
+
+                <!-- 3. Central Layers Block (Grid Alignment Key) -->
+                <!-- 
+                   The remaining width for layers is Bronze(22) + Silver(22) + Gold(22) + Semantic(12) = 78% of total width (roughly).
+                   We use flex-grow to fill the space, but internally we MUST respect the ratios.
+                   Ratios: 22 : 22 : 22 : 12
+                   Percentages within this block:
+                   Bronze: 22/78 = 28.2%
+                   Silver: 22/78 = 28.2%
+                   Gold:   22/78 = 28.2%
+                   Semantic: 12/78 = 15.4%
+                -->
+                <div class="flex-grow flex flex-col w-full">
+                    
+                    <!-- Top Row: ClickHouses & Cube -->
+                    <div class="flex flex-col lg:flex-row w-full gap-4 lg:gap-0 lg:h-[200px] mb-8 lg:mb-0 relative items-center lg:items-start">
+                        
+                        <!-- Bronze CH (28.2%) -->
+                        <div class="relative group flex flex-col items-center justify-center z-20 flex-1 lg:flex-none lg:w-[28.2%] h-full">
+                            <div class="node-card w-32 p-3 bg-white border-2 border-orange-200 rounded-xl shadow-sm flex flex-col items-center hover:-translate-y-1 hover:shadow-md"
+                                 data-title="ClickHouse (Bronze)"
+                                 data-desc="Bronze Layer (原始層)。存放從來源直接同步過來的 Raw Data（如 JSON 字串），未經加工，確保資料完整性。">
+                                <div class="p-1.5 bg-orange-50 rounded-full mb-1 pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-orange-600"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-xs pointer-events-none">ClickHouse</h3>
+                                <p class="text-[10px] text-slate-500 pointer-events-none">Bronze</p>
+                            </div>
+                            
+                            <!-- Arrow to Next (Absolute Right) -->
+                            <div class="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-8 z-0">
+                                <div class="pipe-h active w-full"></div><div class="arrow-right"></div>
+                            </div>
+                            
+                            <!-- Down pipe to MinIO -->
+                            <div class="hidden lg:flex absolute bottom-0 left-1/2 -translate-x-1/2 h-[calc(50%-40px)] w-8 flex-col items-center justify-end pointer-events-none pb-2">
+                                <div class="pipe-v active h-full"></div><div class="arrow-down"></div>
+                            </div>
+                        </div>
+
+                         <div class="lg:hidden h-8 w-full flex justify-center items-center"><div class="pipe-v active h-full"></div></div>
+
+                        <!-- Silver CH (28.2%) -->
+                        <div class="relative group flex flex-col items-center justify-center z-20 flex-1 lg:flex-none lg:w-[28.2%] h-full">
+                            <div class="node-card w-32 p-3 bg-white border-2 border-slate-200 rounded-xl shadow-sm flex flex-col items-center hover:-translate-y-1 hover:shadow-md"
+                                 data-title="ClickHouse (Silver)"
+                                 data-desc="Silver Layer (清洗層)。經過 dbt 轉換，將 JSON 展開為結構化欄位，進行資料清洗與驗證。">
+                                <div class="p-1.5 bg-slate-50 rounded-full mb-1 pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-xs pointer-events-none">ClickHouse</h3>
+                                <p class="text-[10px] text-slate-500 pointer-events-none">Silver</p>
+                            </div>
+
+                             <!-- Arrow to Next -->
+                             <div class="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-8 z-0">
+                                <div class="pipe-h active w-full"></div><div class="arrow-right"></div>
+                            </div>
+
+                            <!-- Down pipe to MinIO -->
+                            <div class="hidden lg:flex absolute bottom-0 left-1/2 -translate-x-1/2 h-[calc(50%-40px)] w-8 flex-col items-center justify-end pointer-events-none pb-2">
+                                <div class="pipe-v active h-full"></div><div class="arrow-down"></div>
+                            </div>
+                        </div>
+
+                        <div class="lg:hidden h-8 w-full flex justify-center items-center"><div class="pipe-v active h-full"></div></div>
+
+                        <!-- Gold CH (28.2%) -->
+                        <div class="relative group flex flex-col items-center justify-center z-20 flex-1 lg:flex-none lg:w-[28.2%] h-full">
+                            <div class="node-card w-32 p-3 bg-white border-2 border-yellow-200 rounded-xl shadow-sm flex flex-col items-center hover:-translate-y-1 hover:shadow-md"
+                                 data-title="ClickHouse (Gold)"
+                                 data-desc="Gold Layer (聚合層)。針對業務需求進行聚合運算（如日營收、月活躍用戶），提供高效查詢。">
+                                <div class="p-1.5 bg-yellow-50 rounded-full mb-1 pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-600"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-xs pointer-events-none">ClickHouse</h3>
+                                <p class="text-[10px] text-slate-500 pointer-events-none">Gold</p>
+                            </div>
+                            
+                             <!-- Arrow to Next -->
+                             <div class="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-8 z-0">
+                                <div class="pipe-h active w-full"></div><div class="arrow-right"></div>
+                            </div>
+
+                            <!-- Down pipe to MinIO -->
+                            <div class="hidden lg:flex absolute bottom-0 left-1/2 -translate-x-1/2 h-[calc(50%-40px)] w-8 flex-col items-center justify-end pointer-events-none pb-2">
+                                <div class="pipe-v active h-full"></div><div class="arrow-down"></div>
+                            </div>
+                        </div>
+
+                         <div class="lg:hidden h-8 w-full flex justify-center items-center"><div class="pipe-v active h-full"></div></div>
+
+                        <!-- Cube.js (15.4%) -->
+                        <div class="flex flex-col items-center justify-center z-20 flex-1 lg:flex-none lg:w-[15.4%] h-full">
+                            <div class="node-card w-32 p-3 bg-white border-2 border-purple-200 rounded-xl shadow-sm flex flex-col items-center hover:-translate-y-1 hover:shadow-md relative"
+                                 data-title="Cube.js (Semantic)"
+                                 data-desc="Semantic Layer (語義層)。統一管理指標定義、緩存策略與存取控制，為前端提供一致的 API 接口。">
+                                <div class="p-1.5 bg-purple-50 rounded-full mb-1 pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-600"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-xs pointer-events-none">Cube.js</h3>
+                                <p class="text-[10px] text-slate-500 pointer-events-none">API</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Middle Space for MinIO Pipes -->
+                    <!-- Used padding/absolute positioning in Top Row, so this is just spacer -->
+                    <div class="hidden lg:block h-8 w-full"></div>
+
+                    <!-- Bottom Row: MinIO Storage -->
+                    <!-- Alignment Fix: Width needs to cover Bronze + Silver + Gold -->
+                    <!-- Calculation: 22+22+22 = 66. Total Block is 78. -->
+                    <!-- Width = 66/78 = 84.6% -->
+                    <div class="w-full lg:w-[84.6%] pr-4 lg:pr-0">
+                        <div class="node-card w-full bg-red-50/50 border-2 border-red-200 rounded-xl p-4 relative z-10 hover:shadow-md cursor-pointer"
+                             data-title="MinIO Object Storage"
+                             data-desc="S3 相容物件儲存系統。作為 ClickHouse 的底層存儲 (Tiered Storage)，實現冷熱資料分層，降低儲存成本。">
+                             
+                             <div class="flex items-center justify-center space-x-2 mb-4 text-red-700 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                                <span class="text-sm font-bold">MinIO Object Storage</span>
+                            </div>
+                            
+                            <!-- Internal Alignment: 3 Equal Columns to match the 3 columns above -->
+                            <div class="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-0 pointer-events-none">
+                                <!-- Bucket 1 (Aligns with Bronze) -->
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-16 h-20 border-2 border-slate-400 border-t-0 rounded-b-2xl relative overflow-hidden bg-white shadow-inner">
+                                        <div class="absolute top-0 left-0 w-full h-2 border-b border-slate-200"></div>
+                                        <div class="liquid absolute bottom-0 left-0 w-full bg-orange-400 opacity-80 h-[80%]">
+                                            <div class="liquid-wave absolute top-0 left-0 w-[200%] h-4 bg-white/40 rounded-[100%] -translate-y-1/2"></div>
+                                        </div>
+                                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full flex justify-center"><div class="w-1 h-2 bg-slate-400 rounded-full data-drop" style="animation-delay: 0.2s"></div></div>
+                                    </div>
+                                    <span class="text-[10px] font-semibold text-slate-600 mt-1">Raw</span>
+                                </div>
+
+                                <!-- Mobile Arrow -->
+                                <div class="lg:hidden text-slate-400 text-center">↓</div>
+
+                                <!-- Bucket 2 (Aligns with Silver) -->
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-16 h-20 border-2 border-slate-400 border-t-0 rounded-b-2xl relative overflow-hidden bg-white shadow-inner">
+                                        <div class="absolute top-0 left-0 w-full h-2 border-b border-slate-200"></div>
+                                        <div class="liquid absolute bottom-0 left-0 w-full bg-slate-400 opacity-80 h-[60%]">
+                                            <div class="liquid-wave absolute top-0 left-0 w-[200%] h-4 bg-white/40 rounded-[100%] -translate-y-1/2"></div>
+                                        </div>
+                                         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full flex justify-center"><div class="w-1 h-2 bg-slate-400 rounded-full data-drop" style="animation-delay: 0.5s"></div></div>
+                                    </div>
+                                    <span class="text-[10px] font-semibold text-slate-600 mt-1">Cleansed</span>
+                                </div>
+
+                                 <!-- Mobile Arrow -->
+                                 <div class="lg:hidden text-slate-400 text-center">↓</div>
+
+                                <!-- Bucket 3 (Aligns with Gold) -->
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-16 h-20 border-2 border-slate-400 border-t-0 rounded-b-2xl relative overflow-hidden bg-white shadow-inner">
+                                        <div class="absolute top-0 left-0 w-full h-2 border-b border-slate-200"></div>
+                                        <div class="liquid absolute bottom-0 left-0 w-full bg-yellow-400 opacity-80 h-[40%]">
+                                            <div class="liquid-wave absolute top-0 left-0 w-[200%] h-4 bg-white/40 rounded-[100%] -translate-y-1/2"></div>
+                                        </div>
+                                         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full flex justify-center"><div class="w-1 h-2 bg-slate-400 rounded-full data-drop" style="animation-delay: 0.8s"></div></div>
+                                    </div>
+                                    <span class="text-[10px] font-semibold text-slate-600 mt-1">Aggregated</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Connection to Superset (Desktop) -->
+                <div class="hidden lg:flex flex-col justify-start h-full relative" style="width: 20px;">
+                    <!-- Align with the Top Row -->
+                    <div class="h-[200px] w-full flex items-center">
+                         <div class="pipe-h active w-full"></div>
+                         <div class="arrow-right"></div>
+                    </div>
+                </div>
+
+                 <!-- Mobile Arrow -->
+                 <div class="lg:hidden h-8 w-full flex justify-center items-center"><div class="pipe-v active h-full"></div></div>
+
+                <!-- 4. Superset (Vertical) (Flex-1 to fill remaining space ~10%) -->
+                <div class="flex flex-col items-center justify-center z-20 h-full flex-1">
+                    <div class="node-card lg:h-full lg:w-32 w-48 min-h-[100px] bg-white border-4 border-teal-200 rounded-xl shadow-lg flex flex-col items-center justify-center relative p-4 dashboard-active overflow-hidden hover:shadow-xl"
+                         data-title="Superset (BI Layer)"
+                         data-desc="商業智慧平台。可直接查詢 Gold Layer 或透過 Cube.js API 獲取數據，製作儀表板供決策使用。">
+                         
+                         <!-- Header -->
+                         <div class="text-teal-600 font-bold text-center mb-4 z-10 pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                            <span class="text-lg">Superset</span>
+                            <div class="text-[10px] text-teal-400 uppercase tracking-widest mt-1">Dashboard</div>
+                         </div>
+
+                         <!-- Mini Dashboard Visuals -->
+                         <div class="w-full flex flex-col gap-2 opacity-50 z-0 pointer-events-none">
+                            <div class="h-8 bg-slate-100 rounded w-full flex items-center px-1 gap-1">
+                                <div class="w-2 h-2 rounded-full bg-rose-300"></div>
+                                <div class="h-1 bg-slate-200 w-2/3 rounded"></div>
+                            </div>
+                            <div class="h-16 bg-slate-100 rounded w-full flex items-end justify-around pb-1 px-1">
+                                <div class="w-2 h-6 bg-blue-300 rounded-t"></div>
+                                <div class="w-2 h-10 bg-blue-400 rounded-t"></div>
+                                <div class="w-2 h-8 bg-blue-300 rounded-t"></div>
+                                <div class="w-2 h-12 bg-blue-500 rounded-t"></div>
+                            </div>
+                            <div class="h-8 bg-slate-100 rounded w-full flex items-center px-1 gap-1">
+                                <div class="w-4 h-4 rounded-full border-2 border-teal-300"></div>
+                                <div class="h-1 bg-slate-200 w-1/2 rounded"></div>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="mt-6 text-center text-slate-500 text-xs">
+            系統狀態正常 | 資料同步中
+        </div>
+    </div>
+
+    <!-- Tooltip Element -->
+    <div id="tooltip" class="fixed hidden tooltip-box bg-slate-800 text-white text-sm p-3 rounded-lg shadow-xl max-w-xs pointer-events-none">
+        <h4 id="tooltip-title" class="font-bold mb-1 text-teal-300"></h4>
+        <p id="tooltip-content" class="text-slate-300 leading-relaxed"></p>
+        <div class="tooltip-arrow absolute"></div>
+    </div>
+
+    <script>
+        const toggleBtn = document.getElementById('toggleBtn');
+        const pipes = document.querySelectorAll('.pipe-h, .pipe-v');
+        const liquids = document.querySelectorAll('.liquid-wave, .data-drop');
+        const supersetBox = document.querySelector('.dashboard-active');
+        const tooltip = document.getElementById('tooltip');
+        const tooltipTitle = document.getElementById('tooltip-title');
+        const tooltipContent = document.getElementById('tooltip-content');
+        
+        let isFlowing = true;
+        let activeCard = null;
+
+        // Toggle Animation Flow
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            isFlowing = !isFlowing;
+            
+            toggleBtn.innerHTML = isFlowing 
+                ? '<span>🌊</span> <span>暫停流動</span>' 
+                : '<span>▶️</span> <span>開始流動</span>';
+            
+            toggleBtn.className = isFlowing
+                ? 'px-5 py-2.5 rounded-lg font-medium transition-all bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-2 shadow-sm active:scale-95'
+                : 'px-5 py-2.5 rounded-lg font-medium transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center gap-2 shadow-sm active:scale-95';
+
+            pipes.forEach(pipe => {
+                if (isFlowing) {
+                    pipe.classList.add('active');
+                } else {
+                    pipe.classList.remove('active');
+                }
+            });
+
+            liquids.forEach(el => {
+                el.style.animationPlayState = isFlowing ? 'running' : 'paused';
+            });
+            
+            if(supersetBox) {
+                supersetBox.style.animationPlayState = isFlowing ? 'running' : 'paused';
+            }
+        });
+
+        // Tooltip Logic
+        function handleBodyClick(event) {
+            const card = event.target.closest('.node-card');
+            
+            if (card) {
+                if (activeCard === card) {
+                    hideTooltip();
+                } else {
+                    showTooltip(card);
+                }
+            } else {
+                hideTooltip();
+            }
+        }
+
+        function showTooltip(card) {
+            if (activeCard) activeCard.classList.remove('selected');
+            
+            activeCard = card;
+            card.classList.add('selected');
+
+            const title = card.getAttribute('data-title');
+            const desc = card.getAttribute('data-desc');
+            
+            tooltipTitle.textContent = title;
+            tooltipContent.textContent = desc;
+            
+            const rect = card.getBoundingClientRect();
+            
+            tooltip.style.display = 'block';
+            
+            const finalTooltipRect = tooltip.getBoundingClientRect();
+            
+            let top = rect.top - finalTooltipRect.height - 12; 
+            let left = rect.left + (rect.width / 2) - (finalTooltipRect.width / 2);
+
+            if (left < 10) left = 10;
+            if (left + finalTooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - finalTooltipRect.width - 10;
+            }
+            if (top < 10) {
+                top = rect.bottom + 12;
+            }
+
+            tooltip.style.top = `${top}px`;
+            tooltip.style.left = `${left}px`;
+            
+            tooltip.classList.remove('hidden');
+        }
+
+        function hideTooltip() {
+            if (activeCard) {
+                activeCard.classList.remove('selected');
+                activeCard = null;
+            }
+            tooltip.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
