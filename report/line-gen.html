@@ -274,32 +274,59 @@
 
         const handleStartRecording = async () => {
             try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "browser" }, audio: false });
-                mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'video/webm' });
-                recordedChunksRef.current = [];
-                mediaRecorderRef.current.ondataavailable = (event) => {
-                    if (event.data.size > 0) recordedChunksRef.current.push(event.data);
-                };
-                mediaRecorderRef.current.onstop = () => {
-                    const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    document.body.appendChild(a);
-                    a.style = 'display: none';
-                    a.href = url;
-                    a.download = `chat_video_${Date.now()}.webm`;
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    setIsRecording(false);
-                    stream.getTracks().forEach(track => track.stop());
-                };
-                mediaRecorderRef.current.start();
-                setIsRecording(true);
+                // Request high resolution
+                const stream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: { 
+                        displaySurface: "browser",
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 30 }
+                    }, 
+                    audio: false 
+                });
+
+                // Auto-enter clean mode
+                setIsCleanMode(true);
+                
+                // Wait for UI transition
+                setTimeout(() => {
+                    // Auto-Reset and Play
+                    setVisibleCount(0);
+                    setIsPlaying(true);
+                    
+                    // High bitrate options
+                    const options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 5000000 };
+                    const supported = MediaRecorder.isTypeSupported(options.mimeType);
+                    mediaRecorderRef.current = new MediaRecorder(stream, supported ? options : undefined);
+                    
+                    recordedChunksRef.current = [];
+                    mediaRecorderRef.current.ondataavailable = (event) => {
+                        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+                    };
+                    mediaRecorderRef.current.onstop = () => {
+                        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        document.body.appendChild(a);
+                        a.style = 'display: none';
+                        a.href = url;
+                        a.download = `chat_video_${Date.now()}.webm`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        setIsRecording(false);
+                        setIsCleanMode(false); // Auto-exit clean mode
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    mediaRecorderRef.current.start();
+                    setIsRecording(true);
+                }, 1000); // 1s delay to get ready
+
             } catch (err) {
                 if (err.name === 'NotAllowedError' || err.message.includes('permissions policy')) {
                     alert("請使用純淨模式配合電腦內建錄影功能");
                 } else {
-                    alert("錄影失敗");
+                    console.error(err);
+                    alert("錄影失敗: " + err.message);
                 }
             }
         };
@@ -340,6 +367,9 @@
                                 <Icons.Maximize size={18} /> 純淨模式
                             </button>
                         </div>
+                        <p className="text-xs text-blue-400 mt-2">
+                            * 點擊「開始錄影」後，請選擇本分頁，程式將自動進入純淨模式並開始播放。
+                        </p>
                     </div>
 
                     {/* 設定區 */}
@@ -489,11 +519,11 @@
                                                 )}
                                                 
                                                 {msg.type === 'image' ? (
-                                                    <div className="overflow-hidden shadow-sm border border-black/5 rounded-2xl">
+                                                    <div className="overflow-hidden rounded-2xl">
                                                         <img src={msg.content} className="max-w-[200px] h-auto object-cover block" />
                                                     </div>
                                                 ) : (
-                                                    <div className={`px-3 py-2 text-[15px] leading-relaxed break-words shadow-sm relative whitespace-pre-wrap rounded-2xl ${msg.side === 'right' ? 'bg-[#92e3a9] text-black' : 'bg-white text-black'}`}>
+                                                    <div className={`px-3 py-2 text-[15px] leading-relaxed break-words shadow-sm relative whitespace-pre-wrap rounded-2xl ${msg.side === 'right' ? 'bg-[#92e3a9] text-black rounded-tr-none' : 'bg-white text-black rounded-tl-none'}`}>
                                                         {msg.content}
                                                     </div>
                                                 )}
