@@ -4,94 +4,114 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>旅行必備清單</title>
-    
-    <!-- PWA & iOS Meta Tags -->
+
+    <!-- PWA Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="旅行清單">
-    <meta name="theme-color" content="#3b82f6">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135768.png">
-    
-    <!-- Tailwind CSS -->
+
+    <!-- Tailwind CSS (僅用於樣式) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Icons (Lucide) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" id="manifest-placeholder">
-
-    <style>
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
-        
-        /* 關鍵修正：
-           1. -webkit-tap-highlight-color: transparent -> 移除手機點擊時的灰色遮罩
-           2. user-select: none -> 防止點擊時文字被選取 (反白)
-           3. -webkit-touch-callout: none -> 防止長按時出現選單
-        */
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .no-select {
-            -webkit-user-select: none; /* Safari */
-            -ms-user-select: none; /* IE 10 and IE 11 */
-            user-select: none; /* Standard syntax */
-            -webkit-touch-callout: none; /* iOS Safari */
-        }
-
-        /* Smooth check animation */
-        .check-transition {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Safe area for iPhone notch */
-        body {
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-    </style>
-
+    <!-- PWA Manifest Generator -->
     <script>
-        // Dynamic Manifest for PWA
         const manifest = {
             "name": "旅行必備清單",
             "short_name": "旅行清單",
             "start_url": ".",
             "display": "standalone",
             "background_color": "#ffffff",
-            "theme_color": "#3b82f6",
-            "icons": [
-                {
-                    "src": "https://cdn-icons-png.flaticon.com/512/3135/3135768.png",
-                    "sizes": "512x512",
-                    "type": "image/png"
-                }
-            ]
+            "theme_color": "#2563eb",
+            "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3135/3135768.png", "sizes": "512x512", "type": "image/png" }]
         };
-        const stringManifest = JSON.stringify(manifest);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        document.querySelector('#manifest-placeholder').setAttribute('href', manifestURL);
+        const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = url;
+        document.head.appendChild(link);
     </script>
+
+    <style>
+        /* --- 終極防反白 CSS --- */
+        * {
+            /* 移除點擊高亮 (灰色遮罩) */
+            -webkit-tap-highlight-color: transparent !important;
+            /* 移除所有元素的選取能力 */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            /* 移除長按選單 */
+            -webkit-touch-callout: none;
+        }
+
+        /* 只有輸入框允許輸入文字 */
+        input {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+        }
+
+        body {
+            /* 防止下拉重新整理導致的彈跳 */
+            overscroll-behavior-y: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+        }
+        
+        /* 隱藏卷軸 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 安全區域 */
+        .safe-padding {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 h-screen overflow-hidden flex flex-col font-sans no-select">
+<body class="h-screen w-screen overflow-hidden flex flex-col safe-padding">
 
-    <div id="root" class="h-full flex flex-col"></div>
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md z-10 shrink-0">
+        <div class="flex justify-between items-center mb-3">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <span>✈️</span> 旅行清單
+            </h1>
+            <button onclick="confirmReset()" class="p-2 active:opacity-50 transition-opacity">
+                ↺ 重置
+            </button>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full bg-blue-800 rounded-full h-2 mb-1">
+            <div id="progressBar" class="bg-white h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-blue-100 mt-1">
+            <span id="progressText">0/0</span>
+            <span id="progressPercent">0%</span>
+        </div>
+    </header>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+    <!-- Input -->
+    <div class="p-3 bg-white border-b shrink-0">
+        <form onsubmit="addItem(event)" class="flex gap-2">
+            <input type="text" id="newInput" placeholder="新增項目..." 
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-gray-50 text-base shadow-sm">
+            <button type="submit" class="bg-blue-600 text-white w-12 rounded-lg font-bold text-xl active:bg-blue-700 flex items-center justify-center">
+                +
+            </button>
+        </form>
+    </div>
 
+    <!-- List -->
+    <div id="listContainer" class="flex-1 overflow-y-auto hide-scrollbar bg-white pb-20">
+        <!-- Javascript will populate this -->
+    </div>
+
+    <!-- Script -->
+    <script>
+        // 預設資料
         const DEFAULT_ITEMS = [
             "髮夾&髮箍", "洗面乳", "洗刷刷", "沐浴乳、洗髮精、潤髮乳",
             "牙刷、牙膏、牙線", "維持器", "隱形眼鏡、眼鏡&眼鏡盒", "泡澡錠",
@@ -101,196 +121,130 @@
             "飾品", "雨傘", "中藥", "充電器、行動電源", "保健&藥品",
             "保溫瓶", "泳裝", "護照&影本", "夾鏈袋&保鮮膜", "備用提袋",
             "毛巾", "曬衣夾", "網球🎾", "發熱衣", "帽子/圍巾/手套", "防靜電手環"
-        ].map((text, index) => ({
-            id: `default-${index}`,
-            text: text,
-            checked: false
-        }));
+        ].map((t, i) => ({ id: `d-${i}`, text: t, checked: false }));
 
-        const App = () => {
-            const [items, setItems] = useState(() => {
-                const saved = localStorage.getItem('travel-checklist-v1');
-                if (saved) {
-                    try {
-                        return JSON.parse(saved);
-                    } catch (e) {
-                        return DEFAULT_ITEMS;
-                    }
-                }
-                return DEFAULT_ITEMS;
+        let items = [];
+
+        // 初始化
+        function init() {
+            const saved = localStorage.getItem('travel-list-simple');
+            if (saved) {
+                items = JSON.parse(saved);
+            } else {
+                items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+            }
+            render();
+        }
+
+        // 存檔
+        function save() {
+            localStorage.setItem('travel-list-simple', JSON.stringify(items));
+            renderStats();
+        }
+
+        // 渲染列表 (使用最傳統的 innerHTML，效能最好，無狀態副作用)
+        function render() {
+            const container = document.getElementById('listContainer');
+            if (items.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 mt-20">清單是空的</div>';
+                renderStats();
+                return;
+            }
+
+            let html = '<ul class="divide-y divide-gray-100">';
+            
+            items.forEach((item, index) => {
+                // 根據狀態設定樣式
+                const checkedClass = item.checked ? 'bg-blue-500 border-blue-500' : 'border-gray-300';
+                const textClass = item.checked ? 'text-gray-400 line-through' : 'text-gray-800';
+                const bgClass = item.checked ? 'bg-gray-50' : 'bg-white';
+                const checkIcon = item.checked ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : '';
+
+                html += `
+                <li class="flex items-center ${bgClass} transition-colors duration-150">
+                    <!-- 點擊區域：文字與框框 -->
+                    <div class="flex-1 flex items-center p-4 cursor-pointer" onclick="toggle('${item.id}')">
+                        <div class="w-6 h-6 rounded border-2 mr-4 flex items-center justify-center transition-colors ${checkedClass}">
+                            ${checkIcon}
+                        </div>
+                        <span class="text-lg ${textClass}">${item.text}</span>
+                    </div>
+                    
+                    <!-- 刪除按鈕 -->
+                    <button onclick="del('${item.id}')" class="p-4 text-gray-300 active:text-red-500 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </li>
+                `;
             });
+            
+            html += '</ul>';
+            container.innerHTML = html;
+            renderStats();
+        }
 
-            const [newItemText, setNewItemText] = useState("");
-            const [showConfirmReset, setShowConfirmReset] = useState(false);
-            const listEndRef = useRef(null);
-
-            useEffect(() => {
-                localStorage.setItem('travel-checklist-v1', JSON.stringify(items));
-            }, [items]);
-
-            useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-            });
-
-            const toggleCheck = (id) => {
-                setItems(prev => prev.map(item => 
-                    item.id === id ? { ...item, checked: !item.checked } : item
-                ));
-            };
-
-            const addNewItem = (e) => {
-                e.preventDefault();
-                if (!newItemText.trim()) return;
-
-                const newItem = {
-                    id: `user-${Date.now()}`,
-                    text: newItemText.trim(),
-                    checked: false
-                };
-
-                setItems(prev => [newItem, ...prev]);
-                setNewItemText("");
-            };
-
-            const deleteItem = (id) => {
-                // Remove confirm for faster deletion interaction, or keep if preferred
-                if(window.confirm("確定要刪除這個項目嗎？")) {
-                    setItems(prev => prev.filter(item => item.id !== id));
-                }
-            };
-
-            const uncheckAll = () => {
-                setItems(prev => prev.map(item => ({ ...item, checked: false })));
-                setShowConfirmReset(false);
-            };
-
+        // 更新進度條
+        function renderStats() {
             const total = items.length;
             const completed = items.filter(i => i.checked).length;
-            const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+            const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
 
-            return (
-                <div className="flex flex-col h-full max-w-md mx-auto w-full bg-white shadow-xl sm:rounded-xl overflow-hidden relative">
-                    
-                    <header className="bg-blue-600 text-white p-4 shadow-md z-10 shrink-0">
-                        <div className="flex justify-between items-center mb-3">
-                            <h1 className="text-xl font-bold flex items-center gap-2">
-                                <i data-lucide="plane" className="w-6 h-6"></i>
-                                旅行必備清單
-                            </h1>
-                            <button 
-                                onClick={() => setShowConfirmReset(true)}
-                                className="text-blue-100 hover:text-white p-1 rounded hover:bg-blue-500 transition active:scale-95"
-                                title="全部重置"
-                            >
-                                <i data-lucide="rotate-ccw" className="w-5 h-5"></i>
-                            </button>
-                        </div>
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressText').innerText = `已完成 ${completed}/${total}`;
+            document.getElementById('progressPercent').innerText = `${percent}%`;
+        }
 
-                        <div className="w-full bg-blue-800 rounded-full h-2.5 mb-1">
-                            <div 
-                                className="bg-white h-2.5 rounded-full transition-all duration-500 ease-out" 
-                                style={{ width: `${progress}%` }}
-                            ></div>
-                        </div>
-                        <div className="flex justify-between text-xs text-blue-100 mt-1">
-                            <span>已完成 {completed}/{total}</span>
-                            <span>{progress}%</span>
-                        </div>
-                    </header>
+        // 動作：切換勾選
+        function toggle(id) {
+            const item = items.find(i => i.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                save();
+                // 局部更新優化：我們重新渲染整個列表，
+                // 因為這是原生 JS，重新建立 HTML 字串其實非常快，且避免了狀態不同步的問題
+                render(); 
+            }
+        }
 
-                    <div className="p-3 bg-gray-50 border-b shrink-0">
-                        <form onSubmit={addNewItem} className="flex gap-2 relative">
-                            <input
-                                type="text"
-                                value={newItemText}
-                                onChange={(e) => setNewItemText(e.target.value)}
-                                placeholder="新增物品..."
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-base select-text" 
-                                /* Keep input selectable */
-                            />
-                            <button 
-                                type="submit"
-                                className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-4 rounded-md font-medium hover:bg-blue-700 active:scale-95 transition flex items-center justify-center"
-                            >
-                                <i data-lucide="plus" className="w-5 h-5"></i>
-                            </button>
-                        </form>
-                    </div>
+        // 動作：新增
+        function addItem(e) {
+            e.preventDefault();
+            const input = document.getElementById('newInput');
+            const text = input.value.trim();
+            if (!text) return;
 
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white pb-24">
-                        {items.length === 0 ? (
-                            <div className="text-center text-gray-400 mt-20 flex flex-col items-center">
-                                <i data-lucide="clipboard-list" className="w-16 h-16 mb-4 opacity-50"></i>
-                                <p>目前沒有項目</p>
-                            </div>
-                        ) : (
-                            <ul className="divide-y divide-gray-100">
-                                {items.map((item) => (
-                                    <li 
-                                        key={item.id} 
-                                        /* Added select-none to prevent highlighting text on tap */
-                                        className={`group flex items-center p-4 active:bg-blue-50 transition-colors cursor-pointer no-select ${item.checked ? 'bg-gray-50' : ''}`}
-                                        onClick={() => toggleCheck(item.id)}
-                                    >
-                                        <div className={`
-                                            flex-shrink-0 w-6 h-6 rounded border-2 mr-4 flex items-center justify-center transition-all duration-200
-                                            ${item.checked ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}
-                                        `}>
-                                            {item.checked && <i data-lucide="check" className="w-4 h-4 text-white"></i>}
-                                        </div>
-                                        
-                                        <span className={`flex-1 text-lg transition-all duration-200 ${item.checked ? 'text-gray-400 line-through decoration-gray-300' : 'text-gray-800'}`}>
-                                            {item.text}
-                                        </span>
+            items.unshift({
+                id: 'u-' + Date.now(),
+                text: text,
+                checked: false
+            });
+            input.value = '';
+            save();
+            render();
+        }
 
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteItem(item.id);
-                                            }}
-                                            className="p-2 text-gray-300 hover:text-red-500 transition-colors active:scale-95"
-                                        >
-                                            <i data-lucide="trash-2" className="w-5 h-5"></i>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        <div ref={listEndRef} />
-                    </div>
+        // 動作：刪除
+        function del(id) {
+            if (confirm('確定刪除？')) {
+                items = items.filter(i => i.id !== id);
+                save();
+                render();
+            }
+        }
 
-                    {showConfirmReset && (
-                        <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-xs animate-in fade-in zoom-in duration-200">
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">重置所有勾選？</h3>
-                                <p className="text-gray-500 mb-6">這將會取消所有項目的勾選狀態。</p>
-                                <div className="flex gap-3">
-                                    <button 
-                                        onClick={() => setShowConfirmReset(false)}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 active:bg-gray-100"
-                                    >
-                                        取消
-                                    </button>
-                                    <button 
-                                        onClick={uncheckAll}
-                                        className="flex-1 px-4 py-2 bg-blue-600 rounded-lg text-white font-medium hover:bg-blue-700 active:bg-blue-800"
-                                    >
-                                        確定
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
+        // 動作：重置
+        function confirmReset() {
+            if (confirm('確定要取消所有勾選狀態嗎？')) {
+                items.forEach(i => i.checked = false);
+                save();
+                render();
+            }
+        }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // 啟動
+        init();
+
     </script>
 </body>
 </html>
-
 
