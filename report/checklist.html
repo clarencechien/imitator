@@ -9,7 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="旅行清單">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135768.png">
+    
+    <!-- 修改處 1: iOS 主畫面圖示換成飛機 -->
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/7893/7893979.png">
 
     <!-- Tailwind CSS (僅用於樣式) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,7 +25,12 @@
             "display": "standalone",
             "background_color": "#ffffff",
             "theme_color": "#2563eb",
-            "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3135/3135768.png", "sizes": "512x512", "type": "image/png" }]
+            "icons": [{
+                // 修改處 2: Android/PWA 圖示換成飛機
+                "src": "https://cdn-icons-png.flaticon.com/512/7893/7893979.png",
+                "sizes": "512x512",
+                "type": "image/png"
+            }]
         };
         const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
@@ -36,35 +43,28 @@
     <style>
         /* --- 終極防反白 CSS --- */
         * {
-            /* 移除點擊高亮 (灰色遮罩) */
             -webkit-tap-highlight-color: transparent !important;
-            /* 移除所有元素的選取能力 */
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
-            /* 移除長按選單 */
             -webkit-touch-callout: none;
         }
 
-        /* 只有輸入框允許輸入文字 */
         input {
             -webkit-user-select: text !important;
             user-select: text !important;
         }
 
         body {
-            /* 防止下拉重新整理導致的彈跳 */
             overscroll-behavior-y: none;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f3f4f6;
         }
         
-        /* 隱藏卷軸 */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 安全區域 */
         .safe-padding {
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
@@ -77,6 +77,7 @@
     <header class="bg-blue-600 text-white p-4 shadow-md z-10 shrink-0">
         <div class="flex justify-between items-center mb-3">
             <h1 class="text-xl font-bold flex items-center gap-2">
+                <!-- 標題也可以同步使用飛機圖案 -->
                 <span>✈️</span> 旅行清單
             </h1>
             <button onclick="confirmReset()" class="p-2 active:opacity-50 transition-opacity">
@@ -109,7 +110,7 @@
         <!-- Javascript will populate this -->
     </div>
 
-    <!-- Script -->
+    <!-- Script (保持不變) -->
     <script>
         // 預設資料
         const DEFAULT_ITEMS = [
@@ -125,24 +126,17 @@
 
         let items = [];
 
-        // 初始化
         function init() {
             const saved = localStorage.getItem('travel-list-simple');
-            if (saved) {
-                items = JSON.parse(saved);
-            } else {
-                items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
-            }
+            items = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_ITEMS));
             render();
         }
 
-        // 存檔
         function save() {
             localStorage.setItem('travel-list-simple', JSON.stringify(items));
             renderStats();
         }
 
-        // 渲染列表 (使用最傳統的 innerHTML，效能最好，無狀態副作用)
         function render() {
             const container = document.getElementById('listContainer');
             if (items.length === 0) {
@@ -152,9 +146,7 @@
             }
 
             let html = '<ul class="divide-y divide-gray-100">';
-            
-            items.forEach((item, index) => {
-                // 根據狀態設定樣式
+            items.forEach((item) => {
                 const checkedClass = item.checked ? 'bg-blue-500 border-blue-500' : 'border-gray-300';
                 const textClass = item.checked ? 'text-gray-400 line-through' : 'text-gray-800';
                 const bgClass = item.checked ? 'bg-gray-50' : 'bg-white';
@@ -162,68 +154,52 @@
 
                 html += `
                 <li class="flex items-center ${bgClass} transition-colors duration-150">
-                    <!-- 點擊區域：文字與框框 -->
                     <div class="flex-1 flex items-center p-4 cursor-pointer" onclick="toggle('${item.id}')">
                         <div class="w-6 h-6 rounded border-2 mr-4 flex items-center justify-center transition-colors ${checkedClass}">
                             ${checkIcon}
                         </div>
                         <span class="text-lg ${textClass}">${item.text}</span>
                     </div>
-                    
-                    <!-- 刪除按鈕 -->
                     <button onclick="del('${item.id}')" class="p-4 text-gray-300 active:text-red-500 flex items-center justify-center">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                 </li>
                 `;
             });
-            
             html += '</ul>';
             container.innerHTML = html;
             renderStats();
         }
 
-        // 更新進度條
         function renderStats() {
             const total = items.length;
             const completed = items.filter(i => i.checked).length;
             const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-
             document.getElementById('progressBar').style.width = `${percent}%`;
             document.getElementById('progressText').innerText = `已完成 ${completed}/${total}`;
             document.getElementById('progressPercent').innerText = `${percent}%`;
         }
 
-        // 動作：切換勾選
         function toggle(id) {
             const item = items.find(i => i.id === id);
             if (item) {
                 item.checked = !item.checked;
                 save();
-                // 局部更新優化：我們重新渲染整個列表，
-                // 因為這是原生 JS，重新建立 HTML 字串其實非常快，且避免了狀態不同步的問題
                 render(); 
             }
         }
 
-        // 動作：新增
         function addItem(e) {
             e.preventDefault();
             const input = document.getElementById('newInput');
             const text = input.value.trim();
             if (!text) return;
-
-            items.unshift({
-                id: 'u-' + Date.now(),
-                text: text,
-                checked: false
-            });
+            items.unshift({ id: 'u-' + Date.now(), text: text, checked: false });
             input.value = '';
             save();
             render();
         }
 
-        // 動作：刪除
         function del(id) {
             if (confirm('確定刪除？')) {
                 items = items.filter(i => i.id !== id);
@@ -232,7 +208,6 @@
             }
         }
 
-        // 動作：重置
         function confirmReset() {
             if (confirm('確定要取消所有勾選狀態嗎？')) {
                 items.forEach(i => i.checked = false);
@@ -241,10 +216,9 @@
             }
         }
 
-        // 啟動
         init();
-
     </script>
 </body>
 </html>
+
 
