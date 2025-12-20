@@ -10,13 +10,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="旅行清單">
     
-    <!-- 修改處 1: iOS 主畫面圖示換成飛機 -->
+    <!-- iOS Icon -->
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/7893/7893979.png">
 
-    <!-- Tailwind CSS (僅用於樣式) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- PWA Manifest Generator -->
+    <!-- SortableJS (用於拖拉功能) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+    <!-- PWA Manifest -->
     <script>
         const manifest = {
             "name": "旅行必備清單",
@@ -26,7 +29,6 @@
             "background_color": "#ffffff",
             "theme_color": "#2563eb",
             "icons": [{
-                // 修改處 2: Android/PWA 圖示換成飛機
                 "src": "https://cdn-icons-png.flaticon.com/512/7893/7893979.png",
                 "sizes": "512x512",
                 "type": "image/png"
@@ -41,12 +43,10 @@
     </script>
 
     <style>
-        /* --- 終極防反白 CSS --- */
+        /* 防反白與觸控優化 */
         * {
             -webkit-tap-highlight-color: transparent !important;
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
         }
@@ -69,6 +69,17 @@
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
         }
+
+        /* 拖拉時的樣式 */
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #e5e7eb;
+        }
+        .sortable-drag {
+            background-color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: scale(1.02);
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col safe-padding">
@@ -77,7 +88,6 @@
     <header class="bg-blue-600 text-white p-4 shadow-md z-10 shrink-0">
         <div class="flex justify-between items-center mb-3">
             <h1 class="text-xl font-bold flex items-center gap-2">
-                <!-- 標題也可以同步使用飛機圖案 -->
                 <span>✈️</span> 旅行清單
             </h1>
             <button onclick="confirmReset()" class="p-2 active:opacity-50 transition-opacity">
@@ -110,7 +120,6 @@
         <!-- Javascript will populate this -->
     </div>
 
-    <!-- Script (保持不變) -->
     <script>
         // 預設資料
         const DEFAULT_ITEMS = [
@@ -125,20 +134,23 @@
         ].map((t, i) => ({ id: `d-${i}`, text: t, checked: false }));
 
         let items = [];
+        let sortableInstance = null; // 儲存 Sortable 實例
 
         function init() {
-            const saved = localStorage.getItem('travel-list-simple');
+            const saved = localStorage.getItem('travel-list-drag');
             items = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_ITEMS));
             render();
         }
 
         function save() {
-            localStorage.setItem('travel-list-simple', JSON.stringify(items));
+            localStorage.setItem('travel-list-drag', JSON.stringify(items));
             renderStats();
         }
 
         function render() {
             const container = document.getElementById('listContainer');
+            
+            // 如果清單是空的
             if (items.length === 0) {
                 container.innerHTML = '<div class="text-center text-gray-400 mt-20">清單是空的</div>';
                 renderStats();
@@ -153,13 +165,22 @@
                 const checkIcon = item.checked ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : '';
 
                 html += `
-                <li class="flex items-center ${bgClass} transition-colors duration-150">
-                    <div class="flex-1 flex items-center p-4 cursor-pointer" onclick="toggle('${item.id}')">
+                <li class="flex items-center ${bgClass} transition-colors duration-150" data-id="${item.id}">
+                    
+                    <!-- 1. 拖拉把手 (防誤觸關鍵：只有按這裡才能拖) -->
+                    <div class="drag-handle p-4 text-gray-300 cursor-move active:text-blue-500 touch-manipulation">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                    </div>
+
+                    <!-- 2. 點擊勾選區域 -->
+                    <div class="flex-1 flex items-center py-4 pr-4 cursor-pointer" onclick="toggle('${item.id}')">
                         <div class="w-6 h-6 rounded border-2 mr-4 flex items-center justify-center transition-colors ${checkedClass}">
                             ${checkIcon}
                         </div>
                         <span class="text-lg ${textClass}">${item.text}</span>
                     </div>
+                    
+                    <!-- 3. 刪除按鈕 -->
                     <button onclick="del('${item.id}')" class="p-4 text-gray-300 active:text-red-500 flex items-center justify-center">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
@@ -169,6 +190,34 @@
             html += '</ul>';
             container.innerHTML = html;
             renderStats();
+
+            // 重新初始化 SortableJS
+            initSortable();
+        }
+
+        function initSortable() {
+            const el = document.querySelector('#listContainer ul');
+            if (!el) return;
+
+            // 如果已經有實例，先銷毀舊的
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+
+            // 建立新的 Sortable 實例
+            sortableInstance = Sortable.create(el, {
+                handle: '.drag-handle', // 指定只有按這個 class 才能拖拉
+                animation: 200,         // 動畫毫秒數
+                delay: 0,               // 手機上立即反應
+                ghostClass: 'sortable-ghost', // 拖拉時原本位置的樣式
+                dragClass: 'sortable-drag',   // 拖拉中的物件樣式
+                onEnd: function (evt) {
+                    // 拖拉結束後，同步更新 Javascript 陣列順序
+                    const item = items.splice(evt.oldIndex, 1)[0]; // 拿出舊位置的項目
+                    items.splice(evt.newIndex, 0, item);           // 插入到新位置
+                    save(); // 存檔
+                }
+            });
         }
 
         function renderStats() {
@@ -185,6 +234,8 @@
             if (item) {
                 item.checked = !item.checked;
                 save();
+                // 這裡我們不呼叫完整的 render()，只更新該項目的 class
+                // 這樣可以避免拖拉套件因為 DOM 重繪而閃爍
                 render(); 
             }
         }
@@ -220,5 +271,3 @@
     </script>
 </body>
 </html>
-
-
