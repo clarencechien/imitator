@@ -5,18 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Lite Editor (HTML Version)</title>
     
-    <!-- 1. 引入 Tailwind CSS (樣式) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 2. 引入 Lucide Icons (圖示) -->
     <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- 3. 引入 PDF 相關函式庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.js"></script>
 
-    <!-- 4. 設定中文字型 (粉圓體) -->
     <style>
         @font-face {
             font-family: 'jf-openhuninn';
@@ -26,7 +20,6 @@
         body {
             font-family: "jf-openhuninn", "Noto Sans TC", sans-serif;
         }
-        /* 隱藏捲軸但保留功能 */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -52,14 +45,12 @@
         </div>
 
         <div class="flex items-center gap-3" id="toolbar-actions">
-            <!-- 初始狀態：上傳按鈕 -->
             <label id="upload-btn" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors shadow-sm active:scale-95">
                 <i data-lucide="upload" class="w-4 h-4"></i>
                 <span class="font-medium">上傳 PDF</span>
                 <input type="file" id="file-input" accept=".pdf" class="hidden" />
             </label>
 
-            <!-- 編輯狀態工具 (初始隱藏) -->
             <div id="editor-tools" class="hidden flex items-center gap-2">
                 <button onclick="app.addText()" class="p-2 hover:bg-slate-100 rounded-lg flex flex-col items-center group transition-colors">
                     <i data-lucide="type" class="w-5 h-5 group-hover:text-indigo-600"></i>
@@ -77,7 +68,6 @@
                     <input type="file" accept="image/*" class="hidden" onchange="app.handleImageUpload(this)" />
                 </label>
 
-                <!-- 字體控制 (動態顯示) -->
                 <div id="font-controls" class="hidden flex items-center">
                     <div class="h-6 w-[1px] bg-slate-200 mx-1"></div>
                     <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
@@ -105,27 +95,21 @@
         </div>
     </div>
 
-    <!-- Main Workspace -->
+    <!-- Workspace -->
     <div id="workspace" class="flex-1 overflow-auto bg-slate-100 p-8 flex justify-center relative touch-pan-x touch-pan-y" onclick="app.deselect()">
-        
-        <!-- 空白狀態提示 -->
         <div id="empty-state" class="flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-300 rounded-xl w-full max-w-2xl h-96 bg-white/50">
             <i data-lucide="upload" class="w-12 h-12 mb-4 opacity-50"></i>
             <p class="text-lg font-medium text-slate-500">請上傳 PDF 文件</p>
-            <p class="text-sm mt-2 opacity-60">所有操作皆在瀏覽器完成，無需上傳伺服器</p>
+            <p class="text-sm mt-2 opacity-60">所有操作皆在瀏覽器完成</p>
         </div>
 
-        <!-- PDF 容器 -->
         <div id="pdf-container" class="relative shadow-xl bg-white hidden origin-top-left transition-transform duration-200 ease-out">
-            <!-- PDF Canvas -->
             <canvas id="the-canvas" class="block"></canvas>
-            
-            <!-- 互動層 (Overlay) -->
             <div id="overlay-layer" class="absolute inset-0"></div>
         </div>
     </div>
 
-    <!-- 簽名 Modal -->
+    <!-- Signature Modal -->
     <div id="signature-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             <div class="flex justify-between items-center p-4 border-b border-slate-100">
@@ -148,25 +132,19 @@
         </div>
     </div>
 
-    <!-- JavaScript 邏輯 -->
     <script>
-        // 設定 PDF.js Worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-        // 常數設定
         const CHINESE_FONT_URL = "https://cdn.jsdelivr.net/gh/justfont/open-huninn-font@master/font/jf-openhuninn-1.1.ttf";
 
-        // 應用程式狀態 (State Management)
         const app = {
-            pdfFile: null,      // 原始 ArrayBuffer
-            pdfDoc: null,       // PDF.js Document Proxy
-            scale: 1.5,         // 邏輯縮放比例
-            pageRotation: 0,    // 頁面旋轉角度
-            elements: [],       // 所有的物件 (文字/圖片)
-            selectedId: null,   // 當前選中的物件 ID
-            isLibsLoaded: false,
+            pdfFile: null,
+            pdfDoc: null,
+            scale: 1.5,
+            pageRotation: 0,
+            elements: [],
+            selectedId: null,
+            pdfSize: { width: 0, height: 0 }, // 確保有初始值
             
-            // DOM Elements Cache
             dom: {
                 fileInput: document.getElementById('file-input'),
                 uploadBtn: document.getElementById('upload-btn'),
@@ -184,38 +162,23 @@
                 downloadBtn: document.getElementById('download-btn')
             },
 
-            // --- 初始化 ---
             init: function() {
-                // 初始化圖示
                 lucide.createIcons();
-                
-                // 綁定檔案上傳事件
                 this.dom.fileInput.addEventListener('change', (e) => this.handleFileChange(e));
-                
-                // 簽名板事件綁定
                 this.initSignaturePad();
-
-                // 全域事件：點擊空白處取消選取
-                // (已經在 HTML onclick="app.deselect()" 處理，但在 overlay 內部點擊需 stopPropagation)
             },
 
-            // --- 檔案處理 ---
             handleFileChange: function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
-
                 const reader = new FileReader();
                 reader.onload = async (event) => {
                     const arrayBuffer = event.target.result;
-                    this.pdfFile = arrayBuffer; // 保存原始檔供下載用
-                    
+                    this.pdfFile = arrayBuffer;
                     try {
-                        // 複製一份 buffer 給 Viewer 使用 (避免 worker transfer 導致原始資料遺失)
                         const bufferForViewer = arrayBuffer.slice(0);
                         const loadingTask = pdfjsLib.getDocument(bufferForViewer);
                         this.pdfDoc = await loadingTask.promise;
-                        
-                        // 渲染介面
                         this.elements = [];
                         this.selectedId = null;
                         this.renderUIState(true);
@@ -226,10 +189,9 @@
                     }
                 };
                 reader.readAsArrayBuffer(file);
-                e.target.value = ''; // 重置 input
+                e.target.value = '';
             },
 
-            // --- 介面狀態切換 ---
             renderUIState: function(hasFile) {
                 if (hasFile) {
                     this.dom.uploadBtn.classList.add('hidden');
@@ -243,8 +205,6 @@
                     this.dom.pdfContainer.classList.add('hidden');
                     this.dom.overlayLayer.innerHTML = '';
                     this.dom.rotationWarning.classList.add('hidden');
-                    
-                    // 重置 Canvas
                     const ctx = this.dom.canvas.getContext('2d');
                     ctx.clearRect(0, 0, this.dom.canvas.width, this.dom.canvas.height);
                     this.dom.canvas.style.width = '0px';
@@ -257,15 +217,14 @@
                 this.pdfDoc = null;
                 this.elements = [];
                 this.selectedId = null;
+                this.pdfSize = { width: 0, height: 0 };
                 this.renderUIState(false);
             },
 
-            // --- PDF 渲染 (DPI Aware) ---
             renderPage: async function(pageNum) {
                 const page = await this.pdfDoc.getPage(pageNum);
                 this.pageRotation = page.rotate;
 
-                // 顯示旋轉警告
                 if (this.pageRotation !== 0) {
                     this.dom.rotationWarning.classList.remove('hidden');
                     this.dom.rotationText.textContent = `偵測到頁面旋轉 (${this.pageRotation}°)，座標可能會有偏差`;
@@ -273,16 +232,15 @@
                     this.dom.rotationWarning.classList.add('hidden');
                 }
 
-                // DPI 設定
                 const dpr = window.devicePixelRatio || 1;
                 const logicalScale = 1.5;
                 this.scale = logicalScale;
 
-                // 計算邏輯尺寸 (CSS)
                 const logicalViewport = page.getViewport({ scale: logicalScale });
-                
-                // 計算渲染尺寸 (Physical)
                 const renderViewport = page.getViewport({ scale: logicalScale * dpr });
+
+                // [修正] 更新 pdfSize 狀態，供拖曳邏輯使用
+                this.pdfSize = { width: logicalViewport.width, height: logicalViewport.height };
 
                 const canvas = this.dom.canvas;
                 const ctx = canvas.getContext('2d');
@@ -292,21 +250,16 @@
                 canvas.style.width = `${logicalViewport.width}px`;
                 canvas.style.height = `${logicalViewport.height}px`;
                 
-                // 設定 Overlay 層大小與 Canvas 一致
                 this.dom.pdfContainer.style.width = `${logicalViewport.width}px`;
                 this.dom.pdfContainer.style.height = `${logicalViewport.height}px`;
 
                 await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
             },
 
-            // --- 元素管理 (Elements) ---
-            
-            // 重新繪製所有 Overlay 元素 (Vanilla JS 的 React Render Loop 模擬)
             renderOverlay: function() {
                 const container = this.dom.overlayLayer;
-                container.innerHTML = ''; // 清空重繪
+                container.innerHTML = '';
 
-                // 更新字體控制顯示
                 const selectedEl = this.elements.find(e => e.id === this.selectedId);
                 if (selectedEl && selectedEl.type === 'text') {
                     this.dom.fontControls.classList.remove('hidden');
@@ -318,7 +271,6 @@
                 this.elements.forEach(el => {
                     const isSelected = el.id === this.selectedId;
                     
-                    // 容器 div
                     const elDiv = document.createElement('div');
                     elDiv.className = `absolute group flex flex-col ${isSelected ? 'z-30' : 'z-10 hover:z-20'}`;
                     elDiv.style.left = `${el.x}px`;
@@ -326,11 +278,9 @@
                     elDiv.style.width = `${el.width}px`;
                     elDiv.style.height = `${el.height}px`;
 
-                    // 內部邊框 div
                     const contentContainer = document.createElement('div');
                     contentContainer.className = `w-full h-full relative transition-all ${isSelected ? 'ring-2 ring-indigo-500 bg-indigo-50/10' : 'hover:ring-1 hover:ring-slate-300'}`;
                     
-                    // 內容 (Textarea 或 Img)
                     if (el.type === 'text') {
                         const textarea = document.createElement('textarea');
                         textarea.value = el.content;
@@ -342,16 +292,9 @@
                         textarea.style.fontFamily = '"jf-openhuninn", "Noto Sans TC", sans-serif';
                         textarea.spellcheck = false;
                         
-                        // 雙向綁定：輸入時更新數據
-                        textarea.oninput = (e) => {
-                            el.content = e.target.value;
-                        };
+                        textarea.oninput = (e) => { el.content = e.target.value; };
+                        textarea.onmousedown = (e) => { if(isSelected) e.stopPropagation(); }
                         
-                        // 防止點擊 textarea 時觸發拖曳 (除非點擊的是 drag handle)
-                        textarea.onmousedown = (e) => {
-                            if(isSelected) e.stopPropagation(); // 選中狀態下允許輸入
-                        }
-
                         contentContainer.appendChild(textarea);
                     } else {
                         const img = document.createElement('img');
@@ -360,47 +303,37 @@
                         contentContainer.appendChild(img);
                     }
 
-                    // 控制項 (僅選中時顯示)
                     if (isSelected) {
-                        // 1. 刪除按鈕
                         const delBtn = document.createElement('button');
                         delBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>';
                         delBtn.className = "absolute -top-3 -right-3 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-transform hover:scale-110 z-40 cursor-pointer flex items-center justify-center";
+                        // [修正] 阻止 mousedown 冒泡，防止觸發底下的 selectElement 導致按鈕被銷毀
+                        delBtn.onmousedown = (e) => e.stopPropagation();
                         delBtn.onclick = (e) => {
                             e.stopPropagation();
                             this.deleteElement(el.id);
                         };
                         contentContainer.appendChild(delBtn);
 
-                        // 2. 拖曳手柄 (頂部)
                         const dragHandle = document.createElement('div');
                         dragHandle.className = "drag-handle absolute -top-6 left-1/2 -translate-x-1/2 bg-indigo-500 text-white rounded px-2 py-0.5 text-[10px] flex items-center opacity-80 cursor-grab active:cursor-grabbing hover:opacity-100";
                         dragHandle.innerHTML = '<i data-lucide="grip-horizontal" class="w-3 h-3 mr-1"></i> Drag';
-                        // 綁定拖曳邏輯
                         this.attachDragEvents(dragHandle, el);
                         contentContainer.appendChild(dragHandle);
 
-                        // 3. 縮放手柄 (右下角)
                         const resizeHandle = document.createElement('div');
                         resizeHandle.className = "resize-handle absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-indigo-500 rounded-full cursor-se-resize z-50 flex items-center justify-center shadow-sm hover:scale-110 transition-transform";
                         resizeHandle.innerHTML = '<div class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>';
-                        // 綁定縮放邏輯
+                        // [修正] 阻止 mousedown 冒泡
+                        resizeHandle.onmousedown = (e) => e.stopPropagation();
                         this.attachResizeEvents(resizeHandle, el);
                         contentContainer.appendChild(resizeHandle);
                     }
 
-                    // 點擊選取事件 (綁定在最外層 div)
                     elDiv.onmousedown = (e) => {
-                        // 如果點擊的是 textarea 且未選中，或者點擊的是圖片，則選取
-                        // 如果已經選中且點擊 textarea，則不重新觸發 (讓游標正常運作)
                         if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('resize-handle')) {
                             e.stopPropagation();
                             this.selectElement(el.id);
-                            
-                            // 簡易拖曳：如果不是點擊 textarea，或是圖片，允許直接拖曳本體
-                            if (el.type !== 'text' || e.target.classList.contains('drag-handle')) {
-                                // 拖曳邏輯已經由 handle 處理，這裡不做額外處理
-                            }
                         }
                     };
 
@@ -408,18 +341,17 @@
                     container.appendChild(elDiv);
                 });
                 
-                // 重新渲染圖示
                 lucide.createIcons();
             },
 
-            // --- 互動邏輯 (Drag & Resize) ---
             attachDragEvents: function(domElement, dataElement) {
                 let startX, startY, initialX, initialY;
 
                 const onMouseMove = (e) => {
-                    e.preventDefault(); // 防止手機滾動
-                    const clientX = e.clientX || e.touches[0].clientX;
-                    const clientY = e.clientY || e.touches[0].clientY;
+                    e.preventDefault();
+                    // [修正] 安全獲取 clientX (兼容觸控)
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                     
                     const deltaX = clientX - startX;
                     const deltaY = clientY - startY;
@@ -427,15 +359,16 @@
                     let newX = initialX + deltaX;
                     let newY = initialY + deltaY;
 
-                    // 邊界檢查
-                    const containerW = this.pdfSize.width;
-                    const containerH = this.pdfSize.height;
+                    // [修正] 安全讀取 pdfSize，防止 undefined 報錯
+                    const containerW = this.pdfSize ? this.pdfSize.width : 0;
+                    const containerH = this.pdfSize ? this.pdfSize.height : 0;
+                    
                     newX = Math.max(0, Math.min(newX, containerW - dataElement.width));
                     newY = Math.max(0, Math.min(newY, containerH - dataElement.height));
 
                     dataElement.x = newX;
                     dataElement.y = newY;
-                    this.renderOverlay(); // 重新渲染更新位置
+                    this.renderOverlay();
                 };
 
                 const onMouseUp = () => {
@@ -446,10 +379,10 @@
                 };
 
                 const onMouseDown = (e) => {
-                    e.preventDefault(); // 防止選取文字
+                    e.preventDefault();
                     e.stopPropagation();
-                    startX = e.clientX || e.touches[0].clientX;
-                    startY = e.clientY || e.touches[0].clientY;
+                    startX = e.touches ? e.touches[0].clientX : e.clientX;
+                    startY = e.touches ? e.touches[0].clientY : e.clientY;
                     initialX = dataElement.x;
                     initialY = dataElement.y;
 
@@ -468,13 +401,12 @@
 
                 const onMouseMove = (e) => {
                     e.preventDefault();
-                    const clientX = e.clientX || e.touches[0].clientX;
-                    const clientY = e.clientY || e.touches[0].clientY;
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                     
                     const deltaX = clientX - startX;
                     const deltaY = clientY - startY;
 
-                    // 限制最小尺寸
                     const newW = Math.max(30, initialW + deltaX);
                     const newH = Math.max(30, initialH + deltaY);
 
@@ -492,8 +424,8 @@
 
                 const onMouseDown = (e) => {
                     e.stopPropagation();
-                    startX = e.clientX || e.touches[0].clientX;
-                    startY = e.clientY || e.touches[0].clientY;
+                    startX = e.touches ? e.touches[0].clientX : e.clientX;
+                    startY = e.touches ? e.touches[0].clientY : e.clientY;
                     initialW = dataElement.width;
                     initialH = dataElement.height;
 
@@ -507,7 +439,6 @@
                 domElement.addEventListener('touchstart', onMouseDown);
             },
 
-            // --- 動作指令 ---
             addText: function() {
                 const id = Date.now();
                 this.elements.push({
@@ -578,16 +509,13 @@
                 }
             },
 
-            // --- 簽名板功能 ---
             openSignatureModal: function() {
                 this.dom.signatureModal.classList.remove('hidden');
-                // 清空畫布
                 const ctx = this.dom.signCanvas.getContext('2d');
                 ctx.clearRect(0, 0, 500, 250);
             },
             closeSignatureModal: function() {
                 this.dom.signatureModal.classList.add('hidden');
-                this.isSigning = false;
             },
             initSignaturePad: function() {
                 const canvas = this.dom.signCanvas;
@@ -596,8 +524,8 @@
 
                 const getPos = (e) => {
                     const rect = canvas.getBoundingClientRect();
-                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                     return { x: clientX - rect.left, y: clientY - rect.top };
                 };
 
@@ -639,7 +567,6 @@
                 this.closeSignatureModal();
             },
 
-            // --- PDF 生成核心邏輯 (Copied & Adapted from React) ---
             downloadPdf: async function() {
                 if (!this.pdfFile) return;
                 
@@ -654,7 +581,6 @@
                     const pdfDoc = await PDFDocument.load(this.pdfFile);
                     pdfDoc.registerFontkit(fontkit);
 
-                    // 字體處理
                     const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
                     let customFont = helveticaFont;
                     try {
@@ -671,7 +597,6 @@
                     const { width, height } = firstPage.getSize();
                     const rotationAngle = firstPage.getRotation().angle;
 
-                    // 視覺尺寸計算 (處理旋轉)
                     let pdfVisualWidth = width;
                     let pdfVisualHeight = height;
                     if (rotationAngle === 90 || rotationAngle === 270) {
@@ -679,13 +604,11 @@
                         pdfVisualHeight = width;
                     }
 
-                    // 比例計算 (使用 logical width)
                     const canvasWidth = this.pdfSize.width;
                     const canvasHeight = this.pdfSize.height;
                     const scaleX = canvasWidth > 0 ? pdfVisualWidth / canvasWidth : 1;
                     const scaleY = canvasHeight > 0 ? pdfVisualHeight / canvasHeight : 1;
 
-                    // 遍歷元素寫入
                     for (const el of this.elements) {
                         if (el.type === 'text') {
                             const fontToUse = customFont;
@@ -694,12 +617,10 @@
                             const PADDING_X_OFFSET = 1;
                             const LINE_HEIGHT_FACTOR = 1.35;
 
-                            // 換行計算
                             const availableWidthPdf = (el.width * scaleX) - (PADDING * 2 * scaleX);
                             const lines = this.breakTextIntoLines(el.content, fontSizePdf, fontToUse, availableWidthPdf);
                             const wrappedText = lines.join('\n');
 
-                            // 座標計算
                             const visualX = (el.x + PADDING + PADDING_X_OFFSET) * scaleX;
                             const BASELINE_OFFSET = fontSizePdf * 1.05;
                             const visualY = (el.y + PADDING) * scaleY + BASELINE_OFFSET;
@@ -711,7 +632,6 @@
                             } else if (rotationAngle === 90) {
                                 pdfX = visualY;
                                 pdfY = height - (width - visualX);
-                                // Fallback simplified
                                 pdfX = visualX;
                                 pdfY = height - visualY;
                             } else {
@@ -769,7 +689,6 @@
                 }
             },
 
-            // Helper: 斷行計算
             breakTextIntoLines: function(text, size, font, maxWidth) {
                 const paragraphs = text.split('\n');
                 let lines = [];
@@ -792,7 +711,6 @@
             }
         };
 
-        // 啟動應用
         window.onload = () => app.init();
 
     </script>
