@@ -1,650 +1,800 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Type, PenTool, Download, Upload, X, Trash2, GripHorizontal, Loader2, AlertCircle, Image as ImageIcon, Plus, Minus, Maximize2 } from 'lucide-react';
-
-// CDN 設定
-const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-const PDFJS_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-const PDFLIB_URL = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
-const FONTKIT_URL = "https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.js";
-const CHINESE_FONT_URL = "https://cdn.jsdelivr.net/gh/justfont/open-huninn-font@master/font/jf-openhuninn-1.1.ttf";
-
-const App = () => {
-  const [isLibsLoaded, setIsLibsLoaded] = useState(false);
-  const [pdfFile, setPdfFile] = useState(null);
-  const [pdfDocProxy, setPdfDocProxy] = useState(null);
-  const [scale, setScale] = useState(1.0); 
-  const [elements, setElements] = useState([]); 
-  const [selectedId, setSelectedId] = useState(null); 
-  const [isDrawing, setIsDrawing] = useState(false); 
-  const [pdfSize, setPdfSize] = useState({ width: 0, height: 0 }); 
-  const [isProcessing, setIsProcessing] = useState(false); 
-  const [pageRotation, setPageRotation] = useState(0); 
-
-  const canvasRef = useRef(null);
-  const containerRef = useRef(null);
-  const signCanvasRef = useRef(null);
-  const [isSigning, setIsSigning] = useState(false);
-
-  // --- 0. 初始化 ---
-  useEffect(() => {
-    // 注入 Web Font
-    const style = document.createElement('style');
-    style.textContent = `
-      @font-face {
-        font-family: 'jf-openhuninn';
-        src: url('${CHINESE_FONT_URL}') format('truetype');
-        font-display: swap;
-      }
-    `;
-    document.head.appendChild(style);
-
-    const loadLibraries = async () => {
-      try {
-        if (window.pdfjsLib && window.PDFLib && window.fontkit) {
-          setIsLibsLoaded(true);
-          return;
-        }
-
-        const loadScript = (src) => {
-          return new Promise((resolve, reject) => {
-            if (document.querySelector(`script[src="${src}"]`)) {
-              resolve();
-              return;
-            }
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-          });
-        };
-
-        await Promise.all([
-            loadScript(PDFJS_URL), 
-            loadScript(PDFLIB_URL),
-            loadScript(FONTKIT_URL)
-        ]);
-        
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
-        setIsLibsLoaded(true);
-      } catch (error) {
-        console.error("Failed to load libraries", error);
-        alert("無法載入 PDF 核心元件，請檢查網路連線。");
-      }
-    };
-
-    loadLibraries();
-    return () => { document.head.removeChild(style); };
-  }, []);
-
-  // --- 1. 檔案處理 ---
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const fileReader = new FileReader();
-    fileReader.onload = async (event) => {
-      const arrayBuffer = event.target.result;
-      try {
-        const bufferForViewer = arrayBuffer.slice(0);
-        const loadingTask = window.pdfjsLib.getDocument(bufferForViewer);
-        const pdf = await loadingTask.promise;
-        setPdfDocProxy(pdf);
-        setPdfFile(arrayBuffer); 
-        renderPage(pdf, 1);
-        setElements([]); 
-      } catch (error) {
-        console.error("Error loading PDF:", error);
-        alert("無法讀取 PDF 檔案。");
-      }
-    };
-    fileReader.readAsArrayBuffer(file);
-  };
-
-  // DPI 感知渲染
-  const renderPage = async (pdf, pageNum) => {
-    const page = await pdf.getPage(pageNum);
-    const rotation = page.rotate; 
-    setPageRotation(rotation);
-
-    const dpr = window.devicePixelRatio || 1;
-    const logicalScale = 1.5;
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Lite Editor (HTML Version)</title>
     
-    const logicalViewport = page.getViewport({ scale: logicalScale });
-    setPdfSize({ width: logicalViewport.width, height: logicalViewport.height });
-    setScale(logicalScale); 
-
-    const renderViewport = page.getViewport({ scale: logicalScale * dpr });
+    <!-- 1. 引入 Tailwind CSS (樣式) -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const context = canvas.getContext('2d');
-      canvas.width = renderViewport.width;
-      canvas.height = renderViewport.height;
-      canvas.style.width = `${logicalViewport.width}px`;
-      canvas.style.height = `${logicalViewport.height}px`;
+    <!-- 2. 引入 Lucide Icons (圖示) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-      await page.render({ canvasContext: context, viewport: renderViewport }).promise;
-    }
-  };
+    <!-- 3. 引入 PDF 相關函式庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.js"></script>
 
-  // --- 2. 元素操作 ---
-  const addText = () => {
-    const id = Date.now();
-    setElements([
-      ...elements,
-      {
-        id,
-        type: 'text',
-        x: 50,
-        y: 100,
-        content: '請輸入文字',
-        fontSize: 16, // 預設大小
-        fontFamily: 'jf-openhuninn', 
-        width: 200, 
-        height: 50
-      }
-    ]);
-    setSelectedId(id);
-  };
-
-  const addSignatureImage = (dataUrl) => {
-    const id = Date.now();
-    const img = new Image();
-    img.src = dataUrl;
-    img.onload = () => {
-        const aspectRatio = img.width / img.height;
-        setElements(prev => [
-            ...prev,
-            {
-              id,
-              type: 'image',
-              x: 100,
-              y: 200,
-              content: dataUrl,
-              width: 60 * aspectRatio,
-              height: 60,
-              aspectRatio: aspectRatio
-            }
-          ]);
-    };
-    setIsDrawing(false);
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      addSignatureImage(event.target.result); 
-    };
-    reader.readAsDataURL(file);
-    e.target.value = ''; 
-  };
-
-  const updateElement = (id, updates) => {
-    setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
-  };
-
-  const deleteElement = (id) => {
-    setElements(prev => prev.filter(el => el.id !== id));
-    setSelectedId(null);
-  };
-
-  // 調整字體大小
-  const changeFontSize = (delta) => {
-    if (!selectedId) return;
-    const el = elements.find(e => e.id === selectedId);
-    if (el && el.type === 'text') {
-      const newSize = Math.max(10, Math.min(100, el.fontSize + delta)); // 限制在 10px ~ 100px
-      updateElement(selectedId, { fontSize: newSize });
-    }
-  };
-
-  const selectedElement = elements.find(e => e.id === selectedId);
-
-  // --- 3. 簽名板 ---
-  const getEventPos = (e) => {
-     const canvas = signCanvasRef.current;
-     const rect = canvas.getBoundingClientRect();
-     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-     return { x: clientX - rect.left, y: clientY - rect.top };
-  };
-
-  const startSigning = (e) => {
-    e.preventDefault();
-    const pos = getEventPos(e);
-    const ctx = signCanvasRef.current.getContext('2d');
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#000';
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-    setIsSigning(true);
-  };
-
-  const drawSignature = (e) => {
-    if (!isSigning) return;
-    e.preventDefault();
-    const pos = getEventPos(e);
-    const ctx = signCanvasRef.current.getContext('2d');
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  };
-
-  const endSigning = () => setIsSigning(false);
-  const clearSignature = () => {
-    const canvas = signCanvasRef.current;
-    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-  };
-  const saveSignature = () => {
-    const canvas = signCanvasRef.current;
-    addSignatureImage(canvas.toDataURL('image/png'));
-  };
-
-  // --- 4. 輔助函式：文字換行 ---
-  const breakTextIntoLines = (text, size, font, maxWidth) => {
-    const paragraphs = text.split('\n');
-    let lines = [];
-    for (const paragraph of paragraphs) {
-      let currentLine = '';
-      for (let i = 0; i < paragraph.length; i++) {
-        const char = paragraph[i];
-        const testLine = currentLine + char;
-        const width = font.widthOfTextAtSize(testLine, size);
-        if (width > maxWidth) {
-          lines.push(currentLine);
-          currentLine = char; 
-        } else {
-          currentLine = testLine;
+    <!-- 4. 設定中文字型 (粉圓體) -->
+    <style>
+        @font-face {
+            font-family: 'jf-openhuninn';
+            src: url('https://cdn.jsdelivr.net/gh/justfont/open-huninn-font@master/font/jf-openhuninn-1.1.ttf') format('truetype');
+            font-display: swap;
         }
-      }
-      if (currentLine) lines.push(currentLine);
-    }
-    return lines;
-  };
-
-  // --- 5. PDF 合成與下載 ---
-  const downloadPdf = async () => {
-    if (!pdfFile || !window.PDFLib) return;
-    setIsProcessing(true); 
-
-    try {
-      const { PDFDocument, rgb, StandardFonts, degrees } = window.PDFLib;
-      const pdfDoc = await PDFDocument.load(pdfFile);
-      if (window.fontkit) pdfDoc.registerFontkit(window.fontkit);
-
-      const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      let customFont = helveticaFont;
-      try {
-        const fontBytes = await fetch(CHINESE_FONT_URL).then(res => {
-            if (!res.ok) throw new Error("Font fetch failed");
-            return res.arrayBuffer();
-        });
-        customFont = await pdfDoc.embedFont(fontBytes); 
-      } catch (e) {
-        console.warn("Font load failed, fallback to Helvetica");
-      }
-      
-      const firstPage = pdfDoc.getPages()[0]; 
-      
-      const { width, height } = firstPage.getSize();
-      const rotationAngle = firstPage.getRotation().angle;
-
-      let pdfVisualWidth = width;
-      let pdfVisualHeight = height;
-      if (rotationAngle === 90 || rotationAngle === 270) {
-          pdfVisualWidth = height;
-          pdfVisualHeight = width;
-      }
-
-      const canvasWidth = pdfSize.width;
-      const canvasHeight = pdfSize.height;
-
-      const scaleX = canvasWidth > 0 ? pdfVisualWidth / canvasWidth : 1;
-      const scaleY = canvasHeight > 0 ? pdfVisualHeight / canvasHeight : 1;
-
-      for (const el of elements) {
-        if (el.type === 'text') {
-            const fontToUse = customFont;
-            const fontSizePdf = el.fontSize * scaleX; 
-            
-            const PADDING = 4;
-            const PADDING_X_OFFSET = 1; 
-            const LINE_HEIGHT_FACTOR = 1.35;
-            
-            // 使用目前的寬度進行換行計算
-            const availableWidthPdf = (el.width * scaleX) - (PADDING * 2 * scaleX);
-            const lines = breakTextIntoLines(el.content, fontSizePdf, fontToUse, availableWidthPdf);
-            const wrappedText = lines.join('\n');
-
-            const visualX = (el.x + PADDING + PADDING_X_OFFSET) * scaleX;
-            const BASELINE_OFFSET = fontSizePdf * 1.05; 
-            const visualY = (el.y + PADDING) * scaleY + BASELINE_OFFSET;
-
-            let pdfX, pdfY;
-
-            if (rotationAngle === 0) {
-                pdfX = visualX;
-                pdfY = height - visualY; 
-            } else if (rotationAngle === 90) {
-                pdfX = visualY; 
-                pdfY = height - (width - visualX); 
-                pdfX = visualX;
-                pdfY = height - visualY;
-            } else {
-                pdfX = visualX;
-                pdfY = height - visualY;
-            }
-
-            firstPage.drawText(wrappedText, {
-                x: pdfX,
-                y: pdfY, 
-                size: fontSizePdf, 
-                font: fontToUse,
-                color: rgb(0, 0, 0),
-                lineHeight: fontSizePdf * LINE_HEIGHT_FACTOR,
-            });
-
-        } else if (el.type === 'image') {
-            let pngImage;
-            if (el.content.startsWith('data:image/jpeg') || el.content.startsWith('data:image/jpg')) {
-                pngImage = await pdfDoc.embedJpg(el.content);
-            } else {
-                pngImage = await pdfDoc.embedPng(el.content);
-            }
-            
-            const imgHeightPdf = el.height * scaleY;
-            
-            const visualX = el.x * scaleX;
-            const visualY = el.y * scaleY;
-            
-            const pdfX = visualX;
-            const pdfY = height - visualY - imgHeightPdf; 
-            
-            firstPage.drawImage(pngImage, {
-                x: pdfX,
-                y: pdfY,
-                width: el.width * scaleX,
-                height: imgHeightPdf,
-            });
+        body {
+            font-family: "jf-openhuninn", "Noto Sans TC", sans-serif;
         }
-      }
+        /* 隱藏捲軸但保留功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
 
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `signed_document_${Date.now()}.pdf`;
-      link.click();
-
-    } catch (err) {
-      console.error(err);
-      alert("儲存失敗");
-    } finally {
-        setIsProcessing(false);
-    }
-  };
-
-  if (!isLibsLoaded) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-500">
-        <Loader2 className="animate-spin mb-4" size={48} />
-        <p>PDF 引擎啟動中...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
-      <div className="sticky top-0 h-16 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between px-4 z-40">
-        <div className="flex items-center gap-2">
-            <h1 className="font-bold text-lg text-slate-700">PDF Lite Editor</h1>
-            {pageRotation !== 0 && (
-                <div className="flex items-center text-amber-600 text-xs bg-amber-50 px-2 py-1 rounded-full border border-amber-200">
-                    <AlertCircle size={12} className="mr-1"/>
-                    偵測到頁面旋轉 ({pageRotation}°)，座標可能會有偏差
-                </div>
-            )}
+    <!-- Toolbar -->
+    <div class="h-16 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between px-4 z-40 shrink-0">
+        <div class="flex items-center gap-2">
+            <div class="bg-indigo-600 text-white p-1.5 rounded-lg shadow-sm">
+                <i data-lucide="pen-tool" class="w-5 h-5"></i>
+            </div>
+            <h1 class="font-bold text-lg text-slate-700 hidden sm:block">PDF Lite Editor</h1>
+            <div id="rotation-warning" class="hidden flex items-center text-amber-600 text-xs bg-amber-50 px-2 py-1 rounded-full border border-amber-200 ml-2">
+                <i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i>
+                <span id="rotation-text">偵測到頁面旋轉</span>
+            </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          {!pdfFile ? (
-            <label className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer">
-              <Upload size={18} /> <span>上傳 PDF</span>
-              <input type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
+
+        <div class="flex items-center gap-3" id="toolbar-actions">
+            <!-- 初始狀態：上傳按鈕 -->
+            <label id="upload-btn" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors shadow-sm active:scale-95">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                <span class="font-medium">上傳 PDF</span>
+                <input type="file" id="file-input" accept=".pdf" class="hidden" />
             </label>
-          ) : (
-            <>
-              <button onClick={addText} className="p-2 hover:bg-slate-100 rounded-lg flex flex-col items-center group">
-                <Type size={20} className="group-hover:text-indigo-600"/> <span className="text-[10px] font-medium">文字</span>
-              </button>
-              
-              <button onClick={() => setIsDrawing(true)} className="p-2 hover:bg-slate-100 rounded-lg flex flex-col items-center group">
-                <PenTool size={20} className="group-hover:text-indigo-600"/> <span className="text-[10px] font-medium">簽名</span>
-              </button>
-              
-              <label className="p-2 hover:bg-slate-100 rounded-lg flex flex-col items-center cursor-pointer group">
-                <ImageIcon size={20} className="group-hover:text-indigo-600"/> <span className="text-[10px] font-medium">圖片</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-              </label>
 
-              {/* 字體大小控制項 */}
-              {selectedElement?.type === 'text' && (
-                <>
-                  <div className="h-6 w-[1px] bg-slate-200 mx-1"></div>
-                  <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-                    <button onClick={() => changeFontSize(-2)} className="p-1.5 hover:bg-white rounded-md text-slate-600 transition-colors" title="縮小文字">
-                      <Minus size={16} />
-                    </button>
-                    <span className="text-xs font-medium w-8 text-center text-slate-600">{selectedElement.fontSize}px</span>
-                    <button onClick={() => changeFontSize(2)} className="p-1.5 hover:bg-white rounded-md text-slate-600 transition-colors" title="放大文字">
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                </>
-              )}
+            <!-- 編輯狀態工具 (初始隱藏) -->
+            <div id="editor-tools" class="hidden flex items-center gap-2">
+                <button onclick="app.addText()" class="p-2 hover:bg-slate-100 rounded-lg flex flex-col items-center group transition-colors">
+                    <i data-lucide="type" class="w-5 h-5 group-hover:text-indigo-600"></i>
+                    <span class="text-[10px] font-medium">文字</span>
+                </button>
+                
+                <button onclick="app.openSignatureModal()" class="p-2 hover:bg-slate-100 rounded-lg flex flex-col items-center group transition-colors">
+                    <i data-lucide="pen-tool" class="w-5 h-5 group-hover:text-indigo-600"></i>
+                    <span class="text-[10px] font-medium">簽名</span>
+                </button>
 
-              <div className="h-6 w-[1px] bg-slate-200 mx-1"></div>
-              
-              <button onClick={downloadPdf} disabled={isProcessing} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                {isProcessing ? <Loader2 className="animate-spin" size={18}/> : <Download size={18} />}
-                <span>{isProcessing ? '處理中' : '下載'}</span>
-              </button>
-              <button onClick={() => {setPdfFile(null); setElements([]);}} className="p-2 text-slate-400 hover:text-red-500"><X size={20}/></button>
-            </>
-          )}
+                <label class="p-2 hover:bg-slate-100 rounded-lg flex flex-col items-center cursor-pointer group transition-colors">
+                    <i data-lucide="image" class="w-5 h-5 group-hover:text-indigo-600"></i>
+                    <span class="text-[10px] font-medium">圖片</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="app.handleImageUpload(this)" />
+                </label>
+
+                <!-- 字體控制 (動態顯示) -->
+                <div id="font-controls" class="hidden flex items-center">
+                    <div class="h-6 w-[1px] bg-slate-200 mx-1"></div>
+                    <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                        <button onclick="app.changeFontSize(-2)" class="p-1.5 hover:bg-white rounded-md text-slate-600 transition-colors">
+                            <i data-lucide="minus" class="w-4 h-4"></i>
+                        </button>
+                        <span id="font-size-display" class="text-xs font-medium w-8 text-center text-slate-600">16px</span>
+                        <button onclick="app.changeFontSize(2)" class="p-1.5 hover:bg-white rounded-md text-slate-600 transition-colors">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="h-6 w-[1px] bg-slate-200 mx-1"></div>
+
+                <button onclick="app.downloadPdf()" id="download-btn" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-sm active:scale-95 font-medium">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">下載</span>
+                </button>
+                
+                <button onclick="app.reset()" class="p-2 text-slate-400 hover:text-red-500 transition-colors ml-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
         </div>
-      </div>
+    </div>
 
-      <div className="flex-1 overflow-auto bg-slate-100 p-8 flex justify-center relative" onClick={() => setSelectedId(null)}>
-        {!pdfFile ? (
-            <div className="flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-300 rounded-xl w-full max-w-2xl h-96 bg-white/50">
-                <Upload size={48} className="mb-4 opacity-50" />
-                <p>請上傳 PDF 文件</p>
-            </div>
-        ) : (
-            <div 
-                ref={containerRef}
-                className="relative shadow-xl bg-white select-none"
-                style={{ width: pdfSize.width, height: pdfSize.height }}
-                onClick={(e) => e.stopPropagation()} 
-            >
-                <canvas ref={canvasRef} className="block w-full h-full" />
-                {elements.map(el => (
-                    <DraggableElement 
-                        key={el.id} 
-                        element={el} 
-                        isSelected={selectedId === el.id}
-                        onSelect={() => setSelectedId(el.id)}
-                        onUpdate={updateElement}
-                        onDelete={deleteElement}
-                        containerSize={pdfSize}
-                    />
-                ))}
-            </div>
-        )}
-      </div>
+    <!-- Main Workspace -->
+    <div id="workspace" class="flex-1 overflow-auto bg-slate-100 p-8 flex justify-center relative touch-pan-x touch-pan-y" onclick="app.deselect()">
+        
+        <!-- 空白狀態提示 -->
+        <div id="empty-state" class="flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-300 rounded-xl w-full max-w-2xl h-96 bg-white/50">
+            <i data-lucide="upload" class="w-12 h-12 mb-4 opacity-50"></i>
+            <p class="text-lg font-medium text-slate-500">請上傳 PDF 文件</p>
+            <p class="text-sm mt-2 opacity-60">所有操作皆在瀏覽器完成，無需上傳伺服器</p>
+        </div>
 
-      {isDrawing && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="font-bold">簽名板</h3>
-              <button onClick={() => setIsDrawing(false)}><X size={24}/></button>
+        <!-- PDF 容器 -->
+        <div id="pdf-container" class="relative shadow-xl bg-white hidden origin-top-left transition-transform duration-200 ease-out">
+            <!-- PDF Canvas -->
+            <canvas id="the-canvas" class="block"></canvas>
+            
+            <!-- 互動層 (Overlay) -->
+            <div id="overlay-layer" class="absolute inset-0"></div>
+        </div>
+    </div>
+
+    <!-- 簽名 Modal -->
+    <div id="signature-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center p-4 border-b border-slate-100">
+                <h3 class="text-lg font-bold text-slate-800">建立簽名</h3>
+                <button onclick="app.closeSignatureModal()" class="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-full">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
             </div>
-            <div className="p-4 bg-slate-50">
-                <div className="border border-slate-200 bg-white shadow-inner relative cursor-crosshair touch-none h-48 rounded-xl">
-                    <canvas 
-                        ref={signCanvasRef} 
-                        width={500} height={250}
-                        className="w-full h-full block"
-                        onMouseDown={startSigning} onMouseMove={drawSignature} onMouseUp={endSigning} onMouseLeave={endSigning}
-                        onTouchStart={startSigning} onTouchMove={drawSignature} onTouchEnd={endSigning}
-                    />
+            <div class="p-4 bg-slate-50">
+                <div class="border border-slate-200 rounded-xl bg-white shadow-inner overflow-hidden relative cursor-crosshair touch-none h-48">
+                    <div class="absolute inset-0 pointer-events-none opacity-5" style="background-image: radial-gradient(#64748b 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    <canvas id="sign-canvas" width="500" height="250" class="w-full h-full block"></canvas>
+                    <div class="absolute bottom-2 right-2 pointer-events-none text-xs text-slate-300 select-none">在此區域簽名</div>
                 </div>
             </div>
-            <div className="p-4 border-t flex gap-3">
-              <button onClick={clearSignature} className="flex-1 py-2 text-slate-600 hover:bg-slate-100 rounded-xl">清除</button>
-              <button onClick={saveSignature} className="flex-1 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">插入簽名</button>
+            <div class="p-4 border-t border-slate-100 flex justify-between bg-white gap-3">
+                <button onclick="app.clearSignature()" class="flex-1 px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium transition-colors border border-transparent hover:border-slate-200">清除重寫</button>
+                <button onclick="app.saveSignature()" class="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-sm font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">確認插入</button>
             </div>
-          </div>
         </div>
-      )}
     </div>
-  );
-};
 
-const DraggableElement = ({ element, isSelected, onSelect, onUpdate, onDelete, containerSize }) => {
-    const [isDragging, setIsDragging] = useState(false);
-    const [isResizing, setIsResizing] = useState(false); // 新增 Resizing 狀態
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [initialResize, setInitialResize] = useState({ width: 0, height: 0, x: 0, y: 0 });
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // 設定 PDF.js Worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const handleMouseDown = (e) => {
-        e.stopPropagation(); 
-        onSelect();
-        const isDragHandle = e.target.closest('.drag-handle');
-        const isResizeHandle = e.target.closest('.resize-handle');
-        
-        // 如果點到 Resize Handle，交給 handleResizeDown 處理 (不觸發 Drag)
-        if (isResizeHandle) return; 
+        // 常數設定
+        const CHINESE_FONT_URL = "https://cdn.jsdelivr.net/gh/justfont/open-huninn-font@master/font/jf-openhuninn-1.1.ttf";
 
-        if (!isDragHandle && element.type === 'text' && e.target.tagName === 'TEXTAREA') return;
+        // 應用程式狀態 (State Management)
+        const app = {
+            pdfFile: null,      // 原始 ArrayBuffer
+            pdfDoc: null,       // PDF.js Document Proxy
+            scale: 1.5,         // 邏輯縮放比例
+            pageRotation: 0,    // 頁面旋轉角度
+            elements: [],       // 所有的物件 (文字/圖片)
+            selectedId: null,   // 當前選中的物件 ID
+            isLibsLoaded: false,
+            
+            // DOM Elements Cache
+            dom: {
+                fileInput: document.getElementById('file-input'),
+                uploadBtn: document.getElementById('upload-btn'),
+                editorTools: document.getElementById('editor-tools'),
+                emptyState: document.getElementById('empty-state'),
+                pdfContainer: document.getElementById('pdf-container'),
+                canvas: document.getElementById('the-canvas'),
+                overlayLayer: document.getElementById('overlay-layer'),
+                fontControls: document.getElementById('font-controls'),
+                fontSizeDisplay: document.getElementById('font-size-display'),
+                signatureModal: document.getElementById('signature-modal'),
+                signCanvas: document.getElementById('sign-canvas'),
+                rotationWarning: document.getElementById('rotation-warning'),
+                rotationText: document.getElementById('rotation-text'),
+                downloadBtn: document.getElementById('download-btn')
+            },
 
-        const clientX = e.clientX || e.touches?.[0]?.clientX;
-        const clientY = e.clientY || e.touches?.[0]?.clientY;
-        setIsDragging(true);
-        setDragOffset({ x: clientX - element.x, y: clientY - element.y });
-    };
+            // --- 初始化 ---
+            init: function() {
+                // 初始化圖示
+                lucide.createIcons();
+                
+                // 綁定檔案上傳事件
+                this.dom.fileInput.addEventListener('change', (e) => this.handleFileChange(e));
+                
+                // 簽名板事件綁定
+                this.initSignaturePad();
 
-    const handleResizeDown = (e) => {
-        e.stopPropagation();
-        const clientX = e.clientX || e.touches?.[0]?.clientX;
-        const clientY = e.clientY || e.touches?.[0]?.clientY;
-        setIsResizing(true);
-        setInitialResize({
-            width: element.width,
-            height: element.height,
-            x: clientX,
-            y: clientY
-        });
-    };
+                // 全域事件：點擊空白處取消選取
+                // (已經在 HTML onclick="app.deselect()" 處理，但在 overlay 內部點擊需 stopPropagation)
+            },
 
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            const clientX = e.clientX || e.touches?.[0]?.clientX;
-            const clientY = e.clientY || e.touches?.[0]?.clientY;
+            // --- 檔案處理 ---
+            handleFileChange: function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
 
-            if (isDragging) {
-                e.preventDefault(); 
-                let newX = clientX - dragOffset.x;
-                let newY = clientY - dragOffset.y;
-                newX = Math.max(0, Math.min(newX, containerSize.width - element.width));
-                newY = Math.max(0, Math.min(newY, containerSize.height - element.height));
-                onUpdate(element.id, { x: newX, y: newY });
-            } else if (isResizing) {
-                e.preventDefault();
-                const deltaX = clientX - initialResize.x;
-                const deltaY = clientY - initialResize.y;
-                // 設定最小尺寸限制
-                const newWidth = Math.max(30, initialResize.width + deltaX);
-                const newHeight = Math.max(30, initialResize.height + deltaY);
-                onUpdate(element.id, { width: newWidth, height: newHeight });
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const arrayBuffer = event.target.result;
+                    this.pdfFile = arrayBuffer; // 保存原始檔供下載用
+                    
+                    try {
+                        // 複製一份 buffer 給 Viewer 使用 (避免 worker transfer 導致原始資料遺失)
+                        const bufferForViewer = arrayBuffer.slice(0);
+                        const loadingTask = pdfjsLib.getDocument(bufferForViewer);
+                        this.pdfDoc = await loadingTask.promise;
+                        
+                        // 渲染介面
+                        this.elements = [];
+                        this.selectedId = null;
+                        this.renderUIState(true);
+                        this.renderPage(1);
+                    } catch (error) {
+                        console.error(error);
+                        alert("無法讀取 PDF 檔案");
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+                e.target.value = ''; // 重置 input
+            },
+
+            // --- 介面狀態切換 ---
+            renderUIState: function(hasFile) {
+                if (hasFile) {
+                    this.dom.uploadBtn.classList.add('hidden');
+                    this.dom.editorTools.classList.remove('hidden');
+                    this.dom.emptyState.classList.add('hidden');
+                    this.dom.pdfContainer.classList.remove('hidden');
+                } else {
+                    this.dom.uploadBtn.classList.remove('hidden');
+                    this.dom.editorTools.classList.add('hidden');
+                    this.dom.emptyState.classList.remove('hidden');
+                    this.dom.pdfContainer.classList.add('hidden');
+                    this.dom.overlayLayer.innerHTML = '';
+                    this.dom.rotationWarning.classList.add('hidden');
+                    
+                    // 重置 Canvas
+                    const ctx = this.dom.canvas.getContext('2d');
+                    ctx.clearRect(0, 0, this.dom.canvas.width, this.dom.canvas.height);
+                    this.dom.canvas.style.width = '0px';
+                    this.dom.canvas.style.height = '0px';
+                }
+            },
+
+            reset: function() {
+                this.pdfFile = null;
+                this.pdfDoc = null;
+                this.elements = [];
+                this.selectedId = null;
+                this.renderUIState(false);
+            },
+
+            // --- PDF 渲染 (DPI Aware) ---
+            renderPage: async function(pageNum) {
+                const page = await this.pdfDoc.getPage(pageNum);
+                this.pageRotation = page.rotate;
+
+                // 顯示旋轉警告
+                if (this.pageRotation !== 0) {
+                    this.dom.rotationWarning.classList.remove('hidden');
+                    this.dom.rotationText.textContent = `偵測到頁面旋轉 (${this.pageRotation}°)，座標可能會有偏差`;
+                } else {
+                    this.dom.rotationWarning.classList.add('hidden');
+                }
+
+                // DPI 設定
+                const dpr = window.devicePixelRatio || 1;
+                const logicalScale = 1.5;
+                this.scale = logicalScale;
+
+                // 計算邏輯尺寸 (CSS)
+                const logicalViewport = page.getViewport({ scale: logicalScale });
+                
+                // 計算渲染尺寸 (Physical)
+                const renderViewport = page.getViewport({ scale: logicalScale * dpr });
+
+                const canvas = this.dom.canvas;
+                const ctx = canvas.getContext('2d');
+
+                canvas.width = renderViewport.width;
+                canvas.height = renderViewport.height;
+                canvas.style.width = `${logicalViewport.width}px`;
+                canvas.style.height = `${logicalViewport.height}px`;
+                
+                // 設定 Overlay 層大小與 Canvas 一致
+                this.dom.pdfContainer.style.width = `${logicalViewport.width}px`;
+                this.dom.pdfContainer.style.height = `${logicalViewport.height}px`;
+
+                await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
+            },
+
+            // --- 元素管理 (Elements) ---
+            
+            // 重新繪製所有 Overlay 元素 (Vanilla JS 的 React Render Loop 模擬)
+            renderOverlay: function() {
+                const container = this.dom.overlayLayer;
+                container.innerHTML = ''; // 清空重繪
+
+                // 更新字體控制顯示
+                const selectedEl = this.elements.find(e => e.id === this.selectedId);
+                if (selectedEl && selectedEl.type === 'text') {
+                    this.dom.fontControls.classList.remove('hidden');
+                    this.dom.fontSizeDisplay.textContent = `${selectedEl.fontSize}px`;
+                } else {
+                    this.dom.fontControls.classList.add('hidden');
+                }
+
+                this.elements.forEach(el => {
+                    const isSelected = el.id === this.selectedId;
+                    
+                    // 容器 div
+                    const elDiv = document.createElement('div');
+                    elDiv.className = `absolute group flex flex-col ${isSelected ? 'z-30' : 'z-10 hover:z-20'}`;
+                    elDiv.style.left = `${el.x}px`;
+                    elDiv.style.top = `${el.y}px`;
+                    elDiv.style.width = `${el.width}px`;
+                    elDiv.style.height = `${el.height}px`;
+
+                    // 內部邊框 div
+                    const contentContainer = document.createElement('div');
+                    contentContainer.className = `w-full h-full relative transition-all ${isSelected ? 'ring-2 ring-indigo-500 bg-indigo-50/10' : 'hover:ring-1 hover:ring-slate-300'}`;
+                    
+                    // 內容 (Textarea 或 Img)
+                    if (el.type === 'text') {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = el.content;
+                        textarea.className = "w-full h-full bg-transparent resize-none outline-none font-sans overflow-hidden p-1";
+                        textarea.style.fontSize = `${el.fontSize}px`;
+                        textarea.style.lineHeight = '1.35';
+                        textarea.style.padding = '4px';
+                        textarea.style.margin = '0';
+                        textarea.style.fontFamily = '"jf-openhuninn", "Noto Sans TC", sans-serif';
+                        textarea.spellcheck = false;
+                        
+                        // 雙向綁定：輸入時更新數據
+                        textarea.oninput = (e) => {
+                            el.content = e.target.value;
+                        };
+                        
+                        // 防止點擊 textarea 時觸發拖曳 (除非點擊的是 drag handle)
+                        textarea.onmousedown = (e) => {
+                            if(isSelected) e.stopPropagation(); // 選中狀態下允許輸入
+                        }
+
+                        contentContainer.appendChild(textarea);
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = el.content;
+                        img.className = "w-full h-full object-contain pointer-events-none";
+                        contentContainer.appendChild(img);
+                    }
+
+                    // 控制項 (僅選中時顯示)
+                    if (isSelected) {
+                        // 1. 刪除按鈕
+                        const delBtn = document.createElement('button');
+                        delBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>';
+                        delBtn.className = "absolute -top-3 -right-3 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-transform hover:scale-110 z-40 cursor-pointer flex items-center justify-center";
+                        delBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            this.deleteElement(el.id);
+                        };
+                        contentContainer.appendChild(delBtn);
+
+                        // 2. 拖曳手柄 (頂部)
+                        const dragHandle = document.createElement('div');
+                        dragHandle.className = "drag-handle absolute -top-6 left-1/2 -translate-x-1/2 bg-indigo-500 text-white rounded px-2 py-0.5 text-[10px] flex items-center opacity-80 cursor-grab active:cursor-grabbing hover:opacity-100";
+                        dragHandle.innerHTML = '<i data-lucide="grip-horizontal" class="w-3 h-3 mr-1"></i> Drag';
+                        // 綁定拖曳邏輯
+                        this.attachDragEvents(dragHandle, el);
+                        contentContainer.appendChild(dragHandle);
+
+                        // 3. 縮放手柄 (右下角)
+                        const resizeHandle = document.createElement('div');
+                        resizeHandle.className = "resize-handle absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-indigo-500 rounded-full cursor-se-resize z-50 flex items-center justify-center shadow-sm hover:scale-110 transition-transform";
+                        resizeHandle.innerHTML = '<div class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>';
+                        // 綁定縮放邏輯
+                        this.attachResizeEvents(resizeHandle, el);
+                        contentContainer.appendChild(resizeHandle);
+                    }
+
+                    // 點擊選取事件 (綁定在最外層 div)
+                    elDiv.onmousedown = (e) => {
+                        // 如果點擊的是 textarea 且未選中，或者點擊的是圖片，則選取
+                        // 如果已經選中且點擊 textarea，則不重新觸發 (讓游標正常運作)
+                        if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('resize-handle')) {
+                            e.stopPropagation();
+                            this.selectElement(el.id);
+                            
+                            // 簡易拖曳：如果不是點擊 textarea，或是圖片，允許直接拖曳本體
+                            if (el.type !== 'text' || e.target.classList.contains('drag-handle')) {
+                                // 拖曳邏輯已經由 handle 處理，這裡不做額外處理
+                            }
+                        }
+                    };
+
+                    elDiv.appendChild(contentContainer);
+                    container.appendChild(elDiv);
+                });
+                
+                // 重新渲染圖示
+                lucide.createIcons();
+            },
+
+            // --- 互動邏輯 (Drag & Resize) ---
+            attachDragEvents: function(domElement, dataElement) {
+                let startX, startY, initialX, initialY;
+
+                const onMouseMove = (e) => {
+                    e.preventDefault(); // 防止手機滾動
+                    const clientX = e.clientX || e.touches[0].clientX;
+                    const clientY = e.clientY || e.touches[0].clientY;
+                    
+                    const deltaX = clientX - startX;
+                    const deltaY = clientY - startY;
+
+                    let newX = initialX + deltaX;
+                    let newY = initialY + deltaY;
+
+                    // 邊界檢查
+                    const containerW = this.pdfSize.width;
+                    const containerH = this.pdfSize.height;
+                    newX = Math.max(0, Math.min(newX, containerW - dataElement.width));
+                    newY = Math.max(0, Math.min(newY, containerH - dataElement.height));
+
+                    dataElement.x = newX;
+                    dataElement.y = newY;
+                    this.renderOverlay(); // 重新渲染更新位置
+                };
+
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    document.removeEventListener('touchmove', onMouseMove);
+                    document.removeEventListener('touchend', onMouseUp);
+                };
+
+                const onMouseDown = (e) => {
+                    e.preventDefault(); // 防止選取文字
+                    e.stopPropagation();
+                    startX = e.clientX || e.touches[0].clientX;
+                    startY = e.clientY || e.touches[0].clientY;
+                    initialX = dataElement.x;
+                    initialY = dataElement.y;
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                    document.addEventListener('touchmove', onMouseMove, {passive: false});
+                    document.addEventListener('touchend', onMouseUp);
+                };
+
+                domElement.addEventListener('mousedown', onMouseDown);
+                domElement.addEventListener('touchstart', onMouseDown);
+            },
+
+            attachResizeEvents: function(domElement, dataElement) {
+                let startX, startY, initialW, initialH;
+
+                const onMouseMove = (e) => {
+                    e.preventDefault();
+                    const clientX = e.clientX || e.touches[0].clientX;
+                    const clientY = e.clientY || e.touches[0].clientY;
+                    
+                    const deltaX = clientX - startX;
+                    const deltaY = clientY - startY;
+
+                    // 限制最小尺寸
+                    const newW = Math.max(30, initialW + deltaX);
+                    const newH = Math.max(30, initialH + deltaY);
+
+                    dataElement.width = newW;
+                    dataElement.height = newH;
+                    this.renderOverlay();
+                };
+
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    document.removeEventListener('touchmove', onMouseMove);
+                    document.removeEventListener('touchend', onMouseUp);
+                };
+
+                const onMouseDown = (e) => {
+                    e.stopPropagation();
+                    startX = e.clientX || e.touches[0].clientX;
+                    startY = e.clientY || e.touches[0].clientY;
+                    initialW = dataElement.width;
+                    initialH = dataElement.height;
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                    document.addEventListener('touchmove', onMouseMove, {passive: false});
+                    document.addEventListener('touchend', onMouseUp);
+                };
+
+                domElement.addEventListener('mousedown', onMouseDown);
+                domElement.addEventListener('touchstart', onMouseDown);
+            },
+
+            // --- 動作指令 ---
+            addText: function() {
+                const id = Date.now();
+                this.elements.push({
+                    id,
+                    type: 'text',
+                    x: 50,
+                    y: 100,
+                    content: '請輸入文字',
+                    fontSize: 16,
+                    width: 200,
+                    height: 50
+                });
+                this.selectElement(id);
+            },
+
+            addImage: function(dataUrl) {
+                const id = Date.now();
+                const img = new Image();
+                img.src = dataUrl;
+                img.onload = () => {
+                    const aspectRatio = img.width / img.height;
+                    this.elements.push({
+                        id,
+                        type: 'image',
+                        x: 100,
+                        y: 200,
+                        content: dataUrl,
+                        width: 60 * aspectRatio,
+                        height: 60,
+                        aspectRatio: aspectRatio
+                    });
+                    this.selectElement(id);
+                };
+            },
+
+            handleImageUpload: function(input) {
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => this.addImage(e.target.result);
+                reader.readAsDataURL(file);
+                input.value = '';
+            },
+
+            selectElement: function(id) {
+                this.selectedId = id;
+                this.renderOverlay();
+            },
+
+            deselect: function() {
+                if (this.selectedId !== null) {
+                    this.selectedId = null;
+                    this.renderOverlay();
+                }
+            },
+
+            deleteElement: function(id) {
+                this.elements = this.elements.filter(el => el.id !== id);
+                this.selectedId = null;
+                this.renderOverlay();
+            },
+
+            changeFontSize: function(delta) {
+                const el = this.elements.find(e => e.id === this.selectedId);
+                if (el && el.type === 'text') {
+                    el.fontSize = Math.max(10, Math.min(100, el.fontSize + delta));
+                    this.renderOverlay();
+                }
+            },
+
+            // --- 簽名板功能 ---
+            openSignatureModal: function() {
+                this.dom.signatureModal.classList.remove('hidden');
+                // 清空畫布
+                const ctx = this.dom.signCanvas.getContext('2d');
+                ctx.clearRect(0, 0, 500, 250);
+            },
+            closeSignatureModal: function() {
+                this.dom.signatureModal.classList.add('hidden');
+                this.isSigning = false;
+            },
+            initSignaturePad: function() {
+                const canvas = this.dom.signCanvas;
+                const ctx = canvas.getContext('2d');
+                let isDrawing = false;
+
+                const getPos = (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                    return { x: clientX - rect.left, y: clientY - rect.top };
+                };
+
+                const start = (e) => {
+                    e.preventDefault();
+                    isDrawing = true;
+                    const pos = getPos(e);
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.strokeStyle = '#000';
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                };
+
+                const move = (e) => {
+                    if (!isDrawing) return;
+                    e.preventDefault();
+                    const pos = getPos(e);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                };
+
+                const end = () => { isDrawing = false; };
+
+                canvas.addEventListener('mousedown', start);
+                canvas.addEventListener('mousemove', move);
+                canvas.addEventListener('mouseup', end);
+                canvas.addEventListener('touchstart', start);
+                canvas.addEventListener('touchmove', move);
+                canvas.addEventListener('touchend', end);
+            },
+            clearSignature: function() {
+                const ctx = this.dom.signCanvas.getContext('2d');
+                ctx.clearRect(0, 0, 500, 250);
+            },
+            saveSignature: function() {
+                const dataUrl = this.dom.signCanvas.toDataURL('image/png');
+                this.addImage(dataUrl);
+                this.closeSignatureModal();
+            },
+
+            // --- PDF 生成核心邏輯 (Copied & Adapted from React) ---
+            downloadPdf: async function() {
+                if (!this.pdfFile) return;
+                
+                const btn = this.dom.downloadBtn;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 處理中';
+                btn.disabled = true;
+                lucide.createIcons();
+
+                try {
+                    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+                    const pdfDoc = await PDFDocument.load(this.pdfFile);
+                    pdfDoc.registerFontkit(fontkit);
+
+                    // 字體處理
+                    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                    let customFont = helveticaFont;
+                    try {
+                        const fontBytes = await fetch(CHINESE_FONT_URL).then(res => {
+                            if (!res.ok) throw new Error("Font fetch failed");
+                            return res.arrayBuffer();
+                        });
+                        customFont = await pdfDoc.embedFont(fontBytes);
+                    } catch (e) {
+                        console.warn("Font fallback", e);
+                    }
+
+                    const firstPage = pdfDoc.getPages()[0];
+                    const { width, height } = firstPage.getSize();
+                    const rotationAngle = firstPage.getRotation().angle;
+
+                    // 視覺尺寸計算 (處理旋轉)
+                    let pdfVisualWidth = width;
+                    let pdfVisualHeight = height;
+                    if (rotationAngle === 90 || rotationAngle === 270) {
+                        pdfVisualWidth = height;
+                        pdfVisualHeight = width;
+                    }
+
+                    // 比例計算 (使用 logical width)
+                    const canvasWidth = this.pdfSize.width;
+                    const canvasHeight = this.pdfSize.height;
+                    const scaleX = canvasWidth > 0 ? pdfVisualWidth / canvasWidth : 1;
+                    const scaleY = canvasHeight > 0 ? pdfVisualHeight / canvasHeight : 1;
+
+                    // 遍歷元素寫入
+                    for (const el of this.elements) {
+                        if (el.type === 'text') {
+                            const fontToUse = customFont;
+                            const fontSizePdf = el.fontSize * scaleX;
+                            const PADDING = 4;
+                            const PADDING_X_OFFSET = 1;
+                            const LINE_HEIGHT_FACTOR = 1.35;
+
+                            // 換行計算
+                            const availableWidthPdf = (el.width * scaleX) - (PADDING * 2 * scaleX);
+                            const lines = this.breakTextIntoLines(el.content, fontSizePdf, fontToUse, availableWidthPdf);
+                            const wrappedText = lines.join('\n');
+
+                            // 座標計算
+                            const visualX = (el.x + PADDING + PADDING_X_OFFSET) * scaleX;
+                            const BASELINE_OFFSET = fontSizePdf * 1.05;
+                            const visualY = (el.y + PADDING) * scaleY + BASELINE_OFFSET;
+
+                            let pdfX, pdfY;
+                            if (rotationAngle === 0) {
+                                pdfX = visualX;
+                                pdfY = height - visualY;
+                            } else if (rotationAngle === 90) {
+                                pdfX = visualY;
+                                pdfY = height - (width - visualX);
+                                // Fallback simplified
+                                pdfX = visualX;
+                                pdfY = height - visualY;
+                            } else {
+                                pdfX = visualX;
+                                pdfY = height - visualY;
+                            }
+
+                            firstPage.drawText(wrappedText, {
+                                x: pdfX,
+                                y: pdfY,
+                                size: fontSizePdf,
+                                font: fontToUse,
+                                color: rgb(0, 0, 0),
+                                lineHeight: fontSizePdf * LINE_HEIGHT_FACTOR,
+                            });
+
+                        } else if (el.type === 'image') {
+                            let pngImage;
+                            if (el.content.startsWith('data:image/jpeg') || el.content.startsWith('data:image/jpg')) {
+                                pngImage = await pdfDoc.embedJpg(el.content);
+                            } else {
+                                pngImage = await pdfDoc.embedPng(el.content);
+                            }
+
+                            const imgHeightPdf = el.height * scaleY;
+                            const visualX = el.x * scaleX;
+                            const visualY = el.y * scaleY;
+                            
+                            const pdfX = visualX;
+                            const pdfY = height - visualY - imgHeightPdf;
+
+                            firstPage.drawImage(pngImage, {
+                                x: pdfX,
+                                y: pdfY,
+                                width: el.width * scaleX,
+                                height: imgHeightPdf,
+                            });
+                        }
+                    }
+
+                    const pdfBytes = await pdfDoc.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `signed_document_${Date.now()}.pdf`;
+                    link.click();
+
+                } catch (err) {
+                    console.error(err);
+                    alert("儲存失敗: " + err.message);
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    lucide.createIcons();
+                }
+            },
+
+            // Helper: 斷行計算
+            breakTextIntoLines: function(text, size, font, maxWidth) {
+                const paragraphs = text.split('\n');
+                let lines = [];
+                for (const paragraph of paragraphs) {
+                    let currentLine = '';
+                    for (let i = 0; i < paragraph.length; i++) {
+                        const char = paragraph[i];
+                        const testLine = currentLine + char;
+                        const width = font.widthOfTextAtSize(testLine, size);
+                        if (width > maxWidth) {
+                            lines.push(currentLine);
+                            currentLine = char;
+                        } else {
+                            currentLine = testLine;
+                        }
+                    }
+                    if (currentLine) lines.push(currentLine);
+                }
+                return lines;
             }
         };
 
-        const handleMouseUp = () => {
-            setIsDragging(false);
-            setIsResizing(false);
-        };
+        // 啟動應用
+        window.onload = () => app.init();
 
-        if (isDragging || isResizing) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            window.addEventListener('touchmove', handleMouseMove, { passive: false });
-            window.addEventListener('touchend', handleMouseUp);
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-            window.removeEventListener('touchmove', handleMouseMove);
-            window.removeEventListener('touchend', handleMouseUp);
-        };
-    }, [isDragging, isResizing, dragOffset, initialResize, containerSize, element.width, element.height, element.id, onUpdate]);
-
-    return (
-        <div
-            className={`absolute group flex flex-col ${isSelected ? 'z-30' : 'z-10 hover:z-20'}`}
-            style={{ left: element.x, top: element.y, width: element.width, height: element.height }}
-            onMouseDown={handleMouseDown} onTouchStart={handleMouseDown}
-        >
-            <div className={`w-full h-full relative transition-all ${isSelected ? 'ring-2 ring-indigo-500 bg-indigo-50/10' : 'hover:ring-1 hover:ring-slate-300'}`}>
-                {element.type === 'text' ? (
-                    <textarea
-                        value={element.content}
-                        onChange={(e) => onUpdate(element.id, { content: e.target.value })}
-                        className="w-full h-full bg-transparent resize-none outline-none font-sans overflow-hidden"
-                        style={{ 
-                            fontSize: `${element.fontSize}px`, 
-                            color: element.fontColor || '#000',
-                            fontFamily: '"jf-openhuninn", "Noto Sans TC", sans-serif',
-                            lineHeight: '1.35', 
-                            padding: '4px',
-                            margin: 0,
-                            boxSizing: 'border-box'
-                        }}
-                        spellCheck={false}
-                    />
-                ) : (
-                    <img src={element.content} alt="signature" className="w-full h-full object-contain pointer-events-none" />
-                )}
-                {isSelected && (
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(element.id); }} className="absolute -top-3 -right-3 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-transform hover:scale-110 z-40 cursor-pointer">
-                        <Trash2 size={14} />
-                    </button>
-                )}
-                {isSelected && (
-                    <>
-                        {/* 頂部拖曳把手 */}
-                        <div className="drag-handle absolute -top-6 left-1/2 -translate-x-1/2 bg-indigo-500 text-white rounded px-2 py-0.5 text-[10px] flex items-center opacity-80 cursor-grab active:cursor-grabbing hover:opacity-100">
-                            <GripHorizontal size={12} className="mr-1" /> Drag
-                        </div>
-
-                        {/* 右下角縮放把手 */}
-                        <div 
-                            className="resize-handle absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-indigo-500 rounded-full cursor-se-resize z-50 flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
-                            onMouseDown={handleResizeDown}
-                            onTouchStart={handleResizeDown}
-                        >
-                             <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-                        </div>
-                     </>
-                )}
-            </div>
-        </div>
-    );
-};
-
-export default App;
+    </script>
+</body>
+</html>
