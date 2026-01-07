@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>證件安全浮水印產生器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .canvas-container {
+            background-image: 
+                linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8 px-4">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Header -->
+        <div class="bg-blue-600 p-6 text-white text-center">
+            <h1 class="text-2xl font-bold mb-2">證件安全浮水印產生器</h1>
+            <p class="text-sm opacity-90">所有處理皆在您的裝置上完成，圖片不會上傳至伺服器，請安心使用。</p>
+        </div>
+
+        <div class="flex flex-col md:flex-row">
+            <!-- Controls Panel -->
+            <div class="w-full md:w-1/3 p-6 bg-gray-50 border-r border-gray-200 space-y-6">
+                
+                <!-- File Input -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-bold text-gray-700">1. 選擇圖片</label>
+                    <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-100 transition cursor-pointer" id="dropZone">
+                        <input type="file" id="imageInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div class="text-gray-500">
+                            <svg class="mx-auto h-8 w-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span class="text-sm">點擊上傳或拖曳圖片</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Settings -->
+                <div class="space-y-3">
+                    <label class="block text-sm font-bold text-gray-700">2. 浮水印內容</label>
+                    <input type="text" id="watermarkText" value="僅供XX申請使用" class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="輸入文字...">
+                    
+                    <div class="flex gap-2 flex-wrap text-xs">
+                        <button class="preset-btn bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded transition" data-text="僅供身分驗證使用">#身分驗證</button>
+                        <button class="preset-btn bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded transition" data-text="僅供辦理信用卡使用">#辦卡</button>
+                        <button class="preset-btn bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded transition" data-text="僅供租屋申請使用">#租屋</button>
+                    </div>
+                </div>
+
+                <!-- Sliders -->
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>字體大小</span>
+                            <span id="fontSizeVal">40</span>
+                        </div>
+                        <input type="range" id="fontSize" min="10" max="150" value="40" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>透明度</span>
+                            <span id="opacityVal">0.3</span>
+                        </div>
+                        <input type="range" id="opacity" min="0.05" max="1" step="0.05" value="0.3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>密度 (間距)</span>
+                            <span id="gapVal">150</span>
+                        </div>
+                        <input type="range" id="gap" min="50" max="400" value="150" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>旋轉角度</span>
+                            <span id="rotateVal">-45°</span>
+                        </div>
+                        <input type="range" id="rotate" min="-90" max="90" value="-45" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Color -->
+                <div class="space-y-2">
+                     <label class="block text-sm font-bold text-gray-700">顏色選擇</label>
+                     <div class="flex gap-4 items-center">
+                        <input type="color" id="textColor" value="#808080" class="h-8 w-14 cursor-pointer">
+                        <span class="text-sm text-gray-500">建議使用灰色以減少干擾</span>
+                     </div>
+                </div>
+
+                <button id="downloadBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    下載處理後的圖片
+                </button>
+            </div>
+
+            <!-- Preview Area -->
+            <div class="w-full md:w-2/3 p-6 bg-gray-200 flex items-center justify-center min-h-[400px] canvas-container relative">
+                <div id="placeholderText" class="text-gray-500 font-medium">
+                    請先上傳圖片即可預覽
+                </div>
+                <!-- The Canvas is hidden, we use an img tag for responsive preview -->
+                <canvas id="canvas" class="hidden"></canvas>
+                <img id="previewImage" class="max-w-full max-h-[600px] shadow-lg rounded object-contain hidden" alt="Preview">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const watermarkText = document.getElementById('watermarkText');
+        const fontSizeInput = document.getElementById('fontSize');
+        const opacityInput = document.getElementById('opacity');
+        const gapInput = document.getElementById('gap');
+        const rotateInput = document.getElementById('rotate');
+        const textColorInput = document.getElementById('textColor');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const previewImage = document.getElementById('previewImage');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const placeholderText = document.getElementById('placeholderText');
+        
+        // Display values
+        const fontSizeVal = document.getElementById('fontSizeVal');
+        const opacityVal = document.getElementById('opacityVal');
+        const gapVal = document.getElementById('gapVal');
+        const rotateVal = document.getElementById('rotateVal');
+
+        let originalImage = null;
+
+        // Init
+        downloadBtn.disabled = true;
+
+        // Helper to update labels
+        function updateLabels() {
+            fontSizeVal.textContent = fontSizeInput.value;
+            opacityVal.textContent = opacityInput.value;
+            gapVal.textContent = gapInput.value;
+            rotateVal.textContent = rotateInput.value + '°';
+        }
+
+        // Main Draw Function
+        function drawWatermark() {
+            if (!originalImage) return;
+
+            // Set canvas size to match original image (high quality)
+            canvas.width = originalImage.width;
+            canvas.height = originalImage.height;
+
+            // Draw original image
+            ctx.drawImage(originalImage, 0, 0);
+
+            // Watermark configuration
+            const text = watermarkText.value || "僅供參考";
+            const fontSize = parseInt(fontSizeInput.value);
+            // Scale font size based on image width to keep it relative regardless of resolution
+            // Base scale on a standard 1000px width image
+            const scaleFactor = Math.max(originalImage.width, originalImage.height) / 1000;
+            const finalFontSize = fontSize * scaleFactor;
+
+            const opacity = parseFloat(opacityInput.value);
+            const gap = parseInt(gapInput.value) * scaleFactor;
+            const rotate = parseInt(rotateInput.value) * Math.PI / 180;
+            const color = textColorInput.value;
+
+            // Configure text style
+            ctx.font = `bold ${finalFontSize}px 'Noto Sans TC', sans-serif`;
+            ctx.fillStyle = color;
+            ctx.globalAlpha = opacity;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Calculate diagonal size to ensure coverage when rotated
+            const diag = Math.sqrt(canvas.width**2 + canvas.height**2);
+            
+            // Move to center to rotate grid
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(rotate);
+            ctx.translate(-diag, -diag); // Move back enough to cover everything
+
+            // Draw tiled text
+            // We draw a grid much larger than the canvas to account for rotation
+            const cols = Math.ceil((diag * 2) / gap);
+            const rows = Math.ceil((diag * 2) / (gap / 1.5)); // tighter vertical spacing
+
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    // Staggering effect for better look
+                    const x = i * gap + (j % 2 === 0 ? 0 : gap / 2);
+                    const y = j * (gap / 1.5);
+                    ctx.fillText(text, x, y);
+                }
+            }
+
+            // Restore
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.globalAlpha = 1.0;
+
+            // Update preview
+            previewImage.src = canvas.toDataURL();
+            previewImage.classList.remove('hidden');
+            placeholderText.classList.add('hidden');
+            downloadBtn.disabled = false;
+        }
+
+        // Event Listeners for Input
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                originalImage = new Image();
+                originalImage.onload = function() {
+                    drawWatermark();
+                };
+                originalImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                watermarkText.value = e.target.getAttribute('data-text');
+                drawWatermark();
+            });
+        });
+
+        // Controls change events
+        [watermarkText, fontSizeInput, opacityInput, gapInput, rotateInput, textColorInput].forEach(el => {
+            el.addEventListener('input', () => {
+                updateLabels();
+                drawWatermark();
+            });
+        });
+
+        // Download
+        downloadBtn.addEventListener('click', () => {
+            if (!originalImage) return;
+            const link = document.createElement('a');
+            link.download = 'watermarked-image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Initial label update
+        updateLabels();
+    </script>
+</body>
+</html>
