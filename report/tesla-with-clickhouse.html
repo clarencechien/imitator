@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla Comet：基於 ClickHouse 的千兆級觀測平台技術解析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .table-border th, .table-border td { border: 1px solid #374151; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 p-6 md:p-12">
+    <div class="max-w-6xl mx-auto space-y-12">
+        
+        <!-- Header -->
+        <header class="border-b border-gray-700 pb-6">
+            <h1 class="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight">Tesla Comet：千兆級 (Quadrillion-Scale) 觀測平台架構與技術解析</h1>
+            <p class="text-gray-400 text-lg">基於 ClickHouse 構建的超大規模、完全兼容 PromQL 的自研監控數據平台。</p>
+        </header>
+
+        <!-- Section 1: 核心需求與技術限制 -->
+        <section>
+            <h2 class="text-2xl font-semibold text-blue-400 border-l-4 border-blue-500 pl-3 mb-6">1. 核心需求與原有技術瓶頸</h2>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <p class="mb-4">Tesla 營運涵蓋超級工廠、能源系統與全球聯網車輛，其監控系統面臨極端的數據吞吐量與嚴苛的可用性要求。傳統的 Prometheus 架構無法滿足其規模。</p>
+                <table class="w-full text-left border-collapse table-border">
+                    <thead>
+                        <tr class="bg-gray-700 text-gray-200">
+                            <th class="p-3 w-1/4">維度</th>
+                            <th class="p-3 w-3/8">Tesla 系統要求</th>
+                            <th class="p-3 w-3/8">Prometheus 原生限制</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="hover:bg-gray-750">
+                            <td class="p-3 font-semibold text-blue-300">擴展性 (Scalability)</td>
+                            <td class="p-3">需處理海量實時數據，支援無限水平擴展。</td>
+                            <td class="p-3 text-red-400">單節點設計，無法水平擴展，垂直擴展存在硬體天花板。</td>
+                        </tr>
+                        <tr class="hover:bg-gray-750">
+                            <td class="p-3 font-semibold text-blue-300">高可用性 (Availability)</td>
+                            <td class="p-3">監控數據遺失可能導致物理世界災難，容錯率為零。</td>
+                            <td class="p-3 text-red-400">單點故障 (SPOF) 風險高，節點停機即遺失當前指標。</td>
+                        </tr>
+                        <tr class="hover:bg-gray-750">
+                            <td class="p-3 font-semibold text-blue-300">生態兼容 (Compatibility)</td>
+                            <td class="p-3">必須 100% 支援 PromQL，無縫銜接現有儀表板與告警。</td>
+                            <td class="p-3 text-green-400">原生支援，為參考標準。</td>
+                        </tr>
+                        <tr class="hover:bg-gray-750">
+                            <td class="p-3 font-semibold text-blue-300">數據分析 (Queryability)</td>
+                            <td class="p-3">需支援數年資料的長期分析、預測與異常檢測。</td>
+                            <td class="p-3 text-red-400">DSL (PromQL) 功能受限，不利於複雜的商業邏輯與長期大數據分析。</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="mt-4 p-4 bg-gray-700 border-l-4 border-yellow-500 text-sm">
+                    <strong>技術決策：</strong> 選擇 <span class="text-white font-bold">ClickHouse</span> 作為底層儲存。主因：卓越的分析效能、可水平擴展、高可用性、支援可執行的使用者自定義函數 (UDFs，這對實現 PromQL 轉換至關重要)。
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: 架構深度解析 -->
+        <section>
+            <h2 class="text-2xl font-semibold text-blue-400 border-l-4 border-blue-500 pl-3 mb-6">2. Comet 雙軌架構解析</h2>
+            
+            <!-- Ingest Pipeline -->
+            <div class="mb-10">
+                <h3 class="text-xl font-medium text-white mb-4">2.1 寫入路徑 (Ingest Pipeline)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="bg-gray-800 p-2 rounded-lg">
+                        <img src="image_ab095d.png" alt="Comet Ingest Pipeline" class="w-full rounded border border-gray-600 shadow-md">
+                        <p class="text-xs text-center text-gray-400 mt-2">圖 1: 數據寫入路徑</p>
+                    </div>
+                    <div class="space-y-3">
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li><strong>採集層：</strong> 數以萬計的 OpenTelemetry Collectors 部署於基礎設施中，收集數據。</li>
+                            <li><strong>緩衝層：</strong> 透過 OTLP 協議將指標發送至 Kafka (或相容佇列)，進行流量削峰。</li>
+                            <li><strong>轉換層：</strong> 自研的 Comet ETL 進程從 Kafka 消費數據，將 OTLP 格式轉換為結構化的 ClickHouse <code>INSERT</code> 語句。</li>
+                            <li><strong>寫入策略：</strong> 採用激進的批次處理 (Batching)，每批次達數百萬筆，最大化 ClickHouse 的寫入效能。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Pipeline -->
+            <div>
+                <h3 class="text-xl font-medium text-white mb-4">2.2 查詢路徑 (Query Pipeline)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="bg-gray-800 p-2 rounded-lg">
+                        <img src="image_ab0979.jpg" alt="Comet Query Pipeline" class="w-full rounded border border-gray-600 shadow-md">
+                        <p class="text-xs text-center text-gray-400 mt-2">圖 2: 數據查詢與轉譯路徑</p>
+                    </div>
+                    <div class="space-y-3">
+                        <ul class="list-disc list-inside text-gray-300 space-y-2">
+                            <li><strong>協議相容：</strong> Grafana 與告警系統 (Alerting) 透過標準 Prometheus API 發起查詢，系統完全無感底層替換。</li>
+                            <li><strong>核心引擎 (Transpiler)：</strong> Comet 內建即時轉譯器，將 <code>PromQL</code> 動態轉換為 <code>ClickHouse SQL</code> 執行。</li>
+                            <li><strong>格式封裝：</strong> ClickHouse 返回數據後，Comet 將其重新格式化為與 Prometheus API 完全一致的 JSON 結構返回前端。</li>
+                            <li><strong>正確性驗證 (Comet Test Suite)：</strong> 部署獨立測試套件，同時向原生 Prometheus 與 Comet 發送相同的 PromQL，驗證返回結果需達到位元組級 (byte-for-byte) 100% 一致。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: 效能與規模驗證 -->
+        <section>
+            <h2 class="text-2xl font-semibold text-blue-400 border-l-4 border-blue-500 pl-3 mb-6">3. 效能表現與負載測試</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-800 p-5 rounded-lg text-center border border-gray-700">
+                    <div class="text-3xl font-bold text-green-400 mb-2">數千萬 / 秒</div>
+                    <div class="text-sm text-gray-400">當前日常寫入列數 (Rows/sec)</div>
+                </div>
+                <div class="bg-gray-800 p-5 rounded-lg text-center border border-gray-700">
+                    <div class="text-3xl font-bold text-green-400 mb-2">數百億</div>
+                    <div class="text-sm text-gray-400">累積時間序列 (Time Series)</div>
+                </div>
+                <div class="bg-gray-800 p-5 rounded-lg text-center border border-gray-700">
+                    <div class="text-3xl font-bold text-green-400 mb-2">數十兆</div>
+                    <div class="text-sm text-gray-400">資料樣本總數 (Samples)</div>
+                </div>
+            </div>
+            <div class="mt-6 bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h4 class="font-bold text-white mb-2">極限壓力測試結果：</h4>
+                <p class="text-gray-300">Tesla 團隊以 <strong>每秒 10 億列 (1 Billion rows/sec)</strong> 的速度連續寫入 11 天。最終成功攝入 <strong>超過一千兆列 (1 Quadrillion rows)</strong> 的數據。</p>
+                <p class="mt-2 text-sm text-gray-400">測試期間系統表現：無錯誤、記憶體佔用持平、CPU 消耗持平。證實其架構完全免疫於高基數 (High-cardinality) 時間序列帶來的效能崩潰。</p>
+            </div>
+        </section>
+
+        <!-- Section 4: 專家視角 -->
+        <section>
+            <h2 class="text-2xl font-semibold text-red-400 border-l-4 border-red-500 pl-3 mb-6">4. 專家視角：盲點、風險與生存偏差評估</h2>
+            <div class="bg-gray-800 border border-red-900 p-6 rounded-lg space-y-4">
+                <p class="text-gray-300 leading-relaxed">此篇技術案例為 ClickHouse 官方部落格之成功案例分享，具備一定程度的「生存偏差 (Survivorship Bias)」。作為理性的決策者，必須審視未被提及的工程代價：</p>
+                
+                <div class="space-y-4 mt-4">
+                    <div class="bg-gray-900 p-4 rounded border-l-4 border-orange-500">
+                        <h4 class="font-bold text-orange-400">風險一：Transpiler (語法轉譯器) 的隱性維護成本極高</h4>
+                        <p class="text-sm text-gray-400 mt-1">
+                            <strong>盲點：</strong> 報告宣稱可即時將 PromQL 轉為 SQL，並透過千項測試保證位元組級一致。但 PromQL 的語法規則、函數庫在持續演進，某些基於時間序列向量的運算在關聯式/列式 SQL 中極難表達（這也是他們需要 UDF 的原因）。<br>
+                            <strong>風險：</strong> 企業將被迫綁定專職研發團隊，持續追蹤並維護這個「翻譯引擎」。這不是一次性開發，而是永無止境的技術債。
+                        </p>
+                    </div>
+                    
+                    <div class="bg-gray-900 p-4 rounded border-l-4 border-orange-500">
+                        <h4 class="font-bold text-orange-400">風險二：高基數 (High-Cardinality) 處理的架構細節缺失</h4>
+                        <p class="text-sm text-gray-400 mt-1">
+                            <strong>盲點：</strong> 宣稱「完全不畏懼高基數問題」。然而 ClickHouse 本身雖強大，但面對海量標籤組合（Labels），若未妥善設計 `ORDER BY` 鍵值、跳躍索引 (Skip Indices) 或物化視圖 (Materialized Views)，查詢掃描量將呈指數爆炸。<br>
+                            <strong>風險：</strong> 盲目照搬架構將導致 ClickHouse 叢集在複雜查詢下發生 OOM (Out of Memory) 或 I/O 瓶頸。Tesla 必然投入了大量心力在 Schema 設計上，而這並未公開。
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-900 p-4 rounded border-l-4 border-orange-500">
+                        <h4 class="font-bold text-orange-400">風險三：資料去重 (Deduplication) 與延遲寫入問題</h4>
+                        <p class="text-sm text-gray-400 mt-1">
+                            <strong>盲點：</strong> 從 OTel 經 Kafka 寫入 ClickHouse，分散式系統中不可避免會產生重複數據。ClickHouse 原生的 `ReplacingMergeTree` 是非同步去重。<br>
+                            <strong>風險：</strong> 查詢結果的實時絕對精確性可能會受妥協，或者需要在轉譯後的 SQL 中強制加入複雜的 `argMax` 或 `LIMIT 1 BY` 邏輯，這會大幅消耗查詢時的 CPU 資源。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: 執行步驟與替代方案 -->
+        <section>
+            <h2 class="text-2xl font-semibold text-purple-400 border-l-4 border-purple-500 pl-3 mb-6">5. 決策建議與替代方案 (Action Items & Alternatives)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-800 p-5 rounded-lg border border-gray-700">
+                    <h3 class="text-lg font-bold text-white mb-3">替代方案評估 (Alternatives)</h3>
+                    <p class="text-sm text-gray-400 mb-4">除非具備 Tesla 級別的基礎設施研發能力與專有 SQL 分析需求，否則應優先考慮以下市占率高且專為此場景設計的開源方案：</p>
+                    <ul class="space-y-3 text-sm text-gray-300">
+                        <li class="flex items-start">
+                            <span class="text-purple-400 mr-2">▶</span>
+                            <div>
+                                <strong class="text-white">VictoriaMetrics:</strong>
+                                <br>原生支援 PromQL 與高基數優化。資源消耗極低，為 Prometheus 擴充的最優性價比選擇。無需自研轉譯器。
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-purple-400 mr-2">▶</span>
+                            <div>
+                                <strong class="text-white">Grafana Mimir / Cortex:</strong>
+                                <br>基於雲原生物件儲存 (S3/GCS)，天然解決海量儲存與長期保留問題。與 PromQL 生態系 100% 契合。
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-purple-400 mr-2">▶</span>
+                            <div>
+                                <strong class="text-white">ClickHouse 生態現成工具:</strong>
+                                <br>若必須使用 ClickHouse，應優先評估開源專案如 <code class="text-xs bg-gray-700 px-1 py-0.5 rounded">qryn</code> 或 <code class="text-xs bg-gray-700 px-1 py-0.5 rounded">promhouse</code>，避免從頭打造 Transpiler 與 ETL。
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-gray-800 p-5 rounded-lg border border-gray-700">
+                    <h3 class="text-lg font-bold text-white mb-3">執行步驟建議 (Action Items)</h3>
+                    <ul class="space-y-3 text-sm text-gray-300 list-decimal list-inside">
+                        <li><strong>需求量化：</strong> 定義企業目前的指標吞吐量 (Rows/sec)、基數規模與資料保留期。若未達每秒百萬寫入級別，直接採用 VictoriaMetrics。</li>
+                        <li><strong>概念驗證 (PoC)：</strong> 若決定採用 ClickHouse，第一步必須對 ClickHouse 的 Schema (Table Engine) 進行高基數資料壓測。重點測試 `ORDER BY` 鍵的排列組合對查詢速度的影響。</li>
+                        <li><strong>解耦架構：</strong> 效仿 Tesla 架構，確保寫入端導入 Kafka。這能確保在 ClickHouse 進行表結構變更或叢集重啟時，監控數據不會遺失。</li>
+                        <li><strong>SQL 能力評估：</strong> 盤點現有 SRE 團隊的能力。若團隊只熟練 PromQL，強制推廣底層為 ClickHouse 的系統將導致後續自定義報表開發受阻。需將「UDF開發」納入平台團隊的維護職責。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</body>
+</html>
