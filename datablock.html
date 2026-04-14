@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataBlock (Excel 快查 Prototype)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 SheetJS 解析 Excel -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <!-- 引入 Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* 隱藏捲軸但保持可捲動 */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans flex h-screen w-full overflow-hidden text-slate-800">
+
+  <!-- 左側導覽列 -->
+  <div class="w-64 bg-slate-900 text-white flex flex-col h-full shadow-xl z-10 flex-shrink-0">
+    <div class="p-6 flex items-center space-x-3 border-b border-slate-700">
+      <div class="bg-blue-500 p-2 rounded-lg">
+        <i data-lucide="database" class="w-6 h-6 text-white"></i>
+      </div>
+      <span class="text-xl font-bold tracking-wide">DataBlock</span>
+    </div>
+    
+    <nav class="flex-1 py-6 px-4 space-y-2">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 px-3">Data Setup</p>
+      <button onclick="app.switchTab('import')" id="nav-import" class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors bg-blue-600 text-white">
+        <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+        <span class="font-medium">匯入 Excel</span>
+      </button>
+
+      <div class="my-6 border-t border-slate-700 pt-6"></div>
+      
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 px-3">Ad hoc 即時探索</p>
+      <button onclick="app.switchTab('quickSearch')" id="nav-quickSearch" class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800">
+        <i data-lucide="zap" class="w-5 h-5"></i>
+        <span class="font-medium">多型號比價快查</span>
+      </button>
+
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-4 px-3">Workspace</p>
+      <button onclick="app.switchTab('database')" id="nav-database" class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800">
+        <i data-lucide="file-text" class="w-5 h-5"></i>
+        <span class="font-medium">歷史資料庫</span>
+      </button>
+    </nav>
+    
+    <div class="p-4 border-t border-slate-800 text-sm text-slate-400">
+      資料狀態: <br/> 
+      <span id="status-record-count" class="text-emerald-400 font-bold">尚未載入資料</span>
+    </div>
+  </div>
+
+  <!-- 主內容區 -->
+  <div class="flex-1 h-full overflow-y-auto relative bg-slate-50" id="main-content">
+    
+    <!-- ==================== 頁籤 1：匯入 Excel ==================== -->
+    <div id="tab-import" class="p-8 max-w-5xl mx-auto block">
+      <div class="mb-8 flex justify-between items-start">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800 flex items-center">
+            <i data-lucide="upload-cloud" class="mr-3 text-blue-500 w-7 h-7"></i>
+            匯入 Excel 資料
+          </h1>
+          <p class="text-slate-500 mt-2">請上傳包含報價歷史的 Excel 檔案 (.xls, .xlsx)。您可以選擇要匯入的 Sheet 並重新命名欄位表頭。</p>
+        </div>
+        <button onclick="app.downloadSampleExcel()" class="text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-lg font-medium flex items-center transition-colors shadow-sm whitespace-nowrap">
+          <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+          下載 UAT 測試資料
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <label class="block text-sm font-medium text-slate-700 mb-2">1. 選擇 Excel 檔案</label>
+        <input type="file" id="excel-file" accept=".xls,.xlsx" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer border border-slate-300 rounded-lg p-2"/>
+      </div>
+
+      <!-- 動態生成的 Sheet 選擇區 -->
+      <div id="sheet-selection-area" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <label class="block text-sm font-medium text-slate-700 mb-3">2. 選擇要匯入的 Sheet (假設各 Sheet 格式相同)</label>
+        <div id="sheet-checkboxes" class="flex flex-wrap gap-4 mb-4"></div>
+      </div>
+
+      <!-- 動態生成的 表頭改名區 -->
+      <div id="header-rename-area" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <label class="block text-sm font-medium text-slate-700 mb-3">3. 確認或修改表頭名稱</label>
+        <p class="text-xs text-slate-500 mb-4">系統已自動抓取第一列作為表頭。您可以在此重新命名欄位，方便後續查詢辨識。</p>
+        <div id="header-inputs" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+        
+        <div class="mt-8 border-t pt-6 flex justify-end">
+          <button onclick="app.processImport()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center transition-colors">
+            <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+            確認並寫入資料庫
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 頁籤 2：多型號快查 ==================== -->
+    <div id="tab-quickSearch" class="p-8 max-w-6xl mx-auto hidden">
+      <div class="mb-8">
+        <h1 class="text-2xl font-bold text-slate-800 flex items-center">
+          <i data-lucide="zap" class="mr-3 text-blue-500 w-7 h-7"></i>
+          多型號比價快查
+        </h1>
+        <p class="text-slate-500 mt-2">請設定搜尋欄位，並貼上多筆型號。點擊查詢結果的任意欄位，可進行第二層下鑽探索。</p>
+      </div>
+
+      <!-- 搜尋設定與輸入區 -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 flex flex-col lg:flex-row gap-6">
+        
+        <div class="lg:w-1/3 border-r border-slate-100 pr-6 space-y-4">
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">🔍 搜尋目標欄位 (例如: 型號)</label>
+            <select id="select-search-col" class="w-full p-2 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm"></select>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">💰 排序比較欄位與方式</label>
+            <div class="flex space-x-2">
+              <select id="select-sort-col" class="flex-1 p-2 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm"></select>
+              <select id="select-sort-order" class="w-28 p-2 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50">
+                <option value="asc">低到高 (ASC)</option>
+                <option value="desc">高到低 (DESC)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col">
+          <label class="block text-sm font-bold text-slate-700 mb-2">請貼上清單 (支援換行/多筆貼上)：</label>
+          <textarea id="search-input" class="w-full flex-1 min-h-[120px] p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm resize-none" placeholder="例如：&#10;X100-PRO&#10;Z-200-MAX"></textarea>
+        </div>
+
+        <div class="flex flex-col justify-end">
+          <button onclick="app.executeSearch()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium flex items-center justify-center transition-colors shadow-sm">
+            <i data-lucide="search" class="w-5 h-5 mr-2"></i>
+            立即查詢
+          </button>
+        </div>
+      </div>
+
+      <!-- 搜尋結果區 -->
+      <div id="search-results-container"></div>
+    </div>
+
+    <!-- ==================== 頁籤 3：歷史資料庫 ==================== -->
+    <div id="tab-database" class="p-8 max-w-full mx-auto hidden">
+      <div class="mb-6 flex justify-between items-end">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800 flex items-center">
+            <i data-lucide="file-text" class="mr-3 text-slate-600 w-7 h-7"></i>
+            歷史資料庫預覽
+          </h1>
+          <p class="text-slate-500 mt-2">目前已匯入記憶體的資料總覽。</p>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden overflow-x-auto">
+        <table class="w-full text-left border-collapse whitespace-nowrap" id="db-table">
+          <thead id="db-thead" class="bg-slate-50 border-b border-slate-200"></thead>
+          <tbody id="db-tbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+        <div id="db-empty" class="p-8 text-center text-slate-500 hidden">尚未匯入任何資料</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== 浮動視窗：二次查詢 (Drill Down) ==================== -->
+  <div id="drill-down-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <!-- 背景遮罩 (點擊關閉) -->
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="app.closeModal()"></div>
+    
+    <!-- 視窗內容 -->
+    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col z-10 animate-fade-in-up">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
+        <div>
+          <h3 class="text-xl font-bold text-slate-800 flex items-center" id="modal-title">
+            <i data-lucide="zoom-in" class="mr-2 text-blue-500"></i> 詳細資料探索
+          </h3>
+          <p class="text-sm text-slate-500 mt-1" id="modal-subtitle">套用排序設定中...</p>
+        </div>
+        <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-700 bg-white border border-slate-200 rounded-lg p-2 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-5 overflow-auto flex-1 bg-white rounded-b-xl" id="modal-content">
+        <!-- 內容將由 JS 注入 -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 應用程式狀態管理
+    const appState = {
+      activeTab: 'import',
+      workbook: null,
+      originalHeaders: [],
+      renamedHeaders: {},
+      finalHeaders: [],
+      dbData: [],
+    };
+
+    const app = {
+      // 0. 下載測試用 Excel
+      downloadSampleExcel: () => {
+        const sampleData = [
+          { "報價日期": "2025-01-15", "客戶名稱": "台積電", "型號": "X100-PRO", "單價": 1200, "業務": "Alice", "備註": "年度大單專案價" },
+          { "報價日期": "2025-01-18", "客戶名稱": "鴻海", "型號": "X100-PRO", "單價": 1350, "業務": "Bob", "備註": "常規報價" },
+          { "報價日期": "2025-02-05", "客戶名稱": "廣達", "型號": "Z-200-MAX", "單價": 850, "業務": "Charlie", "備註": "含三年保固" },
+          { "報價日期": "2025-02-12", "客戶名稱": "緯創", "型號": "A1-LITE", "單價": 320, "業務": "Alice", "備註": "測試機報價" },
+          { "報價日期": "2025-02-20", "客戶名稱": "台積電", "型號": "SERVER-X9", "單價": 5500, "業務": "Alice", "備註": "急件空運" },
+          { "報價日期": "2025-03-01", "客戶名稱": "聯發科", "型號": "X100-PRO", "單價": 1180, "業務": "Bob", "備註": "競標，降價搶單" },
+          { "報價日期": "2025-03-10", "客戶名稱": "鴻海", "型號": "Z-200-MAX", "單價": 820, "業務": "Charlie", "備註": "量大特惠" },
+          { "報價日期": "2025-03-15", "客戶名稱": "華碩", "型號": "A1-LITE", "單價": 300, "業務": "Bob", "備註": "清庫存" },
+          { "報價日期": "2025-04-02", "客戶名稱": "廣達", "型號": "SERVER-X9", "單價": 5200, "業務": "Alice", "備註": "一般海運" },
+          { "報價日期": "2025-04-18", "客戶名稱": "緯創", "型號": "X100-PRO", "單價": 1400, "業務": "Charlie", "備註": "小量採購" },
+          { "報價日期": "2025-05-05", "客戶名稱": "日月光", "型號": "B-500", "單價": 450, "業務": "Alice", "備註": "新客戶首單" },
+          { "報價日期": "2025-05-12", "客戶名稱": "台積電", "型號": "Z-200-MAX", "單價": 880, "業務": "Bob", "備註": "常規報價" },
+          { "報價日期": "2025-06-01", "客戶名稱": "聯發科", "型號": "A1-LITE", "單價": 310, "業務": "Charlie", "備註": "常規報價" },
+          { "報價日期": "2025-06-15", "客戶名稱": "鴻海", "型號": "SERVER-X9", "單價": 5100, "業務": "Alice", "備註": "長期合約價" },
+          { "報價日期": "2025-07-02", "客戶名稱": "廣達", "型號": "B-500", "單價": 430, "業務": "Bob", "備註": "搭售優惠" },
+          { "報價日期": "2025-07-20", "客戶名稱": "華碩", "型號": "X100-PRO", "單價": 1250, "業務": "Charlie", "備註": "一般報價" },
+          { "報價日期": "2025-08-05", "客戶名稱": "緯創", "型號": "Z-200-MAX", "單價": 800, "業務": "Alice", "備註": "破盤價，需副總簽核" },
+          { "報價日期": "2025-08-12", "客戶名稱": "日月光", "型號": "SERVER-X9", "單價": 5300, "業務": "Bob", "備註": "常規報價" },
+          { "報價日期": "2025-09-01", "客戶名稱": "台積電", "型號": "A1-LITE", "單價": 290, "業務": "Charlie", "備註": "大量採購專案" },
+          { "報價日期": "2025-09-10", "客戶名稱": "聯發科", "型號": "B-500", "單價": 460, "業務": "Alice", "備註": "急單加給" },
+          { "報價日期": "2025-10-01", "客戶名稱": "微星", "型號": "X100-PRO", "單價": 1150, "業務": "Alice", "備註": "年底促銷" },
+          { "報價日期": "2025-10-15", "客戶名稱": "技嘉", "型號": "X100-PRO", "單價": 1280, "業務": "Charlie", "備註": "一般報價" },
+          { "報價日期": "2025-11-05", "客戶名稱": "廣達", "型號": "A1-LITE", "單價": 280, "業務": "Bob", "備註": "大宗採購特批" },
+          { "報價日期": "2025-11-12", "客戶名稱": "台積電", "型號": "X100-PRO", "單價": 1100, "業務": "Alice", "備註": "極機密合約價" },
+          { "報價日期": "2025-11-20", "客戶名稱": "鴻海", "型號": "B-500", "單價": 420, "業務": "Bob", "備註": "綁約兩年" },
+          { "報價日期": "2025-12-01", "客戶名稱": "緯創", "型號": "SERVER-X9", "單價": 4900, "業務": "Charlie", "備註": "清倉" },
+          { "報價日期": "2025-12-10", "客戶名稱": "聯發科", "型號": "Z-200-MAX", "單價": 790, "業務": "Alice", "備註": "競品防禦價" }
+        ];
+        
+        const ws = XLSX.utils.json_to_sheet(sampleData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "歷史報價清單");
+        XLSX.writeFile(wb, "DataBlock_UAT_Sample.xlsx");
+      },
+
+      // 1. 切換頁籤
+      switchTab: (tabId) => {
+        appState.activeTab = tabId;
+        ['import', 'quickSearch', 'database'].forEach(id => {
+          const btn = document.getElementById(`nav-${id}`);
+          const content = document.getElementById(`tab-${id}`);
+          if (id === tabId) {
+            btn.className = "w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors bg-blue-600 text-white";
+            content.classList.remove('hidden');
+          } else {
+            btn.className = "w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800";
+            content.classList.add('hidden');
+          }
+        });
+        if (tabId === 'database') app.renderDatabase();
+        lucide.createIcons();
+      },
+
+      // 2. 處理 Excel 檔案上傳
+      handleFileUpload: (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const data = evt.target.result;
+          appState.workbook = XLSX.read(data, { type: 'binary' });
+          
+          const sheetArea = document.getElementById('sheet-checkboxes');
+          sheetArea.innerHTML = '';
+          appState.workbook.SheetNames.forEach((sheetName, index) => {
+            const checked = index === 0 ? 'checked' : ''; 
+            sheetArea.innerHTML += `
+              <label class="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded cursor-pointer hover:bg-blue-50">
+                <input type="checkbox" value="${sheetName}" class="sheet-checkbox text-blue-600 rounded" ${checked} onchange="app.extractHeaders()">
+                <span class="text-sm font-medium text-slate-700">${sheetName}</span>
+              </label>
+            `;
+          });
+          document.getElementById('sheet-selection-area').classList.remove('hidden');
+          app.extractHeaders();
+        };
+        reader.readAsBinaryString(file);
+      },
+
+      // 3. 抓取表頭並允許改名
+      extractHeaders: () => {
+        if (!appState.workbook) return;
+        const checkboxes = document.querySelectorAll('.sheet-checkbox:checked');
+        if (checkboxes.length === 0) {
+          document.getElementById('header-rename-area').classList.add('hidden');
+          return;
+        }
+
+        const firstSelectedSheetName = checkboxes[0].value;
+        const worksheet = appState.workbook.Sheets[firstSelectedSheetName];
+        const sheetJson = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        if (sheetJson.length === 0) return;
+
+        appState.originalHeaders = sheetJson[0];
+        appState.renamedHeaders = {};
+
+        const headerArea = document.getElementById('header-inputs');
+        headerArea.innerHTML = '';
+        appState.originalHeaders.forEach((header, i) => {
+          const hName = header || `Column_${i+1}`; 
+          headerArea.innerHTML += `
+            <div class="flex flex-col">
+              <span class="text-xs text-slate-500 mb-1">欄位 ${i+1} (原名: ${hName})</span>
+              <input type="text" data-original="${hName}" value="${hName}" class="rename-input p-2 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+          `;
+        });
+        document.getElementById('header-rename-area').classList.remove('hidden');
+      },
+
+      // 4. 正式寫入資料庫
+      processImport: () => {
+        const checkboxes = document.querySelectorAll('.sheet-checkbox:checked');
+        if (checkboxes.length === 0) { alert('請至少選擇一個 Sheet'); return; }
+
+        const inputs = document.querySelectorAll('.rename-input');
+        appState.finalHeaders = [];
+        inputs.forEach(input => {
+          const original = input.getAttribute('data-original');
+          const newName = input.value.trim() || original;
+          appState.renamedHeaders[original] = newName;
+          appState.finalHeaders.push(newName);
+        });
+
+        appState.dbData = [];
+        checkboxes.forEach(cb => {
+          const sheetName = cb.value;
+          const worksheet = appState.workbook.Sheets[sheetName];
+          const rawData = XLSX.utils.sheet_to_json(worksheet);
+          
+          rawData.forEach(row => {
+            let newRow = {};
+            Object.keys(row).forEach(oldKey => {
+              const newKey = appState.renamedHeaders[oldKey];
+              if (newKey) newRow[newKey] = row[oldKey];
+            });
+            newRow['_SourceSheet'] = sheetName; 
+            appState.dbData.push(newRow);
+          });
+        });
+
+        if (!appState.finalHeaders.includes('_SourceSheet')) {
+          appState.finalHeaders.push('_SourceSheet');
+        }
+
+        document.getElementById('status-record-count').innerText = `已載入 ${appState.dbData.length} 筆紀錄`;
+        app.populateSearchSelects();
+        
+        alert('✅ 資料匯入完成！即將為您跳轉至快查頁面。');
+        app.switchTab('quickSearch');
+      },
+
+      // 5. 填入快查頁面的下拉選單
+      populateSearchSelects: () => {
+        const searchSelect = document.getElementById('select-search-col');
+        const sortSelect = document.getElementById('select-sort-col');
+        
+        searchSelect.innerHTML = '';
+        sortSelect.innerHTML = '<option value="">(不排序，依原始順序)</option>';
+
+        appState.finalHeaders.forEach(header => {
+          if (header === '_SourceSheet') return;
+          const isModel = header.toLowerCase().includes('model') || header.includes('型號');
+          const isPrice = header.toLowerCase().includes('price') || header.includes('價') || header.includes('金額');
+
+          searchSelect.innerHTML += `<option value="${header}" ${isModel ? 'selected' : ''}>${header}</option>`;
+          sortSelect.innerHTML += `<option value="${header}" ${isPrice ? 'selected' : ''}>${header}</option>`;
+        });
+      },
+
+      // ★ 核心智能排序邏輯 (同時支援文字與數字)
+      smartSort: (records, sortCol, sortOrder) => {
+        if (!sortCol) return records;
+        const sortMultiplier = sortOrder === 'desc' ? -1 : 1;
+
+        return records.sort((a, b) => {
+          let valA = String(a[sortCol] || '');
+          let valB = String(b[sortCol] || '');
+          
+          // 嘗試提取數字 (忽略千分位逗號和貨幣符號)
+          let numA = parseFloat(valA.replace(/[^0-9.-]+/g,""));
+          let numB = parseFloat(valB.replace(/[^0-9.-]+/g,""));
+          
+          // 如果兩個欄位都明顯包含數字，以數字邏輯排序
+          if (!isNaN(numA) && !isNaN(numB) && valA.match(/[0-9]/) && valB.match(/[0-9]/)) {
+               return (numA - numB) * sortMultiplier;
+          } else {
+               // 否則使用文字字母順序
+               return valA.localeCompare(valB) * sortMultiplier;
+          }
+        });
+      },
+
+      // 6. 執行主查詢
+      executeSearch: () => {
+        if (appState.dbData.length === 0) {
+          alert("請先匯入 Excel 資料！");
+          app.switchTab('import');
+          return;
+        }
+
+        const inputRaw = document.getElementById('search-input').value;
+        const searchCol = document.getElementById('select-search-col').value;
+        const sortCol = document.getElementById('select-sort-col').value;
+        const sortOrder = document.getElementById('select-sort-order').value;
+
+        if (!inputRaw.trim() || !searchCol) return;
+
+        const targetsToSearch = inputRaw.split(/[\n,]+/).map(m => m.trim().toUpperCase()).filter(m => m !== '');
+        const container = document.getElementById('search-results-container');
+        container.innerHTML = '';
+
+        if (targetsToSearch.length > 0) {
+          container.innerHTML = `
+            <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+              <i data-lucide="bar-chart-3" class="mr-2 text-slate-500 w-5 h-5"></i>
+              查詢結果
+            </h2>
+            <div id="results-grid" class="grid gap-6"></div>
+          `;
+        }
+
+        const grid = document.getElementById('results-grid');
+
+        targetsToSearch.forEach(target => {
+          let records = appState.dbData.filter(d => {
+            const val = String(d[searchCol] || '').toUpperCase();
+            return val === target;
+          });
+
+          // 套用智能排序
+          records = app.smartSort(records, sortCol, sortOrder);
+
+          grid.appendChild(app.createResultCard(target, records, sortCol, sortOrder));
+        });
+
+        lucide.createIcons();
+      },
+
+      // 7. 產生單個查詢結果卡片 (支援欄位點擊二次查詢)
+      createResultCard: (targetName, records, sortCol, sortOrder) => {
+        const div = document.createElement('div');
+        const found = records.length > 0;
+        
+        div.className = `bg-white rounded-xl shadow-sm border p-5 flex flex-col md:flex-row items-stretch ${found ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-red-400'}`;
+
+        let innerHTML = `
+          <div class="w-full md:w-48 flex-shrink-0 md:border-r border-slate-100 pr-4 mb-4 md:mb-0">
+            <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">搜尋目標</p>
+            <p class="text-lg font-bold text-slate-800 font-mono break-words">${targetName}</p>
+          </div>
+        `;
+
+        if (!found) {
+          innerHTML += `<div class="flex-1 px-4 flex items-center"><span class="px-3 py-1 bg-red-50 text-red-600 text-sm font-medium rounded-full">查無歷史紀錄</span></div>`;
+        } else {
+          let tableHeadersHTML = appState.finalHeaders.map(h => `<th class="pb-2 font-medium px-3">${h}</th>`).join('');
+          
+          let tableRowsHTML = records.map((record, idx) => {
+            const isTop1 = idx === 0 && sortCol !== ""; 
+            const rowClass = isTop1 ? 'bg-amber-50/50 font-bold text-slate-800' : 'text-slate-600';
+            const badgeHTML = isTop1 ? `<span class="ml-2 text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-normal whitespace-nowrap">首選</span>` : '';
+            
+            let tds = appState.finalHeaders.map(h => {
+              let rawVal = record[h] !== undefined ? record[h] : '';
+              let displayVal = rawVal || '-';
+              
+              if (h === sortCol) displayVal = `<span class="${isTop1 ? 'text-amber-700' : 'text-slate-700 font-medium'}">${displayVal}${badgeHTML}</span>`;
+              
+              // 幫每個 td 加上 drill-down 的點擊事件與視覺回饋
+              const safeVal = String(rawVal).replace(/"/g, '&quot;');
+              return `<td class="py-2.5 px-3 border-t border-slate-100 cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors group" title="點擊深入搜尋: ${safeVal}" data-col="${h}" data-val="${safeVal}" onclick="app.openDrillDownModal(this)">${displayVal}</td>`;
+            }).join('');
+
+            return `<tr class="transition-colors hover:bg-slate-50 ${rowClass}">${tds}</tr>`;
+          }).join('');
+
+          innerHTML += `
+            <div class="flex-1 md:px-4 overflow-x-auto no-scrollbar">
+              <table class="w-full text-sm text-left whitespace-nowrap">
+                <thead><tr class="text-slate-400 border-b border-slate-100">${tableHeadersHTML}</tr></thead>
+                <tbody>${tableRowsHTML}</tbody>
+              </table>
+            </div>
+            <div class="w-full md:w-32 mt-4 md:mt-0 md:border-l border-slate-100 md:pl-4 flex flex-col justify-center text-right md:text-left">
+               <p class="text-xs text-slate-400 mb-1">共 <span class="font-bold text-slate-600">${records.length}</span> 筆紀錄</p>
+               <p class="text-[10px] text-slate-400 mt-2">💡 點擊任一欄位可下鑽查詢</p>
+            </div>
+          `;
+        }
+
+        div.innerHTML = innerHTML;
+        return div;
+      },
+
+      // ★ 8. 浮動視窗 (Drill Down) 邏輯
+      openDrillDownModal: (element) => {
+        const searchCol = element.getAttribute('data-col');
+        const targetVal = element.getAttribute('data-val');
+        
+        // 如果點擊的是空值，就不執行查詢
+        if (!targetVal || targetVal === '-') return;
+
+        // 取得目前的排序設定
+        const sortCol = document.getElementById('select-sort-col').value;
+        const sortOrder = document.getElementById('select-sort-order').value;
+        const sortOrderText = sortOrder === 'asc' ? '由小到大 (ASC)' : '由大到小 (DESC)';
+
+        // 在整個資料庫中搜尋點擊的值
+        let records = appState.dbData.filter(d => String(d[searchCol] || '') === targetVal);
+        
+        // 套用原有的排序規則
+        records = app.smartSort(records, sortCol, sortOrder);
+
+        // 更新視窗標題
+        document.getElementById('modal-title').innerHTML = `<i data-lucide="zoom-in" class="mr-2 text-blue-500"></i> ${searchCol} = <span class="text-blue-600 bg-blue-50 px-2 rounded mx-1">${targetVal}</span>`;
+        document.getElementById('modal-subtitle').innerText = `共找到 ${records.length} 筆紀錄 ‧ 排序: 依 [${sortCol || '無'}] ${sortCol ? sortOrderText : ''}`;
+
+        // 產生視窗內的表格 (一樣支援無限下鑽)
+        let tableHeadersHTML = appState.finalHeaders.map(h => `<th class="py-3 px-4 font-semibold sticky top-0 bg-slate-100 text-slate-600 shadow-sm border-b border-slate-200 z-10">${h}</th>`).join('');
+        
+        let tableRowsHTML = records.map((record, idx) => {
+          let tds = appState.finalHeaders.map(h => {
+            let rawVal = record[h] !== undefined ? record[h] : '';
+            let displayVal = rawVal || '-';
+            if (h === sortCol) displayVal = `<span class="font-bold text-slate-700">${displayVal}</span>`;
+            
+            const safeVal = String(rawVal).replace(/"/g, '&quot;');
+            // 視窗內的儲存格也加上 onClick 支援無限探索
+            return `<td class="py-3 px-4 border-b border-slate-100 cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors" title="點擊再次搜尋: ${safeVal}" data-col="${h}" data-val="${safeVal}" onclick="app.openDrillDownModal(this)">${displayVal}</td>`;
+          }).join('');
+          return `<tr class="hover:bg-slate-50 text-slate-600 text-sm transition-colors">${tds}</tr>`;
+        }).join('');
+
+        document.getElementById('modal-content').innerHTML = `
+          <table class="w-full text-left whitespace-nowrap">
+            <thead><tr>${tableHeadersHTML}</tr></thead>
+            <tbody>${tableRowsHTML}</tbody>
+          </table>
+        `;
+
+        // 顯示視窗
+        document.getElementById('drill-down-modal').classList.remove('hidden');
+        lucide.createIcons();
+      },
+
+      closeModal: () => {
+        document.getElementById('drill-down-modal').classList.add('hidden');
+      },
+
+      // 9. 渲染歷史資料庫預覽
+      renderDatabase: () => {
+        const thead = document.getElementById('db-thead');
+        const tbody = document.getElementById('db-tbody');
+        const emptyMsg = document.getElementById('db-empty');
+        const table = document.getElementById('db-table');
+
+        if (appState.dbData.length === 0) {
+          table.classList.add('hidden');
+          emptyMsg.classList.remove('hidden');
+          return;
+        }
+
+        table.classList.remove('hidden');
+        emptyMsg.classList.add('hidden');
+
+        thead.innerHTML = '<tr>' + appState.finalHeaders.map(h => `<th class="p-3 text-xs font-semibold text-slate-500 uppercase">${h}</th>`).join('') + '</tr>';
+        
+        const previewData = appState.dbData.slice(0, 100);
+        tbody.innerHTML = previewData.map(row => {
+          return '<tr class="hover:bg-slate-50">' + appState.finalHeaders.map(h => {
+            const val = row[h] !== undefined ? row[h] : '';
+            return `<td class="p-3 text-sm text-slate-600">${val}</td>`;
+          }).join('') + '</tr>';
+        }).join('');
+      }
+    };
+
+    // 初始化綁定事件
+    document.getElementById('excel-file').addEventListener('change', app.handleFileUpload);
+    lucide.createIcons();
+
+  </script>
+</body>
+</html>
