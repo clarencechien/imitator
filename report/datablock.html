@@ -101,12 +101,19 @@
 
     <!-- ==================== 頁籤 2：多型號快查 ==================== -->
     <div id="tab-quickSearch" class="p-8 max-w-6xl mx-auto hidden">
-      <div class="mb-8">
-        <h1 class="text-2xl font-bold text-slate-800 flex items-center">
-          <i data-lucide="zap" class="mr-3 text-blue-500 w-7 h-7"></i>
-          多型號比價快查
-        </h1>
-        <p class="text-slate-500 mt-2">請設定搜尋欄位，並貼上多筆型號。點擊查詢結果的任意欄位，可進行第二層下鑽探索。</p>
+      <div class="mb-8 flex justify-between items-start">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800 flex items-center">
+            <i data-lucide="zap" class="mr-3 text-blue-500 w-7 h-7"></i>
+            多型號比價快查
+          </h1>
+          <p class="text-slate-500 mt-2">請設定搜尋欄位，並貼上多筆型號。點擊查詢結果的任意欄位，可進行第二層下鑽探索。</p>
+        </div>
+        <!-- 下載按鈕，預設隱藏，有查詢結果時顯示 -->
+        <button id="export-checked-btn" onclick="app.exportCheckedRecords()" class="hidden text-sm bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 px-4 py-2 rounded-lg font-medium flex items-center transition-colors shadow-sm whitespace-nowrap">
+          <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+          匯出勾選資料 (Excel)
+        </button>
       </div>
 
       <!-- 搜尋設定與輸入區 -->
@@ -202,6 +209,7 @@
       renamedHeaders: {},
       finalHeaders: [],
       dbData: [],
+      currentSearchResults: [], // 儲存目前搜尋結果的所有紀錄物件，方便匯出時對照
     };
 
     const app = {
@@ -334,6 +342,9 @@
         });
 
         appState.dbData = [];
+        // 為了讓每筆資料有一個唯一 ID 方便後續勾選對照
+        let recordIdCounter = 0;
+        
         checkboxes.forEach(cb => {
           const sheetName = cb.value;
           const worksheet = appState.workbook.Sheets[sheetName];
@@ -341,6 +352,9 @@
           
           rawData.forEach(row => {
             let newRow = {};
+            // 加入唯一 ID
+            newRow['_id'] = `rec_${recordIdCounter++}`;
+            
             Object.keys(row).forEach(oldKey => {
               const newKey = appState.renamedHeaders[oldKey];
               if (newKey) newRow[newKey] = row[oldKey];
@@ -370,7 +384,7 @@
         sortSelect.innerHTML = '<option value="">(不排序，依原始順序)</option>';
 
         appState.finalHeaders.forEach(header => {
-          if (header === '_SourceSheet') return;
+          if (header === '_SourceSheet' || header === '_id') return;
           const isModel = header.toLowerCase().includes('model') || header.includes('型號');
           const isPrice = header.toLowerCase().includes('price') || header.includes('價') || header.includes('金額');
 
@@ -420,6 +434,9 @@
         const targetsToSearch = inputRaw.split(/[\n,]+/).map(m => m.trim().toUpperCase()).filter(m => m !== '');
         const container = document.getElementById('search-results-container');
         container.innerHTML = '';
+        appState.currentSearchResults = []; // 清空之前的搜尋結果
+
+        const exportBtn = document.getElementById('export-checked-btn');
 
         if (targetsToSearch.length > 0) {
           container.innerHTML = `
@@ -429,6 +446,9 @@
             </h2>
             <div id="results-grid" class="grid gap-6"></div>
           `;
+          exportBtn.classList.remove('hidden'); // 顯示匯出按鈕
+        } else {
+          exportBtn.classList.add('hidden');
         }
 
         const grid = document.getElementById('results-grid');
@@ -441,6 +461,9 @@
 
           // 套用智能排序
           records = app.smartSort(records, sortCol, sortOrder);
+          
+          // 將找到的紀錄存入 currentSearchResults，方便匯出對照
+          records.forEach(r => appState.currentSearchResults.push(r));
 
           grid.appendChild(app.createResultCard(target, records, sortCol, sortOrder));
         });
@@ -448,7 +471,7 @@
         lucide.createIcons();
       },
 
-      // 7. 產生單個查詢結果卡片 (支援欄位點擊二次查詢)
+      // 7. 產生單個查詢結果卡片 (支援欄位點擊二次查詢 & 勾選下載)
       createResultCard: (targetName, records, sortCol, sortOrder) => {
         const div = document.createElement('div');
         const found = records.length > 0;
@@ -465,14 +488,20 @@
         if (!found) {
           innerHTML += `<div class="flex-1 px-4 flex items-center"><span class="px-3 py-1 bg-red-50 text-red-600 text-sm font-medium rounded-full">查無歷史紀錄</span></div>`;
         } else {
-          let tableHeadersHTML = appState.finalHeaders.map(h => `<th class="pb-2 font-medium px-3">${h}</th>`).join('');
+          // 新增一個 Checkbox 的 Header
+          let tableHeadersHTML = `<th class="pb-2 font-medium px-2 w-10 text-center">選取</th>` + appState.finalHeaders.filter(h => h !== '_id').map(h => `<th class="pb-2 font-medium px-3">${h}</th>`).join('');
           
           let tableRowsHTML = records.map((record, idx) => {
             const isTop1 = idx === 0 && sortCol !== ""; 
             const rowClass = isTop1 ? 'bg-amber-50/50 font-bold text-slate-800' : 'text-slate-600';
             const badgeHTML = isTop1 ? `<span class="ml-2 text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-normal whitespace-nowrap">首選</span>` : '';
             
-            let tds = appState.finalHeaders.map(h => {
+            // 預設勾選第一筆
+            const checkedAttr = isTop1 ? 'checked' : '';
+            
+            let tds = `<td class="py-2.5 px-2 border-t border-slate-100 text-center"><input type="checkbox" class="record-checkbox w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" value="${record._id}" ${checkedAttr}></td>`;
+
+            tds += appState.finalHeaders.filter(h => h !== '_id').map(h => {
               let rawVal = record[h] !== undefined ? record[h] : '';
               let displayVal = rawVal || '-';
               
@@ -504,6 +533,41 @@
         return div;
       },
 
+      // ★ 新增：匯出勾選的資料
+      exportCheckedRecords: () => {
+        const checkboxes = document.querySelectorAll('.record-checkbox:checked');
+        if (checkboxes.length === 0) {
+          alert('請至少勾選一筆資料才能匯出。');
+          return;
+        }
+
+        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+        
+        // 根據勾選的 ID 從 currentSearchResults 中抓出完整的資料物件
+        const recordsToExport = appState.currentSearchResults.filter(r => selectedIds.includes(r._id));
+        
+        // 整理要匯出的資料，去除內部使用的 _id
+        const exportData = recordsToExport.map(record => {
+            let cleanRecord = {};
+            appState.finalHeaders.forEach(header => {
+                if(header !== '_id') {
+                    cleanRecord[header] = record[header];
+                }
+            });
+            return cleanRecord;
+        });
+
+        // 產生檔名包含日期時間
+        const dateStr = new Date().toISOString().replace(/T/, '_').replace(/:/g, '').substring(0, 15);
+        const filename = `DataBlock_Export_${dateStr}.xlsx`;
+
+        // 使用 SheetJS 匯出
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "查詢結果");
+        XLSX.writeFile(wb, filename);
+      },
+
       // ★ 8. 浮動視窗 (Drill Down) 邏輯
       openDrillDownModal: (element) => {
         const searchCol = element.getAttribute('data-col');
@@ -528,10 +592,10 @@
         document.getElementById('modal-subtitle').innerText = `共找到 ${records.length} 筆紀錄 ‧ 排序: 依 [${sortCol || '無'}] ${sortCol ? sortOrderText : ''}`;
 
         // 產生視窗內的表格 (一樣支援無限下鑽)
-        let tableHeadersHTML = appState.finalHeaders.map(h => `<th class="py-3 px-4 font-semibold sticky top-0 bg-slate-100 text-slate-600 shadow-sm border-b border-slate-200 z-10">${h}</th>`).join('');
+        let tableHeadersHTML = appState.finalHeaders.filter(h => h !== '_id').map(h => `<th class="py-3 px-4 font-semibold sticky top-0 bg-slate-100 text-slate-600 shadow-sm border-b border-slate-200 z-10">${h}</th>`).join('');
         
         let tableRowsHTML = records.map((record, idx) => {
-          let tds = appState.finalHeaders.map(h => {
+          let tds = appState.finalHeaders.filter(h => h !== '_id').map(h => {
             let rawVal = record[h] !== undefined ? record[h] : '';
             let displayVal = rawVal || '-';
             if (h === sortCol) displayVal = `<span class="font-bold text-slate-700">${displayVal}</span>`;
@@ -575,11 +639,11 @@
         table.classList.remove('hidden');
         emptyMsg.classList.add('hidden');
 
-        thead.innerHTML = '<tr>' + appState.finalHeaders.map(h => `<th class="p-3 text-xs font-semibold text-slate-500 uppercase">${h}</th>`).join('') + '</tr>';
+        thead.innerHTML = '<tr>' + appState.finalHeaders.filter(h => h !== '_id').map(h => `<th class="p-3 text-xs font-semibold text-slate-500 uppercase">${h}</th>`).join('') + '</tr>';
         
         const previewData = appState.dbData.slice(0, 100);
         tbody.innerHTML = previewData.map(row => {
-          return '<tr class="hover:bg-slate-50">' + appState.finalHeaders.map(h => {
+          return '<tr class="hover:bg-slate-50">' + appState.finalHeaders.filter(h => h !== '_id').map(h => {
             const val = row[h] !== undefined ? row[h] : '';
             return `<td class="p-3 text-sm text-slate-600">${val}</td>`;
           }).join('') + '</tr>';
