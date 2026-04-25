@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SpaceX 2026 AR Calendar</title>
+    
+    <!-- 引入 Tailwind CSS 進行排版 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- 引入 A-Frame (WebXR 核心框架) -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Space Mono', monospace; background-color: #050505; color: white; }
+        .font-grotesk { font-family: 'Space Grotesk', sans-serif; }
+        
+        /* 隱藏 A-Frame 預設的 VR 按鈕，我們使用自訂按鈕 */
+        .a-enter-vr { display: none; }
+        
+        /* 2D 介面圖層，蓋在 WebGL 畫布上方 */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            background: linear-gradient(to bottom, #111827, #000000);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* AR 狀態下的 HUD 月曆圖層 (DOM Overlay) */
+        #ar-hud {
+            display: none;
+            position: absolute;
+            top: 20px; left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            padding: 15px;
+            border-radius: 12px;
+            z-index: 999;
+            pointer-events: none; /* 讓點擊事件可以穿透到 3D 空間 */
+        }
+    </style>
+
+    <!-- 定義 A-Frame 自訂元件：點擊發射邏輯 -->
+    <script>
+        AFRAME.registerComponent('tap-to-launch', {
+            init: function () {
+                const el = this.el;
+                const fire = el.querySelector('#engine-fire');
+                let isFlying = false;
+
+                // 監聽點擊事件
+                el.addEventListener('click', function () {
+                    if (isFlying) return;
+                    isFlying = true;
+
+                    // 1. 顯示火焰
+                    fire.setAttribute('visible', 'true');
+                    
+                    // 2. 觸發動畫
+                    el.emit('takeoff');
+
+                    // 3. 三秒後重置，讓使用者可以再次互動
+                    setTimeout(() => {
+                        el.setAttribute('position', '0 0 -2');
+                        fire.setAttribute('visible', 'false');
+                        isFlying = false;
+                    }, 3500);
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+
+    <!-- 1. 初始 2D 網頁介面 (卡片/桌曆預覽) -->
+    <div id="ui-layer">
+        <div class="max-w-md w-full p-8 bg-[#0a0a0a] border border-gray-800 rounded-xl shadow-2xl relative overflow-hidden">
+            <!-- 裝飾光暈 -->
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-600 opacity-20 rounded-full blur-3xl"></div>
+            
+            <h1 class="text-4xl font-bold font-grotesk tracking-tighter mb-1">APRIL 2026</h1>
+            <p class="text-xs text-gray-400 tracking-widest mb-8">STARSHIP AR EXPERIENCE</p>
+            
+            <!-- JavaScript 將動態生成 2D 月曆 -->
+            <div id="calendar-2d" class="mb-10"></div>
+
+            <button id="btn-enter-ar" class="w-full bg-white text-black hover:bg-gray-200 transition-colors py-4 rounded font-bold font-grotesk tracking-widest flex items-center justify-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                啟動 AR 擴增實境
+            </button>
+            <p class="text-[10px] text-gray-500 text-center mt-4">請使用支援 WebXR 的手機瀏覽器 (如 Chrome for Android 或 Safari)</p>
+        </div>
+    </div>
+
+    <!-- 2. AR 狀態下的 HUD 介面 (浮動月曆) -->
+    <div id="ar-hud">
+        <h2 class="text-sm font-bold text-white tracking-widest mb-2 font-grotesk">2026 APR</h2>
+        <div id="calendar-ar" class="text-[8px] text-gray-300"></div>
+        <div class="mt-2 text-[8px] text-red-400 animate-pulse tracking-widest">TAP STARSHIP TO LAUNCH</div>
+    </div>
+
+    <!-- 3. WebXR 3D 空間 -->
+    <!-- xr-mode-ui="enabled: false" 隱藏預設按鈕，webxr 啟用 DOM Overlay 把 HUD 疊加在 AR 畫面上 -->
+    <a-scene 
+        id="ar-scene"
+        xr-mode-ui="enabled: false" 
+        webxr="optionalFeatures: dom-overlay; overlayElement: #ar-hud;"
+        background="color: #050505">
+        
+        <a-assets>
+            <img id="metal" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="> <!-- 簡單的金屬反光貼圖 -->
+        </a-assets>
+
+        <!-- 相機與游標 (允許使用者透過畫面中心點擊，或手機螢幕觸控) -->
+        <a-camera position="0 1.6 0">
+            <!-- 射線檢測，讓手機螢幕點擊可以觸發 3D 物件的 click 事件 -->
+            <a-entity cursor="rayOrigin: mouse;"></a-entity>
+        </a-camera>
+
+        <!-- 虛擬環境光 -->
+        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+        <a-light type="directional" position="1 2 1" intensity="0.8" castShadow="true"></a-light>
+
+        <!-- Starship 模型 (使用 A-Frame 幾何體組合而成的 POC 代理模型) -->
+        <!-- 預設位置：置於攝影機前方 2 公尺處 (z: -2)，高度為 0 (地板) -->
+        <a-entity id="starship" position="0 0 -2" tap-to-launch 
+                  animation="property: position; to: 0 15 -2; dur: 2500; startEvents: takeoff; easing: easeInQuad">
+            
+            <!-- 火箭主體 -->
+            <a-cylinder radius="0.3" height="2" color="#e2e8f0" metalness="0.7" roughness="0.3"></a-cylinder>
+            
+            <!-- 火箭鼻錐 -->
+            <a-cone radius-bottom="0.3" radius-top="0" height="0.8" position="0 1.4 0" color="#cbd5e1" metalness="0.8" roughness="0.2"></a-cone>
+            
+            <!-- 尾部安定翼 (左) -->
+            <a-triangle vertex-a="0 0.5 0" vertex-b="-0.6 -0.5 0" vertex-c="0 -0.5 0" position="-0.3 -0.5 0" color="#334155"></a-triangle>
+            <!-- 尾部安定翼 (右) -->
+            <a-triangle vertex-a="0 0.5 0" vertex-b="0.6 -0.5 0" vertex-c="0 -0.5 0" position="0.3 -0.5 0" color="#334155"></a-triangle>
+            <!-- 頂部安定翼 -->
+            <a-triangle vertex-a="0 0.3 0" vertex-b="0.3 -0.2 0" vertex-c="0 -0.2 0" position="0.3 0.8 0" color="#334155" scale="0.5 0.5 0.5"></a-triangle>
+            <a-triangle vertex-a="0 0.3 0" vertex-b="-0.3 -0.2 0" vertex-c="0 -0.2 0" position="-0.3 0.8 0" color="#334155" scale="0.5 0.5 0.5"></a-triangle>
+
+            <!-- 噴射火焰 (初始隱藏) -->
+            <a-cone id="engine-fire" radius-bottom="0" radius-top="0.25" height="1" position="0 -1.5 0" 
+                    color="#f97316" material="emissive: #ea580c; emissiveIntensity: 2; transparent: true; opacity: 0.9" 
+                    visible="false"
+                    animation="property: scale; to: 1.2 1.5 1.2; dir: alternate; dur: 100; loop: true">
+            </a-cone>
+        </a-entity>
+
+    </a-scene>
+
+    <script>
+        // --- 產生月曆的邏輯 ---
+        function renderCalendar(containerId, isSmall = false) {
+            const container = document.getElementById(containerId);
+            const daysInMonth = 30; // 2026年4月有30天
+            const firstDay = 3; // 2026年4月1日是星期三
+
+            let html = `<div class="grid grid-cols-7 gap-1 text-center font-bold ${isSmall ? 'mb-1 text-[7px]' : 'mb-2 text-xs'} text-gray-500">`;
+            html += `<div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>`;
+            
+            html += `<div class="grid grid-cols-7 gap-1 text-center ${isSmall ? 'text-[8px] gap-y-1' : 'text-sm gap-y-3'}">`;
+            
+            // 補齊前面的空白
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div></div>`;
+            }
+            
+            // 填入日期
+            for (let d = 1; d <= daysInMonth; d++) {
+                // 假設 20 號為發射日
+                if (d === 20) {
+                    html += `<div class="bg-red-600 text-white rounded-sm outline outline-1 outline-offset-1 outline-red-600 relative group cursor-pointer">
+                                ${d}
+                                ${!isSmall ? '<span class="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">Starship 發射</span>' : ''}
+                             </div>`;
+                } else {
+                    html += `<div>${d}</div>`;
+                }
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        // 初始化月曆
+        renderCalendar('calendar-2d', false);
+        renderCalendar('calendar-ar', true);
+
+        // --- AR 控制邏輯 ---
+        const btnEnterAR = document.getElementById('btn-enter-ar');
+        const uiLayer = document.getElementById('ui-layer');
+        const arHud = document.getElementById('ar-hud');
+        const sceneEl = document.querySelector('a-scene');
+
+        // 點擊啟動 AR 模式
+        btnEnterAR.addEventListener('click', function () {
+            // A-Frame 的 enterVR() 方法會自動偵測裝置。
+            // 若裝置支援 WebXR AR 模式，會直接開啟相機；若在電腦上則會進入全螢幕 3D。
+            if (sceneEl.hasLoaded) {
+                sceneEl.enterVR(true); // true 代表優先請求 AR
+            }
+        });
+
+        // 監聽進入/退出 AR 狀態，用來切換介面顯示
+        sceneEl.addEventListener('enter-vr', function () {
+            uiLayer.style.display = 'none'; // 隱藏 2D 網頁
+            arHud.style.display = 'block';  // 顯示 AR 左上角月曆
+        });
+
+        sceneEl.addEventListener('exit-vr', function () {
+            uiLayer.style.display = 'flex'; // 恢復 2D 網頁
+            arHud.style.display = 'none';   // 隱藏 AR 月曆
+        });
+    </script>
+</body>
+</html>
