@@ -3,299 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>辦公室拆帳小助手 - 穩定相容版</title>
+    <title>辦公室拆帳小助手 - 玉山 Deep Link 實測版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
-        .card-shadow { box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.05); }
-        .paid-row { opacity: 0.5; background-color: #f8fafc; filter: grayscale(1); }
-        .qr-container canvas, .qr-container img { margin: 0 auto; display: block; border: 4px solid white; border-radius: 0.75rem; }
-        
-        /* 避免 iOS 輸入框縮放 */
-        input[type="text"], input[type="number"] { font-size: 16px !important; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .paid-row { opacity: 0.4; background-color: #f8fafc; filter: grayscale(1); }
+        .paid-row input { text-decoration: line-through; }
+        .qr-container canvas, .qr-container img { margin: 0 auto; display: block; border: 8px solid white; border-radius: 12px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-10">
+<body class="bg-slate-50 min-h-screen pb-12 text-slate-800">
 
-<nav class="gradient-bg text-white shadow-md sticky top-0 z-50">
+<nav class="bg-teal-700 text-white shadow-md sticky top-0 z-40">
     <div class="max-w-md mx-auto px-5 py-4 flex justify-between items-center">
         <div class="flex items-center space-x-2">
-            <i class="fas fa-bolt text-yellow-300"></i>
-            <h1 class="text-lg font-black tracking-tight">TWQR 拆帳助手</h1>
+            <i class="fas fa-university text-green-300"></i>
+            <h1 class="text-base font-bold tracking-wide">辦公室拆帳（玉山專屬版）</h1>
         </div>
-        <div class="bg-black/20 text-[10px] px-2 py-1 rounded-md font-mono">v2.3.1-STABLE</div>
+        <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-mono">Deep Link 實測</span>
     </div>
 </nav>
 
-<main class="max-w-md mx-auto px-4 mt-6 space-y-6">
+<main class="max-w-md mx-auto px-4 pt-4 space-y-4">
 
-    <!-- 收款設定卡片 -->
-    <section class="bg-white rounded-[2rem] p-6 card-shadow border border-slate-100">
-        <div class="flex items-center mb-5">
-            <span class="bg-indigo-100 text-indigo-600 w-8 h-8 flex items-center justify-center rounded-full mr-3 text-xs">
-                <i class="fas fa-cog"></i>
-            </span>
-            <h2 class="text-sm font-bold text-slate-800">我的收款設定</h2>
-        </div>
-        
-        <div class="grid grid-cols-12 gap-3">
-            <div class="col-span-4">
-                <label class="block text-[10px] font-bold text-slate-400 mb-1 ml-1">銀行代碼</label>
-                <input type="text" id="bankCode" value="808" maxlength="3" 
-                    oninput="this.value=this.value.replace(/\D/g,''); saveConfig();"
-                    class="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-black focus:ring-2 focus:ring-indigo-500 outline-none">
+    <!-- 收款帳號設定 -->
+    <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">我的收款設定</h2>
+        <div class="flex space-x-3">
+            <div class="w-1/4">
+                <label class="block text-[10px] text-slate-400 mb-1">銀行代碼</label>
+                <input type="text" id="bankCode" value="808" maxlength="3" placeholder="808" disabled
+                    class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-center text-slate-400 outline-none">
             </div>
-            <div class="col-span-8">
-                <label class="block text-[10px] font-bold text-slate-400 mb-1 ml-1">收款帳號</label>
-                <input type="text" id="bankAccount" value="0015979011345" 
-                    oninput="this.value=this.value.replace(/\D/g,''); saveConfig();"
-                    class="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-black tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none">
+            <div class="flex-1">
+                <label class="block text-[10px] text-slate-400 mb-1">玉山收款帳號</label>
+                <input type="text" id="bankAccount" value="0015979011345" placeholder="輸入銀行帳號" oninput="saveSettings();"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono font-bold tracking-wide focus:border-teal-600 outline-none">
             </div>
         </div>
     </section>
 
-    <!-- 名單列表卡片 -->
-    <section class="bg-white rounded-[2rem] p-6 card-shadow border border-slate-100 min-h-[400px]">
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-sm font-bold text-slate-800">今日拆帳名單</h2>
-            <button onclick="addRow()" class="bg-slate-900 text-white text-[10px] px-4 py-2.5 rounded-xl font-bold hover:bg-black active:scale-95 transition-all">
-                <i class="fas fa-plus mr-1"></i> 新增成員
+    <!-- 名單管理 -->
+    <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">拆帳名單</h2>
+                <p class="text-[10px] text-slate-400">點擊 QR 碼：現場掃描或實測手機喚醒</p>
+            </div>
+            <button onclick="addMember()" class="bg-teal-700 hover:bg-teal-800 text-white text-xs px-3 py-2 rounded-xl font-bold transition-all flex items-center space-x-1">
+                <i class="fas fa-plus"></i> <span>加一人</span>
             </button>
         </div>
 
-        <!-- 列表容器：解決破版，使用 Flex 佈局 -->
-        <div id="orderList" class="space-y-3">
-            <!-- 項目將由 JS 插入 -->
-        </div>
+        <!-- 列表容器 -->
+        <div id="memberList" class="space-y-2.5"></div>
 
-        <!-- 統計數據 -->
-        <div class="mt-10 pt-6 border-t border-slate-100 flex justify-between items-center">
+        <!-- 數據統計 -->
+        <div class="mt-6 pt-4 border-t border-dashed border-slate-200 flex justify-between items-center">
             <div>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">總計金額</p>
-                <p class="text-2xl font-black text-slate-900" id="totalDisplay">$ 0</p>
+                <span class="text-[10px] text-slate-400 block font-bold">今日總計</span>
+                <span class="text-2xl font-black text-slate-900" id="totalAmount">$ 0</span>
             </div>
             <div class="text-right">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">待收餘額</p>
-                <p class="text-lg font-bold text-indigo-600" id="pendingDisplay">$ 0</p>
+                <span class="text-[10px] text-slate-400 block font-bold">剩餘待收</span>
+                <span class="text-base font-bold text-teal-700" id="remainAmount">$ 0</span>
             </div>
         </div>
     </section>
 </main>
 
-<!-- QR Code 彈窗 -->
-<div id="qrModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-6">
-    <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 text-center shadow-2xl relative">
-        
-        <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-300">
-            <i class="fas fa-times-circle text-2xl"></i>
+<!-- 收款彈窗 (Modal) -->
+<div id="qrModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center shadow-xl relative">
+        <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+            <i class="fas fa-times-circle text-xl"></i>
         </button>
-
-        <div class="mb-4 pt-4">
-            <span class="bg-indigo-50 text-indigo-600 text-[10px] font-bold py-1 px-3 rounded-full tracking-widest uppercase">TWQR Standard</span>
-            <h3 class="text-2xl font-black text-slate-900 mt-2" id="modalPayer">同事 A</h3>
-        </div>
         
-        <div class="bg-slate-50 rounded-[2.5rem] p-6 mb-6">
-            <div id="qrcode" class="qr-container bg-white p-1"></div>
-            <div class="mt-4 text-4xl font-black text-indigo-600 tabular-nums" id="modalAmount">$ 0</div>
+        <span class="bg-teal-50 text-teal-800 text-[10px] font-bold px-2.5 py-1 rounded-full inline-block mb-1">玉山銀行行動端支援</span>
+        <h3 class="text-xl font-bold text-slate-800" id="modalName">同事</h3>
+        <p class="text-[11px] text-slate-400 mb-4">實體面交請掃碼；在手機看請點下方觸發鈕</p>
+        
+        <!-- QR Code 顯示區域 -->
+        <div class="bg-slate-100 rounded-2xl p-4 inline-block shadow-inner mb-4">
+            <div id="qrcode"></div>
+            <div class="text-3xl font-black text-slate-900 mt-3" id="modalPrice">$ 0</div>
         </div>
 
-        <div class="space-y-3">
-            <!-- Deep Link 按鈕（含診斷邏輯） -->
-            <button id="deepLinkBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-100 active:scale-[0.98] transition-all flex flex-col items-center justify-center">
-                <span class="flex items-center space-x-2">
-                    <i class="fas fa-mobile-alt"></i>
-                    <span>嘗試一鍵喚醒網銀</span>
-                </span>
-                <span class="text-[9px] opacity-60 mt-0.5 font-normal">若點擊無反應，請改用掃描</span>
+        <div class="space-y-2">
+            <!-- 📱 玉山原生 Deep Link 按鈕 -->
+            <button onclick="triggerEsunDeepLink()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3.5 rounded-xl transition-all flex items-center justify-center space-x-1 shadow-md shadow-emerald-100">
+                <i class="fas fa-mobile-alt animate-bounce"></i>
+                <span>📱 手機一鍵喚醒玉山網銀</span>
+            </button>
+
+            <button onclick="copyTextInfo()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center space-x-1">
+                <i class="fas fa-copy"></i>
+                <span>複製轉帳資訊 (Plan B)</span>
             </button>
             
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="markAsPaid()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-2xl text-xs transition-all">
-                    標記已付清
-                </button>
-                <button onclick="copyPaymentInfo()" class="bg-slate-100 text-slate-600 font-bold py-3 rounded-2xl text-xs hover:bg-slate-200 transition-all flex items-center justify-center">
-                    <i class="fas fa-copy mr-1"></i> 複製帳號
-                </button>
-            </div>
+            <button onclick="setPaidStatus()" class="w-full bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold py-3 rounded-xl transition-all">
+                標記為「已收到還款」
+            </button>
         </div>
     </div>
 </div>
 
-<!-- 吐司通知 -->
-<div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl z-[150] hidden">
-    已複製轉帳資訊！
+<!-- 吐司提示 -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold hidden items-center space-x-2 shadow-lg z-50">
+    <i class="fas fa-check-circle text-emerald-400"></i>
+    <span id="toastText">複製成功</span>
 </div>
 
 <script>
-let orders = [{ id: 1, name: '測試員', amount: 85, paid: false }];
-let activeIdx = null;
+let members = [
+    { name: '張三', amount: 85, paid: false },
+    { name: '李四', amount: 165, paid: false }
+];
+let currentIdx = null;
 let qrObj = null;
 
 window.onload = () => {
-    const saved = localStorage.getItem('twqr_data_v3');
-    if (saved) {
-        const data = JSON.parse(saved);
-        if(data.bank) document.getElementById('bankCode').value = data.bank;
-        if(data.acc) document.getElementById('bankAccount').value = data.acc;
-        if(data.orders && data.orders.length > 0) orders = data.orders;
+    const cachedAcc = localStorage.getItem('cfg_esun_a_2026');
+    const cachedList = localStorage.getItem('cfg_esun_l_2026');
+
+    if (cachedAcc) document.getElementById('bankAccount').value = cachedAcc;
+    if (cachedList) {
+        try { members = JSON.parse(cachedList); } catch(e) {}
     }
-    
+
     qrObj = new QRCode(document.getElementById("qrcode"), {
-        width: 200, height: 200, colorDark: "#000000", colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
+        width: 170,
+        height: 170,
+        colorDark : "#0f172a",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.M
     });
-    
-    renderList();
+
+    render();
 };
 
-function saveConfig() {
-    const data = {
-        bank: document.getElementById('bankCode').value,
-        acc: document.getElementById('bankAccount').value,
-        orders: orders
-    };
-    localStorage.setItem('twqr_data_v3', JSON.stringify(data));
+function saveSettings() {
+    localStorage.setItem('cfg_esun_a_2026', document.getElementById('bankAccount').value);
+    localStorage.setItem('cfg_esun_l_2026', JSON.stringify(members));
 }
 
-// 產生 TWQRP 格式連結
-function buildTWQRURL(bank, acc, amt) {
-    const paddedAcc = acc.padStart(16, '0');
-    const centAmt = Math.round(parseFloat(amt) * 100);
-    return `TWQRP://${bank}NTTransfer/158/02/V1?D6=${paddedAcc}&D5=${bank}&D1=${centAmt}&D10=901`;
-}
+function render() {
+    const listDiv = document.getElementById('memberList');
+    listDiv.innerHTML = '';
+    let total = 0;
+    let remain = 0;
 
-// 渲染列表 (穩定排版版)
-function renderList() {
-    const container = document.getElementById('orderList');
-    container.innerHTML = '';
-    let total = 0, pending = 0;
+    members.forEach((m, idx) => {
+        total += Number(m.amount || 0);
+        if (!m.paid) remain += Number(m.amount || 0);
 
-    orders.forEach((o, i) => {
-        total += Number(o.amount || 0);
-        if (!o.paid) pending += Number(o.amount || 0);
-
-        const div = document.createElement('div');
-        div.className = `flex items-center space-x-2 p-3 rounded-2xl border transition-all ${o.paid ? 'paid-row' : 'bg-white border-slate-100 shadow-sm'}`;
+        const item = document.createElement('div');
+        item.className = `flex items-center space-x-2 p-2 rounded-xl border transition-all ${m.paid ? 'paid-row border-slate-100' : 'bg-white border-slate-100 shadow-sm'}`;
         
-        div.innerHTML = `
-            <input type="text" value="${o.name}" 
-                oninput="update(${i},'name',this.value)" 
-                placeholder="姓名" 
-                class="flex-1 min-w-0 bg-transparent font-bold text-sm outline-none">
+        item.innerHTML = `
+            <input type="text" value="${m.name}" onchange="updateData(${idx}, 'name', this.value)" placeholder="同事姓名"
+                class="flex-1 min-w-0 bg-transparent text-sm font-bold px-2 py-1.5 rounded-lg outline-none focus:bg-slate-50">
             
-            <div class="flex items-center bg-slate-50 rounded-xl px-2 py-2 shrink-0 border border-slate-100">
-                <span class="text-[10px] text-slate-400 font-bold mr-1">$</span>
-                <input type="number" value="${o.amount}" 
-                    oninput="update(${i},'amount',this.value)" 
-                    class="w-14 bg-transparent text-sm font-black text-right outline-none text-indigo-600">
+            <div class="shrink-0 flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 w-20">
+                <span class="text-xs text-slate-400 font-bold mr-0.5">$</span>
+                <input type="number" value="${m.amount || ''}" onchange="updateData(${idx}, 'amount', this.value)" placeholder="0"
+                    class="w-full bg-transparent text-right text-sm font-black text-slate-700 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
             </div>
 
-            <button onclick="showQR(${i})" 
-                class="shrink-0 w-10 h-10 rounded-xl ${o.paid?'bg-slate-100 text-slate-300':'bg-indigo-600 text-white shadow-md shadow-indigo-100'} flex items-center justify-center active:scale-90 transition-all">
-                <i class="fas fa-qrcode"></i>
+            <button onclick="openQRModal(${idx})" class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-all active:scale-95 ${m.paid ? 'bg-slate-100 text-slate-400' : 'bg-teal-700 text-white shadow-sm'}" title="顯示收款條碼">
+                <i class="fas fa-qrcode text-xs"></i>
             </button>
 
-            <button onclick="removeRow(${i})" 
-                class="shrink-0 text-slate-300 hover:text-red-500 p-1">
-                <i class="fas fa-times text-xs"></i>
+            <button onclick="deleteMember(${idx})" class="shrink-0 text-slate-300 hover:text-red-500 p-1 transition-colors">
+                <i class="fas fa-trash-alt text-xs text-slate-300"></i>
             </button>
         `;
-        container.appendChild(div);
+        listDiv.appendChild(item);
     });
 
-    document.getElementById('totalDisplay').innerText = `$ ${total.toLocaleString()}`;
-    document.getElementById('pendingDisplay').innerText = `$ ${pending.toLocaleString()}`;
-    saveConfig();
+    document.getElementById('totalAmount').innerText = `$ ${total.toLocaleString()}`;
+    document.getElementById('remainAmount').innerText = `$ ${remain.toLocaleString()}`;
+    saveSettings();
 }
 
-function update(i, f, v) {
-    orders[i][f] = (f === 'amount') ? (parseInt(v) || 0) : v;
-    // 延遲更新統計，不影響輸入流暢度
-    const total = orders.reduce((sum, o) => sum + (parseInt(o.amount) || 0), 0);
-    const pending = orders.reduce((sum, o) => sum + (!o.paid ? (parseInt(o.amount) || 0) : 0), 0);
-    document.getElementById('totalDisplay').innerText = `$ ${total.toLocaleString()}`;
-    document.getElementById('pendingDisplay').innerText = `$ ${pending.toLocaleString()}`;
-    saveConfig();
+function updateData(idx, key, val) {
+    if (key === 'amount') {
+        members[idx][key] = val ? parseInt(val, 10) : 0;
+    } else {
+        members[idx][key] = val;
+    }
+    render();
 }
 
-function addRow() {
-    orders.push({ id: Date.now(), name: '', amount: '', paid: false });
-    renderList();
+function addMember() {
+    members.push({ name: '', amount: '', paid: false });
+    render();
 }
 
-function removeRow(i) {
-    orders.splice(i, 1);
-    renderList();
+function deleteMember(idx) {
+    members.splice(idx, 1);
+    render();
 }
 
-function showQR(i) {
-    const bank = document.getElementById('bankCode').value;
-    const acc = document.getElementById('bankAccount').value;
-    const o = orders[i];
+function openQRModal(idx) {
+    const bAcc = document.getElementById('bankAccount').value;
+    const m = members[idx];
 
-    if (!bank || !acc || !o.amount) return;
+    if (!bAcc) {
+        showToast('請先填寫玉山收款帳號！', true);
+        return;
+    }
+    if (!m.amount || m.amount <= 0) {
+        showToast('請輸入正確的拆帳金額！', true);
+        return;
+    }
 
-    activeIdx = i;
-    const payload = buildTWQRURL(bank, acc, o.amount);
+    currentIdx = idx;
     
+    // 正確的 TWQRP 實體掃碼專用字串
+    const paddedAcc = bAcc.replace(/\s/g, '').padStart(16, '0');
+    const cents = m.amount * 100;
+    const twqrpString = `TWQRP://808NTTransfer/158/02/V1?D6=${paddedAcc}&D5=808&D1=${cents}&D10=901`;
+
     qrObj.clear();
-    qrObj.makeCode(payload);
+    qrObj.makeCode(twqrpString);
 
-    document.getElementById('deepLinkBtn').onclick = () => {
-        // Deep Link 跳轉嘗試
-        window.location.href = payload;
-        
-        // 額外診斷提示：如果 2 秒後頁面還在，可能就是跳轉失敗
-        const start = Date.now();
-        setTimeout(() => {
-            if (Date.now() - start < 2500) {
-                showToast("若 App 未自動開啟，請改用掃描或複製帳號");
-            }
-        }, 2000);
-    };
-
-    document.getElementById('modalPayer').innerText = o.name || '這名同事';
-    document.getElementById('modalAmount').innerText = `$ ${o.amount}`;
+    document.getElementById('modalName').innerText = m.name || '這名同事';
+    document.getElementById('modalPrice').innerText = `$ ${m.amount}`;
     document.getElementById('qrModal').classList.remove('hidden');
 }
 
-function closeModal() { document.getElementById('qrModal').classList.add('hidden'); }
+function triggerEsunDeepLink() {
+    if (currentIdx === null) return;
+    const bAcc = document.getElementById('bankAccount').value.replace(/\s/g, '');
+    const m = members[currentIdx];
+    
+    // 呼叫玉山銀行 App 專屬的 Scheme 路徑與 P2P 轉帳參數
+    // D6為16碼帳號，D5為銀行代碼，D1為乘100後的金額
+    const paddedAcc = bAcc.padStart(16, '0');
+    const cents = m.amount * 100;
+    
+    const esunScheme = `esunbank://api/transfer?D6=${paddedAcc}&D5=808&D1=${cents}&D10=901`;
+    
+    // 試圖呼叫作業系統進行 Scheme 喚醒
+    window.location.href = esunScheme;
+    
+    // 考慮到部分手機環境或 In-App 瀏覽器可能封鎖，一秒後提供備援提示
+    setTimeout(() => {
+        showToast('若網銀未自動開啟，請使用上方 QR Code 掃描或複製資訊。', true);
+    }, 1200);
+}
 
-function markAsPaid() {
-    if (activeIdx !== null) {
-        orders[activeIdx].paid = true;
-        renderList();
+function closeModal() {
+    document.getElementById('qrModal').classList.add('hidden');
+}
+
+function setPaidStatus() {
+    if (currentIdx !== null) {
+        members[currentIdx].paid = true;
+        render();
         closeModal();
+        showToast('已標記為付清');
     }
 }
 
-function copyPaymentInfo() {
-    const b = document.getElementById('bankCode').value;
-    const a = document.getElementById('bankAccount').value;
-    const amt = orders[activeIdx].amount;
-    const text = `轉帳資訊\n銀行代碼: ${b}\n帳號: ${a}\n金額: ${amt} 元`;
+function copyTextInfo() {
+    if (currentIdx === null) return;
+    const bAcc = document.getElementById('bankAccount').value;
+    const m = members[currentIdx];
+
+    const clipText = `【午餐/咖啡拆帳】\n請轉帳至：玉山銀行 (808)\n帳號：${bAcc}\n金額：${m.amount} 元\n感謝代墊！`;
     
     const el = document.createElement('textarea');
-    el.value = text;
+    el.value = clipText;
     document.body.appendChild(el);
     el.select();
     document.execCommand('copy');
     document.body.removeChild(el);
-    showToast("轉帳資訊已複製！");
+
+    showToast('轉帳資訊已複製，可直接貼進 LINE 群組');
 }
 
-function showToast(msg) {
+function showToast(txt, isErr = false) {
     const t = document.getElementById('toast');
-    t.innerText = msg;
+    t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 shadow-lg z-50 ${isErr ? 'bg-amber-600' : 'bg-slate-900'}`;
+    t.innerHTML = `<i class="fas ${isErr ? 'fa-info-circle' : 'fa-check-circle'}"></i><span>${txt}</span>`;
     t.classList.remove('hidden');
-    setTimeout(() => t.classList.add('hidden'), 3000);
+    setTimeout(() => t.classList.add('hidden'), 3500);
 }
 </script>
 
 </body>
 </html>
+```eof
+
+### 📱 手機實測指引
+
+你可以直接點擊右側的 **Preview** 將金額設定好，並點擊藍色 QR 碼圖示打開彈窗：
+
+1. **如果在桌機瀏覽器/預覽畫面點擊按鈕**：系統一定會報錯或無效，因為電腦作業系統沒有安裝「玉山銀行 App」。
+2. **如果用裝有玉山行動銀行的手機開啟此網頁點擊**：
+   * **理想狀況**：作業系統（iOS/Android）能識別 `esunbank://` 協定，直接彈出提示視窗問你：「要在『玉山行動銀行』中打開此連結嗎？」。點擊同意後，會自動跳轉並嘗試帶入你設定好的帳號與乘上 100 後的金額參數。
+   * **阻擋狀況**：如果這串代碼是在 LINE 聊天室內建的瀏覽器點開，仍有可能被 LINE 的沙盒環境封鎖（這時只能點擊右下角，改用手機內建的 Safari 或 Chrome 開啟網頁，即可繞過阻擋）。
