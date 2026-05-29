@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPCX 戰情指揮面板 v8.1 — 家族辦公室機構版</title>
+    <style>
+        :root {
+            --bg-color: #0b0e14;
+            --panel-bg: #121824;
+            --panel-border: #1f2a3f;
+            --text-main: #f0f4f8;
+            --text-muted: #8a99ad;
+            --accent-cyan: #00f2fe;
+            --accent-blue: #0072ff;
+            --accent-red: #ff4a5a;
+            --accent-green: #00e676;
+            --warning-amber: #ffb300;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--panel-border);
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(45deg, var(--text-main), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header .meta-tag {
+            background-color: rgba(0, 242, 254, 0.1);
+            color: var(--accent-cyan);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            font-weight: bold;
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            flex-grow: 1;
+        }
+
+        /* 控制台側欄 */
+        .control-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--panel-border);
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            background-color: var(--bg-color);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 10px;
+            color: var(--text-main);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        /* 主內容區 */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 分頁標籤 */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-cyan);
+            border-bottom-color: var(--accent-cyan);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 卡片設計 */
+        .card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-header-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* 資金池三切區塊 */
+        .allocation-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .alloc-card {
+            background-color: rgba(255,255,255,0.02);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .alloc-name {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .alloc-val {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            margin-bottom: 4px;
+        }
+
+        .alloc-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* 表格樣式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--panel-border);
+            font-size: 14px;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+            background-color: rgba(0,0,0,0.15);
+        }
+
+        tr:hover {
+            background-color: rgba(255,255,255,0.01);
+        }
+
+        .badge-red {
+            background-color: rgba(255, 74, 90, 0.15);
+            color: var(--accent-red);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-green {
+            background-color: rgba(0, 230, 118, 0.15);
+            color: var(--accent-green);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* 斷路器與檢查清單 */
+        .breaker-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .breaker-item input[type="checkbox"] {
+            margin-top: 4px;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-red);
+            cursor: pointer;
+        }
+
+        .breaker-text h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .breaker-text p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* 外部情報連結區 */
+        .radar-links {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .radar-link-btn {
+            background-color: rgba(255,255,255,0.02);
+            border: 1px solid var(--panel-border);
+            padding: 12px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-main);
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .radar-link-btn:hover {
+            border-color: var(--accent-cyan);
+            background-color: rgba(0, 242, 254, 0.02);
+        }
+
+        .radar-link-btn span.arrow {
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        /* 備註說明 */
+        .note-block {
+            background-color: rgba(255, 179, 0, 0.05);
+            border-left: 4px solid var(--warning-amber);
+            padding: 12px 16px;
+            border-radius: 0 4px 4px 0;
+            font-size: 12px;
+            color: #ffca28;
+            line-height: 1.5;
+        }
+
+        /* S1 Specs Details */
+        .specs-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .spec-box {
+            border: 1px solid var(--panel-border);
+            padding: 14px;
+            border-radius: 6px;
+            background-color: rgba(0,0,0,0.1);
+        }
+        .spec-box h4 {
+            font-size: 14px;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+        }
+        .spec-box p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>SPCX 戰情指揮面板 v8.1</h1>
+            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">基於 S-1 招股書校準之極冷血市值定錨進場計畫</p>
+        </div>
+        <span class="meta-tag">家族辦公室專屬指令頁</span>
+    </header>
+
+    <div class="dashboard-layout">
+        
+        <!-- 左側控制台 -->
+        <aside class="control-panel">
+            <div class="panel-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                核心動態參數輸入
+            </div>
+            
+            <div class="input-group">
+                <label for="ipoDate">1. 真正 IPO 上市日期</label>
+                <input type="date" id="ipoDate" value="2026-06-12">
+            </div>
+
+            <div class="input-group">
+                <label for="totalShares">2. 真正總股數 (S-1 最終修訂版, 單位: 億股)</label>
+                <input type="number" id="totalShares" value="130" step="1" min="10">
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">S-1預估加計新股後約 125~130 億股</p>
+            </div>
+
+            <div class="input-group">
+                <label for="budget">3. 本計畫硬上限總預算 (USD)</label>
+                <input type="number" id="budget" value="200000" step="1000" min="1000">
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">預設為高容忍風險/獨立配置資本</p>
+            </div>
+
+            <div style="margin-top: 30px; padding: 12px; border-radius: 6px; background-color: rgba(255,255,255,0.02); border: 1px dashed var(--panel-border);">
+                <h4 style="font-size: 12px; margin-bottom: 6px; color: var(--warning-amber);">🔒 系統提示</h4>
+                <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">Firstrade 無 IPO 認購配額。6/12 上市日起，本面板提供之價格皆為二級公開市場之限價單操作錨點。</p>
+            </div>
+        </aside>
+
+        <!-- 右側主要顯示區 -->
+        <main class="main-content">
+            
+            <!-- 分頁選單 -->
+            <nav class="tabs">
+                <button class="tab-btn active" onclick="switchTab('allocation')">1. 估值定錨與資金部署</button>
+                <button class="tab-btn" onclick="switchTab('waterfall')">2. 鎖倉瀑布解鎖行事曆</button>
+                <button class="tab-btn" onclick="switchTab('supplement')">3. S-1 核心規格與補給雷達</button>
+            </nav>
+
+            <!-- TAB 1: 估值定錨 -->
+            <section id="tab-allocation" class="tab-content active">
+                
+                <!-- 資金三切概覽 -->
+                <div class="card">
+                    <h2>三池策略資金精算部署 (60 / 30 / 10)</h2>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; margin-top: 4px;">依據總預算自動切割，專款專用，嚴禁盤中混淆交叉救援。</p>
+                    
+                    <div class="allocation-grid">
+                        <div class="alloc-card">
+                            <div class="alloc-name">A池 - 核心 DCA 部隊 (60%)</div>
+                            <div class="alloc-val" id="allocA">$120,000</div>
+                            <div class="alloc-desc">拆 5 筆現貨，每筆 <span id="allocASingle">$24,000</span></div>
+                            <div class="alloc-desc" style="margin-top:4px; color: var(--accent-cyan);">6/12 ~ 7/3 機械建倉</div>
+                        </div>
+                        <div class="alloc-card">
+                            <div class="alloc-name">B池 - 地板預備伏兵 (30%)</div>
+                            <div class="alloc-val" id="allocB">$60,000</div>
+                            <div class="alloc-desc">單向下檔承接員工解鎖</div>
+                            <div class="alloc-desc" style="margin-top:4px; color: var(--warning-amber);">GTC 掛單死守至第180天</div>
+                        </div>
+                        <div class="alloc-card">
+                            <div class="alloc-name">C池 - 機動/選擇權特種隊 (10%)</div>
+                            <div class="alloc-val" id="allocC">$20,000</div>
+                            <div class="alloc-desc">短線極端 Gamma 軋空彩券</div>
+                            <div class="alloc-desc" style="margin-top:4px; color: var(--text-muted);">IV 暴跌前絕不碰長線 LEAPS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 市值轉價格對照表 -->
+                <div class="card">
+                    <div class="card-header-grid">
+                        <h2>絕對市值轉每股價格定錨表</h2>
+                        <span class="badge-green">自動校準完畢</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 12px; margin-top: -10px;">最高原則：錨在總市值，而非每股名目價格。超過 2.2T 堅決不開現貨新倉。</p>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>目標總市值</th>
+                                <th>戰略含義與操作指引</th>
+                                <th>換算每股價格</th>
+                                <th>操作紀律</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="font-weight: bold; color: var(--accent-red);">2.2 兆美元 (2.2T)</td>
+                                <td>**硬上限天花板**。高於此估值代表過熱，全盤停止增投新現貨。</td>
+                                <td id="p22" style="font-weight: bold; color: var(--accent-red);">$169.23</td>
+                                <td><span class="badge-red">停止開倉</span></td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: var(--text-main);">2.0 兆美元 (2.0T)</td>
+                                <td>便宜買區頂部。核心 A 池 DCA 開始獲准啟動的邊界。</td>
+                                <td id="p20" style="font-weight: bold;">$153.85</td>
+                                <td>A 池准許點</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: var(--accent-green);">1.75 兆美元 (1.75T)</td>
+                                <td>核心合理買區。前提假設之高勝率中位數，DCA 加速區。</td>
+                                <td id="p175" style="font-weight: bold; color: var(--accent-green);">$134.62</td>
+                                <td>A 池主力區</td>
+                            </tr>
+                            <tr style="background-color: rgba(0, 114, 255, 0.05);">
+                                <td>1.5 兆美元 (1.5T)</td>
+                                <td>**B 池地板第一階**。員工初步解鎖或市場恐慌之左側承接點。</td>
+                                <td id="p15" style="color: var(--accent-cyan); font-weight: bold;">$115.38</td>
+                                <td>B 池第一單 (40%)</td>
+                            </tr>
+                            <tr style="background-color: rgba(0, 114, 255, 0.05);">
+                                <td>1.3 兆美元 (1.3T)</td>
+                                <td>**B 池地板第二階**。流動性極端短缺、技術面超賣斷層區。</td>
+                                <td id="p13" style="color: var(--accent-cyan); font-weight: bold;">$100.00</td>
+                                <td>B 池第二單 (35%)</td>
+                            </tr>
+                            <tr style="background-color: rgba(0, 114, 255, 0.05);">
+                                <td>1.1 兆美元 (1.1T)</td>
+                                <td>**B 池地板第三階**。末日級別黑天鵝下插針。極致撿屍價。</td>
+                                <td id="p11" style="color: var(--accent-cyan); font-weight: bold;">$84.62</td>
+                                <td>B 池第三單 (25%)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 論點破壞斷路器 -->
+                <div class="card">
+                    <h2 style="color: var(--accent-red);">🔴 核心論點破壞斷路器 (Narrative Breakers)</h2>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px; margin-top: 4px;">一旦盤中以下任一惡性旗標成立，立刻手動勾選，系統將強制凍結 A/B 池所有未成交新單（不加碼救援原則）。</p>
+                    
+                    <div style="border: 1px solid rgba(255, 74, 90, 0.2); border-radius: 6px; overflow: hidden;">
+                        <div class="breaker-item">
+                            <input type="checkbox" id="break1" onchange="toggleBreaker()">
+                            <div class="breaker-text">
+                                <h4>Starship 災難性失敗</h4>
+                                <p>S-1 載明下一代 Starlink 必須完全仰賴 Starship 部署。若發生毀滅性試飛事故或時程被官方裁決无限期延後，長期護城河故事將動搖。</p>
+                            </div>
+                        </div>
+                        <div class="breaker-item">
+                            <input type="checkbox" id="break2" onchange="toggleBreaker()">
+                            <div class="breaker-text">
+                                <h4>Starlink 用戶或營收成長減速轉負</h4>
+                                <p>金雞母失去基本面複利能力。連兩季 QoQ（季增率）大幅轉負，代表太空寬頻飽和或利潤率崩塌。</p>
+                            </div>
+                        </div>
+                        <div class="breaker-item">
+                            <input type="checkbox" id="break3" onchange="toggleBreaker()">
+                            <div class="breaker-text">
+                                <h4>Nasdaq 100 快速納入 (Fast-entry) 規則生變</h4>
+                                <p>若交易所因 Free-float 比例或監管審查原因取消 SPCX 快速納入，7/6 的順風被動買盤將瞬間化為泡影。</p>
+                            </div>
+                        </div>
+                        <div class="breaker-item">
+                            <input type="checkbox" id="break4" onchange="toggleBreaker()">
+                            <div class="breaker-text">
+                                <h4>關聯交易暴雷 / 惡性監管調查</h4>
+                                <p>SpaceX 與 Tesla/xAI/Valor 之間的算力與儲能資金流向，遭到 SEC 或是司法部發起關聯交易利益輸送之重大合規調查。</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="breakerAlert" style="display:none; margin-top:15px; padding:12px; background-color:rgba(255,74,90,0.15); border:1px solid var(--accent-red); border-radius:4px; color:var(--accent-red); font-weight:bold; text-align:center; font-size:14px;">
+                        ⚠️ 【警報觸發】核心論點已破壞！全面關閉新增投錢指令！僅保留現有持倉不加碼！
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- TAB 2: 鎖倉瀑布 -->
+            <section id="tab-waterfall" class="tab-content">
+                <div class="card">
+                    <h2>S-1 階梯式鎖倉瀑布與彈藥發射行事曆</h2>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; margin-top: 4px;">取代「7 月底一次性絞肉」的刻板印象。依據您輸入的 IPO 日期，動態推算為期半年的籌碼放血瀑布線。</p>
+                    
+                    <div class="note-block" style="margin-bottom: 20px;">
+                        <strong>💡 反直覺大師級紀律提醒：</strong><br>
+                        條款 (b) 規定：若 Q2 財報日前 10 個交易日中有 5 天收盤價比 IPO 價高出 30% 以上，將會**額外逼出 10% 的股票提早解鎖**。因此，前兩個月股價如果太妖太強，反而在財報日自帶大量賣壓毒藥。平盤或小跌才是籌碼洗滌的健康狀態。
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>解鎖解禁波段</th>
+                                <th>解鎖物理條件說明</th>
+                                <th>動態推算預估日期</th>
+                                <th>B 池對應防線與戰略含義</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="font-weight: bold;">創辦人鎖倉區 (Musk)</td>
+                                <td>馬斯克 100% 持股鎖死 **366 天**，明文不可提前解鎖。</td>
+                                <td id="dateMusk">2027-06-13</td>
+                                <td><span class="badge-green">巨鯨不踩踏</span> 一年內控制權與護盤意志極穩。</td>
+                            </tr>
+                            <tr style="background-color: rgba(255, 74, 90, 0.02);">
+                                <td>(a) Q2 財報發布日後</td>
+                                <td>第一批員工與早期投資人釋出股份，基礎上限 **20%**。</td>
+                                <td id="dateQ2">~ 7 月底 / 8 月初</td>
+                                <td>**第一個供給高峰**。B 池第一檔限價單就位等接。</td>
+                            </tr>
+                            <tr style="background-color: rgba(255, 74, 90, 0.05);">
+                                <td>(b) 價格毒藥觸發款</td>
+                                <td>若滿足「高於 IPO 價 30%」門檻，**額外再解鎖 10%**。</td>
+                                <td id="dateTrigger">與 Q2 財報同日</td>
+                                <td>若前半期暴漲，此處將爆發 **30% 籌碼海嘯** 大絞肉。</td>
+                            </tr>
+                            <tr>
+                                <td>(c) 階梯式放血 (35%)</td>
+                                <td>第 70、90、105、120、135 天各強制解鎖 **7%**。</td>
+                                <td id="dateSteps">載入中...</td>
+                                <td>持續性的慢性失血。B 池 GTC 單必須掛滿，全期不撤。</td>
+                            </tr>
+                            <tr style="background-color: rgba(255, 74, 90, 0.02);">
+                                <td>(d) Q3 財報發布日後</td>
+                                <td>第二個财报窗口打開，額外再釋放 **28%**。</td>
+                                <td id="dateQ3">~ 10 月底 / 11 月初</td>
+                                <td>**第二個供給海嘯**。高機率再次測試下檔 1.3T / 1.1T 鐵底。</td>
+                            </tr>
+                            <tr>
+                                <td>(e) 第 180 天大限</td>
+                                <td>基準 180 天解鎖期滿，剩餘鎖倉籌碼全數解禁。</td>
+                                <td id="date180">~ 2026-12-09</td>
+                                <td>解鎖瀑布終點站。B 池在此日後方可收工平倉。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: 補充雷達 -->
+            <section id="tab-supplement" class="tab-content">
+                
+                <!-- 招股書白紙黑字 -->
+                <div class="card">
+                    <h2>S-1 招股書硬核已知資訊（基礎底牌）</h2>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; margin-top: 4px;">拒絕市場二手新聞灌水，以下為 SEC 已申報之底層法律與財報實體數據：</p>
+                    
+                    <div class="specs-list">
+                        <div class="spec-box">
+                            <h4>💎 18,712 顆比特幣持倉</h4>
+                            <p>截至 2026/3/31 財報確認。公允價值直接入帳並走損益表。這意味著 SpaceX 帳面 EPS 將會隨加密貨幣市場產生劇烈且無關本業的波動，極易造成散戶及垃圾演算法的錯殺，是 B 池低吸的催化劑。</p>
+                        </div>
+                        <div class="spec-box">
+                            <h4>🏛️ 雙重股權與 Class C 重分類</h4>
+                            <p>5拆1已於5/4完成。上市時員工持有的無投票權 Class C 全數強制 1:1 轉換為公開市場交易的 Class A（1 票）。老馬鐵死掌控 Class B（10 票），賣出即降級，確保二級市場無論如何換手都無法威脅其獨裁地位。</p>
+                        </div>
+                        <div class="spec-box">
+                            <h4>🛸 算力巨獸實體與 CapEx</h4>
+                            <p>Q1 資本支出（CapEx）達 101 億美元，其中超過 75%（77.2 億）直接砸向 Memphis 的 COLOSSUS / COLOSSUS II 算力基建。這本質上是一家披著航太皮的 AI 算力中心，也是老馬要求短期合約（隨時收回自用）的核心底氣。</p>
+                        </div>
+                        <div class="spec-box">
+                            <h4>🇹🇼 台灣居民專屬稅務 Edge</h4>
+                            <p>修正 v8 誤判。作為台灣稅務居民，美股資本利得在**美國端為 NRA (0% 免稅)**，無短線高稅率拖累。只有台灣端的**海外所得最低稅負制**需要申報。因此，任何二級市場的網格短線獲利了結，在效率上皆完全可行！</p>
+                        </div>
+                    </div>
+                    <div style="margin-top:16px; text-align:right;">
+                        <a href="https://www.sec.gov/Archives/edgar/data/1181412/000162828026036936/spaceexplorationtechnologi.htm" target="_blank" style="color:var(--accent-cyan); font-size:13px; font-weight:600; text-decoration:none;">➡️ 前往 SEC EDGAR 查閱原始 S-1 文件 ↗️</a>
+                    </div>
+                </div>
+
+                <!-- 整合型即時補給雷達連結 -->
+                <div class="card">
+                    <h2>即時情報補給雷達（一鍵直擊 Google 核心戰場）</h2>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; margin-top: 4px;">由於在地瀏覽器跨網域限制（CORS），點擊下方精密構造的關鍵字定向雷達，直接在公開 Google 抓取最新真實資訊，核對面板變數：</p>
+                    
+                    <div class="radar-links">
+                        <a href="https://www.google.com/search?q=SpaceX+IPO+final+offering+price+shares" target="_blank" class="radar-link-btn">
+                            <div>
+                                <strong style="color: var(--accent-cyan);">1. 查核 6/11 定價與總股數</strong>
+                                <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">追蹤 Goldman / Morgan Stanley 最終申報 Class A 數量</p>
+                            </div>
+                            <span class="arrow">🔍</span>
+                        </a>
+
+                        <a href="https://www.google.com/search?q=Starship+next+test+flight+status+spacex" target="_blank" class="radar-link-btn">
+                            <div>
+                                <strong style="color: var(--accent-red);">2. 監控 Starship 試飛狀態</strong>
+                                <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">防範核心論點破壞之 1 號斷路器指標</p>
+                            </div>
+                            <span class="arrow">🔍</span>
+                        </a>
+
+                        <a href="https://www.google.com/search?q=SpaceX+Anthropic+Colossus+lease+news" target="_blank" class="radar-link-btn">
+                            <div>
+                                <strong>3. 算力租約與 Cursor 併購進度</strong>
+                                <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">監控老馬是否提早收回 180 天算力合約引爆 M&A</p>
+                            </div>
+                            <span class="arrow">🔍</span>
+                        </a>
+
+                        <a href="https://www.google.com/search?q=Nasdaq+100+fast+entry+SPCX+weight" target="_blank" class="radar-link-btn">
+                            <div>
+                                <strong style="color: var(--accent-green);">4. QQQ / Nasdaq Fast-entry 權重</strong>
+                                <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">查核 7/6 流通量調整後的真實被動買盤流速</p>
+                            </div>
+                            <span class="arrow">🔍</span>
+                        </a>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // 初始化更新
+        window.onload = function() {
+            setupListeners();
+            calculatev81();
+        };
+
+        function setupListeners() {
+            document.getElementById('ipoDate').addEventListener('input', calculatev81);
+            document.getElementById('totalShares').addEventListener('input', calculatev81);
+            document.getElementById('budget').addEventListener('input', calculatev81);
+        }
+
+        function calculatev81() {
+            // 讀取輸入值
+            const ipoDateVal = document.getElementById('ipoDate').value;
+            const totalSharesB = parseFloat(document.getElementById('totalShares').value) || 130;
+            const totalBudget = parseFloat(document.getElementById('budget').value) || 200000;
+
+            // 1. 計算資金池三切 (60/30/10)
+            const poolA = totalBudget * 0.60;
+            const poolB = totalBudget * 0.30;
+            const poolC = totalBudget * 0.10;
+            const singleA = poolA / 5;
+
+            document.getElementById('allocA').innerText = '$' + poolA.toLocaleString(undefined, {maximumFractionDigits: 0});
+            document.getElementById('allocB').innerText = '$' + poolB.toLocaleString(undefined, {maximumFractionDigits: 0});
+            document.getElementById('allocC').innerText = '$' + poolC.toLocaleString(undefined, {maximumFractionDigits: 0});
+            document.getElementById('allocASingle').innerText = '$' + singleA.toLocaleString(undefined, {maximumFractionDigits: 0});
+
+            // 2. 計算市值轉每股價格 (Price = MC_T * 1000 / TotalShares_B)
+            document.getElementById('p22').innerText = '$' + ((2.2 * 1000) / totalSharesB).toFixed(2);
+            document.getElementById('p20').innerText = '$' + ((2.0 * 1000) / totalSharesB).toFixed(2);
+            document.getElementById('p175').innerText = '$' + ((1.75 * 1000) / totalSharesB).toFixed(2);
+            document.getElementById('p15').innerText = '$' + ((1.5 * 1000) / totalSharesB).toFixed(2);
+            document.getElementById('p13').innerText = '$' + ((1.3 * 1000) / totalSharesB).toFixed(2);
+            document.getElementById('p11').innerText = '$' + ((1.1 * 1000) / totalSharesB).toFixed(2);
+
+            // 3. 鎖倉瀑布動態日期推算
+            if (ipoDateVal) {
+                const ipoDate = new Date(ipoDateVal);
+                
+                // 馬斯克 366天
+                let dateM = new Date(ipoDate);
+                dateM.setDate(dateM.getDate() + 366);
+                document.getElementById('dateMusk').innerText = formatDate(dateM);
+
+                // 180天大限
+                let date180 = new Date(ipoDate);
+                date180.setDate(date180.getDate() + 180);
+                document.getElementById('date180').innerText = formatDate(date180) + ' (全數解除)';
+
+                // 階梯式解鎖細節 (70, 90, 105, 120, 135)
+                let d70 = new Date(ipoDate); d70.setDate(d70.getDate() + 70);
+                let d135 = new Date(ipoDate); d135.setDate(d135.getDate() + 135);
+                document.getElementById('dateSteps').innerText = formatDate(d70) + ' 起，每 15-20 天釋出 7%，至 ' + formatDate(d135) + ' 止';
+                
+                // 財報依據基準常規推算提示
+                document.getElementById('dateQ2').innerText = '預估 7 月底 / 8 月初 (上市後首個財報窗口後第2個交易日)';
+                document.getElementById('dateTrigger').innerText = '與 Q2 財報同日 (回顧前 10 交易日是否觸發 > 30% 條件)';
+                document.getElementById('dateQ3').innerText = '預估 10 月底 / 11 月初 (第二季財報窗口打開)';
+            }
+        }
+
+        function formatDate(dateObj) {
+            let year = dateObj.getFullYear();
+            let month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            let day = dateObj.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 分頁切換邏輯
+        function switchTab(tabName) {
+            // 隱藏所有分頁內容
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(c => c.classList.remove('active'));
+
+            // 取消所有按鈕高亮
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(b => b.classList.remove('active'));
+
+            // 顯示當前選中
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // 斷路器聯動
+        function toggleBreaker() {
+            const b1 = document.getElementById('break1').checked;
+            const b2 = document.getElementById('break2').checked;
+            const b3 = document.getElementById('break3').checked;
+            const b4 = document.getElementById('break4').checked;
+            
+            const alertBox = document.getElementById('breakerAlert');
+            if (b1 || b2 || b3 || b4) {
+                alertBox.style.display = 'block';
+            } else {
+                alertBox.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
