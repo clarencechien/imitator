@@ -3,41 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>皮克敏蘑菇計時器</title>
+  <title>皮克敏蘑菇計時</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入可愛的圓體字型 -->
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     /* 隱藏捲軸但可滾動 */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    body {
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      background-color: #fdfbf7; /* 暖白色背景 */
+    }
+
     /* 確保底部操作區動畫平滑 */
-    #action-modal { transition: transform 0.3s ease-out; }
+    #action-modal { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .modal-hidden { transform: translateY(100%); }
     .modal-visible { transform: translateY(0); }
     
     /* PWA 狀態列顏色 */
     meta[name="theme-color"] { content: #10b981; }
-  </style>
-  <!-- 動態注入 PWA Manifest 的容器 -->
-  <link rel="manifest" id="manifest-link">
-</head>
-<body class="bg-gray-100 text-gray-800 font-sans antialiased select-none no-scrollbar h-screen flex flex-col">
 
-  <!-- 頂部導航 -->
-  <header class="bg-emerald-600 text-white p-4 shadow-md flex justify-between items-center shrink-0">
-    <h1 class="text-xl font-bold flex items-center gap-2">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-      蘑菇計時器
-    </h1>
-    <div class="flex gap-3">
-      <button onclick="exportData()" class="bg-emerald-500 hover:bg-emerald-400 px-3 py-1 rounded text-sm font-medium transition">匯出</button>
-      <button onclick="openImportModal()" class="bg-emerald-500 hover:bg-emerald-400 px-3 py-1 rounded text-sm font-medium transition">匯入</button>
+    /* 卡片點擊的彈跳特效 */
+    .bouncy-card:active { transform: scale(0.95); transition: transform 0.1s; }
+  </style>
+  
+  <!-- 動態注入 PWA Manifest 與 iOS Icon 的容器 -->
+  <link rel="manifest" id="manifest-link">
+  <!-- iOS 專屬的方形 Icon (系統會自動裁切圓角) -->
+  <link rel="apple-touch-icon" id="apple-touch-icon">
+</head>
+<body class="text-gray-800 antialiased select-none no-scrollbar h-screen flex flex-col">
+
+  <header class="bg-emerald-500 text-white pt-4 pb-2 px-4 shadow-sm shrink-0 flex flex-col gap-3 rounded-b-3xl">
+    <div class="flex justify-between items-center">
+      <h1 class="text-2xl font-black flex items-center gap-2 tracking-wide">
+        <span class="text-3xl">🍄</span>
+        蘑菇計時
+      </h1>
+      <div class="flex gap-2">
+        <button onclick="exportTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1.5 rounded-xl text-sm font-bold transition">匯出當前</button>
+        <button onclick="openImportModal()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1.5 rounded-xl text-sm font-bold transition">匯入覆蓋</button>
+      </div>
+    </div>
+
+    <!-- 皮克敏五色分頁列 -->
+    <div class="flex overflow-x-auto no-scrollbar gap-2 py-1" id="tab-bar">
+      <!-- 由 JS 動態生成 -->
     </div>
   </header>
 
   <!-- 提示區 (權限要求) -->
-  <div id="permission-banner" class="bg-yellow-100 text-yellow-800 p-3 text-sm flex justify-between items-center shrink-0 hidden">
-    <span>請允許通知並點擊畫面以啟用音效提醒。</span>
-    <button onclick="requestPermissions()" class="bg-yellow-200 px-3 py-1 rounded font-bold">啟用</button>
+  <div id="permission-banner" class="bg-yellow-100 text-yellow-800 p-3 text-sm flex justify-between items-center shrink-0 hidden m-2 rounded-2xl font-bold border-2 border-yellow-300">
+    <span>請允許通知並點擊畫面啟用提醒！</span>
+    <button onclick="requestPermissions()" class="bg-yellow-300 px-4 py-1 rounded-xl shadow-sm active:scale-95 transition">啟用</button>
   </div>
 
   <!-- 主要網格區 -->
@@ -45,138 +65,200 @@
     <!-- 卡片由 JS 動態生成 -->
   </main>
 
-  <!-- 底部操作面板 (BottomSheet) -->
-  <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden transition-opacity" onclick="closeModal()"></div>
-  <div id="action-modal" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-50 modal-hidden pb-8 pt-2 px-4 max-h-[85vh] overflow-y-auto">
-    <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4"></div>
+  <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden transition-opacity" onclick="closeModal()"></div>
+  <div id="action-modal" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 modal-hidden pb-8 pt-3 px-5 max-h-[85vh] overflow-y-auto border-t-4 border-gray-100">
+    <div class="w-16 h-2 bg-gray-200 rounded-full mx-auto mb-5"></div>
     
-    <div class="mb-4">
-      <label class="block text-sm font-bold text-gray-700 mb-1">自訂名稱</label>
-      <input type="text" id="edit-name" class="w-full border-2 border-gray-200 rounded-lg p-3 text-lg focus:border-emerald-500 focus:outline-none" placeholder="例如：家樓下火屬性">
+    <div class="mb-5">
+      <label class="block text-sm font-bold text-gray-500 mb-2 ml-1">給蘑菇取個名字吧</label>
+      <input type="text" id="edit-name" class="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-xl font-bold focus:border-emerald-400 focus:bg-white focus:outline-none transition" placeholder="例如：家樓下火屬性">
     </div>
 
-    <!-- 狀態：閒置中可用的按鈕 -->
-    <div class="space-y-3 mb-6">
-      <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">直接重生 (單次倒數)</h3>
-      <button onclick="startTimer(5)" class="w-full bg-emerald-500 text-white rounded-xl p-4 text-lg font-bold shadow hover:bg-emerald-600 active:scale-95 transition">
+    <!-- 狀態：直接重生 -->
+    <div class="space-y-3 mb-6 bg-emerald-50 rounded-3xl p-4 border-2 border-emerald-100">
+      <h3 class="text-sm font-black text-emerald-600 mb-2 flex items-center gap-1"><span class="text-lg">🌱</span> 單次倒數 (直接重生)</h3>
+      <button onclick="startTimer(5)" class="w-full bg-emerald-400 text-white rounded-2xl p-4 text-xl font-black shadow-sm active:scale-95 transition">
         重生 5 分鐘
       </button>
       <div class="grid grid-cols-2 gap-3">
-        <button onclick="startTimer(6)" class="w-full bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl p-3 font-bold active:scale-95 transition">
-          +1分 (共 6 分)
+        <button onclick="startTimer(6)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-2xl p-3 font-bold active:scale-95 transition">
+          +1分預備 (6分)
         </button>
-        <button onclick="startTimer(7)" class="w-full bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl p-3 font-bold active:scale-95 transition">
-          +2分 (共 7 分)
+        <button onclick="startTimer(7)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-2xl p-3 font-bold active:scale-95 transition">
+          +2分預備 (7分)
         </button>
       </div>
     </div>
 
-    <div class="space-y-3 mb-6">
-      <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">戰鬥接續 (先打完再重生)</h3>
-      <div class="flex gap-2 items-center">
-        <input type="number" id="battle-minutes" class="flex-1 border-2 border-gray-200 rounded-xl p-4 text-center text-xl font-bold focus:border-red-500 focus:outline-none" placeholder="分鐘" min="1" max="60">
-        <span class="font-bold text-gray-600">分鐘後結束</span>
+    <!-- 狀態：戰鬥接續 -->
+    <div class="space-y-3 mb-6 bg-red-50 rounded-3xl p-4 border-2 border-red-100">
+      <h3 class="text-sm font-black text-red-500 mb-2 flex items-center gap-1"><span class="text-lg">⚔️</span> 戰鬥接續 (打完自動接重生)</h3>
+      <div class="flex gap-2 items-center mb-2">
+        <!-- 支援小數點輸入，使用 step="0.1" 和 inputmode="decimal" -->
+        <input type="number" id="battle-minutes" step="0.1" inputmode="decimal" class="flex-1 bg-white border-2 border-red-200 rounded-2xl p-4 text-center text-2xl font-black focus:border-red-400 focus:outline-none" placeholder="0" min="0.1" max="100">
+        <span class="font-bold text-red-800">分鐘後打完</span>
       </div>
-      <button onclick="startBattleChain()" class="w-full bg-red-500 text-white rounded-xl p-4 text-lg font-bold shadow hover:bg-red-600 active:scale-95 transition">
-        打完自動接續 5 分鐘重生
+      <button onclick="startBattleChain()" class="w-full bg-red-400 text-white rounded-2xl p-4 text-lg font-black shadow-sm active:scale-95 transition">
+        自動接續 5 分鐘重生
       </button>
     </div>
 
-    <div class="border-t pt-4">
-      <button onclick="resetTimer()" class="w-full bg-gray-200 text-gray-800 rounded-xl p-4 text-lg font-bold hover:bg-gray-300 active:scale-95 transition flex justify-center items-center gap-2">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <div class="pt-2">
+      <button onclick="resetTimer()" class="w-full bg-gray-100 text-gray-500 rounded-2xl p-4 text-lg font-bold active:scale-95 transition flex justify-center items-center gap-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
         重置 / 取消計時
       </button>
     </div>
   </div>
 
-  <!-- 匯入 Modal -->
-  <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
-      <h2 class="text-xl font-bold mb-4">匯入/匯出資料</h2>
-      <p class="text-sm text-gray-500 mb-2">請貼上備份字串以匯入：</p>
-      <textarea id="import-text" class="w-full h-32 border border-gray-300 rounded p-2 mb-4 text-xs font-mono"></textarea>
+  <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl border-4 border-emerald-100">
+      <h2 class="text-2xl font-black mb-2 text-emerald-800" id="import-title">匯入資料</h2>
+      <p class="text-sm text-gray-500 mb-4 font-bold">請貼上備份字串，這將會覆蓋<span class="text-emerald-600">當前分頁</span>的記錄：</p>
+      <textarea id="import-text" class="w-full h-32 bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 mb-4 text-xs font-mono focus:border-emerald-400 focus:outline-none"></textarea>
       <div class="flex justify-end gap-3">
-        <button onclick="closeImportModal()" class="px-4 py-2 text-gray-600 font-bold">取消</button>
-        <button onclick="importData()" class="px-4 py-2 bg-emerald-500 text-white rounded font-bold">匯入覆蓋</button>
+        <button onclick="closeImportModal()" class="px-5 py-3 bg-gray-100 text-gray-600 rounded-2xl font-bold active:scale-95 transition">取消</button>
+        <button onclick="importTab()" class="px-5 py-3 bg-emerald-400 text-white rounded-2xl font-black active:scale-95 transition shadow-sm">匯入覆蓋</button>
       </div>
     </div>
   </div>
 
   <script>
-    // --- 核心資料結構 ---
-    const STORAGE_KEY = 'pikmin_mushrooms_v1';
-    let mushrooms = [];
-    let activeIndex = -1; // 目前選中的蘑菇
+    const STORAGE_KEY_V2 = 'pikmin_mushrooms_v2';
+    
+    // 皮克敏五色主題配置
+    const TABS_CONFIG = [
+      { id: 'red', name: '紅皮克', color: 'bg-red-400', textColor: 'text-red-700', active: 'bg-red-500 text-white' },
+      { id: 'yellow', name: '黃皮克', color: 'bg-yellow-400', textColor: 'text-yellow-800', active: 'bg-yellow-500 text-white' },
+      { id: 'blue', name: '藍皮克', color: 'bg-blue-400', textColor: 'text-blue-800', active: 'bg-blue-500 text-white' },
+      { id: 'purple', name: '紫皮克', color: 'bg-purple-400', textColor: 'text-purple-800', active: 'bg-purple-500 text-white' },
+      { id: 'pink', name: '粉皮克', color: 'bg-pink-400', textColor: 'text-pink-800', active: 'bg-pink-500 text-white' }
+    ];
+
+    let appData = [];
+    let currentTabIndex = 0;
+    let activeCardIndex = -1; 
     let audioCtx = null;
     let isAudioUnlocked = false;
 
-    // 狀態常數
+    // 狀態常數 (可愛風樣式)
     const STATUS = {
-      IDLE: { text: '閒置中', color: 'bg-gray-100 text-gray-500 border-gray-200' },
-      RESPAWN: { text: '重生倒數', color: 'bg-orange-100 text-orange-800 border-orange-300 shadow-orange-200' },
-      BATTLE: { text: '戰鬥中', color: 'bg-red-100 text-red-800 border-red-300 shadow-red-200' }
+      IDLE: { text: '閒置中', bg: 'bg-white', border: 'border-gray-200', textCol: 'text-gray-400' },
+      RESPAWN: { text: '重生倒數', bg: 'bg-orange-50', border: 'border-orange-300', textCol: 'text-orange-600' },
+      BATTLE: { text: '戰鬥中', bg: 'bg-red-50', border: 'border-red-300', textCol: 'text-red-600' }
     };
 
-    // 初始化資料 (10個)
     function initData() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          mushrooms = JSON.parse(saved);
-        } catch (e) { console.error('Data parse error', e); }
-      }
+      const savedV2 = localStorage.getItem(STORAGE_KEY_V2);
       
-      if (!mushrooms || mushrooms.length === 0) {
-        mushrooms = Array.from({length: 10}, (_, i) => ({
-          id: i,
-          name: `蘑菇 ${i + 1}`,
-          state: 'IDLE', // IDLE, RESPAWN, BATTLE
-          targetTime: 0,
-          autoChain: false, // 戰鬥完是否自動接重生
-          reminded1m: false,
-          reminded5s: false
+      if (savedV2) {
+        try { appData = JSON.parse(savedV2); } catch (e) { console.error(e); }
+      } else {
+        // 全新初始化，或從 v1 遷移
+        const savedV1 = localStorage.getItem('pikmin_mushrooms_v1');
+        let firstTabData = generateEmptyItems(10);
+        
+        if (savedV1) {
+          try {
+            const parsedV1 = JSON.parse(savedV1);
+            if(Array.isArray(parsedV1)) firstTabData = parsedV1;
+          } catch(e) {}
+        }
+        
+        appData = TABS_CONFIG.map((config, idx) => ({
+          tabId: config.id,
+          items: idx === 0 ? firstTabData : generateEmptyItems(10)
         }));
       }
+      
       saveData();
+      renderTabs();
       renderGrid();
       checkPermissions();
+      setupPWAIcons();
+    }
+
+    function generateEmptyItems(count) {
+      return Array.from({length: count}, (_, i) => ({
+        id: i,
+        name: `蘑菇 ${i + 1}`,
+        state: 'IDLE',
+        targetTime: 0,
+        autoChain: false,
+        reminded1m: false,
+        reminded5s: false
+      }));
     }
 
     function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(mushrooms));
+      localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(appData));
     }
 
-    // --- UI 渲染 ---
+    function renderTabs() {
+      const tabBar = document.getElementById('tab-bar');
+      tabBar.innerHTML = '';
+      
+      TABS_CONFIG.forEach((config, index) => {
+        const isAct = index === currentTabIndex;
+        const btn = document.createElement('button');
+        // 動態套用主題色
+        btn.className = `whitespace-nowrap px-4 py-2 rounded-2xl font-black transition-all ${isAct ? config.active + ' shadow-md scale-105' : 'bg-white bg-opacity-50 text-emerald-800 hover:bg-opacity-80'}`;
+        btn.innerText = config.name;
+        btn.onclick = () => switchTab(index);
+        tabBar.appendChild(btn);
+      });
+      
+      // 更新 Header 背景顏色以配合 Tab
+      const header = document.querySelector('header');
+      header.className = `text-white pt-4 pb-2 px-4 shadow-sm shrink-0 flex flex-col gap-3 rounded-b-3xl transition-colors duration-300 ${TABS_CONFIG[currentTabIndex].active.split(' ')[0]}`;
+      // 更新 Meta Theme Color
+      const bgHexMap = { 'red': '#ef4444', 'yellow': '#eab308', 'blue': '#3b82f6', 'purple': '#a855f7', 'pink': '#ec4899' };
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', bgHexMap[TABS_CONFIG[currentTabIndex].id]);
+    }
+
+    function switchTab(index) {
+      currentTabIndex = index;
+      renderTabs();
+      renderGrid();
+    }
+
     function renderGrid() {
       const grid = document.getElementById('mushroom-grid');
       grid.innerHTML = '';
       
       const now = Date.now();
+      const currentItems = appData[currentTabIndex].items;
 
-      mushrooms.forEach((m, index) => {
+      currentItems.forEach((m, index) => {
         let style = STATUS[m.state];
         let timeDisplay = '--:--';
         let subText = '';
+        let isPulsing = false;
 
         if (m.state !== 'IDLE') {
           const remain = m.targetTime - now;
           if (remain > 0) {
             timeDisplay = formatTime(remain);
-            if (m.state === 'BATTLE' && m.autoChain) {
-              subText = '後接續重生';
-            }
+            if (m.state === 'BATTLE' && m.autoChain) subText = '接續重生';
+            if (remain < 60000) isPulsing = true; // 最後一分鐘稍微呼吸跳動
           }
         }
 
         const card = document.createElement('div');
-        card.className = `border-2 rounded-2xl p-4 flex flex-col justify-between cursor-pointer active:scale-95 transition-transform shadow-sm ${style.color}`;
+        card.className = `bouncy-card bg-white border-4 rounded-[2rem] p-4 flex flex-col justify-between cursor-pointer shadow-sm relative overflow-hidden ${style.border}`;
         card.onclick = () => openModal(index);
+        
+        // 裝飾性背景圓塊
+        const decBg = m.state !== 'IDLE' ? `<div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full opacity-20 ${style.bg.replace('bg-','bg-opacity-')} pointer-events-none"></div>` : '';
+
         card.innerHTML = `
-          <div class="text-sm font-bold truncate mb-2">${m.name}</div>
-          <div class="text-xs font-semibold px-2 py-1 bg-white bg-opacity-50 rounded self-start mb-3">${style.text}</div>
-          <div class="text-3xl font-black font-mono tracking-tighter">${timeDisplay}</div>
-          ${subText ? `<div class="text-xs mt-1 font-bold opacity-75">${subText}</div>` : ''}
+          ${decBg}
+          <div class="relative z-10">
+            <div class="text-sm font-black truncate mb-2 text-gray-700">${m.name}</div>
+            <div class="inline-block text-xs font-bold px-2 py-1 rounded-lg self-start mb-3 ${style.bg} ${style.textCol}">${style.text}</div>
+            <div class="text-4xl font-black tracking-tighter ${isPulsing ? 'animate-pulse text-red-500' : 'text-gray-800'}">${timeDisplay}</div>
+            ${subText ? `<div class="text-xs mt-1 font-bold text-gray-400 opacity-80">${subText}</div>` : ''}
+          </div>
         `;
         grid.appendChild(card);
       });
@@ -190,11 +272,10 @@
       return `${m}:${s}`;
     }
 
-    // --- 操作面板邏輯 ---
     function openModal(index) {
-      unlockAudio(); // 點擊時順便解鎖音效
-      activeIndex = index;
-      const m = mushrooms[index];
+      unlockAudio(); 
+      activeCardIndex = index;
+      const m = appData[currentTabIndex].items[index];
       
       document.getElementById('edit-name').value = m.name;
       document.getElementById('battle-minutes').value = '';
@@ -207,11 +288,10 @@
     }
 
     function closeModal() {
-      // 儲存名稱變更
-      if (activeIndex !== -1) {
+      if (activeCardIndex !== -1) {
         const newName = document.getElementById('edit-name').value.trim();
         if (newName) {
-          mushrooms[activeIndex].name = newName;
+          appData[currentTabIndex].items[activeCardIndex].name = newName;
           saveData();
         }
       }
@@ -220,15 +300,14 @@
       document.getElementById('action-modal').classList.add('modal-hidden');
       setTimeout(() => {
         document.getElementById('modal-overlay').classList.add('hidden');
-        activeIndex = -1;
+        activeCardIndex = -1;
         renderGrid();
       }, 300);
     }
 
-    // --- 計時器邏輯 ---
     function startTimer(minutes) {
-      if (activeIndex === -1) return;
-      const m = mushrooms[activeIndex];
+      if (activeCardIndex === -1) return;
+      const m = appData[currentTabIndex].items[activeCardIndex];
       m.state = 'RESPAWN';
       m.targetTime = Date.now() + minutes * 60 * 1000;
       m.autoChain = false;
@@ -240,18 +319,20 @@
     }
 
     function startBattleChain() {
-      if (activeIndex === -1) return;
-      const mins = parseInt(document.getElementById('battle-minutes').value);
-      if (!mins || mins <= 0) {
-        alert('請輸入有效的分鐘數');
+      if (activeCardIndex === -1) return;
+      // 改用 parseFloat 支援小數點 (例如 1.5 分 = 90秒)
+      const mins = parseFloat(document.getElementById('battle-minutes').value);
+      if (isNaN(mins) || mins <= 0) {
+        alert('請輸入有效的分鐘數（支援小數，如 2.5）');
         return;
       }
       
-      const m = mushrooms[activeIndex];
+      const m = appData[currentTabIndex].items[activeCardIndex];
       m.state = 'BATTLE';
-      m.targetTime = Date.now() + mins * 60 * 1000;
+      // 支援浮點數精準計算毫秒
+      m.targetTime = Date.now() + Math.floor(mins * 60 * 1000);
       m.autoChain = true;
-      m.reminded1m = false; // 戰鬥也會提醒1分/5秒
+      m.reminded1m = false;
       m.reminded5s = false;
       
       saveData();
@@ -259,8 +340,8 @@
     }
 
     function resetTimer() {
-      if (activeIndex === -1) return;
-      const m = mushrooms[activeIndex];
+      if (activeCardIndex === -1) return;
+      const m = appData[currentTabIndex].items[activeCardIndex];
       m.state = 'IDLE';
       m.targetTime = 0;
       m.autoChain = false;
@@ -271,14 +352,9 @@
       closeModal();
     }
 
-    // --- 背景執行與時間檢查核心 ---
-    // 使用 Web Worker 避免 Safari/Chrome 在背景大幅降頻 setTimeout
     const workerBlob = new Blob([`
-      setInterval(() => {
-        postMessage('tick');
-      }, 500); // 每半秒檢查一次
+      setInterval(() => { postMessage('tick'); }, 500);
     `], { type: 'application/javascript' });
-    
     const worker = new Worker(URL.createObjectURL(workerBlob));
     
     worker.onmessage = function() {
@@ -286,73 +362,66 @@
       let needsRender = false;
       let needsSave = false;
 
-      mushrooms.forEach(m => {
-        if (m.state === 'IDLE') return;
+      // 必須遍歷「所有分頁」的計時器，而不只是當前分頁
+      appData.forEach((tabData, tIdx) => {
+        tabData.items.forEach(m => {
+          if (m.state === 'IDLE') return;
 
-        const remain = m.targetTime - now;
-        needsRender = true; // 只要有計時器在跑就刷新畫面
+          const remain = m.targetTime - now;
+          if (tIdx === currentTabIndex) needsRender = true; 
 
-        // 1 分鐘提醒 (60000ms)
-        if (remain <= 60000 && remain > 0 && !m.reminded1m) {
-          m.reminded1m = true;
-          needsSave = true;
-          triggerAlert(`🍄 ${m.name} 剩餘 1 分鐘！`, '一分預備', 'low');
-        }
-
-        // 5 秒提醒 (5000ms)
-        if (remain <= 5000 && remain > 0 && !m.reminded5s) {
-          m.reminded5s = true;
-          needsSave = true;
-          triggerAlert(`🍄 ${m.name} 即將就緒！`, '五秒倒數', 'high');
-        }
-
-        // 時間到
-        if (remain <= 0) {
-          if (m.state === 'BATTLE' && m.autoChain) {
-            // 戰鬥結束，接續 5 分鐘重生
-            m.state = 'RESPAWN';
-            m.targetTime = now + 5 * 60 * 1000;
-            m.autoChain = false;
-            m.reminded1m = false;
-            m.reminded5s = false;
-            triggerAlert(`⚔️ ${m.name} 戰鬥結束，開始 5 分鐘重生倒數！`, '戰鬥結束', 'mid');
-          } else {
-            // 徹底結束
-            m.state = 'IDLE';
-            m.targetTime = 0;
-            triggerAlert(`✅ ${m.name} 準備完畢！`, '倒數結束', 'high');
+          // 1 分鐘提醒
+          if (remain <= 60000 && remain > 0 && !m.reminded1m) {
+            m.reminded1m = true;
+            needsSave = true;
+            triggerAlert(`🍄 [${tabData.name}] ${m.name} 剩餘 1 分鐘！`, '一分預備', 'low');
           }
-          needsSave = true;
-        }
+
+          // 5 秒提醒
+          if (remain <= 5000 && remain > 0 && !m.reminded5s) {
+            m.reminded5s = true;
+            needsSave = true;
+            triggerAlert(`🍄 [${tabData.name}] ${m.name} 即將就緒！`, '五秒倒數', 'high');
+          }
+
+          // 時間到
+          if (remain <= 0) {
+            if (m.state === 'BATTLE' && m.autoChain) {
+              m.state = 'RESPAWN';
+              m.targetTime = now + 5 * 60 * 1000;
+              m.autoChain = false;
+              m.reminded1m = false;
+              m.reminded5s = false;
+              triggerAlert(`⚔️ [${tabData.name}] ${m.name} 戰鬥結束，開始 5 分鐘重生倒數！`, '戰鬥結束', 'mid');
+            } else {
+              m.state = 'IDLE';
+              m.targetTime = 0;
+              triggerAlert(`✅ [${tabData.name}] ${m.name} 準備完畢！`, '倒數結束', 'high');
+            }
+            needsSave = true;
+          }
+        });
       });
 
       if (needsRender) renderGrid();
       if (needsSave) saveData();
     };
 
-    // --- 提醒機制 (音效 + 通知 + 震動) ---
     function triggerAlert(message, title, intensity) {
-      // 1. 系統通知
       if (Notification.permission === 'granted') {
         new Notification(title, { body: message, icon: '🍄' });
       }
-
-      // 2. 震動 (行動裝置)
       if (navigator.vibrate) {
         if (intensity === 'high') navigator.vibrate([200, 100, 200, 100, 200]);
         else if (intensity === 'mid') navigator.vibrate([300, 100, 300]);
         else navigator.vibrate([500]);
       }
-
-      // 3. Web Audio 合成音效
       playBeep(intensity);
     }
 
     function unlockAudio() {
       if (isAudioUnlocked) return;
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // 播放一段無聲解鎖
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       gain.gain.value = 0;
@@ -360,40 +429,36 @@
       gain.connect(audioCtx.destination);
       osc.start(0);
       osc.stop(0.1);
-      
       isAudioUnlocked = true;
     }
 
     function playBeep(intensity) {
       if (!audioCtx || !isAudioUnlocked) return;
       if (audioCtx.state === 'suspended') audioCtx.resume();
-
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-
       const now = audioCtx.currentTime;
       
-      if (intensity === 'high') { // 5秒高頻急促
+      if (intensity === 'high') { 
         osc.type = 'square';
-        osc.frequency.setValueAtTime(880, now); // A5
-        osc.frequency.setValueAtTime(1046, now + 0.1); // C6
+        osc.frequency.setValueAtTime(880, now); 
+        osc.frequency.setValueAtTime(1046, now + 0.1); 
         gain.gain.setValueAtTime(0.1, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
         osc.start(now);
         osc.stop(now + 0.3);
       } else if (intensity === 'mid') {
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(659, now); // E5
+        osc.frequency.setValueAtTime(659, now); 
         gain.gain.setValueAtTime(0.1, now);
         gain.gain.linearRampToValueAtTime(0, now + 0.5);
         osc.start(now);
         osc.stop(now + 0.5);
-      } else { // 1分鐘低頻單音
+      } else { 
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(440, now); // A4
+        osc.frequency.setValueAtTime(440, now); 
         gain.gain.setValueAtTime(0.1, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
         osc.start(now);
@@ -418,28 +483,29 @@
         });
       }
     }
-
-    // 全域點擊解鎖音效
     document.body.addEventListener('click', unlockAudio, { once: true });
 
-    // --- 匯出/匯入機制 ---
-    function exportData() {
-      const dataStr = btoa(encodeURIComponent(JSON.stringify(mushrooms)));
+    function exportTab() {
+      const tabName = TABS_CONFIG[currentTabIndex].name;
+      const currentItems = appData[currentTabIndex].items;
+      const dataStr = btoa(encodeURIComponent(JSON.stringify(currentItems)));
+      
       const textarea = document.getElementById('import-text');
       textarea.value = dataStr;
+      
+      document.getElementById('import-title').innerText = `匯出 [${tabName}]`;
       openImportModal();
       
-      // 自動複製
       textarea.select();
       try {
         document.execCommand('copy');
-        alert('備份字串已產生並自動複製！\n請妥善保存此字串以便日後還原。');
-      } catch (err) {
-        alert('備份字串已產生，請手動複製框內的文字。');
-      }
+        alert(`已成功複製 [${tabName}] 的備份字串！`);
+      } catch (err) {}
     }
 
     function openImportModal() {
+      const tabName = TABS_CONFIG[currentTabIndex].name;
+      document.getElementById('import-title').innerText = `匯入至 [${tabName}]`;
       document.getElementById('import-modal').classList.remove('hidden');
     }
 
@@ -448,21 +514,22 @@
       document.getElementById('import-text').value = '';
     }
 
-    function importData() {
+    function importTab() {
       const dataStr = document.getElementById('import-text').value.trim();
       if (!dataStr) return;
+      const tabName = TABS_CONFIG[currentTabIndex].name;
       
-      if (confirm('確定要匯入嗎？目前的計時器紀錄將會被覆蓋。')) {
+      if (confirm(`確定要將資料匯入至 [${tabName}] 嗎？這將會覆蓋當前分頁。`)) {
         try {
           const parsed = JSON.parse(decodeURIComponent(atob(dataStr)));
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            mushrooms = parsed;
+          if (Array.isArray(parsed) && parsed.length === 10) {
+            appData[currentTabIndex].items = parsed;
             saveData();
             renderGrid();
             closeImportModal();
             alert('匯入成功！');
           } else {
-            throw new Error('格式不符');
+            throw new Error('格式不符或長度錯誤');
           }
         } catch (e) {
           alert('匯入失敗：字串格式錯誤或已損毀。');
@@ -470,26 +537,32 @@
       }
     }
 
-    // --- PWA 黑科技 (動態產生 Manifest) ---
-    const manifestJSON = {
-      name: "皮克敏蘑菇計時器",
-      short_name: "蘑菇計時",
-      start_url: ".",
-      display: "standalone",
-      background_color: "#f3f4f6",
-      theme_color: "#10b981",
-      icons: [{
-        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2310b981'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white'%3E🍄%3C/text%3E%3C/svg%3E",
-        sizes: "192x192",
-        type: "image/svg+xml"
-      }]
-    };
-    const manifestBlob = new Blob([JSON.stringify(manifestJSON)], { type: 'application/json' });
-    document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+    function setupPWAIcons() {
+      // 1. 給 iOS 的方形 Icon (Apple Touch Icon) - 暖白底色
+      const iosIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23fdfbf7'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle'%3E🍄%3C/text%3E%3C/svg%3E`;
+      document.getElementById('apple-touch-icon').href = iosIconSvg;
 
-    // 啟動
+      // 2. 給 Android/Chrome 的圓形/自適應 Icon (Manifest maskable)
+      const androidIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23fdfbf7'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle'%3E🍄%3C/text%3E%3C/svg%3E`;
+      
+      const manifestJSON = {
+        name: "皮克敏蘑菇計時器",
+        short_name: "蘑菇計時",
+        start_url: ".",
+        display: "standalone",
+        background_color: "#fdfbf7",
+        theme_color: "#10b981",
+        icons: [
+          { src: androidIconSvg, sizes: "192x192", type: "image/svg+xml", purpose: "any" },
+          { src: androidIconSvg, sizes: "512x512", type: "image/svg+xml", purpose: "maskable" }
+        ]
+      };
+      const manifestBlob = new Blob([JSON.stringify(manifestJSON)], { type: 'application/json' });
+      document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+    }
+
+    // 啟動 App
     initData();
-
   </script>
 </body>
 </html>
