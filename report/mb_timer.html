@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>皮克敏蘑菇計時器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 隱藏捲軸但可滾動 */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* 確保底部操作區動畫平滑 */
+    #action-modal { transition: transform 0.3s ease-out; }
+    .modal-hidden { transform: translateY(100%); }
+    .modal-visible { transform: translateY(0); }
+    
+    /* PWA 狀態列顏色 */
+    meta[name="theme-color"] { content: #10b981; }
+  </style>
+  <!-- 動態注入 PWA Manifest 的容器 -->
+  <link rel="manifest" id="manifest-link">
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans antialiased select-none no-scrollbar h-screen flex flex-col">
+
+  <!-- 頂部導航 -->
+  <header class="bg-emerald-600 text-white p-4 shadow-md flex justify-between items-center shrink-0">
+    <h1 class="text-xl font-bold flex items-center gap-2">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      蘑菇計時器
+    </h1>
+    <div class="flex gap-3">
+      <button onclick="exportData()" class="bg-emerald-500 hover:bg-emerald-400 px-3 py-1 rounded text-sm font-medium transition">匯出</button>
+      <button onclick="openImportModal()" class="bg-emerald-500 hover:bg-emerald-400 px-3 py-1 rounded text-sm font-medium transition">匯入</button>
+    </div>
+  </header>
+
+  <!-- 提示區 (權限要求) -->
+  <div id="permission-banner" class="bg-yellow-100 text-yellow-800 p-3 text-sm flex justify-between items-center shrink-0 hidden">
+    <span>請允許通知並點擊畫面以啟用音效提醒。</span>
+    <button onclick="requestPermissions()" class="bg-yellow-200 px-3 py-1 rounded font-bold">啟用</button>
+  </div>
+
+  <!-- 主要網格區 -->
+  <main class="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4 content-start" id="mushroom-grid">
+    <!-- 卡片由 JS 動態生成 -->
+  </main>
+
+  <!-- 底部操作面板 (BottomSheet) -->
+  <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden transition-opacity" onclick="closeModal()"></div>
+  <div id="action-modal" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-50 modal-hidden pb-8 pt-2 px-4 max-h-[85vh] overflow-y-auto">
+    <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4"></div>
+    
+    <div class="mb-4">
+      <label class="block text-sm font-bold text-gray-700 mb-1">自訂名稱</label>
+      <input type="text" id="edit-name" class="w-full border-2 border-gray-200 rounded-lg p-3 text-lg focus:border-emerald-500 focus:outline-none" placeholder="例如：家樓下火屬性">
+    </div>
+
+    <!-- 狀態：閒置中可用的按鈕 -->
+    <div class="space-y-3 mb-6">
+      <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">直接重生 (單次倒數)</h3>
+      <button onclick="startTimer(5)" class="w-full bg-emerald-500 text-white rounded-xl p-4 text-lg font-bold shadow hover:bg-emerald-600 active:scale-95 transition">
+        重生 5 分鐘
+      </button>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="startTimer(6)" class="w-full bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl p-3 font-bold active:scale-95 transition">
+          +1分 (共 6 分)
+        </button>
+        <button onclick="startTimer(7)" class="w-full bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl p-3 font-bold active:scale-95 transition">
+          +2分 (共 7 分)
+        </button>
+      </div>
+    </div>
+
+    <div class="space-y-3 mb-6">
+      <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">戰鬥接續 (先打完再重生)</h3>
+      <div class="flex gap-2 items-center">
+        <input type="number" id="battle-minutes" class="flex-1 border-2 border-gray-200 rounded-xl p-4 text-center text-xl font-bold focus:border-red-500 focus:outline-none" placeholder="分鐘" min="1" max="60">
+        <span class="font-bold text-gray-600">分鐘後結束</span>
+      </div>
+      <button onclick="startBattleChain()" class="w-full bg-red-500 text-white rounded-xl p-4 text-lg font-bold shadow hover:bg-red-600 active:scale-95 transition">
+        打完自動接續 5 分鐘重生
+      </button>
+    </div>
+
+    <div class="border-t pt-4">
+      <button onclick="resetTimer()" class="w-full bg-gray-200 text-gray-800 rounded-xl p-4 text-lg font-bold hover:bg-gray-300 active:scale-95 transition flex justify-center items-center gap-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        重置 / 取消計時
+      </button>
+    </div>
+  </div>
+
+  <!-- 匯入 Modal -->
+  <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <h2 class="text-xl font-bold mb-4">匯入/匯出資料</h2>
+      <p class="text-sm text-gray-500 mb-2">請貼上備份字串以匯入：</p>
+      <textarea id="import-text" class="w-full h-32 border border-gray-300 rounded p-2 mb-4 text-xs font-mono"></textarea>
+      <div class="flex justify-end gap-3">
+        <button onclick="closeImportModal()" class="px-4 py-2 text-gray-600 font-bold">取消</button>
+        <button onclick="importData()" class="px-4 py-2 bg-emerald-500 text-white rounded font-bold">匯入覆蓋</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 核心資料結構 ---
+    const STORAGE_KEY = 'pikmin_mushrooms_v1';
+    let mushrooms = [];
+    let activeIndex = -1; // 目前選中的蘑菇
+    let audioCtx = null;
+    let isAudioUnlocked = false;
+
+    // 狀態常數
+    const STATUS = {
+      IDLE: { text: '閒置中', color: 'bg-gray-100 text-gray-500 border-gray-200' },
+      RESPAWN: { text: '重生倒數', color: 'bg-orange-100 text-orange-800 border-orange-300 shadow-orange-200' },
+      BATTLE: { text: '戰鬥中', color: 'bg-red-100 text-red-800 border-red-300 shadow-red-200' }
+    };
+
+    // 初始化資料 (10個)
+    function initData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          mushrooms = JSON.parse(saved);
+        } catch (e) { console.error('Data parse error', e); }
+      }
+      
+      if (!mushrooms || mushrooms.length === 0) {
+        mushrooms = Array.from({length: 10}, (_, i) => ({
+          id: i,
+          name: `蘑菇 ${i + 1}`,
+          state: 'IDLE', // IDLE, RESPAWN, BATTLE
+          targetTime: 0,
+          autoChain: false, // 戰鬥完是否自動接重生
+          reminded1m: false,
+          reminded5s: false
+        }));
+      }
+      saveData();
+      renderGrid();
+      checkPermissions();
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mushrooms));
+    }
+
+    // --- UI 渲染 ---
+    function renderGrid() {
+      const grid = document.getElementById('mushroom-grid');
+      grid.innerHTML = '';
+      
+      const now = Date.now();
+
+      mushrooms.forEach((m, index) => {
+        let style = STATUS[m.state];
+        let timeDisplay = '--:--';
+        let subText = '';
+
+        if (m.state !== 'IDLE') {
+          const remain = m.targetTime - now;
+          if (remain > 0) {
+            timeDisplay = formatTime(remain);
+            if (m.state === 'BATTLE' && m.autoChain) {
+              subText = '後接續重生';
+            }
+          }
+        }
+
+        const card = document.createElement('div');
+        card.className = `border-2 rounded-2xl p-4 flex flex-col justify-between cursor-pointer active:scale-95 transition-transform shadow-sm ${style.color}`;
+        card.onclick = () => openModal(index);
+        card.innerHTML = `
+          <div class="text-sm font-bold truncate mb-2">${m.name}</div>
+          <div class="text-xs font-semibold px-2 py-1 bg-white bg-opacity-50 rounded self-start mb-3">${style.text}</div>
+          <div class="text-3xl font-black font-mono tracking-tighter">${timeDisplay}</div>
+          ${subText ? `<div class="text-xs mt-1 font-bold opacity-75">${subText}</div>` : ''}
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function formatTime(ms) {
+      if (ms < 0) ms = 0;
+      const totalSec = Math.floor(ms / 1000);
+      const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+      const s = (totalSec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    // --- 操作面板邏輯 ---
+    function openModal(index) {
+      unlockAudio(); // 點擊時順便解鎖音效
+      activeIndex = index;
+      const m = mushrooms[index];
+      
+      document.getElementById('edit-name').value = m.name;
+      document.getElementById('battle-minutes').value = '';
+      
+      document.getElementById('modal-overlay').classList.remove('hidden');
+      setTimeout(() => {
+        document.getElementById('action-modal').classList.remove('modal-hidden');
+        document.getElementById('action-modal').classList.add('modal-visible');
+      }, 10);
+    }
+
+    function closeModal() {
+      // 儲存名稱變更
+      if (activeIndex !== -1) {
+        const newName = document.getElementById('edit-name').value.trim();
+        if (newName) {
+          mushrooms[activeIndex].name = newName;
+          saveData();
+        }
+      }
+
+      document.getElementById('action-modal').classList.remove('modal-visible');
+      document.getElementById('action-modal').classList.add('modal-hidden');
+      setTimeout(() => {
+        document.getElementById('modal-overlay').classList.add('hidden');
+        activeIndex = -1;
+        renderGrid();
+      }, 300);
+    }
+
+    // --- 計時器邏輯 ---
+    function startTimer(minutes) {
+      if (activeIndex === -1) return;
+      const m = mushrooms[activeIndex];
+      m.state = 'RESPAWN';
+      m.targetTime = Date.now() + minutes * 60 * 1000;
+      m.autoChain = false;
+      m.reminded1m = false;
+      m.reminded5s = false;
+      
+      saveData();
+      closeModal();
+    }
+
+    function startBattleChain() {
+      if (activeIndex === -1) return;
+      const mins = parseInt(document.getElementById('battle-minutes').value);
+      if (!mins || mins <= 0) {
+        alert('請輸入有效的分鐘數');
+        return;
+      }
+      
+      const m = mushrooms[activeIndex];
+      m.state = 'BATTLE';
+      m.targetTime = Date.now() + mins * 60 * 1000;
+      m.autoChain = true;
+      m.reminded1m = false; // 戰鬥也會提醒1分/5秒
+      m.reminded5s = false;
+      
+      saveData();
+      closeModal();
+    }
+
+    function resetTimer() {
+      if (activeIndex === -1) return;
+      const m = mushrooms[activeIndex];
+      m.state = 'IDLE';
+      m.targetTime = 0;
+      m.autoChain = false;
+      m.reminded1m = false;
+      m.reminded5s = false;
+      
+      saveData();
+      closeModal();
+    }
+
+    // --- 背景執行與時間檢查核心 ---
+    // 使用 Web Worker 避免 Safari/Chrome 在背景大幅降頻 setTimeout
+    const workerBlob = new Blob([`
+      setInterval(() => {
+        postMessage('tick');
+      }, 500); // 每半秒檢查一次
+    `], { type: 'application/javascript' });
+    
+    const worker = new Worker(URL.createObjectURL(workerBlob));
+    
+    worker.onmessage = function() {
+      const now = Date.now();
+      let needsRender = false;
+      let needsSave = false;
+
+      mushrooms.forEach(m => {
+        if (m.state === 'IDLE') return;
+
+        const remain = m.targetTime - now;
+        needsRender = true; // 只要有計時器在跑就刷新畫面
+
+        // 1 分鐘提醒 (60000ms)
+        if (remain <= 60000 && remain > 0 && !m.reminded1m) {
+          m.reminded1m = true;
+          needsSave = true;
+          triggerAlert(`🍄 ${m.name} 剩餘 1 分鐘！`, '一分預備', 'low');
+        }
+
+        // 5 秒提醒 (5000ms)
+        if (remain <= 5000 && remain > 0 && !m.reminded5s) {
+          m.reminded5s = true;
+          needsSave = true;
+          triggerAlert(`🍄 ${m.name} 即將就緒！`, '五秒倒數', 'high');
+        }
+
+        // 時間到
+        if (remain <= 0) {
+          if (m.state === 'BATTLE' && m.autoChain) {
+            // 戰鬥結束，接續 5 分鐘重生
+            m.state = 'RESPAWN';
+            m.targetTime = now + 5 * 60 * 1000;
+            m.autoChain = false;
+            m.reminded1m = false;
+            m.reminded5s = false;
+            triggerAlert(`⚔️ ${m.name} 戰鬥結束，開始 5 分鐘重生倒數！`, '戰鬥結束', 'mid');
+          } else {
+            // 徹底結束
+            m.state = 'IDLE';
+            m.targetTime = 0;
+            triggerAlert(`✅ ${m.name} 準備完畢！`, '倒數結束', 'high');
+          }
+          needsSave = true;
+        }
+      });
+
+      if (needsRender) renderGrid();
+      if (needsSave) saveData();
+    };
+
+    // --- 提醒機制 (音效 + 通知 + 震動) ---
+    function triggerAlert(message, title, intensity) {
+      // 1. 系統通知
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body: message, icon: '🍄' });
+      }
+
+      // 2. 震動 (行動裝置)
+      if (navigator.vibrate) {
+        if (intensity === 'high') navigator.vibrate([200, 100, 200, 100, 200]);
+        else if (intensity === 'mid') navigator.vibrate([300, 100, 300]);
+        else navigator.vibrate([500]);
+      }
+
+      // 3. Web Audio 合成音效
+      playBeep(intensity);
+    }
+
+    function unlockAudio() {
+      if (isAudioUnlocked) return;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // 播放一段無聲解鎖
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(0);
+      osc.stop(0.1);
+      
+      isAudioUnlocked = true;
+    }
+
+    function playBeep(intensity) {
+      if (!audioCtx || !isAudioUnlocked) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+      
+      if (intensity === 'high') { // 5秒高頻急促
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(880, now); // A5
+        osc.frequency.setValueAtTime(1046, now + 0.1); // C6
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (intensity === 'mid') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(659, now); // E5
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      } else { // 1分鐘低頻單音
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now); // A4
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+    }
+
+    function checkPermissions() {
+      if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        document.getElementById('permission-banner').classList.remove('hidden');
+      }
+    }
+
+    function requestPermissions() {
+      unlockAudio();
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            document.getElementById('permission-banner').classList.add('hidden');
+            triggerAlert('通知與音效已啟用！', '設定完成', 'low');
+          }
+        });
+      }
+    }
+
+    // 全域點擊解鎖音效
+    document.body.addEventListener('click', unlockAudio, { once: true });
+
+    // --- 匯出/匯入機制 ---
+    function exportData() {
+      const dataStr = btoa(encodeURIComponent(JSON.stringify(mushrooms)));
+      const textarea = document.getElementById('import-text');
+      textarea.value = dataStr;
+      openImportModal();
+      
+      // 自動複製
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        alert('備份字串已產生並自動複製！\n請妥善保存此字串以便日後還原。');
+      } catch (err) {
+        alert('備份字串已產生，請手動複製框內的文字。');
+      }
+    }
+
+    function openImportModal() {
+      document.getElementById('import-modal').classList.remove('hidden');
+    }
+
+    function closeImportModal() {
+      document.getElementById('import-modal').classList.add('hidden');
+      document.getElementById('import-text').value = '';
+    }
+
+    function importData() {
+      const dataStr = document.getElementById('import-text').value.trim();
+      if (!dataStr) return;
+      
+      if (confirm('確定要匯入嗎？目前的計時器紀錄將會被覆蓋。')) {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(atob(dataStr)));
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            mushrooms = parsed;
+            saveData();
+            renderGrid();
+            closeImportModal();
+            alert('匯入成功！');
+          } else {
+            throw new Error('格式不符');
+          }
+        } catch (e) {
+          alert('匯入失敗：字串格式錯誤或已損毀。');
+        }
+      }
+    }
+
+    // --- PWA 黑科技 (動態產生 Manifest) ---
+    const manifestJSON = {
+      name: "皮克敏蘑菇計時器",
+      short_name: "蘑菇計時",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#f3f4f6",
+      theme_color: "#10b981",
+      icons: [{
+        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2310b981'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white'%3E🍄%3C/text%3E%3C/svg%3E",
+        sizes: "192x192",
+        type: "image/svg+xml"
+      }]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifestJSON)], { type: 'application/json' });
+    document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+
+    // 啟動
+    initData();
+
+  </script>
+</body>
+</html>
