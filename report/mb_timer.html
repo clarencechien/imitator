@@ -36,89 +36,94 @@
 </head>
 <body class="text-gray-800 antialiased select-none no-scrollbar h-screen flex flex-col">
 
-  <header class="bg-emerald-500 text-white pt-4 pb-2 px-4 shadow-sm shrink-0 flex flex-col gap-3 rounded-b-3xl">
+  <header class="bg-emerald-500 text-white pt-3 pb-2 px-3 shadow-sm shrink-0 flex flex-col gap-2 rounded-b-2xl transition-colors duration-300">
     <div class="flex justify-between items-center">
-      <h1 class="text-2xl font-black flex items-center gap-2 tracking-wide">
-        <span class="text-3xl">🍄</span>
+      <h1 class="text-lg font-black flex items-center gap-1 tracking-wide">
+        <span class="text-2xl">🍄</span>
         蘑菇計時
       </h1>
-      <div class="flex gap-2">
-        <button onclick="exportTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1.5 rounded-xl text-sm font-bold transition">匯出當前</button>
-        <button onclick="openImportModal()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1.5 rounded-xl text-sm font-bold transition">匯入覆蓋</button>
+      <div class="flex gap-1.5">
+        <!-- 新增重置按鈕 -->
+        <button onclick="resetCurrentTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          重置本頁
+        </button>
+        <button onclick="exportTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95">匯出</button>
+        <button onclick="openImportModal()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95">匯入</button>
       </div>
     </div>
 
     <!-- 皮克敏五色分頁列 -->
-    <div class="flex overflow-x-auto no-scrollbar gap-2 py-1" id="tab-bar">
+    <div class="flex overflow-x-auto no-scrollbar gap-1.5 py-1" id="tab-bar">
       <!-- 由 JS 動態生成 -->
     </div>
   </header>
 
   <!-- 提示區 (權限要求) -->
-  <div id="permission-banner" class="bg-yellow-100 text-yellow-800 p-3 text-sm flex justify-between items-center shrink-0 hidden m-2 rounded-2xl font-bold border-2 border-yellow-300">
+  <div id="permission-banner" class="bg-yellow-100 text-yellow-800 p-2 text-xs flex justify-between items-center shrink-0 hidden m-2 rounded-xl font-bold border-2 border-yellow-300">
     <span>請允許通知並點擊畫面啟用提醒！</span>
-    <button onclick="requestPermissions()" class="bg-yellow-300 px-4 py-1 rounded-xl shadow-sm active:scale-95 transition">啟用</button>
+    <button onclick="requestPermissions()" class="bg-yellow-300 px-3 py-1 rounded-lg shadow-sm active:scale-95 transition">啟用</button>
   </div>
 
   <!-- 主要網格區 -->
-  <main class="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4 content-start" id="mushroom-grid">
+  <main class="flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-3 content-start" id="mushroom-grid">
     <!-- 卡片由 JS 動態生成 -->
   </main>
 
   <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden transition-opacity" onclick="closeModal()"></div>
-  <div id="action-modal" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 modal-hidden pb-8 pt-3 px-5 max-h-[85vh] overflow-y-auto border-t-4 border-gray-100">
-    <div class="w-16 h-2 bg-gray-200 rounded-full mx-auto mb-5"></div>
+  <div id="action-modal" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-[1.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 modal-hidden pb-6 pt-3 px-4 max-h-[85vh] overflow-y-auto border-t-4 border-gray-100">
+    <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4"></div>
     
-    <div class="mb-5">
-      <label class="block text-sm font-bold text-gray-500 mb-2 ml-1">給蘑菇取個名字吧</label>
-      <input type="text" id="edit-name" class="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-xl font-bold focus:border-emerald-400 focus:bg-white focus:outline-none transition" placeholder="例如：家樓下火屬性">
+    <div class="mb-4">
+      <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">給蘑菇取個名字吧</label>
+      <input type="text" id="edit-name" class="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-lg font-bold focus:border-emerald-400 focus:bg-white focus:outline-none transition" placeholder="例如：家樓下火屬性">
     </div>
 
     <!-- 狀態：直接重生 -->
-    <div class="space-y-3 mb-6 bg-emerald-50 rounded-3xl p-4 border-2 border-emerald-100">
-      <h3 class="text-sm font-black text-emerald-600 mb-2 flex items-center gap-1"><span class="text-lg">🌱</span> 單次倒數 (直接重生)</h3>
-      <button onclick="startTimer(5)" class="w-full bg-emerald-400 text-white rounded-2xl p-4 text-xl font-black shadow-sm active:scale-95 transition">
+    <div class="space-y-2 mb-4 bg-emerald-50 rounded-2xl p-3 border-2 border-emerald-100">
+      <h3 class="text-xs font-black text-emerald-600 mb-1 flex items-center gap-1"><span class="text-base">🌱</span> 單次倒數 (直接重生)</h3>
+      <button onclick="startTimer(5)" class="w-full bg-emerald-400 text-white rounded-xl p-3 text-lg font-black shadow-sm active:scale-95 transition">
         重生 5 分鐘
       </button>
-      <div class="grid grid-cols-2 gap-3">
-        <button onclick="startTimer(6)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-2xl p-3 font-bold active:scale-95 transition">
-          +1分預備 (6分)
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="startTimer(6)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-xl p-2 text-sm font-bold active:scale-95 transition">
+          +1分 (6分)
         </button>
-        <button onclick="startTimer(7)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-2xl p-3 font-bold active:scale-95 transition">
-          +2分預備 (7分)
+        <button onclick="startTimer(7)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-xl p-2 text-sm font-bold active:scale-95 transition">
+          +2分 (7分)
         </button>
       </div>
     </div>
 
     <!-- 狀態：戰鬥接續 -->
-    <div class="space-y-3 mb-6 bg-red-50 rounded-3xl p-4 border-2 border-red-100">
-      <h3 class="text-sm font-black text-red-500 mb-2 flex items-center gap-1"><span class="text-lg">⚔️</span> 戰鬥接續 (打完自動接重生)</h3>
+    <div class="space-y-2 mb-4 bg-red-50 rounded-2xl p-3 border-2 border-red-100">
+      <h3 class="text-xs font-black text-red-500 mb-1 flex items-center gap-1"><span class="text-base">⚔️</span> 戰鬥接續 (打完自動接重生)</h3>
       <div class="flex gap-2 items-center mb-2">
         <!-- 支援小數點輸入，使用 step="0.1" 和 inputmode="decimal" -->
-        <input type="number" id="battle-minutes" step="0.1" inputmode="decimal" class="flex-1 bg-white border-2 border-red-200 rounded-2xl p-4 text-center text-2xl font-black focus:border-red-400 focus:outline-none" placeholder="0" min="0.1" max="100">
-        <span class="font-bold text-red-800">分鐘後打完</span>
+        <input type="number" id="battle-minutes" step="0.1" inputmode="decimal" class="flex-1 bg-white border-2 border-red-200 rounded-xl p-3 text-center text-xl font-black focus:border-red-400 focus:outline-none" placeholder="0" min="0.1" max="100">
+        <span class="font-bold text-red-800 text-sm">分鐘後打完</span>
       </div>
-      <button onclick="startBattleChain()" class="w-full bg-red-400 text-white rounded-2xl p-4 text-lg font-black shadow-sm active:scale-95 transition">
+      <button onclick="startBattleChain()" class="w-full bg-red-400 text-white rounded-xl p-3 text-lg font-black shadow-sm active:scale-95 transition">
         自動接續 5 分鐘重生
       </button>
     </div>
 
-    <div class="pt-2">
-      <button onclick="resetTimer()" class="w-full bg-gray-100 text-gray-500 rounded-2xl p-4 text-lg font-bold active:scale-95 transition flex justify-center items-center gap-2">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <div class="pt-1">
+      <button onclick="resetTimer()" class="w-full bg-gray-100 text-gray-500 rounded-xl p-3 text-base font-bold active:scale-95 transition flex justify-center items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
         重置 / 取消計時
       </button>
     </div>
   </div>
 
   <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-    <div class="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl border-4 border-emerald-100">
-      <h2 class="text-2xl font-black mb-2 text-emerald-800" id="import-title">匯入資料</h2>
-      <p class="text-sm text-gray-500 mb-4 font-bold">請貼上備份字串，這將會覆蓋<span class="text-emerald-600">當前分頁</span>的記錄：</p>
-      <textarea id="import-text" class="w-full h-32 bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 mb-4 text-xs font-mono focus:border-emerald-400 focus:outline-none"></textarea>
-      <div class="flex justify-end gap-3">
-        <button onclick="closeImportModal()" class="px-5 py-3 bg-gray-100 text-gray-600 rounded-2xl font-bold active:scale-95 transition">取消</button>
-        <button onclick="importTab()" class="px-5 py-3 bg-emerald-400 text-white rounded-2xl font-black active:scale-95 transition shadow-sm">匯入覆蓋</button>
+    <div class="bg-white rounded-[1.5rem] w-full max-w-md p-5 shadow-2xl border-4 border-emerald-100">
+      <h2 class="text-xl font-black mb-2 text-emerald-800" id="import-title">匯入資料</h2>
+      <p class="text-xs text-gray-500 mb-3 font-bold">請貼上備份字串，這將會覆蓋<span class="text-emerald-600">當前分頁</span>的記錄：</p>
+      <textarea id="import-text" class="w-full h-32 bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 mb-3 text-xs font-mono focus:border-emerald-400 focus:outline-none"></textarea>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeImportModal()" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-bold active:scale-95 transition text-sm">取消</button>
+        <button onclick="importTab()" class="px-4 py-2 bg-emerald-400 text-white rounded-xl font-black active:scale-95 transition shadow-sm text-sm">匯入覆蓋</button>
       </div>
     </div>
   </div>
@@ -202,7 +207,7 @@
         const isAct = index === currentTabIndex;
         const btn = document.createElement('button');
         // 動態套用主題色
-        btn.className = `whitespace-nowrap px-4 py-2 rounded-2xl font-black transition-all ${isAct ? config.active + ' shadow-md scale-105' : 'bg-white bg-opacity-50 text-emerald-800 hover:bg-opacity-80'}`;
+        btn.className = `whitespace-nowrap px-3 py-1.5 rounded-xl text-sm font-black transition-all ${isAct ? config.active + ' shadow-sm scale-105' : 'bg-white bg-opacity-50 text-emerald-800 hover:bg-opacity-80'}`;
         btn.innerText = config.name;
         btn.onclick = () => switchTab(index);
         tabBar.appendChild(btn);
@@ -210,16 +215,33 @@
       
       // 更新 Header 背景顏色以配合 Tab
       const header = document.querySelector('header');
-      header.className = `text-white pt-4 pb-2 px-4 shadow-sm shrink-0 flex flex-col gap-3 rounded-b-3xl transition-colors duration-300 ${TABS_CONFIG[currentTabIndex].active.split(' ')[0]}`;
+      header.className = `text-white pt-3 pb-2 px-3 shadow-sm shrink-0 flex flex-col gap-2 rounded-b-2xl transition-colors duration-300 ${TABS_CONFIG[currentTabIndex].active.split(' ')[0]}`;
       // 更新 Meta Theme Color
       const bgHexMap = { 'red': '#ef4444', 'yellow': '#eab308', 'blue': '#3b82f6', 'purple': '#a855f7', 'pink': '#ec4899' };
-      document.querySelector('meta[name="theme-color"]').setAttribute('content', bgHexMap[TABS_CONFIG[currentTabIndex].id]);
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bgHexMap[TABS_CONFIG[currentTabIndex].id]);
     }
 
     function switchTab(index) {
       currentTabIndex = index;
       renderTabs();
       renderGrid();
+    }
+
+    // 新增：重置當前分頁功能
+    function resetCurrentTab() {
+      const tabName = TABS_CONFIG[currentTabIndex].name;
+      if (confirm(`確定要重置 [${tabName}] 的所有計時器嗎？\n這將無法復原。`)) {
+        appData[currentTabIndex].items.forEach(m => {
+          m.state = 'IDLE';
+          m.targetTime = 0;
+          m.autoChain = false;
+          m.reminded1m = false;
+          m.reminded5s = false;
+        });
+        saveData();
+        renderGrid();
+        // alert(`[${tabName}] 已全部重置。`); // 移除 alert 以減少打擾
+      }
     }
 
     function renderGrid() {
@@ -245,19 +267,19 @@
         }
 
         const card = document.createElement('div');
-        card.className = `bouncy-card bg-white border-4 rounded-[2rem] p-4 flex flex-col justify-between cursor-pointer shadow-sm relative overflow-hidden ${style.border}`;
+        card.className = `bouncy-card bg-white border-[3px] rounded-[1.5rem] p-3 flex flex-col justify-between cursor-pointer shadow-sm relative overflow-hidden ${style.border}`;
         card.onclick = () => openModal(index);
         
         // 裝飾性背景圓塊
-        const decBg = m.state !== 'IDLE' ? `<div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full opacity-20 ${style.bg.replace('bg-','bg-opacity-')} pointer-events-none"></div>` : '';
+        const decBg = m.state !== 'IDLE' ? `<div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full opacity-20 ${style.bg.replace('bg-','bg-opacity-')} pointer-events-none"></div>` : '';
 
         card.innerHTML = `
           ${decBg}
           <div class="relative z-10">
-            <div class="text-sm font-black truncate mb-2 text-gray-700">${m.name}</div>
-            <div class="inline-block text-xs font-bold px-2 py-1 rounded-lg self-start mb-3 ${style.bg} ${style.textCol}">${style.text}</div>
-            <div class="text-4xl font-black tracking-tighter ${isPulsing ? 'animate-pulse text-red-500' : 'text-gray-800'}">${timeDisplay}</div>
-            ${subText ? `<div class="text-xs mt-1 font-bold text-gray-400 opacity-80">${subText}</div>` : ''}
+            <div class="text-xs font-black truncate mb-1.5 text-gray-700">${m.name}</div>
+            <div class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md self-start mb-2 ${style.bg} ${style.textCol}">${style.text}</div>
+            <div class="text-3xl font-black tracking-tighter ${isPulsing ? 'animate-pulse text-red-500' : 'text-gray-800'}">${timeDisplay}</div>
+            ${subText ? `<div class="text-[10px] mt-0.5 font-bold text-gray-400 opacity-80">${subText}</div>` : ''}
           </div>
         `;
         grid.appendChild(card);
@@ -538,12 +560,16 @@
     }
 
     function setupPWAIcons() {
-      // 1. 給 iOS 的方形 Icon (Apple Touch Icon) - 暖白底色
-      const iosIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23fdfbf7'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle'%3E🍄%3C/text%3E%3C/svg%3E`;
+      // 使用簡單的 SVG 形狀代替 emoji，確保跨平台兼容性
+      // 蘑菇形狀的 SVG path
+      const mushroomPath = `M50 15 C25 15 10 35 10 50 C10 55 12 60 15 65 C18 70 20 85 35 85 L65 85 C80 85 82 70 85 65 C88 60 90 55 90 50 C90 35 75 15 50 15 Z M30 40 A5 5 0 1 1 30 50 A5 5 0 1 1 30 40 M70 40 A5 5 0 1 1 70 50 A5 5 0 1 1 70 40 M50 30 A5 5 0 1 1 50 40 A5 5 0 1 1 50 30`;
+
+      // 1. iOS Icon (暖白底 + 綠色蘑菇)
+      const iosIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23fdfbf7'/%3E%3Cpath d='${mushroomPath}' fill='%2310b981'/%3E%3C/svg%3E`;
       document.getElementById('apple-touch-icon').href = iosIconSvg;
 
-      // 2. 給 Android/Chrome 的圓形/自適應 Icon (Manifest maskable)
-      const androidIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23fdfbf7'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle'%3E🍄%3C/text%3E%3C/svg%3E`;
+      // 2. Android Icon (自適應)
+      const androidIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='${mushroomPath}' fill='%2310b981'/%3E%3C/svg%3E`;
       
       const manifestJSON = {
         name: "皮克敏蘑菇計時器",
