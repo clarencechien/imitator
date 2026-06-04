@@ -4,126 +4,137 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>皮克敏蘑菇計時</title>
+  
+  <meta name="theme-color" content="#ef4444" id="theme-color-meta">
+  
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入可愛的圓體字型 -->
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    /* 隱藏捲軸但可滾動 */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
     body {
       font-family: 'M PLUS Rounded 1c', sans-serif;
-      background-color: #fdfbf7; /* 暖白色背景 */
+      background-color: #fdfbf7;
     }
 
-    /* 確保底部操作區動畫平滑 */
     #action-modal { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .modal-hidden { transform: translateY(100%); }
     .modal-visible { transform: translateY(0); }
     
-    /* PWA 狀態列顏色 */
-    meta[name="theme-color"] { content: #10b981; }
-
-    /* 卡片點擊的彈跳特效 */
     .bouncy-card:active { transform: scale(0.95); transition: transform 0.1s; }
   </style>
   
-  <!-- 動態注入 PWA Manifest 與 iOS Icon 的容器 -->
   <link rel="manifest" id="manifest-link">
-  <!-- iOS 專屬的方形 Icon (系統會自動裁切圓角) -->
   <link rel="apple-touch-icon" id="apple-touch-icon">
 </head>
 <body class="text-gray-800 antialiased select-none no-scrollbar h-screen flex flex-col">
 
-  <header class="bg-emerald-500 text-white pt-3 pb-2 px-3 shadow-sm shrink-0 flex flex-col gap-2 rounded-b-2xl transition-colors duration-300">
+  <!-- 全域 Toast 提示框 -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-xl z-[70] transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-4 flex items-center gap-2 w-max max-w-[90vw]">
+    <span id="toast-icon" class="text-base">✅</span>
+    <span id="toast-msg">提示訊息</span>
+  </div>
+
+  <header id="main-header" class="bg-red-500 text-white pt-3 pb-2 px-3 shadow-md shrink-0 flex flex-col gap-2 rounded-b-2xl transition-colors duration-300 relative z-20">
     <div class="flex justify-between items-center">
-      <h1 class="text-lg font-black flex items-center gap-1 tracking-wide">
+      <h1 class="text-xl font-black flex items-center gap-1.5 tracking-wide">
         <span class="text-2xl">🍄</span>
         蘑菇計時
       </h1>
       <div class="flex gap-1.5">
-        <!-- 新增重置按鈕 -->
-        <button onclick="resetCurrentTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        <button onclick="resetCurrentTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
           重置本頁
         </button>
-        <button onclick="exportTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95">匯出</button>
-        <button onclick="openImportModal()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95">匯入</button>
+        <button onclick="exportTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2.5 py-1.5 rounded-lg text-xs font-bold transition active:scale-95">匯出</button>
+        <button onclick="openImportModal()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2.5 py-1.5 rounded-lg text-xs font-bold transition active:scale-95">匯入</button>
       </div>
     </div>
 
-    <!-- 皮克敏五色分頁列 -->
-    <div class="flex overflow-x-auto no-scrollbar gap-1.5 py-1" id="tab-bar">
+    <div class="flex overflow-x-auto no-scrollbar gap-2 py-1 mt-1" id="tab-bar">
       <!-- 由 JS 動態生成 -->
     </div>
   </header>
 
-  <!-- 提示區 (權限要求) -->
-  <div id="permission-banner" class="bg-yellow-100 text-yellow-800 p-2 text-xs flex justify-between items-center shrink-0 hidden m-2 rounded-xl font-bold border-2 border-yellow-300">
+  <div id="permission-banner" class="bg-yellow-100 text-yellow-800 p-2.5 text-sm flex justify-between items-center shrink-0 hidden m-3 rounded-xl font-bold border-2 border-yellow-300 shadow-sm">
     <span>請允許通知並點擊畫面啟用提醒！</span>
-    <button onclick="requestPermissions()" class="bg-yellow-300 px-3 py-1 rounded-lg shadow-sm active:scale-95 transition">啟用</button>
+    <button onclick="requestPermissions()" class="bg-yellow-300 px-4 py-1.5 rounded-lg shadow-sm active:scale-95 transition text-yellow-900">啟用</button>
   </div>
 
-  <!-- 主要網格區 -->
-  <main class="flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-3 content-start" id="mushroom-grid">
+  <main class="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4 content-start pb-10" id="mushroom-grid">
     <!-- 卡片由 JS 動態生成 -->
   </main>
 
+  <!-- 底部操作面板 -->
   <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden transition-opacity" onclick="closeModal()"></div>
-  <div id="action-modal" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-[1.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 modal-hidden pb-6 pt-3 px-4 max-h-[85vh] overflow-y-auto border-t-4 border-gray-100">
-    <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4"></div>
+  <div id="action-modal" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 modal-hidden pb-8 pt-4 px-5 max-h-[90vh] overflow-y-auto border-t-4 border-gray-100">
+    <div class="w-14 h-1.5 bg-gray-200 rounded-full mx-auto mb-5"></div>
     
-    <div class="mb-4">
-      <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">給蘑菇取個名字吧</label>
-      <input type="text" id="edit-name" class="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-lg font-bold focus:border-emerald-400 focus:bg-white focus:outline-none transition" placeholder="例如：家樓下火屬性">
+    <div class="mb-5">
+      <label class="block text-sm font-bold text-gray-500 mb-1.5 ml-1">給蘑菇取個名字吧</label>
+      <!-- 點擊時自動全選文字，方便快速改名 -->
+      <input type="text" id="edit-name" onclick="this.select()" class="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3.5 text-lg font-bold focus:border-emerald-400 focus:bg-white focus:outline-none transition" placeholder="例如：家樓下火屬性">
     </div>
 
-    <!-- 狀態：直接重生 -->
-    <div class="space-y-2 mb-4 bg-emerald-50 rounded-2xl p-3 border-2 border-emerald-100">
-      <h3 class="text-xs font-black text-emerald-600 mb-1 flex items-center gap-1"><span class="text-base">🌱</span> 單次倒數 (直接重生)</h3>
-      <button onclick="startTimer(5)" class="w-full bg-emerald-400 text-white rounded-xl p-3 text-lg font-black shadow-sm active:scale-95 transition">
+    <div class="space-y-3 mb-5 bg-emerald-50 rounded-2xl p-4 border-2 border-emerald-100">
+      <h3 class="text-sm font-black text-emerald-600 mb-2 flex items-center gap-1.5"><span class="text-lg">🌱</span> 單次倒數 (直接重生)</h3>
+      <button onclick="startTimer(5)" class="w-full bg-emerald-400 text-white rounded-xl p-4 text-xl font-black shadow-sm active:scale-95 transition">
         重生 5 分鐘
       </button>
-      <div class="grid grid-cols-2 gap-2">
-        <button onclick="startTimer(6)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-xl p-2 text-sm font-bold active:scale-95 transition">
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="startTimer(6)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-xl p-3 text-base font-bold active:scale-95 transition">
           +1分 (6分)
         </button>
-        <button onclick="startTimer(7)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-xl p-2 text-sm font-bold active:scale-95 transition">
+        <button onclick="startTimer(7)" class="w-full bg-white text-emerald-700 border-2 border-emerald-200 rounded-xl p-3 text-base font-bold active:scale-95 transition">
           +2分 (7分)
         </button>
       </div>
     </div>
 
-    <!-- 狀態：戰鬥接續 -->
-    <div class="space-y-2 mb-4 bg-red-50 rounded-2xl p-3 border-2 border-red-100">
-      <h3 class="text-xs font-black text-red-500 mb-1 flex items-center gap-1"><span class="text-base">⚔️</span> 戰鬥接續 (打完自動接重生)</h3>
-      <div class="flex gap-2 items-center mb-2">
-        <!-- 支援小數點輸入，使用 step="0.1" 和 inputmode="decimal" -->
-        <input type="number" id="battle-minutes" step="0.1" inputmode="decimal" class="flex-1 bg-white border-2 border-red-200 rounded-xl p-3 text-center text-xl font-black focus:border-red-400 focus:outline-none" placeholder="0" min="0.1" max="100">
-        <span class="font-bold text-red-800 text-sm">分鐘後打完</span>
+    <div class="space-y-3 mb-5 bg-red-50 rounded-2xl p-4 border-2 border-red-100">
+      <h3 class="text-sm font-black text-red-500 mb-2 flex items-center gap-1.5"><span class="text-lg">⚔️</span> 戰鬥接續 (打完自動接重生)</h3>
+      <div class="flex gap-3 items-center mb-3">
+        <input type="number" id="battle-minutes" step="0.1" inputmode="decimal" class="flex-1 bg-white border-2 border-red-200 rounded-xl p-4 text-center text-2xl font-black focus:border-red-400 focus:outline-none" placeholder="0" min="0.1" max="100">
+        <span class="font-bold text-red-800 text-base">分鐘後打完</span>
       </div>
-      <button onclick="startBattleChain()" class="w-full bg-red-400 text-white rounded-xl p-3 text-lg font-black shadow-sm active:scale-95 transition">
+      <button onclick="startBattleChain()" class="w-full bg-red-400 text-white rounded-xl p-4 text-lg font-black shadow-sm active:scale-95 transition">
         自動接續 5 分鐘重生
       </button>
     </div>
 
-    <div class="pt-1">
-      <button onclick="resetTimer()" class="w-full bg-gray-100 text-gray-500 rounded-xl p-3 text-base font-bold active:scale-95 transition flex justify-center items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-        重置 / 取消計時
+    <div class="pt-2">
+      <button onclick="resetTimer()" class="w-full bg-gray-100 text-gray-500 rounded-xl p-4 text-lg font-bold active:scale-95 transition flex justify-center items-center gap-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+        清除此計時
       </button>
     </div>
   </div>
 
-  <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-    <div class="bg-white rounded-[1.5rem] w-full max-w-md p-5 shadow-2xl border-4 border-emerald-100">
-      <h2 class="text-xl font-black mb-2 text-emerald-800" id="import-title">匯入資料</h2>
-      <p class="text-xs text-gray-500 mb-3 font-bold">請貼上備份字串，這將會覆蓋<span class="text-emerald-600">當前分頁</span>的記錄：</p>
-      <textarea id="import-text" class="w-full h-32 bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 mb-3 text-xs font-mono focus:border-emerald-400 focus:outline-none"></textarea>
-      <div class="flex justify-end gap-2">
-        <button onclick="closeImportModal()" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-bold active:scale-95 transition text-sm">取消</button>
-        <button onclick="importTab()" class="px-4 py-2 bg-emerald-400 text-white rounded-xl font-black active:scale-95 transition shadow-sm text-sm">匯入覆蓋</button>
+  <!-- 匯入 Modal -->
+  <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-5 backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-[1.5rem] w-full max-w-md p-6 shadow-2xl border-4 border-emerald-100">
+      <h2 class="text-2xl font-black mb-2 text-emerald-800" id="import-title">匯入資料</h2>
+      <p class="text-sm text-gray-500 mb-4 font-bold">請貼上備份字串，這將會覆蓋<span class="text-emerald-600">當前分頁</span>的記錄：</p>
+      <textarea id="import-text" class="w-full h-32 bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 mb-4 text-sm font-mono focus:border-emerald-400 focus:outline-none"></textarea>
+      <div class="flex justify-end gap-3">
+        <button onclick="closeImportModal()" class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold active:scale-95 transition text-base">取消</button>
+        <button onclick="importTab()" class="px-5 py-2.5 bg-emerald-400 text-white rounded-xl font-black active:scale-95 transition shadow-sm text-base">匯入覆蓋</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自訂的通用確認彈窗 (取代原生的 confirm) -->
+  <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[60] hidden flex items-center justify-center p-5 backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-[1.5rem] w-full max-w-sm p-6 shadow-2xl text-center">
+      <div class="w-14 h-14 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+      </div>
+      <h2 class="text-xl font-black mb-2 text-gray-800" id="confirm-title">確定執行？</h2>
+      <p class="text-sm text-gray-500 mb-6 font-bold" id="confirm-desc">此操作無法復原。</p>
+      <div class="flex gap-3">
+        <button onclick="closeConfirmModal()" class="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold active:scale-95 transition text-base">取消</button>
+        <button onclick="executeConfirm()" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-black active:scale-95 transition shadow-sm text-base">確定</button>
       </div>
     </div>
   </div>
@@ -131,13 +142,12 @@
   <script>
     const STORAGE_KEY_V2 = 'pikmin_mushrooms_v2';
     
-    // 皮克敏五色主題配置
     const TABS_CONFIG = [
-      { id: 'red', name: '紅皮克', color: 'bg-red-400', textColor: 'text-red-700', active: 'bg-red-500 text-white' },
-      { id: 'yellow', name: '黃皮克', color: 'bg-yellow-400', textColor: 'text-yellow-800', active: 'bg-yellow-500 text-white' },
-      { id: 'blue', name: '藍皮克', color: 'bg-blue-400', textColor: 'text-blue-800', active: 'bg-blue-500 text-white' },
-      { id: 'purple', name: '紫皮克', color: 'bg-purple-400', textColor: 'text-purple-800', active: 'bg-purple-500 text-white' },
-      { id: 'pink', name: '粉皮克', color: 'bg-pink-400', textColor: 'text-pink-800', active: 'bg-pink-500 text-white' }
+      { id: 'red', name: '紅皮克', color: 'bg-red-400', textColor: 'text-red-700', active: 'bg-red-500 text-white', hex: '#ef4444' },
+      { id: 'yellow', name: '黃皮克', color: 'bg-yellow-400', textColor: 'text-yellow-800', active: 'bg-yellow-500 text-white', hex: '#eab308' },
+      { id: 'blue', name: '藍皮克', color: 'bg-blue-400', textColor: 'text-blue-800', active: 'bg-blue-500 text-white', hex: '#3b82f6' },
+      { id: 'purple', name: '紫皮克', color: 'bg-purple-400', textColor: 'text-purple-800', active: 'bg-purple-500 text-white', hex: '#a855f7' },
+      { id: 'pink', name: '粉皮克', color: 'bg-pink-400', textColor: 'text-pink-800', active: 'bg-pink-500 text-white', hex: '#ec4899' }
     ];
 
     let appData = [];
@@ -145,42 +155,72 @@
     let activeCardIndex = -1; 
     let audioCtx = null;
     let isAudioUnlocked = false;
+    let confirmAction = null; // 儲存確認框要執行的 function
 
-    // 狀態常數 (可愛風樣式)
     const STATUS = {
       IDLE: { text: '閒置中', bg: 'bg-white', border: 'border-gray-200', textCol: 'text-gray-400' },
       RESPAWN: { text: '重生倒數', bg: 'bg-orange-50', border: 'border-orange-300', textCol: 'text-orange-600' },
       BATTLE: { text: '戰鬥中', bg: 'bg-red-50', border: 'border-red-300', textCol: 'text-red-600' }
     };
 
+    // --- Toast 與 Confirm Modal 邏輯 ---
+    let toastTimeout;
+    function showToast(msg, icon = '✅') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      document.getElementById('toast-icon').innerText = icon;
+      
+      toast.classList.remove('opacity-0', '-translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-4');
+      }, 2500);
+    }
+
+    function showConfirm(title, desc, callback) {
+      document.getElementById('confirm-title').innerText = title;
+      document.getElementById('confirm-desc').innerText = desc;
+      confirmAction = callback;
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+      confirmAction = null;
+    }
+
+    function executeConfirm() {
+      if (confirmAction) confirmAction();
+      closeConfirmModal();
+    }
+
+    // --- 初始化 ---
     function initData() {
       const savedV2 = localStorage.getItem(STORAGE_KEY_V2);
-      
       if (savedV2) {
         try { appData = JSON.parse(savedV2); } catch (e) { console.error(e); }
       } else {
-        // 全新初始化，或從 v1 遷移
         const savedV1 = localStorage.getItem('pikmin_mushrooms_v1');
         let firstTabData = generateEmptyItems(10);
-        
         if (savedV1) {
           try {
             const parsedV1 = JSON.parse(savedV1);
             if(Array.isArray(parsedV1)) firstTabData = parsedV1;
           } catch(e) {}
         }
-        
         appData = TABS_CONFIG.map((config, idx) => ({
           tabId: config.id,
           items: idx === 0 ? firstTabData : generateEmptyItems(10)
         }));
       }
-      
       saveData();
+      setupPWAIcons();
       renderTabs();
       renderGrid();
       checkPermissions();
-      setupPWAIcons();
     }
 
     function generateEmptyItems(count) {
@@ -199,6 +239,7 @@
       localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(appData));
     }
 
+    // --- UI 渲染 ---
     function renderTabs() {
       const tabBar = document.getElementById('tab-bar');
       tabBar.innerHTML = '';
@@ -206,19 +247,18 @@
       TABS_CONFIG.forEach((config, index) => {
         const isAct = index === currentTabIndex;
         const btn = document.createElement('button');
-        // 動態套用主題色
-        btn.className = `whitespace-nowrap px-3 py-1.5 rounded-xl text-sm font-black transition-all ${isAct ? config.active + ' shadow-sm scale-105' : 'bg-white bg-opacity-50 text-emerald-800 hover:bg-opacity-80'}`;
+        btn.className = `whitespace-nowrap px-4 py-2 rounded-xl text-sm font-black transition-all ${isAct ? config.active + ' shadow-md scale-105' : 'bg-white bg-opacity-30 text-white hover:bg-opacity-50'}`;
         btn.innerText = config.name;
         btn.onclick = () => switchTab(index);
         tabBar.appendChild(btn);
       });
       
-      // 更新 Header 背景顏色以配合 Tab
-      const header = document.querySelector('header');
-      header.className = `text-white pt-3 pb-2 px-3 shadow-sm shrink-0 flex flex-col gap-2 rounded-b-2xl transition-colors duration-300 ${TABS_CONFIG[currentTabIndex].active.split(' ')[0]}`;
-      // 更新 Meta Theme Color
-      const bgHexMap = { 'red': '#ef4444', 'yellow': '#eab308', 'blue': '#3b82f6', 'purple': '#a855f7', 'pink': '#ec4899' };
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bgHexMap[TABS_CONFIG[currentTabIndex].id]);
+      const currentConfig = TABS_CONFIG[currentTabIndex];
+      const header = document.getElementById('main-header');
+      header.className = `text-white pt-3 pb-2 px-3 shadow-md shrink-0 flex flex-col gap-2 rounded-b-2xl transition-colors duration-300 ${currentConfig.active.split(' ')[0]} relative z-20`;
+      
+      const metaTheme = document.getElementById('theme-color-meta');
+      if (metaTheme) metaTheme.setAttribute('content', currentConfig.hex);
     }
 
     function switchTab(index) {
@@ -227,21 +267,25 @@
       renderGrid();
     }
 
-    // 新增：重置當前分頁功能
+    // 升級：使用自訂確認框取代原生 confirm
     function resetCurrentTab() {
       const tabName = TABS_CONFIG[currentTabIndex].name;
-      if (confirm(`確定要重置 [${tabName}] 的所有計時器嗎？\n這將無法復原。`)) {
-        appData[currentTabIndex].items.forEach(m => {
-          m.state = 'IDLE';
-          m.targetTime = 0;
-          m.autoChain = false;
-          m.reminded1m = false;
-          m.reminded5s = false;
-        });
-        saveData();
-        renderGrid();
-        // alert(`[${tabName}] 已全部重置。`); // 移除 alert 以減少打擾
-      }
+      showConfirm(
+        '確定要重置本頁？', 
+        `這將會清除 [${tabName}] 的所有計時器狀態，無法復原。`,
+        () => {
+          appData[currentTabIndex].items.forEach(m => {
+            m.state = 'IDLE';
+            m.targetTime = 0;
+            m.autoChain = false;
+            m.reminded1m = false;
+            m.reminded5s = false;
+          });
+          saveData();
+          renderGrid();
+          showToast(`已重置 [${tabName}] 的計時器`, '♻️');
+        }
+      );
     }
 
     function renderGrid() {
@@ -262,24 +306,29 @@
           if (remain > 0) {
             timeDisplay = formatTime(remain);
             if (m.state === 'BATTLE' && m.autoChain) subText = '接續重生';
-            if (remain < 60000) isPulsing = true; // 最後一分鐘稍微呼吸跳動
+            if (remain < 60000) isPulsing = true;
           }
         }
 
         const card = document.createElement('div');
-        card.className = `bouncy-card bg-white border-[3px] rounded-[1.5rem] p-3 flex flex-col justify-between cursor-pointer shadow-sm relative overflow-hidden ${style.border}`;
+        card.className = `bouncy-card bg-white border-[3px] rounded-[1.5rem] p-4 flex flex-col h-[130px] justify-between cursor-pointer shadow-sm relative overflow-hidden ${style.border}`;
         card.onclick = () => openModal(index);
         
-        // 裝飾性背景圓塊
-        const decBg = m.state !== 'IDLE' ? `<div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full opacity-20 ${style.bg.replace('bg-','bg-opacity-')} pointer-events-none"></div>` : '';
+        const decBg = m.state !== 'IDLE' ? `<div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full opacity-20 ${style.bg.replace('bg-','bg-opacity-')} pointer-events-none"></div>` : '';
 
+        // 優化排版：確保文字空間，並加入備用名稱 `|| '蘑菇 ' + (index + 1)` 避免字串為空時塌陷
+        const safeName = m.name || `蘑菇 ${index + 1}`;
         card.innerHTML = `
           ${decBg}
-          <div class="relative z-10">
-            <div class="text-xs font-black truncate mb-1.5 text-gray-700">${m.name}</div>
-            <div class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md self-start mb-2 ${style.bg} ${style.textCol}">${style.text}</div>
-            <div class="text-3xl font-black tracking-tighter ${isPulsing ? 'animate-pulse text-red-500' : 'text-gray-800'}">${timeDisplay}</div>
-            ${subText ? `<div class="text-[10px] mt-0.5 font-bold text-gray-400 opacity-80">${subText}</div>` : ''}
+          <div class="relative z-10 flex flex-col h-full">
+            <div>
+              <div class="text-base font-black truncate mb-1 text-gray-800 leading-tight">${safeName}</div>
+              <div class="inline-block text-xs font-bold px-2 py-0.5 rounded-md self-start ${style.bg} ${style.textCol}">${style.text}</div>
+            </div>
+            <div class="mt-auto flex flex-col justify-end">
+              <div class="text-4xl font-black tracking-tighter leading-none ${isPulsing ? 'animate-pulse text-red-500' : 'text-gray-900'}">${timeDisplay}</div>
+              ${subText ? `<div class="text-[10px] mt-1 font-bold text-gray-400 opacity-90">${subText}</div>` : ''}
+            </div>
           </div>
         `;
         grid.appendChild(card);
@@ -299,7 +348,8 @@
       activeCardIndex = index;
       const m = appData[currentTabIndex].items[index];
       
-      document.getElementById('edit-name').value = m.name;
+      // 給予預設值，避免顯示 undefined 或空
+      document.getElementById('edit-name').value = m.name || `蘑菇 ${index + 1}`;
       document.getElementById('battle-minutes').value = '';
       
       document.getElementById('modal-overlay').classList.remove('hidden');
@@ -312,10 +362,9 @@
     function closeModal() {
       if (activeCardIndex !== -1) {
         const newName = document.getElementById('edit-name').value.trim();
-        if (newName) {
-          appData[currentTabIndex].items[activeCardIndex].name = newName;
-          saveData();
-        }
+        // 如果使用者把名字刪空了，自動補回預設名稱，避免消失
+        appData[currentTabIndex].items[activeCardIndex].name = newName || `蘑菇 ${activeCardIndex + 1}`;
+        saveData();
       }
 
       document.getElementById('action-modal').classList.remove('modal-visible');
@@ -327,6 +376,7 @@
       }, 300);
     }
 
+    // --- 計時核心邏輯 ---
     function startTimer(minutes) {
       if (activeCardIndex === -1) return;
       const m = appData[currentTabIndex].items[activeCardIndex];
@@ -338,20 +388,19 @@
       
       saveData();
       closeModal();
+      showToast('已開始單次倒數', '⏱️');
     }
 
     function startBattleChain() {
       if (activeCardIndex === -1) return;
-      // 改用 parseFloat 支援小數點 (例如 1.5 分 = 90秒)
       const mins = parseFloat(document.getElementById('battle-minutes').value);
       if (isNaN(mins) || mins <= 0) {
-        alert('請輸入有效的分鐘數（支援小數，如 2.5）');
+        showToast('請輸入有效的分鐘數', '⚠️');
         return;
       }
       
       const m = appData[currentTabIndex].items[activeCardIndex];
       m.state = 'BATTLE';
-      // 支援浮點數精準計算毫秒
       m.targetTime = Date.now() + Math.floor(mins * 60 * 1000);
       m.autoChain = true;
       m.reminded1m = false;
@@ -359,6 +408,7 @@
       
       saveData();
       closeModal();
+      showToast('戰鬥接續倒數已啟動', '⚔️');
     }
 
     function resetTimer() {
@@ -384,29 +434,26 @@
       let needsRender = false;
       let needsSave = false;
 
-      // 必須遍歷「所有分頁」的計時器，而不只是當前分頁
       appData.forEach((tabData, tIdx) => {
         tabData.items.forEach(m => {
           if (m.state === 'IDLE') return;
 
           const remain = m.targetTime - now;
           if (tIdx === currentTabIndex) needsRender = true; 
+          const safeName = m.name || '未命名';
 
-          // 1 分鐘提醒
           if (remain <= 60000 && remain > 0 && !m.reminded1m) {
             m.reminded1m = true;
             needsSave = true;
-            triggerAlert(`🍄 [${tabData.name}] ${m.name} 剩餘 1 分鐘！`, '一分預備', 'low');
+            triggerAlert(`🍄 [${tabData.name}] ${safeName} 剩餘 1 分鐘！`, '一分預備', 'low');
           }
 
-          // 5 秒提醒
           if (remain <= 5000 && remain > 0 && !m.reminded5s) {
             m.reminded5s = true;
             needsSave = true;
-            triggerAlert(`🍄 [${tabData.name}] ${m.name} 即將就緒！`, '五秒倒數', 'high');
+            triggerAlert(`🍄 [${tabData.name}] ${safeName} 即將就緒！`, '五秒倒數', 'high');
           }
 
-          // 時間到
           if (remain <= 0) {
             if (m.state === 'BATTLE' && m.autoChain) {
               m.state = 'RESPAWN';
@@ -414,11 +461,11 @@
               m.autoChain = false;
               m.reminded1m = false;
               m.reminded5s = false;
-              triggerAlert(`⚔️ [${tabData.name}] ${m.name} 戰鬥結束，開始 5 分鐘重生倒數！`, '戰鬥結束', 'mid');
+              triggerAlert(`⚔️ [${tabData.name}] ${safeName} 戰鬥結束，開始 5 分鐘重生倒數！`, '戰鬥結束', 'mid');
             } else {
               m.state = 'IDLE';
               m.targetTime = 0;
-              triggerAlert(`✅ [${tabData.name}] ${m.name} 準備完畢！`, '倒數結束', 'high');
+              triggerAlert(`✅ [${tabData.name}] ${safeName} 準備完畢！`, '倒數結束', 'high');
             }
             needsSave = true;
           }
@@ -500,13 +547,16 @@
         Notification.requestPermission().then(permission => {
           if (permission === 'granted') {
             document.getElementById('permission-banner').classList.add('hidden');
-            triggerAlert('通知與音效已啟用！', '設定完成', 'low');
+            showToast('通知與音效已啟用！', '🔔');
+          } else {
+            showToast('已拒絕通知權限', '❌');
           }
         });
       }
     }
     document.body.addEventListener('click', unlockAudio, { once: true });
 
+    // --- 匯出/匯入邏輯 ---
     function exportTab() {
       const tabName = TABS_CONFIG[currentTabIndex].name;
       const currentItems = appData[currentTabIndex].items;
@@ -521,7 +571,7 @@
       textarea.select();
       try {
         document.execCommand('copy');
-        alert(`已成功複製 [${tabName}] 的備份字串！`);
+        showToast('備份字串已自動複製到剪貼簿！', '📋');
       } catch (err) {}
     }
 
@@ -541,35 +591,35 @@
       if (!dataStr) return;
       const tabName = TABS_CONFIG[currentTabIndex].name;
       
-      if (confirm(`確定要將資料匯入至 [${tabName}] 嗎？這將會覆蓋當前分頁。`)) {
-        try {
-          const parsed = JSON.parse(decodeURIComponent(atob(dataStr)));
-          if (Array.isArray(parsed) && parsed.length === 10) {
-            appData[currentTabIndex].items = parsed;
-            saveData();
-            renderGrid();
-            closeImportModal();
-            alert('匯入成功！');
-          } else {
-            throw new Error('格式不符或長度錯誤');
+      showConfirm(
+        '確定要匯入覆蓋？',
+        `將字串匯入至 [${tabName}]，原本的記錄將被完全覆蓋。`,
+        () => {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(atob(dataStr)));
+            if (Array.isArray(parsed) && parsed.length === 10) {
+              // 確保匯入的資料即使沒有 name 也能有預設值
+              appData[currentTabIndex].items = parsed.map((item, idx) => ({
+                ...item,
+                name: item.name || `蘑菇 ${idx + 1}`
+              }));
+              saveData();
+              renderGrid();
+              closeImportModal();
+              showToast('匯入成功！', '🎉');
+            } else {
+              throw new Error('格式不符或長度錯誤');
+            }
+          } catch (e) {
+            showToast('匯入失敗：字串格式錯誤', '❌');
           }
-        } catch (e) {
-          alert('匯入失敗：字串格式錯誤或已損毀。');
         }
-      }
+      );
     }
 
     function setupPWAIcons() {
-      // 使用簡單的 SVG 形狀代替 emoji，確保跨平台兼容性
-      // 蘑菇形狀的 SVG path
-      const mushroomPath = `M50 15 C25 15 10 35 10 50 C10 55 12 60 15 65 C18 70 20 85 35 85 L65 85 C80 85 82 70 85 65 C88 60 90 55 90 50 C90 35 75 15 50 15 Z M30 40 A5 5 0 1 1 30 50 A5 5 0 1 1 30 40 M70 40 A5 5 0 1 1 70 50 A5 5 0 1 1 70 40 M50 30 A5 5 0 1 1 50 40 A5 5 0 1 1 50 30`;
-
-      // 1. iOS Icon (暖白底 + 綠色蘑菇)
-      const iosIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23fdfbf7'/%3E%3Cpath d='${mushroomPath}' fill='%2310b981'/%3E%3C/svg%3E`;
-      document.getElementById('apple-touch-icon').href = iosIconSvg;
-
-      // 2. Android Icon (自適應)
-      const androidIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='${mushroomPath}' fill='%2310b981'/%3E%3C/svg%3E`;
+      const emojiIconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2310b981'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white'%3E🍄%3C/text%3E%3C/svg%3E`;
+      document.getElementById('apple-touch-icon').href = emojiIconSvg;
       
       const manifestJSON = {
         name: "皮克敏蘑菇計時器",
@@ -577,10 +627,10 @@
         start_url: ".",
         display: "standalone",
         background_color: "#fdfbf7",
-        theme_color: "#10b981",
+        theme_color: "#ef4444", 
         icons: [
-          { src: androidIconSvg, sizes: "192x192", type: "image/svg+xml", purpose: "any" },
-          { src: androidIconSvg, sizes: "512x512", type: "image/svg+xml", purpose: "maskable" }
+          { src: emojiIconSvg, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+          { src: emojiIconSvg, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
         ]
       };
       const manifestBlob = new Blob([JSON.stringify(manifestJSON)], { type: 'application/json' });
