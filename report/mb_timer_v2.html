@@ -87,22 +87,36 @@
     </div>
 
     <div class="space-y-3 mb-5 bg-green-50 rounded-2xl p-4 border-2 border-green-100">
-      <h3 class="text-sm font-black text-green-600 mb-2 flex items-center gap-1.5"><span class="text-lg">⚔️</span> 戰鬥接續（打完自動接重生）</h3>
-      <div class="flex gap-3 items-center mb-3">
-        <input type="number" id="battle-minutes" step="0.1" inputmode="decimal" class="flex-1 bg-white border-2 border-green-200 rounded-xl p-4 text-center text-2xl font-black focus:border-green-400 focus:outline-none" placeholder="0" min="0.1" max="100">
-        <span class="font-bold text-green-800 text-base">分鐘後打完</span>
+      <h3 class="text-sm font-black text-green-600 mb-1 flex items-center gap-1.5"><span class="text-lg">⚔️</span> 戰鬥接續（打完自動接重生）</h3>
+      <label class="block text-xs font-bold text-green-700 ml-1 opacity-80">預估多久打完？</label>
+      <div class="flex gap-2 items-center">
+        <input type="number" id="battle-minutes" step="1" min="0" inputmode="numeric" class="min-w-0 flex-1 bg-white border-2 border-green-200 rounded-xl p-3 text-center text-2xl font-black focus:border-green-400 focus:outline-none" placeholder="0">
+        <span class="font-black text-green-800 text-lg shrink-0">分</span>
+        <input type="number" id="battle-seconds" step="1" min="0" max="59" inputmode="numeric" class="min-w-0 flex-1 bg-white border-2 border-green-200 rounded-xl p-3 text-center text-2xl font-black focus:border-green-400 focus:outline-none" placeholder="0">
+        <span class="font-black text-green-800 text-lg shrink-0">秒</span>
       </div>
-      <button onclick="startBattleChain()" class="w-full bg-green-500 text-white rounded-xl p-4 text-lg font-black shadow-sm active:scale-95 transition">自動接續 5 分鐘重生</button>
+      <button onclick="startBattleChain()" class="w-full bg-green-500 text-white rounded-xl p-4 text-lg font-black shadow-sm active:scale-95 transition">自動接續（打完接 5 分重生）</button>
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="startBattleQuick(15)" class="w-full bg-white text-green-700 border-2 border-green-200 rounded-xl p-3 text-base font-bold active:scale-95 transition">＋15 秒</button>
+        <button onclick="startBattleQuick(30)" class="w-full bg-white text-green-700 border-2 border-green-200 rounded-xl p-3 text-base font-bold active:scale-95 transition">＋30 秒</button>
+        <button onclick="startBattleQuick(45)" class="w-full bg-white text-green-700 border-2 border-green-200 rounded-xl p-3 text-base font-bold active:scale-95 transition">＋45 秒</button>
+      </div>
+      <p class="text-[11px] text-green-700 font-bold opacity-70 text-center -mt-1">快速鈕＝目前分鐘數 ＋ 該秒數，直接啟動</p>
     </div>
 
     <div id="weekend-hint"></div>
+    <div id="reset-hint"></div>
 
     <div class="space-y-3 mb-5 bg-gray-50 rounded-2xl p-4 border-2 border-gray-100">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-black text-gray-600 flex items-center gap-1.5"><span class="text-lg">🔮</span> 菇種紀錄（選填 · 風水參考）</h3>
         <button onclick="clearSpecies()" class="text-xs font-bold text-gray-400 underline active:scale-95">清除紀錄</button>
       </div>
-      <p class="text-[11px] text-gray-400 font-bold -mt-1">打完後點一下出的菇種，幫這個點累積歷史。生成是獨立隨機，數據純供參考收集。</p>
+      <p class="text-[11px] text-gray-400 font-bold -mt-1">打完後選大小、點菇種，幫這個點累積歷史。生成是獨立隨機，數據純供參考收集。</p>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-black text-gray-400 shrink-0 w-7">大小</span>
+        <div id="size-seg" class="flex gap-1.5 flex-1"></div>
+      </div>
       <div id="species-chips" class="flex flex-wrap gap-2"></div>
       <div id="species-stats" class="pt-1"></div>
     </div>
@@ -134,7 +148,7 @@
         <button id="toggle-sound" onclick="toggleSetting('soundOn')" class="relative w-14 h-8 rounded-full transition-colors shrink-0"></button>
       </div>
       <div class="flex justify-between items-center p-3">
-        <div><div class="font-black text-gray-700">震動提醒</div><div class="text-xs text-gray-400 font-bold">部分裝置才支援</div></div>
+        <div><div class="font-black text-gray-700">震動提醒</div><div class="text-xs text-gray-400 font-bold">一分輕震、就緒急震</div></div>
         <button id="toggle-vibrate" onclick="toggleSetting('vibrationOn')" class="relative w-14 h-8 rounded-full transition-colors shrink-0"></button>
       </div>
       <div class="flex justify-between items-center p-3">
@@ -143,13 +157,23 @@
       </div>
     </div>
 
-    <!-- 音效指定（每個時機可選不同音效） -->
+    <!-- 音效：依狀態（重生／戰鬥）各一種，全程不變 -->
     <div class="bg-gray-50 rounded-2xl p-4 mb-2 border-2 border-gray-100">
-      <div class="font-black text-gray-700 mb-1">提醒音效</div>
-      <p class="text-[11px] text-gray-400 font-bold mb-2">三個提醒時機都可指定不同音效，▶ 試聽</p>
+      <div class="font-black text-gray-700 mb-1">提醒音效（依狀態）</div>
+      <p class="text-[11px] text-gray-400 font-bold mb-2">戰鬥全程用同一種音色；重生再分「一分」與「就緒」兩種。光聽聲音就能分辨是哪一種倒數。▶ 試聽</p>
       <div id="sound-settings" class="divide-y divide-gray-100"></div>
       <button onclick="toggleLibrary()" id="lib-toggle" class="w-full mt-3 text-sm font-black text-emerald-600 py-2 active:scale-95 transition">瀏覽全部 12 種音效 ▾</button>
       <div id="sound-library" class="grid grid-cols-2 gap-2 mt-1 hidden"></div>
+    </div>
+
+    <!-- 備份與還原（全部頁籤 + 設定） -->
+    <div class="bg-gray-50 rounded-2xl p-4 mb-2 mt-4 border-2 border-gray-100">
+      <div class="font-black text-gray-700 mb-1">備份與還原（全部）</div>
+      <p class="text-[11px] text-gray-400 font-bold mb-3">一次匯出 5 個頁籤的蘑菇（含菇種與大小紀錄）與所有設定。匯入會自動辨識：完整備份還原全部；舊版單頁備份則匯入到目前頁籤。</p>
+      <div class="grid grid-cols-2 gap-2.5">
+        <button onclick="exportAll()" class="bg-emerald-400 text-white rounded-xl py-3 text-sm font-black active:scale-95 transition">匯出全部</button>
+        <button onclick="importAll()" class="bg-white border-2 border-emerald-200 text-emerald-700 rounded-xl py-3 text-sm font-black active:scale-95 transition">匯入全部</button>
+      </div>
     </div>
 
     <button onclick="closeSettings()" class="w-full mt-4 py-3.5 bg-gray-800 text-white rounded-xl font-black active:scale-95 transition text-base">完成</button>
@@ -158,12 +182,12 @@
   <!-- 匯入 -->
   <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[55] hidden flex items-center justify-center p-5 backdrop-blur-sm transition-opacity">
     <div class="bg-white rounded-[1.5rem] w-full max-w-md p-6 shadow-2xl border-4 border-emerald-100">
-      <h2 class="text-2xl font-black mb-2 text-emerald-800" id="import-title">匯入資料</h2>
-      <p class="text-sm text-gray-500 mb-4 font-bold">貼上備份字串，會覆蓋<span class="text-emerald-600">當前分頁</span>的記錄：</p>
+      <h2 class="text-2xl font-black mb-2 text-emerald-800" id="import-title">匯入備份</h2>
+      <p class="text-sm text-gray-500 mb-4 font-bold" id="import-desc">貼上備份字串，會自動辨識單頁或完整備份。</p>
       <textarea id="import-text" class="w-full h-32 bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 mb-4 text-sm font-mono focus:border-emerald-400 focus:outline-none"></textarea>
       <div class="flex justify-end gap-3">
-        <button onclick="closeImportModal()" class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold active:scale-95 transition text-base">取消</button>
-        <button onclick="importTab()" class="px-5 py-2.5 bg-emerald-400 text-white rounded-xl font-black active:scale-95 transition shadow-sm text-base">匯入覆蓋</button>
+        <button onclick="closeImportModal()" class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold active:scale-95 transition text-base">關閉</button>
+        <button onclick="doImport()" class="px-5 py-2.5 bg-emerald-400 text-white rounded-xl font-black active:scale-95 transition shadow-sm text-base">匯入</button>
       </div>
     </div>
   </div>
@@ -189,11 +213,11 @@
     const ITEMS_PER_TAB = 12;
 
     const TABS_CONFIG = [
-      { id: 'red',    name: '紅皮克', active: 'bg-red-500 text-white',    hex: '#ef4444' },
-      { id: 'yellow', name: '黃皮克', active: 'bg-yellow-500 text-white', hex: '#eab308' },
-      { id: 'blue',   name: '藍皮克', active: 'bg-blue-500 text-white',   hex: '#3b82f6' },
-      { id: 'purple', name: '紫皮克', active: 'bg-purple-500 text-white', hex: '#a855f7' },
-      { id: 'pink',   name: '粉皮克', active: 'bg-pink-500 text-white',   hex: '#ec4899' }
+      { id:'red',    name:'紅皮克', active:'bg-red-500 text-white',    hex:'#ef4444' },
+      { id:'yellow', name:'黃皮克', active:'bg-yellow-500 text-white', hex:'#eab308' },
+      { id:'blue',   name:'藍皮克', active:'bg-blue-500 text-white',   hex:'#3b82f6' },
+      { id:'purple', name:'紫皮克', active:'bg-purple-500 text-white', hex:'#a855f7' },
+      { id:'pink',   name:'粉皮克', active:'bg-pink-500 text-white',   hex:'#ec4899' }
     ];
 
     const SPECIES = [
@@ -204,13 +228,15 @@
       { k:'event',label:'活動',dot:'#f43f5e' }
     ];
 
+    const SIZES = [ { k:'small',label:'小' },{ k:'normal',label:'一般' },{ k:'large',label:'大' },{ k:'giant',label:'巨' } ];
+
     const STATUS = {
       IDLE:    { text:'閒置中', border:'border-gray-200',  time:'text-gray-300',  chip:'bg-gray-100 text-gray-400',   glow:'bg-gray-200' },
       RESPAWN: { text:'重生倒數', border:'border-amber-400', time:'text-amber-600', chip:'bg-amber-100 text-amber-700', glow:'bg-amber-300' },
       BATTLE:  { text:'戰鬥中', border:'border-green-400', time:'text-green-700', chip:'bg-green-100 text-green-700', glow:'bg-green-300' }
     };
 
-    // ---- 音效庫（12 種，可指定、可試聽） ----
+    // 音效庫（12 種，可指定、可試聽）
     const SOUND_LIBRARY = [
       { id:'alarm',        name:'急促警報', emoji:'🚨', notes:[{freq:988,dur:.10,type:'square',gain:.26,gap:.07},{freq:988,dur:.10,type:'square',gain:.26,gap:.07},{freq:988,dur:.10,type:'square',gain:.26,gap:.07},{freq:1245,dur:.24,type:'square',gain:.30}] },
       { id:'ascend',       name:'上行三音', emoji:'🎵', notes:[{freq:523,dur:.13,type:'triangle',gain:.30},{freq:659,dur:.13,type:'triangle',gain:.30},{freq:784,dur:.34,type:'triangle',gain:.32}] },
@@ -225,20 +251,49 @@
       { id:'triple',       name:'三連短嗶', emoji:'🔆', notes:[{freq:880,dur:.09,type:'square',gain:.24,gap:.07},{freq:880,dur:.09,type:'square',gain:.24,gap:.07},{freq:880,dur:.14,type:'square',gain:.26}] },
       { id:'rise',         name:'上升琶音', emoji:'📈', notes:[{freq:523,dur:.09,type:'triangle',gain:.28,gap:.02},{freq:587,dur:.09,type:'triangle',gain:.28,gap:.02},{freq:659,dur:.09,type:'triangle',gain:.28,gap:.02},{freq:784,dur:.09,type:'triangle',gain:.28,gap:.02},{freq:988,dur:.22,type:'triangle',gain:.30}] }
     ];
+    // 音效槽：戰鬥全程一種；重生再分「一分」與「就緒」兩種
     const SOUND_EVENTS = [
-      { key:'low',  label:'一分預備', emoji:'🔔', hint:'剩 1 分鐘' },
-      { key:'mid',  label:'戰鬥結束', emoji:'🔄', hint:'接續重生' },
-      { key:'high', label:'就緒鈴聲', emoji:'✅', hint:'5 秒 / 完成' }
+      { key:'battle',        label:'戰鬥倒數', emoji:'⚔️', hint:'戰鬥全程（1分/5秒/結束）' },
+      { key:'respawn_warn',  label:'重生・一分', emoji:'🌱', hint:'重生剩 1 分鐘' },
+      { key:'respawn_ready', label:'重生・就緒', emoji:'✅', hint:'重生 5 秒 / 完成' }
     ];
-    const DEFAULT_SOUNDS = { low:'dingdong', mid:'ascend', high:'alarm' };
-    const VIBRATION = { low:[400], mid:[200,80,200,80,200], high:[120,60,120,60,120,60,300] };
+    const DEFAULT_SOUNDS = { battle:'alarm', respawn_warn:'dingdong', respawn_ready:'rise' };
+    // 震動依「時機」：一分輕震、就緒急震
+    const VIBRATION = { warn:[400], ready:[120,60,120,60,120,60,300] };
 
     let appData = [];
     let settings = { volume:70, soundOn:true, vibrationOn:true, wakeLock:false, sounds:{ ...DEFAULT_SOUNDS } };
     let currentTabIndex = 0;
     let activeCardIndex = -1;
+    let currentLogSize = 'normal';
     let audioCtx = null, isAudioUnlocked = false;
     let confirmAction = null, wakeLockSentinel = null;
+
+    /* ---------- 小工具 ---------- */
+    function normalizeSounds(s) {
+      s = s || {};
+      const valid = id => SOUND_LIBRARY.find(x => x.id === id);
+      const pick = (...cands) => { for (const c of cands) { if (valid(c)) return c; } return null; };
+      // 相容：舊版 {respawn,battle} 與更舊 {low,mid,high}
+      return {
+        battle:        pick(s.battle, s.high, s.mid) || DEFAULT_SOUNDS.battle,
+        respawn_warn:  pick(s.respawn_warn, s.respawn, s.low) || DEFAULT_SOUNDS.respawn_warn,
+        respawn_ready: pick(s.respawn_ready, s.respawn, s.high) || DEFAULT_SOUNDS.respawn_ready
+      };
+    }
+    function histEntries(h) {
+      return (Array.isArray(h) ? h : []).map(e => {
+        if (typeof e === 'string') return { t: e, s: null };
+        if (e && typeof e === 'object' && e.t) return { t: e.t, s: e.s || null };
+        return null;
+      }).filter(Boolean);
+    }
+    function nextDailyReset() {
+      const now = new Date();
+      const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 18, 0, 0)); // 18:00 UTC
+      if (next.getTime() <= now.getTime()) next.setUTCDate(next.getUTCDate() + 1);
+      return next;
+    }
 
     /* ---------- Toast / Confirm ---------- */
     let toastTimeout;
@@ -273,7 +328,7 @@
           autoChain: !!it.autoChain,
           reminded1m: !!it.reminded1m,
           reminded5s: !!it.reminded5s,
-          history: Array.isArray(it.history) ? it.history : []
+          history: histEntries(it.history)   // 舊版字串紀錄自動轉成 {t,s}
         });
       }
       return out;
@@ -301,8 +356,7 @@
     function loadSettings() {
       const saved = localStorage.getItem(SETTINGS_KEY);
       if (saved) { try { settings = { ...settings, ...JSON.parse(saved) }; } catch (e) {} }
-      settings.sounds = { ...DEFAULT_SOUNDS, ...(settings.sounds || {}) };
-      SOUND_EVENTS.forEach(ev => { if (!SOUND_LIBRARY.find(s => s.id === settings.sounds[ev.key])) settings.sounds[ev.key] = DEFAULT_SOUNDS[ev.key]; });
+      settings.sounds = normalizeSounds(settings.sounds);
       syncSettingsUI();
     }
     function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
@@ -320,7 +374,7 @@
     }
     function toggleSetting(key) {
       settings[key] = !settings[key]; saveSettings(); syncSettingsUI();
-      if (key === 'soundOn' && settings.soundOn) { unlockAudio(); testSound('low'); }
+      if (key === 'soundOn' && settings.soundOn) { unlockAudio(); testSound('respawn_warn'); }
       if (key === 'wakeLock') applyWakeLock();
     }
     function onVolumeChange(val) {
@@ -328,7 +382,7 @@
       document.getElementById('volume-label').innerText = settings.volume + '%';
       saveSettings(); unlockAudio();
       clearTimeout(window._volPreview);
-      window._volPreview = setTimeout(() => previewSound(settings.sounds.low), 220);
+      window._volPreview = setTimeout(() => previewSound(settings.sounds.respawn_warn), 220);
     }
 
     function renderSoundSettings() {
@@ -457,10 +511,11 @@
 
     /* ---------- 操作面板 ---------- */
     function openModal(index) {
-      unlockAudio(); activeCardIndex = index;
+      unlockAudio(); activeCardIndex = index; currentLogSize = 'normal';
       const m = appData[currentTabIndex].items[index];
       document.getElementById('edit-name').value = m.name || `蘑菇 ${index + 1}`;
       document.getElementById('battle-minutes').value = '';
+      document.getElementById('battle-seconds').value = '';
       renderSpeciesPanel();
       document.getElementById('modal-overlay').classList.remove('hidden');
       setTimeout(() => { document.getElementById('action-modal').classList.remove('sheet-hidden'); document.getElementById('action-modal').classList.add('sheet-visible'); }, 10);
@@ -475,38 +530,69 @@
       setTimeout(() => { document.getElementById('modal-overlay').classList.add('hidden'); activeCardIndex = -1; renderGrid(); renderUpNext(); }, 300);
     }
 
-    /* ---------- 菇種記錄器 ---------- */
+    /* ---------- 菇種 + 大小記錄器 ---------- */
+    function renderSizeSeg() {
+      document.getElementById('size-seg').innerHTML = SIZES.map(z => {
+        const on = z.k === currentLogSize;
+        return `<button onclick="setLogSize('${z.k}')" class="flex-1 py-1.5 rounded-lg text-sm font-black transition ${on ? 'bg-gray-800 text-white shadow-sm' : 'bg-white border-2 border-gray-200 text-gray-500'}">${z.label}</button>`;
+      }).join('');
+    }
+    function setLogSize(k) { currentLogSize = k; renderSizeSeg(); }
+
     function renderSpeciesPanel() {
       if (activeCardIndex === -1) return;
       const m = appData[currentTabIndex].items[activeCardIndex];
+
       const day = new Date().getDay(); const isWeekend = (day === 0 || day === 6);
       document.getElementById('weekend-hint').innerHTML = isWeekend
-        ? `<div class="bg-indigo-50 border-2 border-indigo-100 text-indigo-700 rounded-2xl p-3 mb-5 text-sm font-bold flex items-center gap-2"><span class="text-lg">✨</span><span>今天是週末！官方週末巨大菇與特殊菇機率提升（唯一有日曆根據的預測）</span></div>`
-        : '';
+        ? `<div class="bg-indigo-50 border-2 border-indigo-100 text-indigo-700 rounded-2xl p-3 mb-3 text-sm font-bold flex items-center gap-2"><span class="text-lg">✨</span><span>今天是週末！官方週末巨大菇與特殊菇機率提升</span></div>` : '';
+
+      const nr = nextDailyReset(); const ms = nr - Date.now();
+      const hh = Math.floor(ms / 3600000), mm = Math.floor((ms % 3600000) / 60000);
+      const localT = nr.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('reset-hint').innerHTML =
+        `<div class="bg-sky-50 border-2 border-sky-100 text-sky-700 rounded-2xl p-3 mb-5 text-xs font-bold flex items-center gap-2"><span class="text-base">🕑</span><span>未清的蘑菇每天 ${localT} 全部重轉一次（含大小）· 距下次約 ${hh} 小時 ${mm} 分</span></div>`;
+
+      renderSizeSeg();
+
       document.getElementById('species-chips').innerHTML = SPECIES.map(s =>
         `<button onclick="logSpecies('${s.k}')" class="flex items-center gap-1 bg-white border-2 border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-black active:scale-90 transition"><span class="w-3 h-3 rounded-full" style="background:${s.dot};border:1px solid rgba(0,0,0,.12)"></span>${s.label}</button>`).join('');
-      const h = m.history || []; const statsEl = document.getElementById('species-stats');
-      if (!h.length) { statsEl.innerHTML = `<div class="text-xs text-gray-400 font-bold text-center py-3 bg-white rounded-xl border border-dashed border-gray-200">還沒有紀錄</div>`; return; }
-      const counts = {}; h.forEach(k => counts[k] = (counts[k] || 0) + 1);
-      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6); const total = h.length;
+
+      const entries = histEntries(m.history); const statsEl = document.getElementById('species-stats');
+      if (!entries.length) { statsEl.innerHTML = `<div class="text-xs text-gray-400 font-bold text-center py-3 bg-white rounded-xl border border-dashed border-gray-200">還沒有紀錄</div>`; return; }
+
+      const tc = {}; entries.forEach(e => tc[e.t] = (tc[e.t] || 0) + 1);
+      const sortedT = Object.entries(tc).sort((a, b) => b[1] - a[1]).slice(0, 6); const total = entries.length;
       const meta = k => SPECIES.find(s => s.k === k) || { label: k, dot: '#ccc' };
-      const rows = sorted.map(([k, c]) => {
+      const typeBars = sortedT.map(([k, c]) => {
         const pct = Math.round(c / total * 100); const s = meta(k);
         return `<div class="flex items-center gap-2 mb-1.5"><span class="w-3 h-3 rounded-full shrink-0" style="background:${s.dot};border:1px solid rgba(0,0,0,.12)"></span><span class="text-sm font-black w-8 shrink-0">${s.label}</span><div class="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden"><div class="h-full bg-emerald-400 rounded-full" style="width:${pct}%"></div></div><span class="text-xs font-bold text-gray-500 w-16 text-right shrink-0">${c} 次 ${pct}%</span></div>`;
       }).join('');
-      statsEl.innerHTML = `<div class="bg-white rounded-xl p-3 border border-gray-100">${rows}<div class="text-[11px] text-gray-400 font-bold mt-1 text-center">共 ${total} 筆 · 生成為獨立隨機，僅供參考收集</div></div>`;
+
+      const sc = { small:0, normal:0, large:0, giant:0, unknown:0 };
+      entries.forEach(e => { const key = e.s || 'unknown'; sc[key] = (sc[key] || 0) + 1; });
+      const sizeLine = `巨 ${sc.giant} · 大 ${sc.large} · 一般 ${sc.normal} · 小 ${sc.small}` + (sc.unknown ? ` · 未標 ${sc.unknown}` : '');
+      const giantBadge = sc.giant > 0
+        ? `<div class="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-200 text-amber-700 rounded-lg px-2.5 py-1.5 mb-2 text-sm font-black"><span class="text-base">🏆</span>這個點記錄到 ${sc.giant} 次巨大菇</div>` : '';
+
+      statsEl.innerHTML = `<div class="bg-white rounded-xl p-3 border border-gray-100">${giantBadge}${typeBars}
+        <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 text-xs font-bold text-gray-500"><span class="shrink-0">大小</span><span>${sizeLine}</span></div>
+        <div class="text-[11px] text-gray-400 font-bold mt-1 text-center">共 ${total} 筆 · 生成為獨立隨機，僅供參考收集</div></div>`;
     }
-    function logSpecies(k) {
+
+    function logSpecies(t) {
       if (activeCardIndex === -1) return;
       const m = appData[currentTabIndex].items[activeCardIndex];
       if (!Array.isArray(m.history)) m.history = [];
-      m.history.push(k); saveData(); renderSpeciesPanel();
-      const s = SPECIES.find(x => x.k === k); showToast(`已記錄：${s ? s.label : k}`, '📝');
+      m.history.push({ t, s: currentLogSize });
+      saveData(); renderSpeciesPanel();
+      const sp = SPECIES.find(x => x.k === t), sz = SIZES.find(z => z.k === currentLogSize);
+      showToast(`已記錄：${sz ? sz.label : ''}${sp ? sp.label : t}`, '📝');
     }
     function clearSpecies() {
       if (activeCardIndex === -1) return;
       const m = appData[currentTabIndex].items[activeCardIndex];
-      showConfirm('清除此點紀錄？', '將清空這顆蘑菇累積的菇種歷史，計時器不受影響。', () => { m.history = []; saveData(); renderSpeciesPanel(); showToast('已清除歷史紀錄', '🧹'); });
+      showConfirm('清除此點紀錄？', '將清空這顆蘑菇累積的菇種與大小歷史，計時器不受影響。', () => { m.history = []; saveData(); renderSpeciesPanel(); showToast('已清除歷史紀錄', '🧹'); });
     }
 
     /* ---------- 計時核心 ---------- */
@@ -516,13 +602,24 @@
       m.state = 'RESPAWN'; m.targetTime = Date.now() + minutes * 60 * 1000; m.autoChain = false; m.reminded1m = false; m.reminded5s = false;
       saveData(); closeModal(); renderUpNext(); showToast('已開始重生倒數', '🌱');
     }
-    function startBattleChain() {
+    function beginBattle(totalSec) {
       if (activeCardIndex === -1) return;
-      const mins = parseFloat(document.getElementById('battle-minutes').value);
-      if (isNaN(mins) || mins <= 0) { showToast('請輸入有效的分鐘數', '⚠️'); return; }
+      if (!(totalSec > 0)) { showToast('請輸入有效的時間', '⚠️'); return; }
       const m = appData[currentTabIndex].items[activeCardIndex];
-      m.state = 'BATTLE'; m.targetTime = Date.now() + Math.floor(mins * 60 * 1000); m.autoChain = true; m.reminded1m = false; m.reminded5s = false;
-      saveData(); closeModal(); renderUpNext(); showToast('戰鬥接續倒數已啟動', '⚔️');
+      m.state = 'BATTLE'; m.targetTime = Date.now() + Math.round(totalSec * 1000);
+      m.autoChain = true; m.reminded1m = false; m.reminded5s = false;
+      saveData(); closeModal(); renderUpNext();
+      showToast(`戰鬥 ${formatTime(totalSec * 1000)} 倒數開始`, '⚔️');
+    }
+    function startBattleChain() {
+      const min = parseFloat(document.getElementById('battle-minutes').value) || 0;
+      const sec = parseFloat(document.getElementById('battle-seconds').value) || 0;
+      beginBattle(min * 60 + sec);
+    }
+    // 快速鈕：目前分鐘數 + 指定秒數，直接啟動
+    function startBattleQuick(extraSec) {
+      const min = parseFloat(document.getElementById('battle-minutes').value) || 0;
+      beginBattle(min * 60 + extraSec);
     }
     function resetTimer() {
       if (activeCardIndex === -1) return;
@@ -542,15 +639,19 @@
           const remain = m.targetTime - now;
           if (tIdx === currentTabIndex) needsRender = true;
           const safeName = m.name || '未命名'; const tabName = tabData.name || TABS_CONFIG[tIdx].name;
-          if (remain <= 60000 && remain > 0 && !m.reminded1m) { m.reminded1m = true; needsSave = true; triggerAlert(`🍄 ${safeName} 剩 1 分鐘`, `[${tabName}] 一分預備`, 'low'); }
-          if (remain <= 5000 && remain > 0 && !m.reminded5s) { m.reminded5s = true; needsSave = true; triggerAlert(`🍄 ${safeName} 即將就緒`, `[${tabName}] 五秒倒數`, 'high'); }
+          const isBattle = m.state === 'BATTLE';
+          const sLabel = isBattle ? '戰鬥' : '重生';
+          if (remain <= 60000 && remain > 0 && !m.reminded1m) { m.reminded1m = true; needsSave = true; triggerAlert(`🍄 ${safeName} ${sLabel}剩 1 分鐘`, `[${tabName}] ${sLabel}・一分預備`, isBattle ? 'battle' : 'respawn_warn', 'warn'); }
+          if (remain <= 5000 && remain > 0 && !m.reminded5s) { m.reminded5s = true; needsSave = true; triggerAlert(`🍄 ${safeName} ${sLabel}即將就緒`, `[${tabName}] ${sLabel}・五秒倒數`, isBattle ? 'battle' : 'respawn_ready', 'ready'); }
           if (remain <= 0) {
             if (m.state === 'BATTLE' && m.autoChain) {
+              triggerAlert(`⚔️ ${safeName} 戰鬥結束，開始 5 分鐘重生`, `[${tabName}] 戰鬥結束`, 'battle', 'ready');  // 聲音1
               m.state = 'RESPAWN'; m.targetTime = now + 5 * 60 * 1000; m.autoChain = false; m.reminded1m = false; m.reminded5s = false;
-              triggerAlert(`⚔️ ${safeName} 戰鬥結束，開始 5 分鐘重生`, `[${tabName}] 接續重生`, 'mid'); showToast(`⚔️ ${safeName} 戰鬥結束，接續重生`, '🔄');
+              showToast(`⚔️ ${safeName} 戰鬥結束，接續重生`, '🔄');
             } else {
+              triggerAlert(`✅ ${safeName} 重生完畢！`, `[${tabName}] 重生完畢`, 'respawn_ready', 'ready');  // 聲音3
               m.state = 'IDLE'; m.targetTime = 0;
-              triggerAlert(`✅ ${safeName} 準備完畢！`, `[${tabName}] 倒數結束`, 'high'); showToast(`✅ ${safeName} 準備完畢！`, '🍄');
+              showToast(`✅ ${safeName} 準備完畢！`, '🍄');
             }
             needsSave = true;
           }
@@ -560,10 +661,10 @@
     };
 
     /* ---------- 提醒 ---------- */
-    function triggerAlert(message, title, intensity) {
+    function triggerAlert(message, title, soundKey, moment) {
       sendNotification(title, message);
-      if (settings.vibrationOn && navigator.vibrate) navigator.vibrate(VIBRATION[intensity] || [300]);
-      playSound(intensity);
+      if (settings.vibrationOn && navigator.vibrate) navigator.vibrate(VIBRATION[moment] || [300]);
+      playSound(soundKey);
     }
     function sendNotification(title, body) {
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -595,9 +696,9 @@
       });
     }
     function libNotes(id) { const s = SOUND_LIBRARY.find(x => x.id === id); return s ? s.notes : SOUND_LIBRARY[0].notes; }
-    function playSound(intensity) { if (!settings.soundOn) return; playPattern(libNotes(settings.sounds[intensity])); }
+    function playSound(key) { if (!settings.soundOn) return; playPattern(libNotes(settings.sounds[key])); }
     function previewSound(id) { unlockAudio(); playPattern(libNotes(id)); }
-    function testSound(intensity) { unlockAudio(); playPattern(libNotes(settings.sounds[intensity])); if (settings.vibrationOn && navigator.vibrate) navigator.vibrate(VIBRATION[intensity] || [200]); }
+    function testSound(key) { unlockAudio(); playPattern(libNotes(settings.sounds[key])); if (settings.vibrationOn && navigator.vibrate) navigator.vibrate([200]); }
 
     /* ---------- 權限 / Wake Lock ---------- */
     function checkPermissions() { if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') document.getElementById('permission-banner').classList.remove('hidden'); }
@@ -605,7 +706,7 @@
       unlockAudio();
       if ('Notification' in window) {
         Notification.requestPermission().then(p => {
-          if (p === 'granted') { document.getElementById('permission-banner').classList.add('hidden'); showToast('通知與音效已啟用', '🔔'); previewSound(settings.sounds.low); }
+          if (p === 'granted') { document.getElementById('permission-banner').classList.add('hidden'); showToast('通知與音效已啟用', '🔔'); previewSound(settings.sounds.respawn_warn); }
           else showToast('已拒絕通知權限', '❌');
         });
       } else showToast('此瀏覽器不支援通知', '❌');
@@ -620,27 +721,80 @@
     document.body.addEventListener('click', unlockAudio, { once: true });
 
     /* ---------- 匯出 / 匯入 ---------- */
+    // 單頁匯出（純陣列，任何版本都讀得到）
     function exportTab() {
       const tabName = appData[currentTabIndex].name;
       const dataStr = btoa(encodeURIComponent(JSON.stringify(appData[currentTabIndex].items)));
-      const textarea = document.getElementById('import-text'); textarea.value = dataStr;
-      document.getElementById('import-title').innerText = `匯出「${tabName}」`;
+      const ta = document.getElementById('import-text'); ta.value = dataStr;
+      document.getElementById('import-title').innerText = `匯出「${tabName}」（單頁）`;
+      document.getElementById('import-desc').innerText = '已複製到剪貼簿。此為單一頁籤備份（含菇種與大小紀錄），任何版本皆可匯入。';
       document.getElementById('import-modal').classList.remove('hidden');
-      textarea.select(); try { document.execCommand('copy'); showToast('備份字串已複製到剪貼簿', '📋'); } catch (err) {}
+      ta.select(); try { document.execCommand('copy'); showToast('單頁備份已複製到剪貼簿', '📋'); } catch (err) {}
     }
-    function openImportModal() { document.getElementById('import-title').innerText = `匯入至「${appData[currentTabIndex].name}」`; document.getElementById('import-modal').classList.remove('hidden'); }
+    // 全部匯出（5 頁籤 + 設定）
+    function exportAll() {
+      const payload = {
+        app: 'pikmin-mushroom-timer', kind: 'full', v: 4, exportedAt: new Date().toISOString(),
+        tabs: appData.map(t => ({ tabId: t.tabId, name: t.name, items: t.items })),
+        settings: { ...settings }
+      };
+      const dataStr = btoa(encodeURIComponent(JSON.stringify(payload)));
+      closeSettings();
+      const ta = document.getElementById('import-text'); ta.value = dataStr;
+      document.getElementById('import-title').innerText = '匯出全部備份（含設定）';
+      document.getElementById('import-desc').innerText = '已複製到剪貼簿。包含 5 個頁籤的蘑菇（菇種與大小紀錄）與所有設定（音量、依狀態音效、開關）。';
+      document.getElementById('import-modal').classList.remove('hidden');
+      ta.select(); try { document.execCommand('copy'); showToast('完整備份已複製到剪貼簿', '📋'); } catch (e) {}
+    }
+    function openImportModal() {
+      document.getElementById('import-title').innerText = '匯入備份';
+      document.getElementById('import-desc').innerText = '貼上備份字串，會自動辨識：完整備份還原全部頁籤與設定；舊版單頁備份匯入到目前頁籤。';
+      document.getElementById('import-text').value = '';
+      document.getElementById('import-modal').classList.remove('hidden');
+    }
+    function importAll() { closeSettings(); openImportModal(); }
     function closeImportModal() { document.getElementById('import-modal').classList.add('hidden'); document.getElementById('import-text').value = ''; }
-    function importTab() {
-      const dataStr = document.getElementById('import-text').value.trim(); if (!dataStr) return;
-      const tabName = appData[currentTabIndex].name;
-      showConfirm('匯入覆蓋？', `匯入至「${tabName}」，原記錄會被完全覆蓋。`, () => {
-        try {
-          const parsed = JSON.parse(decodeURIComponent(atob(dataStr)));
-          if (!Array.isArray(parsed)) throw new Error('格式不符');
+
+    function restoreFull(obj) {
+      for (let i = 0; i < TABS_CONFIG.length; i++) {
+        const src = (obj.tabs && obj.tabs[i]) || {};
+        appData[i].tabId = TABS_CONFIG[i].id;
+        appData[i].name = (typeof src.name === 'string' && src.name) ? src.name : TABS_CONFIG[i].name;
+        appData[i].items = normalizeItems(src.items, ITEMS_PER_TAB);
+      }
+      if (obj.settings && typeof obj.settings === 'object') {
+        settings = { ...settings, ...obj.settings };
+        settings.sounds = normalizeSounds(settings.sounds);
+        settings.volume = Math.min(100, Math.max(0, parseInt(settings.volume) || 0));
+        saveSettings(); syncSettingsUI(); applyWakeLock();
+      }
+      if (currentTabIndex >= TABS_CONFIG.length) currentTabIndex = 0;
+      saveData(); renderTabs(); renderGrid(); renderUpNext();
+    }
+
+    function doImport() {
+      const dataStr = document.getElementById('import-text').value.trim();
+      if (!dataStr) { showToast('請先貼上備份字串', '⚠️'); return; }
+      let parsed;
+      try { parsed = JSON.parse(decodeURIComponent(atob(dataStr))); }
+      catch (e) { showToast('匯入失敗：字串格式錯誤', '❌'); return; }
+
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.tabs)) {
+        const hasSettings = parsed.settings && typeof parsed.settings === 'object';
+        showConfirm('還原完整備份？', `將覆蓋全部 ${TABS_CONFIG.length} 個頁籤${hasSettings ? '與所有設定（含音效）' : ''}，無法復原。`, () => {
+          restoreFull(parsed); closeImportModal(); showToast('已還原完整備份', '🎉');
+        });
+        return;
+      }
+      if (Array.isArray(parsed)) {
+        const tabName = appData[currentTabIndex].name;
+        showConfirm('匯入到此頁籤？', `偵測為單頁備份，將覆蓋「${tabName}」的記錄。`, () => {
           appData[currentTabIndex].items = normalizeItems(parsed, ITEMS_PER_TAB);
-          saveData(); renderGrid(); renderUpNext(); closeImportModal(); showToast('匯入成功', '🎉');
-        } catch (e) { showToast('匯入失敗：字串格式錯誤', '❌'); }
-      });
+          saveData(); renderGrid(); renderUpNext(); closeImportModal(); showToast('已匯入到目前頁籤', '🎉');
+        });
+        return;
+      }
+      showToast('匯入失敗：無法辨識的格式', '❌');
     }
 
     /* ---------- PWA ---------- */
