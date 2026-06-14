@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>皮克敏蘑菇計時</title>
+
+  <meta name="theme-color" content="#ef4444" id="theme-color-meta">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    body { font-family: 'M PLUS Rounded 1c', sans-serif; background-color: #fdfbf7; }
+    .sheet { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .sheet-hidden { transform: translateY(100%); }
+    .sheet-visible { transform: translateY(0); }
+    .bouncy-card:active { transform: scale(0.95); transition: transform 0.1s; }
+    input[type=range] { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 9999px; background: #e5e7eb; outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; border-radius: 9999px; background: #fff; border: 4px solid #10b981; box-shadow: 0 2px 6px rgba(0,0,0,.2); cursor: pointer; }
+    input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 9999px; background: #fff; border: 4px solid #10b981; cursor: pointer; }
+  </style>
+
+  <link rel="manifest" id="manifest-link">
+  <link rel="apple-touch-icon" id="apple-touch-icon">
+</head>
+<body class="text-gray-800 antialiased select-none no-scrollbar h-screen flex flex-col">
+
+  <!-- Toast -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-xl z-[70] transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-4 flex items-center gap-2 w-max max-w-[90vw]">
+    <span id="toast-icon" class="text-base">✅</span>
+    <span id="toast-msg">提示訊息</span>
+  </div>
+
+  <header id="main-header" class="bg-red-500 text-white pt-3 pb-2 px-3 shadow-md shrink-0 flex flex-col gap-2 rounded-b-2xl transition-colors duration-300 relative z-20">
+    <div class="flex justify-between items-center">
+      <h1 class="text-xl font-black flex items-center gap-1.5 tracking-wide"><span class="text-2xl">🍄</span>蘑菇計時</h1>
+      <div class="flex gap-1.5 items-center">
+        <button onclick="resetCurrentTab()" title="重置本頁" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition active:scale-90">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        </button>
+        <button onclick="exportTab()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2.5 py-2 rounded-lg text-xs font-bold transition active:scale-90">匯出</button>
+        <button onclick="openImportModal()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2.5 py-2 rounded-lg text-xs font-bold transition active:scale-90">匯入</button>
+        <button onclick="openSettings()" title="設定" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition active:scale-90">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        </button>
+      </div>
+    </div>
+    <div class="flex overflow-x-auto no-scrollbar gap-2 py-1 mt-1" id="tab-bar"></div>
+  </header>
+
+  <div id="permission-banner" class="bg-yellow-100 text-yellow-800 p-2.5 text-sm flex justify-between items-center shrink-0 hidden m-3 rounded-xl font-bold border-2 border-yellow-300 shadow-sm">
+    <span>開啟通知與音效，才能盲聽提醒</span>
+    <button onclick="requestPermissions()" class="bg-yellow-300 px-4 py-1.5 rounded-lg shadow-sm active:scale-95 transition text-yellow-900 shrink-0 ml-2">啟用</button>
+  </div>
+
+  <!-- 接下來就緒：跨全部分頁，最快完成的前三個 -->
+  <div class="px-3 pt-2.5 shrink-0">
+    <div class="flex items-center gap-1.5 mb-1.5 px-1">
+      <span class="text-[11px] font-black text-gray-400">接下來就緒</span>
+      <span class="flex items-center gap-1 text-[10px] font-bold text-gray-300 ml-auto">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>重生
+        <span class="w-2 h-2 rounded-full bg-green-500 ml-1.5"></span>戰鬥
+      </span>
+    </div>
+    <div id="upnext-bar" class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"></div>
+  </div>
+
+  <main class="flex-1 overflow-y-auto p-4 pt-3 grid grid-cols-2 gap-4 content-start pb-10" id="mushroom-grid"></main>
+
+  <!-- 操作面板 -->
+  <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden transition-opacity" onclick="closeModal()"></div>
+  <div id="action-modal" class="sheet fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 sheet-hidden pb-8 pt-4 px-5 max-h-[90vh] overflow-y-auto border-t-4 border-gray-100">
+    <div class="w-14 h-1.5 bg-gray-200 rounded-full mx-auto mb-5"></div>
+
+    <div class="mb-5">
+      <label class="block text-sm font-bold text-gray-500 mb-1.5 ml-1">給蘑菇取個名字</label>
+      <input type="text" id="edit-name" onclick="this.select()" class="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3.5 text-lg font-bold focus:border-emerald-400 focus:bg-white focus:outline-none transition" placeholder="例如：家樓下火屬性">
+    </div>
+
+    <!-- 單次重生：琥珀橘 -->
+    <div class="space-y-3 mb-5 bg-amber-50 rounded-2xl p-4 border-2 border-amber-100">
+      <h3 class="text-sm font-black text-amber-600 mb-2 flex items-center gap-1.5"><span class="text-lg">🌱</span> 單次倒數（直接重生）</h3>
+      <button onclick="startTimer(5)" class="w-full bg-amber-400 text-white rounded-xl p-4 text-xl font-black shadow-sm active:scale-95 transition">重生 5 分鐘</button>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="startTimer(6)" class="w-full bg-white text-amber-700 border-2 border-amber-200 rounded-xl p-3 text-base font-bold active:scale-95 transition">+1 分（6 分）</button>
+        <button onclick="startTimer(7)" class="w-full bg-white text-amber-700 border-2 border-amber-200 rounded-xl p-3 text-base font-bold active:scale-95 transition">+2 分（7 分）</button>
+      </div>
+    </div>
+
+    <!-- 戰鬥接續：綠 -->
+    <div class="space-y-3 mb-5 bg-green-50 rounded-2xl p-4 border-2 border-green-100">
+      <h3 class="text-sm font-black text-green-600 mb-2 flex items-center gap-1.5"><span class="text-lg">⚔️</span> 戰鬥接續（打完自動接重生）</h3>
+      <div class="flex gap-3 items-center mb-3">
+        <input type="number" id="battle-minutes" step="0.1" inputmode="decimal" class="flex-1 bg-white border-2 border-green-200 rounded-xl p-4 text-center text-2xl font-black focus:border-green-400 focus:outline-none" placeholder="0" min="0.1" max="100">
+        <span class="font-bold text-green-800 text-base">分鐘後打完</span>
+      </div>
+      <button onclick="startBattleChain()" class="w-full bg-green-500 text-white rounded-xl p-4 text-lg font-black shadow-sm active:scale-95 transition">自動接續 5 分鐘重生</button>
+    </div>
+
+    <!-- 週末提示（唯一有日曆根據的預測） -->
+    <div id="weekend-hint"></div>
+
+    <!-- 菇種記錄器：誠實版，純參考 -->
+    <div class="space-y-3 mb-5 bg-gray-50 rounded-2xl p-4 border-2 border-gray-100">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-black text-gray-600 flex items-center gap-1.5"><span class="text-lg">🔮</span> 菇種紀錄（選填 · 風水參考）</h3>
+        <button onclick="clearSpecies()" class="text-xs font-bold text-gray-400 underline active:scale-95">清除紀錄</button>
+      </div>
+      <p class="text-[11px] text-gray-400 font-bold -mt-1">打完後點一下出的菇種，幫這個點累積歷史。生成是獨立隨機，數據純供參考收集。</p>
+      <div id="species-chips" class="flex flex-wrap gap-2"></div>
+      <div id="species-stats" class="pt-1"></div>
+    </div>
+
+    <div class="pt-1">
+      <button onclick="resetTimer()" class="w-full bg-gray-100 text-gray-500 rounded-xl p-4 text-lg font-bold active:scale-95 transition flex justify-center items-center gap-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+        清除此計時
+      </button>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div id="settings-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden transition-opacity" onclick="closeSettings()"></div>
+  <div id="settings-modal" class="sheet fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 sheet-hidden pb-8 pt-4 px-5 max-h-[90vh] overflow-y-auto border-t-4 border-gray-100">
+    <div class="w-14 h-1.5 bg-gray-200 rounded-full mx-auto mb-5"></div>
+    <h2 class="text-2xl font-black mb-5 text-gray-800 flex items-center gap-2"><span class="text-2xl">⚙️</span> 設定</h2>
+
+    <div class="bg-gray-50 rounded-2xl p-4 mb-4 border-2 border-gray-100">
+      <div class="flex justify-between items-center mb-3">
+        <span class="font-black text-gray-700">提醒音量</span>
+        <span id="volume-label" class="font-black text-emerald-600 text-lg">70%</span>
+      </div>
+      <input type="range" id="volume-slider" min="0" max="100" value="70" class="w-full" oninput="onVolumeChange(this.value)">
+    </div>
+
+    <div class="bg-gray-50 rounded-2xl p-2 mb-4 border-2 border-gray-100 divide-y divide-gray-100">
+      <div class="flex justify-between items-center p-3">
+        <div><div class="font-black text-gray-700">音效提醒</div><div class="text-xs text-gray-400 font-bold">倒數到點時發出嗶聲</div></div>
+        <button id="toggle-sound" onclick="toggleSetting('soundOn')" class="relative w-14 h-8 rounded-full transition-colors shrink-0"></button>
+      </div>
+      <div class="flex justify-between items-center p-3">
+        <div><div class="font-black text-gray-700">震動提醒</div><div class="text-xs text-gray-400 font-bold">部分裝置才支援</div></div>
+        <button id="toggle-vibrate" onclick="toggleSetting('vibrationOn')" class="relative w-14 h-8 rounded-full transition-colors shrink-0"></button>
+      </div>
+      <div class="flex justify-between items-center p-3">
+        <div><div class="font-black text-gray-700">保持螢幕喚醒</div><div class="text-xs text-gray-400 font-bold">避免螢幕關閉造成計時凍結</div></div>
+        <button id="toggle-wake" onclick="toggleSetting('wakeLock')" class="relative w-14 h-8 rounded-full transition-colors shrink-0"></button>
+      </div>
+    </div>
+
+    <div class="bg-gray-50 rounded-2xl p-4 mb-2 border-2 border-gray-100">
+      <div class="font-black text-gray-700 mb-3">試聽音效（點一下聽聽看）</div>
+      <div class="grid grid-cols-3 gap-2.5">
+        <button onclick="testSound('low')" class="bg-white border-2 border-amber-200 text-amber-700 rounded-xl py-3 text-sm font-black active:scale-95 transition flex flex-col items-center gap-1"><span class="text-xl">🔔</span>一分預備</button>
+        <button onclick="testSound('mid')" class="bg-white border-2 border-green-200 text-green-700 rounded-xl py-3 text-sm font-black active:scale-95 transition flex flex-col items-center gap-1"><span class="text-xl">🔄</span>戰鬥結束</button>
+        <button onclick="testSound('high')" class="bg-white border-2 border-red-200 text-red-600 rounded-xl py-3 text-sm font-black active:scale-95 transition flex flex-col items-center gap-1"><span class="text-xl">🚨</span>就緒鈴聲</button>
+      </div>
+      <p class="text-xs text-gray-400 font-bold mt-3 text-center">三種音效旋律刻意做出明顯差異，方便盲聽分辨</p>
+    </div>
+
+    <button onclick="closeSettings()" class="w-full mt-4 py-3.5 bg-gray-800 text-white rounded-xl font-black active:scale-95 transition text-base">完成</button>
+  </div>
+
+  <!-- 匯入 -->
+  <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[55] hidden flex items-center justify-center p-5 backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-[1.5rem] w-full max-w-md p-6 shadow-2xl border-4 border-emerald-100">
+      <h2 class="text-2xl font-black mb-2 text-emerald-800" id="import-title">匯入資料</h2>
+      <p class="text-sm text-gray-500 mb-4 font-bold">貼上備份字串，會覆蓋<span class="text-emerald-600">當前分頁</span>的記錄：</p>
+      <textarea id="import-text" class="w-full h-32 bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 mb-4 text-sm font-mono focus:border-emerald-400 focus:outline-none"></textarea>
+      <div class="flex justify-end gap-3">
+        <button onclick="closeImportModal()" class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold active:scale-95 transition text-base">取消</button>
+        <button onclick="importTab()" class="px-5 py-2.5 bg-emerald-400 text-white rounded-xl font-black active:scale-95 transition shadow-sm text-base">匯入覆蓋</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 確認 -->
+  <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[60] hidden flex items-center justify-center p-5 backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-[1.5rem] w-full max-w-sm p-6 shadow-2xl text-center">
+      <div class="w-14 h-14 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+      </div>
+      <h2 class="text-xl font-black mb-2 text-gray-800" id="confirm-title">確定執行？</h2>
+      <p class="text-sm text-gray-500 mb-6 font-bold" id="confirm-desc">此操作無法復原。</p>
+      <div class="flex gap-3">
+        <button onclick="closeConfirmModal()" class="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold active:scale-95 transition text-base">取消</button>
+        <button onclick="executeConfirm()" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-black active:scale-95 transition shadow-sm text-base">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY_V2 = 'pikmin_mushrooms_v2';
+    const SETTINGS_KEY = 'pikmin_settings_v1';
+
+    const TABS_CONFIG = [
+      { id: 'red',    name: '紅皮克', active: 'bg-red-500 text-white',    hex: '#ef4444' },
+      { id: 'yellow', name: '黃皮克', active: 'bg-yellow-500 text-white', hex: '#eab308' },
+      { id: 'blue',   name: '藍皮克', active: 'bg-blue-500 text-white',   hex: '#3b82f6' },
+      { id: 'purple', name: '紫皮克', active: 'bg-purple-500 text-white', hex: '#a855f7' },
+      { id: 'pink',   name: '粉皮克', active: 'bg-pink-500 text-white',   hex: '#ec4899' }
+    ];
+
+    // 菇種（8 色 + 5 特殊 + 活動）
+    const SPECIES = [
+      { k: 'red',     label: '紅', dot: '#ef4444' },
+      { k: 'yellow',  label: '黃', dot: '#eab308' },
+      { k: 'blue',    label: '藍', dot: '#3b82f6' },
+      { k: 'purple',  label: '紫', dot: '#a855f7' },
+      { k: 'white',   label: '白', dot: '#e5e7eb' },
+      { k: 'pink',    label: '粉', dot: '#ec4899' },
+      { k: 'rock',    label: '岩', dot: '#9ca3af' },
+      { k: 'fire',    label: '火', dot: '#f97316' },
+      { k: 'water',   label: '水', dot: '#06b6d4' },
+      { k: 'electric',label: '電', dot: '#facc15' },
+      { k: 'poison',  label: '毒', dot: '#84cc16' },
+      { k: 'crystal', label: '晶', dot: '#67e8f9' },
+      { k: 'event',   label: '活動', dot: '#f43f5e' }
+    ];
+
+    // 狀態色彩：重生＝橘、戰鬥＝綠、閒置＝灰
+    const STATUS = {
+      IDLE:    { text: '閒置中',   border: 'border-gray-200',  time: 'text-gray-300',  chip: 'bg-gray-100 text-gray-400',   glow: 'bg-gray-200' },
+      RESPAWN: { text: '重生倒數', border: 'border-amber-400', time: 'text-amber-600', chip: 'bg-amber-100 text-amber-700', glow: 'bg-amber-300' },
+      BATTLE:  { text: '戰鬥中',   border: 'border-green-400', time: 'text-green-700', chip: 'bg-green-100 text-green-700', glow: 'bg-green-300' }
+    };
+
+    let appData = [];
+    let settings = { volume: 70, soundOn: true, vibrationOn: true, wakeLock: false };
+    let currentTabIndex = 0;
+    let activeCardIndex = -1;
+    let audioCtx = null;
+    let isAudioUnlocked = false;
+    let confirmAction = null;
+    let wakeLockSentinel = null;
+
+    /* ---------- Toast / Confirm ---------- */
+    let toastTimeout;
+    function showToast(msg, icon = '✅') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      document.getElementById('toast-icon').innerText = icon;
+      toast.classList.remove('opacity-0', '-translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-4');
+      }, 2500);
+    }
+    function showConfirm(title, desc, callback) {
+      document.getElementById('confirm-title').innerText = title;
+      document.getElementById('confirm-desc').innerText = desc;
+      confirmAction = callback;
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+    function closeConfirmModal() { document.getElementById('confirm-modal').classList.add('hidden'); confirmAction = null; }
+    function executeConfirm() { if (confirmAction) confirmAction(); closeConfirmModal(); }
+
+    /* ---------- 初始化 ---------- */
+    function initData() {
+      const savedV2 = localStorage.getItem(STORAGE_KEY_V2);
+      if (savedV2) {
+        try { appData = JSON.parse(savedV2); } catch (e) { console.error(e); }
+      } else {
+        const savedV1 = localStorage.getItem('pikmin_mushrooms_v1');
+        let firstTabData = generateEmptyItems(10);
+        if (savedV1) { try { const p = JSON.parse(savedV1); if (Array.isArray(p)) firstTabData = p; } catch (e) {} }
+        appData = TABS_CONFIG.map((config, idx) => ({ tabId: config.id, name: config.name, items: idx === 0 ? firstTabData : generateEmptyItems(10) }));
+      }
+      // 相容性補欄位
+      appData.forEach((t, i) => {
+        if (!t.name) t.name = TABS_CONFIG[i].name;
+        t.items.forEach(it => { if (!Array.isArray(it.history)) it.history = []; });
+      });
+      saveData();
+      loadSettings();
+      setupPWAIcons();
+      renderTabs();
+      renderGrid();
+      renderUpNext();
+      checkPermissions();
+      applyWakeLock();
+    }
+
+    function generateEmptyItems(count) {
+      return Array.from({ length: count }, (_, i) => ({
+        id: i, name: `蘑菇 ${i + 1}`, state: 'IDLE',
+        targetTime: 0, autoChain: false, reminded1m: false, reminded5s: false, history: []
+      }));
+    }
+    function saveData() { localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(appData)); }
+
+    /* ---------- 設定 ---------- */
+    function loadSettings() {
+      const saved = localStorage.getItem(SETTINGS_KEY);
+      if (saved) { try { settings = { ...settings, ...JSON.parse(saved) }; } catch (e) {} }
+      syncSettingsUI();
+    }
+    function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+    function syncSettingsUI() {
+      document.getElementById('volume-slider').value = settings.volume;
+      document.getElementById('volume-label').innerText = settings.volume + '%';
+      renderToggle('toggle-sound', settings.soundOn);
+      renderToggle('toggle-vibrate', settings.vibrationOn);
+      renderToggle('toggle-wake', settings.wakeLock);
+    }
+    function renderToggle(id, on) {
+      const btn = document.getElementById(id);
+      btn.className = `relative w-14 h-8 rounded-full transition-colors shrink-0 ${on ? 'bg-emerald-400' : 'bg-gray-300'}`;
+      btn.innerHTML = `<span class="absolute top-1 ${on ? 'left-7' : 'left-1'} w-6 h-6 bg-white rounded-full shadow transition-all"></span>`;
+    }
+    function toggleSetting(key) {
+      settings[key] = !settings[key];
+      saveSettings(); syncSettingsUI();
+      if (key === 'soundOn' && settings.soundOn) { unlockAudio(); testSound('low'); }
+      if (key === 'wakeLock') applyWakeLock();
+    }
+    function onVolumeChange(val) {
+      settings.volume = parseInt(val);
+      document.getElementById('volume-label').innerText = settings.volume + '%';
+      saveSettings(); unlockAudio();
+      clearTimeout(window._volPreview);
+      window._volPreview = setTimeout(() => testSound('low'), 220);
+    }
+    function openSettings() {
+      unlockAudio(); syncSettingsUI();
+      document.getElementById('settings-overlay').classList.remove('hidden');
+      setTimeout(() => { document.getElementById('settings-modal').classList.remove('sheet-hidden'); document.getElementById('settings-modal').classList.add('sheet-visible'); }, 10);
+    }
+    function closeSettings() {
+      document.getElementById('settings-modal').classList.remove('sheet-visible');
+      document.getElementById('settings-modal').classList.add('sheet-hidden');
+      setTimeout(() => document.getElementById('settings-overlay').classList.add('hidden'), 300);
+    }
+    function testSound(intensity) {
+      unlockAudio(); playSound(intensity);
+      if (settings.vibrationOn && navigator.vibrate) navigator.vibrate(VIBRATION[intensity] || [200]);
+    }
+
+    /* ---------- 分頁 / 卡片 ---------- */
+    function renderTabs() {
+      const tabBar = document.getElementById('tab-bar');
+      tabBar.innerHTML = '';
+      TABS_CONFIG.forEach((config, index) => {
+        const isAct = index === currentTabIndex;
+        const btn = document.createElement('button');
+        btn.className = `whitespace-nowrap px-4 py-2 rounded-xl text-sm font-black transition-all ${isAct ? config.active + ' shadow-md scale-105' : 'bg-white bg-opacity-30 text-white hover:bg-opacity-50'}`;
+        btn.innerText = config.name;
+        btn.onclick = () => switchTab(index);
+        tabBar.appendChild(btn);
+      });
+      const c = TABS_CONFIG[currentTabIndex];
+      const header = document.getElementById('main-header');
+      header.className = `text-white pt-3 pb-2 px-3 shadow-md shrink-0 flex flex-col gap-2 rounded-b-2xl transition-colors duration-300 ${c.active.split(' ')[0]} relative z-20`;
+      const metaTheme = document.getElementById('theme-color-meta');
+      if (metaTheme) metaTheme.setAttribute('content', c.hex);
+    }
+    function switchTab(index) { currentTabIndex = index; renderTabs(); renderGrid(); }
+
+    function resetCurrentTab() {
+      const tabName = appData[currentTabIndex].name;
+      showConfirm('重置本頁？', `將清除「${tabName}」全部計時器狀態（菇種紀錄會保留），無法復原。`, () => {
+        appData[currentTabIndex].items.forEach(m => { m.state = 'IDLE'; m.targetTime = 0; m.autoChain = false; m.reminded1m = false; m.reminded5s = false; });
+        saveData(); renderGrid(); renderUpNext();
+        showToast(`已重置「${tabName}」`, '♻️');
+      });
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('mushroom-grid');
+      grid.innerHTML = '';
+      const now = Date.now();
+      appData[currentTabIndex].items.forEach((m, index) => {
+        const style = STATUS[m.state];
+        let timeDisplay = '--:--', subText = '', isUrgent = false;
+        if (m.state !== 'IDLE') {
+          const remain = m.targetTime - now;
+          if (remain > 0) {
+            timeDisplay = formatTime(remain);
+            if (m.state === 'BATTLE' && m.autoChain) subText = '打完接續重生';
+            if (remain < 60000) isUrgent = true;
+          }
+        }
+        const card = document.createElement('div');
+        card.className = `bouncy-card bg-white border-[3px] rounded-[1.5rem] p-4 flex flex-col h-[130px] justify-between cursor-pointer shadow-sm relative overflow-hidden ${style.border}`;
+        card.onclick = () => openModal(index);
+        const decBg = m.state !== 'IDLE' ? `<div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full opacity-20 ${style.glow} pointer-events-none"></div>` : '';
+        const safeName = m.name || `蘑菇 ${index + 1}`;
+        const histDot = (m.history && m.history.length) ? `<span class="absolute top-3 right-3 text-[10px] font-black text-gray-300">📒${m.history.length}</span>` : '';
+        const timeColor = isUrgent ? 'text-red-500 animate-pulse' : style.time;
+        card.innerHTML = `
+          ${decBg}${histDot}
+          <div class="relative z-10 flex flex-col h-full">
+            <div>
+              <div class="text-base font-black truncate mb-1 text-gray-800 leading-tight pr-6">${safeName}</div>
+              <div class="inline-block text-xs font-bold px-2 py-0.5 rounded-md ${style.chip}">${style.text}</div>
+            </div>
+            <div class="mt-auto flex flex-col justify-end">
+              <div class="text-4xl font-black tracking-tighter leading-none ${m.state === 'IDLE' ? 'text-gray-300' : timeColor}">${timeDisplay}</div>
+              ${subText ? `<div class="text-[10px] mt-1 font-bold text-gray-400 opacity-90">${subText}</div>` : ''}
+            </div>
+          </div>`;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderUpNext() {
+      const bar = document.getElementById('upnext-bar');
+      const now = Date.now();
+      const active = [];
+      appData.forEach((tab, tIdx) => {
+        tab.items.forEach(m => {
+          if (m.state !== 'IDLE' && m.targetTime > now) active.push({ tIdx, name: m.name || '未命名', remain: m.targetTime - now, state: m.state });
+        });
+      });
+      active.sort((a, b) => a.remain - b.remain);
+      const top = active.slice(0, 3);
+      if (!top.length) {
+        bar.innerHTML = `<div class="text-xs text-gray-400 font-bold py-1.5 px-1">目前沒有進行中的計時 · 點下方蘑菇卡片開始</div>`;
+        return;
+      }
+      bar.innerHTML = top.map((it, i) => {
+        const hex = TABS_CONFIG[it.tIdx].hex;
+        const phase = it.state === 'BATTLE' ? '戰鬥結束' : '重生就緒';
+        const rank = i === 0 ? '下一個' : `第 ${i + 1}`;
+        const urgent = it.remain < 60000;
+        return `<button onclick="switchTab(${it.tIdx})" class="shrink-0 flex items-center gap-2 bg-white border-2 ${urgent ? 'border-red-200' : 'border-gray-100'} rounded-xl pl-2.5 pr-3 py-1.5 shadow-sm active:scale-95 transition">
+          <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${hex}"></span>
+          <div class="text-left leading-tight">
+            <div class="text-[10px] font-bold text-gray-400">${rank} · ${phase}</div>
+            <div class="text-sm font-black text-gray-800 flex items-center gap-1.5">
+              <span class="truncate max-w-[78px]">${it.name}</span>
+              <span class="tabular-nums ${urgent ? 'text-red-500' : 'text-gray-700'}">${formatTime(it.remain)}</span>
+            </div>
+          </div>
+        </button>`;
+      }).join('');
+    }
+
+    function formatTime(ms) {
+      if (ms < 0) ms = 0;
+      const totalSec = Math.floor(ms / 1000);
+      const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+      const s = (totalSec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    /* ---------- 操作面板 ---------- */
+    function openModal(index) {
+      unlockAudio();
+      activeCardIndex = index;
+      const m = appData[currentTabIndex].items[index];
+      document.getElementById('edit-name').value = m.name || `蘑菇 ${index + 1}`;
+      document.getElementById('battle-minutes').value = '';
+      renderSpeciesPanel();
+      document.getElementById('modal-overlay').classList.remove('hidden');
+      setTimeout(() => { document.getElementById('action-modal').classList.remove('sheet-hidden'); document.getElementById('action-modal').classList.add('sheet-visible'); }, 10);
+    }
+    function closeModal() {
+      if (activeCardIndex !== -1) {
+        const newName = document.getElementById('edit-name').value.trim();
+        appData[currentTabIndex].items[activeCardIndex].name = newName || `蘑菇 ${activeCardIndex + 1}`;
+        saveData();
+      }
+      document.getElementById('action-modal').classList.remove('sheet-visible');
+      document.getElementById('action-modal').classList.add('sheet-hidden');
+      setTimeout(() => { document.getElementById('modal-overlay').classList.add('hidden'); activeCardIndex = -1; renderGrid(); renderUpNext(); }, 300);
+    }
+
+    /* ---------- 菇種記錄器（誠實版） ---------- */
+    function renderSpeciesPanel() {
+      if (activeCardIndex === -1) return;
+      const m = appData[currentTabIndex].items[activeCardIndex];
+
+      const day = new Date().getDay();
+      const isWeekend = (day === 0 || day === 6);
+      document.getElementById('weekend-hint').innerHTML = isWeekend
+        ? `<div class="bg-indigo-50 border-2 border-indigo-100 text-indigo-700 rounded-2xl p-3 mb-5 text-sm font-bold flex items-center gap-2"><span class="text-lg">✨</span><span>今天是週末！官方週末巨大菇與特殊菇出現機率提升（這是唯一有日曆根據的預測）</span></div>`
+        : '';
+
+      document.getElementById('species-chips').innerHTML = SPECIES.map(s =>
+        `<button onclick="logSpecies('${s.k}')" class="flex items-center gap-1 bg-white border-2 border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-black active:scale-90 transition">
+          <span class="w-3 h-3 rounded-full" style="background:${s.dot};border:1px solid rgba(0,0,0,.12)"></span>${s.label}
+        </button>`).join('');
+
+      const h = m.history || [];
+      const statsEl = document.getElementById('species-stats');
+      if (!h.length) {
+        statsEl.innerHTML = `<div class="text-xs text-gray-400 font-bold text-center py-3 bg-white rounded-xl border border-dashed border-gray-200">還沒有紀錄</div>`;
+        return;
+      }
+      const counts = {};
+      h.forEach(k => counts[k] = (counts[k] || 0) + 1);
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const total = h.length;
+      const meta = k => SPECIES.find(s => s.k === k) || { label: k, dot: '#ccc' };
+      const rows = sorted.map(([k, c]) => {
+        const pct = Math.round(c / total * 100);
+        const s = meta(k);
+        return `<div class="flex items-center gap-2 mb-1.5">
+          <span class="w-3 h-3 rounded-full shrink-0" style="background:${s.dot};border:1px solid rgba(0,0,0,.12)"></span>
+          <span class="text-sm font-black w-8 shrink-0">${s.label}</span>
+          <div class="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden"><div class="h-full bg-emerald-400 rounded-full" style="width:${pct}%"></div></div>
+          <span class="text-xs font-bold text-gray-500 w-16 text-right shrink-0">${c} 次 ${pct}%</span>
+        </div>`;
+      }).join('');
+      statsEl.innerHTML = `<div class="bg-white rounded-xl p-3 border border-gray-100">${rows}<div class="text-[11px] text-gray-400 font-bold mt-1 text-center">共 ${total} 筆 · 生成為獨立隨機，僅供參考收集</div></div>`;
+    }
+
+    function logSpecies(k) {
+      if (activeCardIndex === -1) return;
+      const m = appData[currentTabIndex].items[activeCardIndex];
+      if (!Array.isArray(m.history)) m.history = [];
+      m.history.push(k);
+      saveData();
+      renderSpeciesPanel();
+      const s = SPECIES.find(x => x.k === k);
+      showToast(`已記錄：${s ? s.label : k}`, '📝');
+    }
+    function clearSpecies() {
+      if (activeCardIndex === -1) return;
+      const m = appData[currentTabIndex].items[activeCardIndex];
+      showConfirm('清除此點紀錄？', '將清空這顆蘑菇累積的菇種歷史，計時器不受影響。', () => {
+        m.history = []; saveData(); renderSpeciesPanel(); showToast('已清除歷史紀錄', '🧹');
+      });
+    }
+
+    /* ---------- 計時核心 ---------- */
+    function startTimer(minutes) {
+      if (activeCardIndex === -1) return;
+      const m = appData[currentTabIndex].items[activeCardIndex];
+      m.state = 'RESPAWN'; m.targetTime = Date.now() + minutes * 60 * 1000;
+      m.autoChain = false; m.reminded1m = false; m.reminded5s = false;
+      saveData(); closeModal(); renderUpNext();
+      showToast('已開始重生倒數', '🌱');
+    }
+    function startBattleChain() {
+      if (activeCardIndex === -1) return;
+      const mins = parseFloat(document.getElementById('battle-minutes').value);
+      if (isNaN(mins) || mins <= 0) { showToast('請輸入有效的分鐘數', '⚠️'); return; }
+      const m = appData[currentTabIndex].items[activeCardIndex];
+      m.state = 'BATTLE'; m.targetTime = Date.now() + Math.floor(mins * 60 * 1000);
+      m.autoChain = true; m.reminded1m = false; m.reminded5s = false;
+      saveData(); closeModal(); renderUpNext();
+      showToast('戰鬥接續倒數已啟動', '⚔️');
+    }
+    function resetTimer() {
+      if (activeCardIndex === -1) return;
+      const m = appData[currentTabIndex].items[activeCardIndex];
+      m.state = 'IDLE'; m.targetTime = 0; m.autoChain = false; m.reminded1m = false; m.reminded5s = false;
+      saveData(); closeModal(); renderUpNext();
+    }
+
+    /* ---------- Worker tick ---------- */
+    const workerBlob = new Blob([`setInterval(() => postMessage('tick'), 500);`], { type: 'application/javascript' });
+    const worker = new Worker(URL.createObjectURL(workerBlob));
+    worker.onmessage = function () {
+      const now = Date.now();
+      let needsRender = false, needsSave = false;
+      appData.forEach((tabData, tIdx) => {
+        tabData.items.forEach(m => {
+          if (m.state === 'IDLE') return;
+          const remain = m.targetTime - now;
+          if (tIdx === currentTabIndex) needsRender = true;
+          const safeName = m.name || '未命名';
+          const tabName = tabData.name || TABS_CONFIG[tIdx].name;
+          if (remain <= 60000 && remain > 0 && !m.reminded1m) {
+            m.reminded1m = true; needsSave = true;
+            triggerAlert(`🍄 ${safeName} 剩 1 分鐘`, `[${tabName}] 一分預備`, 'low');
+          }
+          if (remain <= 5000 && remain > 0 && !m.reminded5s) {
+            m.reminded5s = true; needsSave = true;
+            triggerAlert(`🍄 ${safeName} 即將就緒`, `[${tabName}] 五秒倒數`, 'high');
+          }
+          if (remain <= 0) {
+            if (m.state === 'BATTLE' && m.autoChain) {
+              m.state = 'RESPAWN'; m.targetTime = now + 5 * 60 * 1000; m.autoChain = false;
+              m.reminded1m = false; m.reminded5s = false;
+              triggerAlert(`⚔️ ${safeName} 戰鬥結束，開始 5 分鐘重生`, `[${tabName}] 接續重生`, 'mid');
+              showToast(`⚔️ ${safeName} 戰鬥結束，接續重生`, '🔄');
+            } else {
+              m.state = 'IDLE'; m.targetTime = 0;
+              triggerAlert(`✅ ${safeName} 準備完畢！`, `[${tabName}] 倒數結束`, 'high');
+              showToast(`✅ ${safeName} 準備完畢！`, '🍄');
+            }
+            needsSave = true;
+          }
+        });
+      });
+      renderUpNext();
+      if (needsRender) renderGrid();
+      if (needsSave) saveData();
+    };
+
+    /* ---------- 提醒 ---------- */
+    const VIBRATION = { low: [400], mid: [200, 80, 200, 80, 200], high: [120, 60, 120, 60, 120, 60, 300] };
+    function triggerAlert(message, title, intensity) {
+      sendNotification(title, message);
+      if (settings.vibrationOn && navigator.vibrate) navigator.vibrate(VIBRATION[intensity] || [300]);
+      playSound(intensity);
+    }
+    function sendNotification(title, body) {
+      // 單一檔案版：直接用 Notification（桌面 / iOS 獨立 PWA 可用；
+      // Android Chrome 無 Service Worker 會丟例外，已被 catch，改靠畫面 Toast + 音效 + 震動 + 螢幕喚醒）
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      try { new Notification(title, { body, icon: ICON_URI, tag: 'mushroom-timer' }); } catch (e) {}
+    }
+
+    /* ---------- 音效：三段明顯不同的旋律 ---------- */
+    const SOUND_PATTERNS = {
+      low:  [ { freq: 660, dur: 0.30, type: 'sine', gain: 0.28 }, { freq: 520, dur: 0.45, type: 'sine', gain: 0.28, gap: 0.05 } ],
+      mid:  [ { freq: 523, dur: 0.13, type: 'triangle', gain: 0.30 }, { freq: 659, dur: 0.13, type: 'triangle', gain: 0.30 }, { freq: 784, dur: 0.34, type: 'triangle', gain: 0.32 } ],
+      high: [ { freq: 988, dur: 0.10, type: 'square', gain: 0.26, gap: 0.07 }, { freq: 988, dur: 0.10, type: 'square', gain: 0.26, gap: 0.07 }, { freq: 988, dur: 0.10, type: 'square', gain: 0.26, gap: 0.07 }, { freq: 1245, dur: 0.24, type: 'square', gain: 0.30 } ]
+    };
+    function unlockAudio() {
+      if (isAudioUnlocked) return;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      gain.gain.value = 0; osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(0); osc.stop(0.05); isAudioUnlocked = true;
+    }
+    function playSound(intensity) {
+      if (!settings.soundOn || !audioCtx || !isAudioUnlocked) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const vol = settings.volume / 100;
+      if (vol <= 0) return;
+      const notes = SOUND_PATTERNS[intensity] || SOUND_PATTERNS.low;
+      let t = audioCtx.currentTime + 0.02;
+      notes.forEach(n => {
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.type = n.type; osc.frequency.setValueAtTime(n.freq, t);
+        const peak = Math.max(0.0001, n.gain * vol);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + n.dur);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + n.dur + 0.03);
+        t += n.dur + (n.gap !== undefined ? n.gap : 0.05);
+      });
+    }
+
+    /* ---------- 權限 / Wake Lock ---------- */
+    function checkPermissions() {
+      if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        document.getElementById('permission-banner').classList.remove('hidden');
+      }
+    }
+    function requestPermissions() {
+      unlockAudio();
+      if ('Notification' in window) {
+        Notification.requestPermission().then(p => {
+          if (p === 'granted') { document.getElementById('permission-banner').classList.add('hidden'); showToast('通知與音效已啟用', '🔔'); testSound('low'); }
+          else showToast('已拒絕通知權限', '❌');
+        });
+      } else showToast('此瀏覽器不支援通知', '❌');
+    }
+    async function applyWakeLock() {
+      try {
+        if (settings.wakeLock && 'wakeLock' in navigator) {
+          if (!wakeLockSentinel) { wakeLockSentinel = await navigator.wakeLock.request('screen'); wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; }); }
+        } else if (wakeLockSentinel) { await wakeLockSentinel.release(); wakeLockSentinel = null; }
+      } catch (e) {}
+    }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && settings.wakeLock) applyWakeLock(); });
+    document.body.addEventListener('click', unlockAudio, { once: true });
+
+    /* ---------- 匯出 / 匯入 ---------- */
+    function exportTab() {
+      const tabName = appData[currentTabIndex].name;
+      const dataStr = btoa(encodeURIComponent(JSON.stringify(appData[currentTabIndex].items)));
+      const textarea = document.getElementById('import-text');
+      textarea.value = dataStr;
+      document.getElementById('import-title').innerText = `匯出「${tabName}」`;
+      document.getElementById('import-modal').classList.remove('hidden');
+      textarea.select();
+      try { document.execCommand('copy'); showToast('備份字串已複製到剪貼簿', '📋'); } catch (err) {}
+    }
+    function openImportModal() {
+      document.getElementById('import-title').innerText = `匯入至「${appData[currentTabIndex].name}」`;
+      document.getElementById('import-modal').classList.remove('hidden');
+    }
+    function closeImportModal() { document.getElementById('import-modal').classList.add('hidden'); document.getElementById('import-text').value = ''; }
+    function importTab() {
+      const dataStr = document.getElementById('import-text').value.trim();
+      if (!dataStr) return;
+      const tabName = appData[currentTabIndex].name;
+      showConfirm('匯入覆蓋？', `匯入至「${tabName}」，原記錄會被完全覆蓋。`, () => {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(atob(dataStr)));
+          if (Array.isArray(parsed) && parsed.length === 10) {
+            appData[currentTabIndex].items = parsed.map((item, idx) => ({ ...item, name: item.name || `蘑菇 ${idx + 1}`, history: Array.isArray(item.history) ? item.history : [] }));
+            saveData(); renderGrid(); renderUpNext(); closeImportModal(); showToast('匯入成功', '🎉');
+          } else throw new Error('格式不符');
+        } catch (e) { showToast('匯入失敗：字串格式錯誤', '❌'); }
+      });
+    }
+
+    /* ---------- PWA 圖示 ---------- */
+    const ICON_URI = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2310b981'/%3E%3Ctext x='50' y='66' font-size='52' text-anchor='middle' fill='white'%3E%F0%9F%8D%84%3C/text%3E%3C/svg%3E`;
+    function setupPWAIcons() {
+      document.getElementById('apple-touch-icon').href = ICON_URI;
+      const manifestJSON = {
+        name: "皮克敏蘑菇計時器", short_name: "蘑菇計時", start_url: ".",
+        display: "standalone", background_color: "#fdfbf7", theme_color: "#ef4444",
+        icons: [ { src: ICON_URI, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" }, { src: ICON_URI, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" } ]
+      };
+      const manifestBlob = new Blob([JSON.stringify(manifestJSON)], { type: 'application/json' });
+      document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+    }
+
+    initData();
+  </script>
+</body>
+</html>
