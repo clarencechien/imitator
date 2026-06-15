@@ -57,11 +57,8 @@
 
   <div class="px-3 pt-2.5 shrink-0">
     <div class="flex items-center gap-1.5 mb-1.5 px-1">
-      <span class="text-[11px] font-black text-gray-400">接下來就緒</span>
-      <span class="flex items-center gap-1 text-[10px] font-bold text-gray-300 ml-auto">
-        <span class="w-2 h-2 rounded-full bg-amber-400"></span>重生
-        <span class="w-2 h-2 rounded-full bg-green-500 ml-1.5"></span>戰鬥
-      </span>
+      <span class="text-[11px] font-black text-gray-400">接下來重生就緒</span>
+      <span class="text-[10px] font-bold text-gray-300 ml-auto">最近 3 個重生倒數</span>
     </div>
     <div id="upnext-bar" class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"></div>
   </div>
@@ -491,19 +488,19 @@
     function renderUpNext() {
       const bar = document.getElementById('upnext-bar'); const now = Date.now();
       const active = [];
-      appData.forEach((tab, tIdx) => tab.items.forEach(m => { if (m.state !== 'IDLE' && m.targetTime > now) active.push({ tIdx, name: m.name || '未命名', remain: m.targetTime - now, state: m.state }); }));
+      // 只顯示重生倒數（戰鬥中不列；戰鬥打完會自動接重生，屆時才進入此列）
+      appData.forEach((tab, tIdx) => tab.items.forEach(m => { if (m.state === 'RESPAWN' && m.targetTime > now) active.push({ tIdx, name: m.name || '未命名', remain: m.targetTime - now }); }));
       active.sort((a, b) => a.remain - b.remain);
       const top = active.slice(0, 3);
-      if (!top.length) { bar.innerHTML = `<div class="text-xs text-gray-400 font-bold py-1.5 px-1">目前沒有進行中的計時 · 點下方蘑菇卡片開始</div>`; return; }
+      if (!top.length) { bar.innerHTML = `<div class="text-xs text-gray-400 font-bold py-1.5 px-1">目前沒有重生倒數</div>`; return; }
       bar.innerHTML = top.map((it, i) => {
         const hex = TABS_CONFIG[it.tIdx].hex;
-        const phase = it.state === 'BATTLE' ? '戰鬥結束' : '重生就緒';
         const rank = i === 0 ? '下一個' : `第 ${i + 1}`;
         const urgent = it.remain < 60000;
         return `<button onclick="switchTab(${it.tIdx})" class="shrink-0 flex items-center gap-2 bg-white border-2 ${urgent ? 'border-red-200' : 'border-gray-100'} rounded-xl pl-2.5 pr-3 py-1.5 shadow-sm active:scale-95 transition">
           <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${hex}"></span>
           <div class="text-left leading-tight">
-            <div class="text-[10px] font-bold text-gray-400">${rank} · ${phase}</div>
+            <div class="text-[10px] font-bold text-gray-400">${rank} · 重生就緒</div>
             <div class="text-sm font-black text-gray-800 flex items-center gap-1.5"><span class="truncate max-w-[78px]">${it.name}</span><span class="tabular-nums ${urgent ? 'text-red-500' : 'text-gray-700'}">${formatTime(it.remain)}</span></div>
           </div>
         </button>`;
