@@ -596,18 +596,25 @@
     }
 
     /* ---------- 計時核心 ---------- */
+    // 依起始時長設定提醒旗標：起始就低於門檻者視為「已提醒」，避免一啟動就亂報
+    function armReminders(m, durationMs) {
+      m.reminded1m = durationMs <= 60000;
+      m.reminded5s = durationMs <= 5000;
+    }
     function startTimer(minutes) {
       if (activeCardIndex === -1) return;
       const m = appData[currentTabIndex].items[activeCardIndex];
-      m.state = 'RESPAWN'; m.targetTime = Date.now() + minutes * 60 * 1000; m.autoChain = false; m.reminded1m = false; m.reminded5s = false;
+      const dur = minutes * 60 * 1000;
+      m.state = 'RESPAWN'; m.targetTime = Date.now() + dur; m.autoChain = false; armReminders(m, dur);
       saveData(); closeModal(); renderUpNext(); showToast('已開始重生倒數', '🌱');
     }
     function beginBattle(totalSec) {
       if (activeCardIndex === -1) return;
       if (!(totalSec > 0)) { showToast('請輸入有效的時間', '⚠️'); return; }
       const m = appData[currentTabIndex].items[activeCardIndex];
-      m.state = 'BATTLE'; m.targetTime = Date.now() + Math.round(totalSec * 1000);
-      m.autoChain = true; m.reminded1m = false; m.reminded5s = false;
+      const dur = Math.round(totalSec * 1000);
+      m.state = 'BATTLE'; m.targetTime = Date.now() + dur;
+      m.autoChain = true; armReminders(m, dur);
       saveData(); closeModal(); renderUpNext();
       showToast(`戰鬥 ${formatTime(totalSec * 1000)} 倒數開始`, '⚔️');
     }
@@ -644,14 +651,16 @@
           if (remain <= 60000 && remain > 0 && !m.reminded1m) { m.reminded1m = true; needsSave = true; triggerAlert(`🍄 ${safeName} ${sLabel}剩 1 分鐘`, `[${tabName}] ${sLabel}・一分預備`, isBattle ? 'battle' : 'respawn_warn', 'warn'); }
           if (remain <= 5000 && remain > 0 && !m.reminded5s) { m.reminded5s = true; needsSave = true; triggerAlert(`🍄 ${safeName} ${sLabel}即將就緒`, `[${tabName}] ${sLabel}・五秒倒數`, isBattle ? 'battle' : 'respawn_ready', 'ready'); }
           if (remain <= 0) {
-            if (m.state === 'BATTLE' && m.autoChain) {
-              triggerAlert(`⚔️ ${safeName} 戰鬥結束，開始 5 分鐘重生`, `[${tabName}] 戰鬥結束`, 'battle', 'ready');  // 聲音1
-              m.state = 'RESPAWN'; m.targetTime = now + 5 * 60 * 1000; m.autoChain = false; m.reminded1m = false; m.reminded5s = false;
+            const endedBattle = m.state === 'BATTLE';
+            if (endedBattle && m.autoChain) {
+              triggerAlert(`⚔️ ${safeName} 戰鬥結束，開始 5 分鐘重生`, `[${tabName}] 戰鬥結束`, 'battle', 'ready');  // 戰鬥音效
+              m.state = 'RESPAWN'; m.targetTime = now + 5 * 60 * 1000; m.autoChain = false; armReminders(m, 5 * 60 * 1000);
               showToast(`⚔️ ${safeName} 戰鬥結束，接續重生`, '🔄');
             } else {
-              triggerAlert(`✅ ${safeName} 重生完畢！`, `[${tabName}] 重生完畢`, 'respawn_ready', 'ready');  // 聲音3
+              // 完成音效依「結束當下的狀態」決定：戰鬥→戰鬥音效；重生→重生音效
+              triggerAlert(endedBattle ? `⚔️ ${safeName} 戰鬥結束！` : `✅ ${safeName} 重生完畢！`, `[${tabName}] ${endedBattle ? '戰鬥結束' : '重生完畢'}`, endedBattle ? 'battle' : 'respawn_ready', 'ready');
               m.state = 'IDLE'; m.targetTime = 0;
-              showToast(`✅ ${safeName} 準備完畢！`, '🍄');
+              showToast(endedBattle ? `⚔️ ${safeName} 戰鬥結束！` : `✅ ${safeName} 準備完畢！`, endedBattle ? '⚔️' : '🍄');
             }
             needsSave = true;
           }
