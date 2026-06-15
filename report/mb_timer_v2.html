@@ -260,6 +260,12 @@
     const DEFAULT_SOUNDS = { battle:'alarm', respawn_warn:'dingdong', respawn_ready:'rise' };
     // 震動依「時機」：一分輕震、就緒急震
     const VIBRATION = { warn:[400], ready:[120,60,120,60,120,60,300] };
+    // (狀態 × 事件) → 音效槽：唯一真相。音效只由「當下狀態 + 事件種類」決定，
+    // 不再有任何旁路變數（如 autoChain）能影響聲音，從結構上杜絕「戰鬥放到重生音效」。
+    const ALERT_SOUND = {
+      BATTLE:  { warn: 'battle',       ready: 'battle',        end: 'battle' },
+      RESPAWN: { warn: 'respawn_warn', ready: 'respawn_ready', end: 'respawn_ready' }
+    };
 
     let appData = [];
     let settings = { volume:70, soundOn:true, vibrationOn:true, wakeLock:false, sounds:{ ...DEFAULT_SOUNDS } };
@@ -320,16 +326,17 @@
       const out = [];
       for (let i = 0; i < count; i++) {
         const it = src[i] || {};
-        out.push({
+        const m = {
           id: i,
           name: (typeof it.name === 'string' && it.name) ? it.name : `蘑菇 ${i + 1}`,
           state: ['IDLE','RESPAWN','BATTLE'].includes(it.state) ? it.state : 'IDLE',
           targetTime: typeof it.targetTime === 'number' ? it.targetTime : 0,
           autoChain: !!it.autoChain,
-          reminded1m: !!it.reminded1m,
-          reminded5s: !!it.reminded5s,
-          history: histEntries(it.history)   // 舊版字串紀錄自動轉成 {t,s}
-        });
+          history: histEntries(it.history),   // 舊版字串紀錄自動轉成 {t,s}
+          alerts: []
+        };
+        scheduleAlerts(m);   // 依 state/targetTime 重建本階段提醒排程（時點已過者標 done，不補放/不重放）
+        out.push(m);
       }
       return out;
     }
@@ -443,7 +450,7 @@
     function resetCurrentTab() {
       const tabName = appData[currentTabIndex].name;
       showConfirm('重置本頁？', `將清除「${tabName}」全部計時器狀態（菇種紀錄保留），無法復原。`, () => {
-        appData[currentTabIndex].items.forEach(m => { m.state='IDLE'; m.targetTime=0; m.autoChain=false; m.reminded1m=false; m.reminded5s=false; });
+        appData[currentTabIndex].items.forEach(m => { m.state='IDLE'; m.targetTime=0; m.autoChain=false; m.alerts=[]; });
         saveData(); renderGrid(); renderUpNext(); showToast(`已重置「${tabName}」`, '♻️');
       });
     }
@@ -595,26 +602,45 @@
       showConfirm('清除此點紀錄？', '將清空這顆蘑菇累積的菇種與大小歷史，計時器不受影響。', () => { m.history = []; saveData(); renderSpeciesPanel(); showToast('已清除歷史紀錄', '🧹'); });
     }
 
-    /* ---------- 計時核心 ---------- */
-    // 依起始時長設定提醒旗標：起始就低於門檻者視為「已提醒」，避免一啟動就亂報
-    function armReminders(m, durationMs) {
-      m.reminded1m = durationMs <= 60000;
-      m.reminded5s = durationMs <= 5000;
+    /* ---------- 計時核心（狀態機） ----------
+       狀態：IDLE / RESPAWN / BATTLE
+       轉移：IDLE --startTimer--> RESPAWN
+             IDLE --beginBattle--> BATTLE
+             BATTLE --逾時--> RESPAWN(autoChain) | IDLE
+             RESPAWN --逾時--> IDLE
+             任意 --resetTimer--> IDLE
+       音效是 (state, kind) 的純查表；提醒時點在進入階段時就排好（scheduleAlerts）。 */
+
+    // 進入一個計時階段：設定 state/targetTime 並排好本階段提醒
+    function enterPhase(m, state, durationMs) {
+      m.state = state;
+      m.targetTime = Date.now() + durationMs;
+      scheduleAlerts(m);
     }
+    // 依 state 與 targetTime 重建提醒排程；時點已過者標 done（起始就低於門檻者自動不會放）
+    function scheduleAlerts(m) {
+      m.alerts = [];
+      if (m.state === 'IDLE') return;
+      const now = Date.now();
+      const warnAt = m.targetTime - 60000;
+      const readyAt = m.targetTime - 5000;
+      if (warnAt  < m.targetTime) m.alerts.push({ at: warnAt,  kind: 'warn',  done: warnAt  <= now });
+      if (readyAt < m.targetTime) m.alerts.push({ at: readyAt, kind: 'ready', done: readyAt <= now });
+    }
+
     function startTimer(minutes) {
       if (activeCardIndex === -1) return;
       const m = appData[currentTabIndex].items[activeCardIndex];
-      const dur = minutes * 60 * 1000;
-      m.state = 'RESPAWN'; m.targetTime = Date.now() + dur; m.autoChain = false; armReminders(m, dur);
+      m.autoChain = false;
+      enterPhase(m, 'RESPAWN', minutes * 60 * 1000);
       saveData(); closeModal(); renderUpNext(); showToast('已開始重生倒數', '🌱');
     }
     function beginBattle(totalSec) {
       if (activeCardIndex === -1) return;
       if (!(totalSec > 0)) { showToast('請輸入有效的時間', '⚠️'); return; }
       const m = appData[currentTabIndex].items[activeCardIndex];
-      const dur = Math.round(totalSec * 1000);
-      m.state = 'BATTLE'; m.targetTime = Date.now() + dur;
-      m.autoChain = true; armReminders(m, dur);
+      m.autoChain = true;
+      enterPhase(m, 'BATTLE', Math.round(totalSec * 1000));
       saveData(); closeModal(); renderUpNext();
       showToast(`戰鬥 ${formatTime(totalSec * 1000)} 倒數開始`, '⚔️');
     }
@@ -631,7 +657,7 @@
     function resetTimer() {
       if (activeCardIndex === -1) return;
       const m = appData[currentTabIndex].items[activeCardIndex];
-      m.state = 'IDLE'; m.targetTime = 0; m.autoChain = false; m.reminded1m = false; m.reminded5s = false;
+      m.state = 'IDLE'; m.targetTime = 0; m.autoChain = false; m.alerts = [];
       saveData(); closeModal(); renderUpNext();
     }
 
@@ -643,31 +669,44 @@
       appData.forEach((tabData, tIdx) => {
         tabData.items.forEach(m => {
           if (m.state === 'IDLE') return;
-          const remain = m.targetTime - now;
           if (tIdx === currentTabIndex) needsRender = true;
-          const safeName = m.name || '未命名'; const tabName = tabData.name || TABS_CONFIG[tIdx].name;
-          const isBattle = m.state === 'BATTLE';
-          const sLabel = isBattle ? '戰鬥' : '重生';
-          if (remain <= 60000 && remain > 0 && !m.reminded1m) { m.reminded1m = true; needsSave = true; triggerAlert(`🍄 ${safeName} ${sLabel}剩 1 分鐘`, `[${tabName}] ${sLabel}・一分預備`, isBattle ? 'battle' : 'respawn_warn', 'warn'); }
-          if (remain <= 5000 && remain > 0 && !m.reminded5s) { m.reminded5s = true; needsSave = true; triggerAlert(`🍄 ${safeName} ${sLabel}即將就緒`, `[${tabName}] ${sLabel}・五秒倒數`, isBattle ? 'battle' : 'respawn_ready', 'ready'); }
-          if (remain <= 0) {
-            const endedBattle = m.state === 'BATTLE';
-            if (endedBattle && m.autoChain) {
-              triggerAlert(`⚔️ ${safeName} 戰鬥結束，開始 5 分鐘重生`, `[${tabName}] 戰鬥結束`, 'battle', 'ready');  // 戰鬥音效
-              m.state = 'RESPAWN'; m.targetTime = now + 5 * 60 * 1000; m.autoChain = false; armReminders(m, 5 * 60 * 1000);
-              showToast(`⚔️ ${safeName} 戰鬥結束，接續重生`, '🔄');
-            } else {
-              // 完成音效依「結束當下的狀態」決定：戰鬥→戰鬥音效；重生→重生音效
-              triggerAlert(endedBattle ? `⚔️ ${safeName} 戰鬥結束！` : `✅ ${safeName} 重生完畢！`, `[${tabName}] ${endedBattle ? '戰鬥結束' : '重生完畢'}`, endedBattle ? 'battle' : 'respawn_ready', 'ready');
-              m.state = 'IDLE'; m.targetTime = 0;
-              showToast(endedBattle ? `⚔️ ${safeName} 戰鬥結束！` : `✅ ${safeName} 準備完畢！`, endedBattle ? '⚔️' : '🍄');
-            }
-            needsSave = true;
+          // 階段內提醒（warn / ready）：到時點才放，已 done 不重放
+          if (m.alerts) for (const a of m.alerts) {
+            if (!a.done && a.at <= now) { a.done = true; needsSave = true; fireAlert(m, tabData, tIdx, a.kind); }
           }
+          // 逾時：先放 end 事件（依結束當下狀態選音效），再做狀態轉移
+          if (now >= m.targetTime) { fireAlert(m, tabData, tIdx, 'end'); transition(m); needsSave = true; }
         });
       });
       renderUpNext(); if (needsRender) renderGrid(); if (needsSave) saveData();
     };
+
+    // 觸發一則提醒：音效 = ALERT_SOUND[state][kind]；震動依時機；系統通知
+    function fireAlert(m, tabData, tIdx, kind) {
+      const state = m.state;
+      const soundKey = (ALERT_SOUND[state] || {})[kind] || 'respawn_ready';
+      const sLabel = state === 'BATTLE' ? '戰鬥' : '重生';
+      const tabName = tabData.name || TABS_CONFIG[tIdx].name;
+      const name = m.name || '未命名';
+      let title, body, moment = 'ready';
+      if (kind === 'warn') { title = `[${tabName}] ${sLabel}・一分預備`; body = `🍄 ${name} ${sLabel}剩 1 分鐘`; moment = 'warn'; }
+      else if (kind === 'ready') { title = `[${tabName}] ${sLabel}・五秒倒數`; body = `🍄 ${name} ${sLabel}即將就緒`; }
+      else { title = `[${tabName}] ${state === 'BATTLE' ? '戰鬥結束' : '重生完畢'}`; body = state === 'BATTLE' ? `⚔️ ${name} 戰鬥結束` : `✅ ${name} 重生完畢！`; }
+      triggerAlert(body, title, soundKey, moment);
+    }
+
+    // 逾時後的狀態轉移：BATTLE→RESPAWN(autoChain) 或 →IDLE；RESPAWN→IDLE
+    function transition(m) {
+      const name = m.name || '未命名';
+      if (m.state === 'BATTLE' && m.autoChain) {
+        enterPhase(m, 'RESPAWN', 5 * 60 * 1000);               // 接續重生
+        showToast(`⚔️ ${name} 戰鬥結束，接續重生`, '🔄');
+      } else {
+        const wasBattle = m.state === 'BATTLE';
+        m.state = 'IDLE'; m.targetTime = 0; m.alerts = [];
+        showToast(wasBattle ? `⚔️ ${name} 戰鬥結束！` : `✅ ${name} 準備完畢！`, wasBattle ? '⚔️' : '🍄');
+      }
+    }
 
     /* ---------- 提醒 ---------- */
     function triggerAlert(message, title, soundKey, moment) {
