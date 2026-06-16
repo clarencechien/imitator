@@ -37,6 +37,7 @@
     <div class="flex justify-between items-center">
       <h1 class="text-xl font-black flex items-center gap-1.5 tracking-wide"><span class="text-2xl">🍄</span>蘑菇計時</h1>
       <div class="flex gap-1.5 items-center">
+        <button onclick="openFlower()" title="原地種花計時" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition active:scale-90 text-base leading-none">🌸</button>
         <button onclick="resetCurrentTab()" title="重置本頁" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition active:scale-90">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
         </button>
@@ -176,6 +177,18 @@
     <button onclick="closeSettings()" class="w-full mt-4 py-3.5 bg-gray-800 text-white rounded-xl font-black active:scale-95 transition text-base">完成</button>
   </div>
 
+  <!-- 種花計時 -->
+  <div id="flower-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden transition-opacity" onclick="closeFlower()"></div>
+  <div id="flower-modal" class="sheet fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 sheet-hidden pb-8 pt-4 px-5 max-h-[90vh] overflow-y-auto border-t-4 border-pink-100">
+    <div class="w-14 h-1.5 bg-gray-200 rounded-full mx-auto mb-5"></div>
+    <h2 class="text-2xl font-black mb-1 text-pink-500 flex items-center gap-2"><span class="text-2xl">🌸</span> 原地種花計時</h2>
+    <p class="text-[12px] text-gray-400 font-bold mb-4">原地等待 5 分鐘。時間到會用你設定的「種花計時」音效提醒；結束後需再按一次才會有下一個 5 分鐘。會排在上方狀態列最後。</p>
+    <div id="flower-status" class="bg-pink-50 rounded-2xl p-5 mb-4 border-2 border-pink-100"></div>
+    <button id="flower-start" onclick="startFlower()" class="w-full bg-pink-500 text-white rounded-xl p-4 text-xl font-black shadow-sm active:scale-95 transition">開始 5 分鐘</button>
+    <button id="flower-clear" onclick="clearFlower()" class="w-full mt-3 bg-gray-100 text-gray-500 rounded-xl p-3.5 text-base font-bold active:scale-95 transition hidden">清除種花計時</button>
+    <button onclick="closeFlower()" class="w-full mt-3 py-3.5 bg-gray-800 text-white rounded-xl font-black active:scale-95 transition text-base">關閉</button>
+  </div>
+
   <!-- 匯入 -->
   <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[55] hidden flex items-center justify-center p-5 backdrop-blur-sm transition-opacity">
     <div class="bg-white rounded-[1.5rem] w-full max-w-md p-6 shadow-2xl border-4 border-emerald-100">
@@ -252,9 +265,10 @@
     const SOUND_EVENTS = [
       { key:'battle',        label:'戰鬥倒數', emoji:'⚔️', hint:'戰鬥全程（1分/5秒/結束）' },
       { key:'respawn_warn',  label:'重生・一分', emoji:'🌱', hint:'重生剩 1 分鐘' },
-      { key:'respawn_ready', label:'重生・就緒', emoji:'✅', hint:'重生 5 秒 / 完成' }
+      { key:'respawn_ready', label:'重生・就緒', emoji:'✅', hint:'重生 5 秒 / 完成' },
+      { key:'flower',        label:'種花計時', emoji:'🌸', hint:'原地種花 5 分鐘到' }
     ];
-    const DEFAULT_SOUNDS = { battle:'alarm', respawn_warn:'dingdong', respawn_ready:'rise' };
+    const DEFAULT_SOUNDS = { battle:'alarm', respawn_warn:'dingdong', respawn_ready:'rise', flower:'marimba' };
     // 震動依「時機」：一分輕震、就緒急震
     const VIBRATION = { warn:[400], ready:[120,60,120,60,120,60,300] };
     // (狀態 × 事件) → 音效槽：唯一真相。音效只由「當下狀態 + 事件種類」決定，
@@ -271,6 +285,8 @@
     let currentLogSize = 'normal';
     let audioCtx = null, isAudioUnlocked = false;
     let confirmAction = null, wakeLockSentinel = null;
+    const FLOWER_KEY = 'pikmin_flower_v1';
+    let flower = { targetTime: 0 };   // 全域單一一次性 5 分鐘種花計時；0 = 閒置
 
     /* ---------- 小工具 ---------- */
     function normalizeSounds(s) {
@@ -281,7 +297,8 @@
       return {
         battle:        pick(s.battle, s.high, s.mid) || DEFAULT_SOUNDS.battle,
         respawn_warn:  pick(s.respawn_warn, s.respawn, s.low) || DEFAULT_SOUNDS.respawn_warn,
-        respawn_ready: pick(s.respawn_ready, s.respawn, s.high) || DEFAULT_SOUNDS.respawn_ready
+        respawn_ready: pick(s.respawn_ready, s.respawn, s.high) || DEFAULT_SOUNDS.respawn_ready,
+        flower:        pick(s.flower) || DEFAULT_SOUNDS.flower
       };
     }
     function histEntries(h) {
@@ -350,11 +367,56 @@
       appData.forEach((t, i) => { if (!t.name) t.name = TABS_CONFIG[i].name; t.items = normalizeItems(t.items, ITEMS_PER_TAB); });
       saveData();
       loadSettings();
+      loadFlower();
       setupPWAIcons();
       renderTabs(); renderGrid(); renderUpNext();
       checkPermissions(); applyWakeLock();
     }
     function saveData() { localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(appData)); }
+
+    /* ---------- 種花計時（全域、一次性、不進備份） ---------- */
+    function loadFlower() {
+      try { const s = JSON.parse(localStorage.getItem(FLOWER_KEY)); if (s && typeof s.targetTime === 'number') flower.targetTime = s.targetTime; } catch (e) {}
+      if (flower.targetTime <= Date.now()) flower.targetTime = 0;   // 關 App 期間已過 → 視為結束，不補響
+    }
+    function saveFlower() { localStorage.setItem(FLOWER_KEY, JSON.stringify(flower)); }
+    function openFlower() {
+      unlockAudio(); renderFlowerStatus();
+      document.getElementById('flower-overlay').classList.remove('hidden');
+      setTimeout(() => { document.getElementById('flower-modal').classList.remove('sheet-hidden'); document.getElementById('flower-modal').classList.add('sheet-visible'); }, 10);
+    }
+    function closeFlower() {
+      document.getElementById('flower-modal').classList.remove('sheet-visible');
+      document.getElementById('flower-modal').classList.add('sheet-hidden');
+      setTimeout(() => document.getElementById('flower-overlay').classList.add('hidden'), 300);
+    }
+    function renderFlowerStatus() {
+      const el = document.getElementById('flower-status'); if (!el) return;
+      const now = Date.now();
+      if (flower.targetTime > now) {
+        const remain = flower.targetTime - now;
+        el.innerHTML = `<div class="text-center"><div class="text-5xl font-black tabular-nums ${remain < 60000 ? 'text-red-500 animate-pulse' : 'text-pink-500'}">${formatTime(remain)}</div><div class="text-sm font-bold text-gray-400 mt-1">🌸 種花倒數中</div></div>`;
+        document.getElementById('flower-clear').classList.remove('hidden');
+        document.getElementById('flower-start').innerText = '重新開始 5 分鐘';
+      } else {
+        el.innerHTML = `<div class="text-center text-gray-300 text-5xl font-black">--:--</div>`;
+        document.getElementById('flower-clear').classList.add('hidden');
+        document.getElementById('flower-start').innerText = '開始 5 分鐘';
+      }
+    }
+    function startFlower() {
+      flower.targetTime = Date.now() + 5 * 60 * 1000;
+      saveFlower(); renderUpNext(); closeFlower();
+      showToast('🌸 種花 5 分鐘開始', '🌸');
+    }
+    function clearFlower() {
+      flower.targetTime = 0; saveFlower(); renderUpNext(); renderFlowerStatus();
+      showToast('已清除種花計時', '🧹');
+    }
+    function fireFlowerAlert() {
+      triggerAlert('🌸 原地種花 5 分鐘到！', '🌸 種花計時完成', 'flower', 'ready');
+      showToast('🌸 種花 5 分鐘到！', '🌸');
+    }
 
     /* ---------- 設定 ---------- */
     function loadSettings() {
@@ -446,8 +508,9 @@
 
     function resetCurrentTab() {
       const tabName = appData[currentTabIndex].name;
-      showConfirm('重置本頁？', `將清除「${tabName}」全部計時器狀態（菇種紀錄保留），無法復原。`, () => {
+      showConfirm('重置本頁？', `將清除「${tabName}」全部計時器狀態與原地種花計時（菇種紀錄保留），無法復原。`, () => {
         appData[currentTabIndex].items.forEach(m => { m.state='IDLE'; m.targetTime=0; m.autoChain=false; m.alerts=[]; });
+        flower.targetTime = 0; saveFlower();
         saveData(); renderGrid(); renderUpNext(); showToast(`已重置「${tabName}」`, '♻️');
       });
     }
@@ -492,8 +555,7 @@
       appData.forEach((tab, tIdx) => tab.items.forEach(m => { if (m.state === 'RESPAWN' && m.targetTime > now) active.push({ tIdx, name: m.name || '未命名', remain: m.targetTime - now }); }));
       active.sort((a, b) => a.remain - b.remain);
       const top = active.slice(0, 3);
-      if (!top.length) { bar.innerHTML = `<div class="text-xs text-gray-400 font-bold py-1.5 px-1">目前沒有重生倒數</div>`; return; }
-      bar.innerHTML = top.map((it, i) => {
+      let html = top.map((it, i) => {
         const hex = TABS_CONFIG[it.tIdx].hex;
         const rank = i === 0 ? '下一個' : `第 ${i + 1}`;
         const urgent = it.remain < 60000;
@@ -505,6 +567,18 @@
           </div>
         </button>`;
       }).join('');
+      // 種花計時固定排在所有重生菇之後
+      if (flower.targetTime > now) {
+        const remain = flower.targetTime - now; const urgent = remain < 60000;
+        html += `<button onclick="openFlower()" class="shrink-0 flex items-center gap-2 bg-pink-50 border-2 ${urgent ? 'border-red-200' : 'border-pink-200'} rounded-xl pl-2.5 pr-3 py-1.5 shadow-sm active:scale-95 transition">
+          <span class="text-base shrink-0 leading-none">🌸</span>
+          <div class="text-left leading-tight">
+            <div class="text-[10px] font-bold text-pink-400">原地種花</div>
+            <div class="text-sm font-black tabular-nums ${urgent ? 'text-red-500' : 'text-gray-800'}">${formatTime(remain)}</div>
+          </div>
+        </button>`;
+      }
+      bar.innerHTML = html || `<div class="text-xs text-gray-400 font-bold py-1.5 px-1">目前沒有重生或種花倒數</div>`;
     }
 
     function formatTime(ms) {
@@ -675,6 +749,9 @@
           if (now >= m.targetTime) { fireAlert(m, tabData, tIdx, 'end'); transition(m); needsSave = true; }
         });
       });
+      // 種花計時（全域、一次性）：到點放種花音效後歸零，不自動重來
+      if (flower.targetTime > 0 && now >= flower.targetTime) { fireFlowerAlert(); flower.targetTime = 0; saveFlower(); }
+      if (!document.getElementById('flower-overlay').classList.contains('hidden')) renderFlowerStatus();
       renderUpNext(); if (needsRender) renderGrid(); if (needsSave) saveData();
     };
 
