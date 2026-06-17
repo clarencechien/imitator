@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Blocker · Phase 0 Bench</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     />
+<style>
+  :root{
+    --bg:#0e1320; --panel:#161c2c; --panel2:#1c2435; --line:#2a3346;
+    --txt:#c8d2e0; --muted:#6b7890; --dim:#48556e;
+    --lightning:#58c7ff;   /* 閃電 / 領先訊號 */
+    --rain:#f2b441;        /* 降雨 / ground truth */
+    --hit:#3fd17a;         /* 命中 / pass */
+    --fp:#ff6b6b;          /* 偽陽性 / fail */
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:Inter,system-ui,-apple-system,"Noto Sans TC",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+       font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:var(--lightning)}
+  code,.mono{font-family:var(--mono)}
+  header{padding:18px 22px;border-bottom:1px solid var(--line);
+         display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;letter-spacing:.5px;font-weight:600}
+  header h1 .sub{color:var(--muted);font-weight:400}
+  .corsbadge{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:3px;
+             border:1px solid var(--line);color:var(--muted)}
+  .corsbadge.ok{color:var(--hit);border-color:var(--hit)}
+  .corsbadge.blocked{color:var(--fp);border-color:var(--fp)}
+  nav{display:flex;gap:2px;padding:0 14px;border-bottom:1px solid var(--line);
+      background:var(--panel)}
+  nav button{background:none;border:none;color:var(--muted);font-family:var(--sans);
+             font-size:13px;padding:12px 16px;cursor:pointer;border-bottom:2px solid transparent}
+  nav button:hover{color:var(--txt)}
+  nav button.active{color:var(--lightning);border-bottom-color:var(--lightning)}
+  main{padding:22px;max-width:1180px;margin:0 auto}
+  .tab{display:none}
+  .tab.active{display:block}
+  h2{font-size:14px;letter-spacing:.4px;margin:0 0 4px;font-weight:600}
+  h2 .tag{font-family:var(--mono);font-size:11px;color:var(--muted);margin-right:8px}
+  .lede{color:var(--muted);font-size:13px;margin:0 0 18px;max-width:760px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;
+        padding:16px;margin-bottom:16px}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  input,select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+               border-radius:4px;padding:8px 10px;font-family:var(--mono);font-size:13px}
+  input:focus,select:focus{outline:none;border-color:var(--lightning)}
+  input[type=range]{padding:0;accent-color:var(--lightning)}
+  button.act{background:var(--lightning);color:#06121f;border:none;border-radius:4px;
+             padding:9px 16px;font-weight:600;cursor:pointer;font-size:13px}
+  button.act:hover{filter:brightness(1.1)}
+  button.act.stop{background:var(--fp);color:#1a0606}
+  button.ghost{background:none;border:1px solid var(--line);color:var(--txt);
+               border-radius:4px;padding:8px 13px;cursor:pointer;font-size:13px}
+  button.ghost:hover{border-color:var(--lightning);color:var(--lightning)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:12px}
+  .stat .v{font-family:var(--mono);font-size:22px;font-weight:600}
+  .stat .l{font-size:11px;color:var(--muted);margin-top:2px}
+  .stat.pass{border-color:var(--hit)} .stat.pass .v{color:var(--hit)}
+  .stat.fail{border-color:var(--fp)} .stat.fail .v{color:var(--fp)}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin-top:10px}
+  th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--panel)}
+  .scroll{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:5px}
+  .banner{padding:12px 14px;border-radius:5px;font-size:13px;margin-bottom:14px;display:none}
+  .banner.show{display:block}
+  .banner.err{background:rgba(255,107,107,.1);border:1px solid var(--fp);color:#ffb3b3}
+  .banner.ok{background:rgba(63,209,122,.08);border:1px solid var(--hit);color:#9fe7bd}
+  #map{height:480px;border-radius:6px;border:1px solid var(--line)}
+  .maprow{display:grid;grid-template-columns:1fr 280px;gap:16px}
+  @media(max-width:820px){.maprow{grid-template-columns:1fr}}
+  .legend{font-size:12px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .readout{font-family:var(--mono);font-size:12px}
+  .readout .pt{border-bottom:1px solid var(--line);padding:8px 0}
+  .fires{color:var(--hit)} .nofire{color:var(--dim)}
+  .hist{display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:8px}
+  .hist .bar{flex:1;background:var(--lightning);border-radius:2px 2px 0 0;min-height:2px;
+             position:relative}
+  .hist .bar span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;
+                  font-size:9px;color:var(--muted);font-family:var(--mono)}
+  .note{font-size:12px;color:var(--muted);background:var(--panel2);border-left:2px solid var(--rain);
+        padding:10px 12px;border-radius:0 4px 4px 0;margin:10px 0}
+  .kill{border-left-color:var(--fp)}
+  .muted{color:var(--muted)} .small{font-size:12px}
+  .filechip{font-family:var(--mono);font-size:11px;color:var(--hit)}
+  .colmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px}
+  ul.tight{margin:6px 0;padding-left:18px} ul.tight li{margin:3px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>WEATHER BLOCKER <span class="sub">· Phase 0 Bench</span></h1>
+  <span id="corsBadge" class="corsbadge">CORS: 未測</span>
+  <span class="muted small">單一檔案 · 純前端 · 在你自己的瀏覽器跑</span>
+</header>
+
+<nav>
+  <button data-tab="e1" class="active">E1 · 閃電 Feed 探針</button>
+  <button data-tab="e5">E5 · 觸發幾何沙盒</button>
+  <button data-tab="e3">E3 · 前導性回測</button>
+  <button data-tab="info">E2 / E4 · 為何不在此</button>
+</nav>
+
+<main>
+
+<!-- ============ E1 ============ -->
+<section id="e1" class="tab active">
+  <h2><span class="tag">E1</span>閃電 Feed 延遲與刷新率探針</h2>
+  <p class="lede">打 CWA <code>O-A0039-001</code>，量資料觀測時間 vs 現在的延遲、偵測內容變動間隔（cadence）。第一次成功收到任何回應（即使 4xx）就代表 CORS 通過——這支工具同時是你的 CORS 探針。</p>
+
+  <div id="e1banner" class="banner"></div>
+
+  <div class="card">
+    <div class="row">
+      <div class="field" style="flex:2;min-width:240px">
+        <label>授權碼 Authorization Key</label>
+        <input id="apiKey" placeholder="CWA-XXXXXXXX-..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Dataset ID</label>
+        <input id="datasetId" value="O-A0039-001" style="width:140px">
+      </div>
+      <div class="field">
+        <label>輪詢間隔 (秒)</label>
+        <input id="interval" type="number" value="30" min="5" style="width:90px">
+      </div>
+      <button id="e1start" class="act">開始輪詢</button>
+      <button id="e1once" class="ghost">單次測試</button>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="field" style="flex:1;min-width:280px">
+        <label>Proxy 前綴 (選填 · CORS 被擋時用你的 CF Worker)</label>
+        <input id="proxy" placeholder="https://your-worker.dev/?url=" style="width:100%">
+      </div>
+    </div>
+    <p class="note small" style="margin-top:12px">Proxy 規則：填了就以 <code>前綴 + encodeURIComponent(完整CWA網址)</code> 送出，你的 Worker 從 <code>?url=</code> 取出真實網址轉發並補上 <code>Access-Control-Allow-Origin</code>。</p>
+  </div>
+
+  <div class="card">
+    <div class="stats" style="margin-bottom:6px">
+      <div class="stat"><div class="v" id="s_polls">0</div><div class="l">輪詢次數</div></div>
+      <div class="stat"><div class="v" id="s_changes">0</div><div class="l">內容變動次數</div></div>
+      <div class="stat"><div class="v" id="s_cadence">—</div><div class="l">變動間隔中位數</div></div>
+      <div class="stat"><div class="v" id="s_latency">—</div><div class="l">資料延遲中位數</div></div>
+      <div class="stat"><div class="v" id="s_records">—</div><div class="l">最新筆數</div></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="e1csv" class="ghost">下載 Log (CSV)</button>
+      <button id="e1json" class="ghost">下載最後一筆原始 JSON</button>
+      <button id="e1clear" class="ghost">清空</button>
+    </div>
+    <div class="scroll" style="margin-top:10px">
+      <table>
+        <thead><tr><th>#</th><th>抓取時間</th><th>RTT ms</th><th>最新觀測時間</th><th>延遲</th><th>變動?</th><th>筆數</th></tr></thead>
+        <tbody id="e1rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="note kill"><b>Kill criterion：</b>若有效延遲 &gt; 5 分鐘 <b>或</b> 變動間隔 ≥ 10 分鐘 → Layer 1 前導優勢蒸發。<br>
+  <b>限制：</b>這是「快速探針」不是 2 週無人 logger——分頁背景會被瀏覽器降頻、關掉就斷。真正的 E1 用 CF Worker cron 跑。先用這個在一小時內判斷「即時 vs 10 分鐘批次」。</p>
+</section>
+
+<!-- ============ E5 ============ -->
+<section id="e5" class="tab">
+  <h2><span class="tag">E5</span>觸發幾何沙盒</h2>
+  <p class="lede">H3 res8 邊長約 460m，對流胞是數公里且在移動。比較三種觸發幾何會在哪裡開火，建立對「空間尺度錯配」的直覺。點地圖新增點位。</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label>點擊模式</label>
+        <select id="clickMode">
+          <option value="user">新增使用者點</option>
+          <option value="strike">新增閃電</option>
+        </select>
+      </div>
+      <div class="field"><label>H3 解析度</label>
+        <input id="h3res" type="number" value="8" min="5" max="10" style="width:80px"></div>
+      <div class="field"><label>半徑 R (km)</label>
+        <input id="radiusKm" type="number" value="2" min="0.2" step="0.2" style="width:90px"></div>
+      <div class="field"><label>胞移動 方位° (來向→去向)</label>
+        <input id="bearing" type="number" value="45" style="width:90px"></div>
+      <div class="field"><label>胞速 km/h</label>
+        <input id="speed" type="number" value="30" style="width:80px"></div>
+      <div class="field"><label>前瞻 (分)</label>
+        <input id="lookahead" type="number" value="15" style="width:80px"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field"><label>啟用幾何</label>
+        <div style="display:flex;gap:14px">
+          <label class="small"><input type="checkbox" id="gInhex" checked> in-hex</label>
+          <label class="small"><input type="checkbox" id="gRadius" checked> 半徑 R</label>
+          <label class="small"><input type="checkbox" id="gMotion" checked> 運動外推</label>
+        </div>
+      </div>
+      <button id="e5loadStrikes" class="ghost">載入閃電 CSV</button>
+      <input type="file" id="e5file" accept=".csv" style="display:none">
+      <button id="e5clearStrikes" class="ghost">清閃電</button>
+      <button id="e5clearAll" class="ghost">全清</button>
+    </div>
+  </div>
+
+  <div class="maprow">
+    <div>
+      <div id="map"></div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--lightning)"></i>閃電</span>
+        <span><i class="dot" style="background:#fff"></i>使用者點</span>
+        <span><i class="dot" style="background:var(--hit)"></i>會開火 hex</span>
+        <span><i class="dot" style="background:var(--rain)"></i>運動外推落點</span>
+      </div>
+    </div>
+    <div class="card" style="margin:0">
+      <h2 style="font-size:13px">點位判讀</h2>
+      <div id="e5readout" class="readout"><span class="muted small">點地圖新增使用者點。</span></div>
+    </div>
+  </div>
+  <p class="note">綁「閃電在本 hex」會大量 miss（雷多在胞核、幾格外）；放寬半徑換來 FP；運動外推試圖回答「胞會不會移到你頭上」。哪種幾何站得住，由 E3 用真實資料定奪。</p>
+</section>
+
+<!-- ============ E3 ============ -->
+<section id="e3" class="tab">
+  <h2><span class="tag">E3</span>閃電前導性回測（核心 edge 測試）</h2>
+  <p class="lede">餵兩份 CSV：閃電（經緯度+時間）與降雨/雨量站（經緯度+時間，可選強度）。算領先時間、命中率、偽陽性率，對照 kill criteria。資料收集那半段需後端；這裡負責分析。</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="field"><label>閃電 CSV</label>
+        <button class="ghost" id="ldLight">選擇檔案</button>
+        <input type="file" id="fLight" accept=".csv" style="display:none">
+        <span id="lightChip" class="filechip"></span>
+      </div>
+      <div class="field"><label>降雨 CSV</label>
+        <button class="ghost" id="ldRain">選擇檔案</button>
+        <input type="file" id="fRain" accept=".csv" style="display:none">
+        <span id="rainChip" class="filechip"></span>
+      </div>
+    </div>
+    <div id="lightCols" class="colmap"></div>
+    <div id="rainCols" class="colmap"></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="field"><label>分析點 (lat,lng) · 逗號分隔多點以 ;</label>
+        <input id="e3points" placeholder="25.05,121.55; 25.04,121.61" style="width:280px"></div>
+      <div class="field"><label>幾何</label>
+        <select id="e3geom">
+          <option value="radius">半徑 R</option>
+          <option value="inhex">in-hex (res8)</option>
+        </select></div>
+      <div class="field"><label>R (km)</label><input id="e3R" type="number" value="2" step="0.5" style="width:80px"></div>
+      <div class="field"><label>前瞻窗 N (分)</label><input id="e3N" type="number" value="20" style="width:80px"></div>
+      <div class="field"><label>雨綁定半徑 (km)</label><input id="e3rainR" type="number" value="1" step="0.5" style="width:90px"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field"><label>領先門檻 (分)</label><input id="thLead" type="number" value="5" style="width:80px"></div>
+      <div class="field"><label>命中率門檻 %</label><input id="thHit" type="number" value="70" style="width:80px"></div>
+      <div class="field"><label>FP 門檻 %</label><input id="thFP" type="number" value="30" style="width:80px"></div>
+      <button id="e3run" class="act">執行回測</button>
+      <button id="e3sweep" class="ghost">掃 R=1,2,3,5</button>
+    </div>
+  </div>
+
+  <div id="e3banner" class="banner"></div>
+
+  <div class="card" id="e3resultCard" style="display:none">
+    <div class="stats">
+      <div class="stat" id="st_lead"><div class="v">—</div><div class="l">領先中位數 (分)</div></div>
+      <div class="stat" id="st_hit"><div class="v">—</div><div class="l">命中率</div></div>
+      <div class="stat" id="st_fp"><div class="v">—</div><div class="l">偽陽性率</div></div>
+      <div class="stat"><div class="v" id="st_events">—</div><div class="l">落雨事件</div></div>
+      <div class="stat"><div class="v" id="st_trig">—</div><div class="l">觸發事件</div></div>
+    </div>
+    <h2 style="font-size:13px;margin-top:18px">領先時間分佈 (分)</h2>
+    <div class="hist" id="e3hist"></div>
+    <div id="e3sweepWrap" style="margin-top:26px"></div>
+  </div>
+  <p class="note kill"><b>通過 = 三項同時達標</b>（領先中位數≥門檻、命中率≥門檻、FP≤門檻）。任何一項過不了 → 沒 edge，不做。</p>
+  <p class="note small"><b>演算法假設（可調）：</b>落雨事件 = 距分析點「雨綁定半徑」內、且與前一筆雨間隔≥N 分的第一筆雨；命中 = 事件前 N 分內有合格閃電；領先 = 事件時間 − 窗內最早合格閃電；FP = 一個觸發事件後 N 分內該點無落雨。觸發事件以 N 分為 debounce 合併。</p>
+</section>
+
+<!-- ============ INFO ============ -->
+<section id="info" class="tab">
+  <h2><span class="tag">E2 / E4</span>為何不在這支工具裡</h2>
+  <div class="card">
+    <h2 style="font-size:13px">E2 · 雙偏極化雷達：格點 or 影像？</h2>
+    <p class="small muted">這是查 API catalog 的手動研究，不是寫 code 能代勞的。要做的事：</p>
+    <ul class="tight small">
+      <li>到 opendata 平臺找樹林/林口雙偏極化降雨雷達資料集，看回傳是 <b>JSON 格點數值</b> 還是 <b>PNG 圖磚</b>。</li>
+      <li>若為影像：估每 2 分鐘地理對位 + 逐 H3 取像素的 CF Worker CPU/頻寬，判斷 $0 是否還成立。</li>
+      <li>分支：純影像且破免費額度 → 降級為標準雷達格點 <code>F-B0046-001</code>（QPESUMS 1hr QPF），但要重問降級後還有沒有 edge。</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2 style="font-size:13px">E4 · 推播端到端延遲</h2>
+    <p class="small muted">單一 HTML 測不了 mobile push 端到端——需要真實 push stack（Expo Push / APNs）、實機背景、跨網路狀況。Web Push 是另一條 stack 且 iOS 受限，量不到你會出貨的那條路徑。E4 留到 Phase 3 用真實 App 殼量。</p>
+    <p class="note kill small">提醒：E4 的端到端延遲若 &gt; E3 量到的領先時間，領先就只是理論值——這條 kill criterion 一定要在寫商業邏輯前驗。</p>
+  </div>
+</section>
+
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+       ></script>
+<script src="https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+/* ---------- helpers ---------- */
+const $=id=>document.getElementById(id);
+const med=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y);const m=s.length>>1;
+  return s.length%2?s[m]:(s[m-1]+s[m])/2;};
+const fmtT=d=>d.toLocaleTimeString('zh-TW',{hour12:false})+'.'+String(d.getMilliseconds()).padStart(3,'0').slice(0,2);
+function download(name,text,type){const b=new Blob([text],{type:type||'text/plain'});
+  const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),1000);}
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}},
+          set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
+function hashStr(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h;}
+function setCors(state){const b=$('corsBadge');b.className='corsbadge '+(state||'');
+  b.textContent='CORS: '+(state==='ok'?'通過':state==='blocked'?'被擋':'未測');}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');$(b.dataset.tab).classList.add('active');
+  if(b.dataset.tab==='e5'){ensureMap();setTimeout(()=>map&&map.invalidateSize(),60);}
+});
+
+/* ================= E1 ================= */
+let e1Timer=null, e1Polls=0, e1LastHash=null, e1ChangeTimes=[], e1Latencies=[], e1LastJSON='';
+$('apiKey').value=LS.get('wb_key','');
+$('proxy').value=LS.get('wb_proxy','');
+$('apiKey').oninput=e=>LS.set('wb_key',e.target.value);
+$('proxy').oninput=e=>LS.set('wb_proxy',e.target.value);
+
+function buildUrl(){
+  const id=$('datasetId').value.trim();
+  const key=$('apiKey').value.trim();
+  const base=`https://opendata.cwa.gov.tw/api/v1/rest/datastore/${id}?Authorization=${encodeURIComponent(key)}&format=JSON`;
+  const px=$('proxy').value.trim();
+  return px? px+encodeURIComponent(base) : base;
+}
+// find latest parseable date string anywhere in the object
+function findLatestDate(obj){
+  let best=null;
+  (function walk(o){
+    if(o==null)return;
+    if(typeof o==='string'){
+      if(/\d{4}-\d{2}-\d{2}/.test(o)||/\d{2}:\d{2}/.test(o)){
+        const t=Date.parse(o.replace(' ','T'));
+        if(!isNaN(t)&&(best===null||t>best))best=t;
+      }
+    }else if(typeof o==='object'){for(const k in o)walk(o[k]);}
+  })(obj);
+  return best;
+}
+function largestArrayLen(obj){
+  let n=0;(function walk(o){if(o==null)return;
+    if(Array.isArray(o)){if(o.length>n)n=o.length;o.forEach(walk);}
+    else if(typeof o==='object'){for(const k in o)walk(o[k]);}})(obj);
+  return n;
+}
+function e1Banner(cls,msg){const b=$('e1banner');b.className='banner show '+cls;b.innerHTML=msg;}
+function e1HideBanner(){$('e1banner').className='banner';}
+
+async function pollOnce(){
+  const t0=performance.now();
+  let resp;
+  try{
+    resp=await fetch(buildUrl(),{method:'GET'});
+  }catch(err){
+    setCors('blocked');
+    e1Banner('err','<b>抓取失敗（拋出例外）</b> — 幾乎可確定是 CORS 或網路問題。瀏覽器直連 CWA 被擋。'+
+      '解法：填上方 Proxy 前綴指向你的 CF Worker（回應補 <code>Access-Control-Allow-Origin: *</code>），或改用後端腳本跑 E1。');
+    return;
+  }
+  // got a Response at all => CORS allowed
+  setCors('ok');
+  const rtt=Math.round(performance.now()-t0);
+  let json,text;
+  try{text=await resp.text();json=JSON.parse(text);}
+  catch(e){json=null;}
+  if(!resp.ok){
+    e1Banner('err',`<b>HTTP ${resp.status}</b> — CORS 沒問題（有收到回應），但請求被拒。`+
+      (resp.status===401?' 多半是授權碼錯誤或未帶。':'')+` 回應前 200 字：<code>${(text||'').slice(0,200)}</code>`);
+  }else{ e1HideBanner(); }
+  e1LastJSON=text||'';
+  const latest=json?findLatestDate(json):null;
+  const recs=json?largestArrayLen(json):0;
+  const now=Date.now();
+  let latencySec=null;
+  if(latest!=null){latencySec=Math.round((now-latest)/1000);e1Latencies.push(latencySec);}
+  const h=hashStr(text||'');
+  let changed=false;
+  if(e1LastHash!==null&&h!==e1LastHash){changed=true;e1ChangeTimes.push(now);}
+  e1LastHash=h;
+  e1Polls++;
+  // render row
+  const tr=document.createElement('tr');
+  const latStr = latencySec==null?'—':(latencySec>=120?`${Math.round(latencySec/60)}m`:`${latencySec}s`);
+  const latClass = latencySec!=null&&latencySec>300?'style="color:var(--fp)"':'';
+  tr.innerHTML=`<td>${e1Polls}</td><td>${fmtT(new Date(now))}</td><td>${rtt}</td>`+
+    `<td style="color:var(--rain)">${latest?new Date(latest).toLocaleTimeString('zh-TW',{hour12:false}):'—'}</td>`+
+    `<td ${latClass}>${latStr}</td><td>${changed?'<span style="color:var(--lightning)">✦ 變</span>':'<span class="muted">—</span>'}</td><td>${recs||'—'}</td>`;
+  $('e1rows').prepend(tr);
+  // stats
+  $('s_polls').textContent=e1Polls;
+  $('s_changes').textContent=e1ChangeTimes.length;
+  $('s_records').textContent=recs||'—';
+  if(e1ChangeTimes.length>=2){
+    const gaps=[];for(let i=1;i<e1ChangeTimes.length;i++)gaps.push((e1ChangeTimes[i]-e1ChangeTimes[i-1])/1000);
+    const m=med(gaps);$('s_cadence').textContent=m>=60?`${(m/60).toFixed(1)}m`:`${Math.round(m)}s`;
+    const el=$('s_cadence').parentElement;el.className='stat'+(m>=600?' fail':'');
+  }
+  if(e1Latencies.length){const m=med(e1Latencies);
+    $('s_latency').textContent=m>=120?`${(m/60).toFixed(1)}m`:`${Math.round(m)}s`;
+    const el=$('s_latency').parentElement;el.className='stat'+(m>300?' fail':' pass');}
+}
+$('e1once').onclick=pollOnce;
+$('e1start').onclick=function(){
+  if(e1Timer){clearInterval(e1Timer);e1Timer=null;this.textContent='開始輪詢';this.classList.remove('stop');return;}
+  const sec=Math.max(5,+$('interval').value||30);
+  pollOnce();e1Timer=setInterval(pollOnce,sec*1000);
+  this.textContent='停止輪詢';this.classList.add('stop');
+};
+$('e1clear').onclick=()=>{e1Polls=0;e1LastHash=null;e1ChangeTimes=[];e1Latencies=[];
+  $('e1rows').innerHTML='';['s_polls','s_changes'].forEach(i=>$(i).textContent='0');
+  ['s_cadence','s_latency','s_records'].forEach(i=>{$(i).textContent='—';$(i).parentElement.className='stat';});};
+$('e1csv').onclick=()=>{
+  let csv='poll,fetch_time_iso,latest_obs_iso\n';
+  // reconstruct from rows is lossy; export change/latency series instead
+  csv='type,index,value\n';
+  e1Latencies.forEach((v,i)=>csv+=`latency_sec,${i},${v}\n`);
+  e1ChangeTimes.forEach((v,i)=>csv+=`change_epoch_ms,${i},${v}\n`);
+  download('e1_probe_log.csv',csv,'text/csv');
+};
+$('e1json').onclick=()=>download('e1_last_raw.json',e1LastJSON||'{}','application/json');
+
+/* ================= E5 ================= */
+let map=null, userPts=[], strikes=[], e5layers=[];
+function ensureMap(){
+  if(map)return;
+  map=L.map('map',{zoomControl:true}).setView([25.04,121.53],11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
+  map.on('click',e=>{
+    if($('clickMode').value==='user')userPts.push({lat:e.latlng.lat,lng:e.latlng.lng});
+    else strikes.push({lat:e.latlng.lat,lng:e.latlng.lng,t:Date.now()});
+    drawE5();
+  });
+}
+function clearLayers(){e5layers.forEach(l=>map.removeLayer(l));e5layers=[];}
+function add(l){l.addTo(map);e5layers.push(l);return l;}
+// move a point by bearing(deg from-north, going-to direction)/distance(km)
+function moveLatLng(lat,lng,brgDeg,distKm){
+  const R=6371,br=brgDeg*Math.PI/180,d=distKm/R;
+  const la1=lat*Math.PI/180,lo1=lng*Math.PI/180;
+  const la2=Math.asin(Math.sin(la1)*Math.cos(d)+Math.cos(la1)*Math.sin(d)*Math.cos(br));
+  const lo2=lo1+Math.atan2(Math.sin(br)*Math.sin(d)*Math.cos(la1),Math.cos(d)-Math.sin(la1)*Math.sin(la2));
+  return[la2*180/Math.PI,lo2*180/Math.PI];
+}
+function drawE5(){
+  if(!map)return;clearLayers();
+  const res=+$('h3res').value, R=+$('radiusKm').value;
+  const brg=+$('bearing').value, spd=+$('speed').value, look=+$('lookahead').value;
+  const useHex=$('gInhex').checked, useR=$('gRadius').checked, useM=$('gMotion').checked;
+  const moveDist=spd*(look/60); // km the cell travels in lookahead
+  // strikes
+  strikes.forEach(s=>{
+    add(L.circleMarker([s.lat,s.lng],{radius:4,color:'#58c7ff',fillColor:'#58c7ff',
+      fillOpacity:.9,weight:1}));
+    if(useM){
+      const[pl,pn]=moveLatLng(s.lat,s.lng,brg,moveDist);
+      add(L.polyline([[s.lat,s.lng],[pl,pn]],{color:'#f2b441',weight:1,opacity:.6,dashArray:'3,4'}));
+      add(L.circleMarker([pl,pn],{radius:3,color:'#f2b441',fillColor:'#f2b441',fillOpacity:.8,weight:1}));
+    }
+  });
+  // user points + evaluate
+  let html='';
+  userPts.forEach((u,i)=>{
+    const cell=h3.latLngToCell(u.lat,u.lng,res);
+    const bnd=h3.cellToBoundary(cell); // [[lat,lng]...]
+    let fireHex=false,fireR=false,fireM=false;
+    strikes.forEach(s=>{
+      const sc=h3.latLngToCell(s.lat,s.lng,res);
+      if(sc===cell)fireHex=true;
+      const dist=h3.greatCircleDistance([u.lat,u.lng],[s.lat,s.lng],'km');
+      if(dist<=R)fireR=true;
+      if(useM){const[pl,pn]=moveLatLng(s.lat,s.lng,brg,moveDist);
+        if(h3.greatCircleDistance([u.lat,u.lng],[pl,pn],'km')<=R)fireM=true;}
+    });
+    const fires=(useHex&&fireHex)||(useR&&fireR)||(useM&&fireM);
+    add(L.polygon(bnd,{color:fires?'#3fd17a':'#48556e',weight:2,
+      fillColor:fires?'#3fd17a':'#2a3346',fillOpacity:fires?.18:.06}));
+    add(L.circleMarker([u.lat,u.lng],{radius:5,color:'#fff',fillColor:'#fff',fillOpacity:1,weight:1}));
+    if(useR)add(L.circle([u.lat,u.lng],{radius:R*1000,color:'#48556e',weight:1,
+      fillOpacity:0,dashArray:'4,5'}));
+    html+=`<div class="pt"><b>點 ${i+1}</b> ${u.lat.toFixed(4)},${u.lng.toFixed(4)}<br>`+
+      `<span class="${useHex?(fireHex?'fires':'nofire'):'nofire'}">in-hex ${useHex?(fireHex?'✓開火':'✗'):'(關)'}</span> · `+
+      `<span class="${useR?(fireR?'fires':'nofire'):'nofire'}">半徑 ${useR?(fireR?'✓開火':'✗'):'(關)'}</span> · `+
+      `<span class="${useM?(fireM?'fires':'nofire'):'nofire'}">運動 ${useM?(fireM?'✓開火':'✗'):'(關)'}</span></div>`;
+  });
+  $('e5readout').innerHTML=html||'<span class="muted small">點地圖新增使用者點。</span>';
+}
+['h3res','radiusKm','bearing','speed','lookahead'].forEach(id=>$(id).oninput=drawE5);
+['gInhex','gRadius','gMotion'].forEach(id=>$(id).onchange=drawE5);
+$('e5clearStrikes').onclick=()=>{strikes=[];drawE5();};
+$('e5clearAll').onclick=()=>{strikes=[];userPts=[];drawE5();};
+$('e5loadStrikes').onclick=()=>$('e5file').click();
+$('e5file').onchange=e=>{const f=e.target.files[0];if(!f)return;
+  Papa.parse(f,{header:true,dynamicTyping:true,skipEmptyLines:true,complete:r=>{
+    const rows=r.data;const k=Object.keys(rows[0]||{});
+    const latK=k.find(x=>/lat/i.test(x)), lngK=k.find(x=>/lon|lng/i.test(x)),
+          tK=k.find(x=>/time|date/i.test(x));
+    if(!latK||!lngK){alert('CSV 需有 lat / lon 欄');return;}
+    strikes=rows.filter(x=>x[latK]!=null&&x[lngK]!=null)
+      .map(x=>({lat:+x[latK],lng:+x[lngK],t:tK?Date.parse(String(x[tK]).replace(' ','T'))||Date.now():Date.now()}));
+    ensureMap();drawE5();
+    if(strikes.length){map.setView([strikes[0].lat,strikes[0].lng],11);}
+  }});};
+
+/* ================= E3 ================= */
+let lightRows=null, rainRows=null, lightK={}, rainK={};
+function colSelect(prefix,cols,guesses){
+  // guesses: {lat:regex,...}; build selects
+  return Object.entries(guesses).map(([role,rx])=>{
+    const g=cols.find(c=>rx.test(c))||cols[0];
+    const opts=cols.map(c=>`<option ${c===g?'selected':''}>${c}</option>`).join('');
+    return `<div class="field"><label>${prefix} ${role}</label>
+      <select data-role="${prefix}-${role}">${opts}</select></div>`;
+  }).join('');
+}
+$('ldLight').onclick=()=>$('fLight').click();
+$('ldRain').onclick=()=>$('fRain').click();
+$('fLight').onchange=e=>loadCsv(e.target.files[0],'light');
+$('fRain').onchange=e=>loadCsv(e.target.files[0],'rain');
+function loadCsv(f,which){if(!f)return;
+  Papa.parse(f,{header:true,dynamicTyping:true,skipEmptyLines:true,complete:r=>{
+    const rows=r.data.filter(x=>Object.keys(x).length>1);const cols=Object.keys(rows[0]||{});
+    if(which==='light'){lightRows=rows;$('lightChip').textContent=f.name+' ('+rows.length+')';
+      $('lightCols').innerHTML=colSelect('light',cols,{lat:/lat/i,lng:/lon|lng/i,time:/time|date/i});}
+    else{rainRows=rows;$('rainChip').textContent=f.name+' ('+rows.length+')';
+      $('rainCols').innerHTML=colSelect('rain',cols,{lat:/lat/i,lng:/lon|lng/i,time:/time|date/i});}
+  }});}
+function colVal(role){const s=document.querySelector(`[data-role="${role}"]`);return s?s.value:null;}
+function parseT(v){return Date.parse(String(v).replace(' ','T'));}
+function distKm(a,b){return h3.greatCircleDistance(a,b,'km');}
+
+function e3banner(cls,msg){const b=$('e3banner');b.className='banner show '+cls;b.textContent=msg;}
+
+function runBacktest(Rover){
+  if(!lightRows||!rainRows){e3banner('err','請先載入閃電與降雨兩份 CSV。');return null;}
+  const llat=colVal('light-lat'),llng=colVal('light-lng'),lt=colVal('light-time');
+  const rlat=colVal('rain-lat'),rlng=colVal('rain-lng'),rt=colVal('rain-time');
+  const pts=$('e3points').value.split(';').map(s=>s.trim()).filter(Boolean)
+    .map(s=>{const[a,b]=s.split(',').map(Number);return[a,b];}).filter(p=>!isNaN(p[0])&&!isNaN(p[1]));
+  if(!pts.length){e3banner('err','請填至少一個分析點 lat,lng。');return null;}
+  const R=Rover!=null?Rover:+$('e3R').value;
+  const N=+$('e3N').value, rainR=+$('e3rainR').value, geom=$('e3geom').value, res=8;
+  const light=lightRows.map(x=>({lat:+x[llat],lng:+x[llng],t:parseT(x[lt])}))
+    .filter(x=>!isNaN(x.lat)&&!isNaN(x.lng)&&!isNaN(x.t)).sort((a,b)=>a.t-b.t);
+  const rain=rainRows.map(x=>({lat:+x[rlat],lng:+x[rlng],t:parseT(x[rt])}))
+    .filter(x=>!isNaN(x.lat)&&!isNaN(x.lng)&&!isNaN(x.t)).sort((a,b)=>a.t-b.t);
+  if(!light.length||!rain.length){e3banner('err','解析後無有效資料列，檢查欄位對應。');return null;}
+  e3banner('ok',`閃電 ${light.length} 筆、降雨 ${rain.length} 筆、分析點 ${pts.length}、R=${R}km、N=${N}min`);
+
+  let events=0,hits=0,leads=[],trig=0,fp=0;
+  const Nms=N*60000;
+  pts.forEach(P=>{
+    const cell=h3.latLngToCell(P[0],P[1],res);
+    const qualify=s=> geom==='inhex'? h3.latLngToCell(s.lat,s.lng,res)===cell
+                                     : distKm(P,[s.lat,s.lng])<=R;
+    const sigs=light.filter(qualify).map(s=>s.t);
+    // rain near point
+    const wet=rain.filter(r=>distKm(P,[r.lat,r.lng])<=rainR).map(r=>r.t).sort((a,b)=>a-b);
+    // rain onset events: first wet after dry gap >= N
+    const onsets=[];let prev=-Infinity;
+    wet.forEach(t=>{if(t-prev>=Nms)onsets.push(t);prev=t;});
+    events+=onsets.length;
+    onsets.forEach(Te=>{
+      const win=sigs.filter(ts=>ts>=Te-Nms&&ts<=Te);
+      if(win.length){hits++;leads.push((Te-Math.min(...win))/60000);}
+    });
+    // trigger events: debounce signals by N
+    const trigEv=[];prev=-Infinity;sigs.sort((a,b)=>a-b).forEach(ts=>{if(ts-prev>=Nms)trigEv.push(ts);prev=ts;});
+    trig+=trigEv.length;
+    trigEv.forEach(Ts=>{
+      const rainAfter=wet.some(t=>t>=Ts&&t<=Ts+Nms);
+      if(!rainAfter)fp++;
+    });
+  });
+  const leadMed=med(leads);
+  return{events,hits,leads,leadMed,trig,fp,R,
+    hitRate:events?hits/events:0, fpRate:trig?fp/trig:0};
+}
+function applyResult(res){
+  if(!res)return;
+  $('e3resultCard').style.display='block';
+  const thLead=+$('thLead').value,thHit=+$('thHit').value/100,thFP=+$('thFP').value/100;
+  const setStat=(id,val,pass,suffix)=>{const el=$(id);el.querySelector('.v').textContent=val;
+    el.className='stat '+(pass?'pass':'fail');};
+  setStat('st_lead',res.leadMed==null?'—':res.leadMed.toFixed(1), res.leadMed!=null&&res.leadMed>=thLead);
+  setStat('st_hit',(res.hitRate*100).toFixed(0)+'%', res.hitRate>=thHit);
+  setStat('st_fp',(res.fpRate*100).toFixed(0)+'%', res.fpRate<=thFP);
+  $('st_events').textContent=res.events;$('st_trig').textContent=res.trig;
+  // histogram of leads (0..N in bins)
+  const N=+$('e3N').value, bins=10, w=N/bins, counts=new Array(bins).fill(0);
+  res.leads.forEach(v=>{let b=Math.min(bins-1,Math.floor(v/w));if(b>=0)counts[b]++;});
+  const max=Math.max(1,...counts);
+  $('e3hist').innerHTML=counts.map((c,i)=>
+    `<div class="bar" style="height:${c/max*100}%" title="${(i*w).toFixed(0)}-${((i+1)*w).toFixed(0)}分: ${c}">
+      <span>${(i*w).toFixed(0)}</span></div>`).join('');
+}
+$('e3run').onclick=()=>{const r=runBacktest();applyResult(r);$('e3sweepWrap').innerHTML='';};
+$('e3sweep').onclick=()=>{
+  const Rs=[1,2,3,5],rows=[];let last=null;
+  for(const R of Rs){const r=runBacktest(R);if(!r)return;last=r;
+    rows.push({R,...r});}
+  applyResult(last);
+  const thLead=+$('thLead').value,thHit=+$('thHit').value/100,thFP=+$('thFP').value/100;
+  let html='<h2 style="font-size:13px">R 掃描</h2><table><thead><tr><th>R (km)</th><th>領先中位</th><th>命中率</th><th>FP 率</th><th>事件</th><th>觸發</th><th>判定</th></tr></thead><tbody>';
+  rows.forEach(r=>{const pass=(r.leadMed!=null&&r.leadMed>=thLead)&&r.hitRate>=thHit&&r.fpRate<=thFP;
+    html+=`<tr><td>${r.R}</td><td>${r.leadMed==null?'—':r.leadMed.toFixed(1)}</td>`+
+      `<td>${(r.hitRate*100).toFixed(0)}%</td><td>${(r.fpRate*100).toFixed(0)}%</td>`+
+      `<td>${r.events}</td><td>${r.trig}</td>`+
+      `<td style="color:${pass?'var(--hit)':'var(--fp)'}">${pass?'PASS':'fail'}</td></tr>`;});
+  html+='</tbody></table>';
+  $('e3sweepWrap').innerHTML=html;
+};
+</script>
+</body>
+</html>
