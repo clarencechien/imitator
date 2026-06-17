@@ -129,6 +129,20 @@
         <input id="datasetId" value="O-A0039-001" style="width:140px">
       </div>
       <div class="field">
+        <label>API 端點</label>
+        <select id="endpoint" style="width:130px">
+          <option value="fileapi" selected>fileapi (檔案)</option>
+          <option value="datastore">datastore (查詢)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>格式</label>
+        <select id="fmt" style="width:90px">
+          <option value="JSON" selected>JSON</option>
+          <option value="XML">XML</option>
+        </select>
+      </div>
+      <div class="field">
         <label>輪詢間隔 (秒)</label>
         <input id="interval" type="number" value="30" min="5" style="width:90px">
       </div>
@@ -347,9 +361,22 @@ $('proxy').oninput=e=>LS.set('wb_proxy',e.target.value);
 function buildUrl(){
   const id=$('datasetId').value.trim();
   const key=$('apiKey').value.trim();
-  const base=`https://opendata.cwa.gov.tw/api/v1/rest/datastore/${id}?Authorization=${encodeURIComponent(key)}&format=JSON`;
+  const fmt=$('fmt').value;
+  const ep=$('endpoint').value;
+  const path = ep==='fileapi'
+    ? `https://opendata.cwa.gov.tw/fileapi/v1/opendataapi/${id}`
+    : `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${id}`;
+  const base=`${path}?Authorization=${encodeURIComponent(key)}&format=${fmt}`;
   const px=$('proxy').value.trim();
   return px? px+encodeURIComponent(base) : base;
+}
+// pull the latest parseable datetime out of raw text (works for XML / file dumps)
+function findLatestDateInText(text){
+  let best=null;
+  const re=/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?([+\-]\d{2}:?\d{2}|Z)?/g;
+  let m;while((m=re.exec(text))){const t=Date.parse(m[0].replace(' ','T'));
+    if(!isNaN(t)&&(best===null||t>best))best=t;}
+  return best;
 }
 // find latest parseable date string anywhere in the object
 function findLatestDate(obj){
@@ -396,7 +423,7 @@ async function pollOnce(){
       (resp.status===401?' 多半是授權碼錯誤或未帶。':'')+` 回應前 200 字：<code>${(text||'').slice(0,200)}</code>`);
   }else{ e1HideBanner(); }
   e1LastJSON=text||'';
-  const latest=json?findLatestDate(json):null;
+  const latest = (json?findLatestDate(json):null) ?? (text?findLatestDateInText(text):null);
   const recs=json?largestArrayLen(json):0;
   const now=Date.now();
   let latencySec=null;
