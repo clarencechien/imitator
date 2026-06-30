@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>誠實魔術 · Match-3 TAS</title>
+<style>
+:root{
+ --bg:#07070c; --ink:#ece8dc; --muted:#857f70; --line:#211f2b;
+ --gold:#f0c14b; --xray:#46c9ff; --panel:#0e0e17;
+ --g0:#ff5d6c; --g1:#4f9bff; --g2:#43d17e; --g3:#f4cd4a; --g4:#b274ff;
+ --cell:46px; --gap:4px; --pad:9px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100vh;color:var(--ink);
+ background:radial-gradient(130% 90% at 50% -8%,#1d1b29 0%,#0c0c14 48%,#06060a 100%);
+ font-family:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,monospace;
+ display:flex;flex-direction:column;align-items:center;padding:24px 14px 70px;overflow-x:hidden;}
+.eyebrow{letter-spacing:.34em;text-transform:uppercase;font-size:10.5px;color:var(--muted);margin-bottom:7px}
+h1{margin:0;font-size:21px;font-weight:600}
+h1 .em{color:var(--gold)}
+.tag{margin:9px 0 16px;font-size:12px;color:var(--muted);text-align:center;line-height:1.7;max-width:560px}
+.tag b{color:var(--ink);font-weight:600}
+
+.hero{position:relative;display:flex;align-items:baseline;gap:11px;height:78px}
+.combo{font-size:76px;font-weight:700;line-height:.86;font-variant-numeric:tabular-nums;color:var(--gold);
+ text-shadow:0 0 26px rgba(240,193,75,.30);transition:transform .1s}
+.combo.pop{transform:translateY(-3px) scale(1.07)}
+.combo.x{color:var(--xray);text-shadow:0 0 26px rgba(70,201,255,.34)}
+.t10{color:#ffd36b} .t25{color:#ff9d4d;text-shadow:0 0 28px rgba(255,157,77,.45)}
+.t50{color:#ff6fb0;text-shadow:0 0 32px rgba(255,111,176,.5)}
+.t75{color:#c98bff;text-shadow:0 0 36px rgba(201,139,255,.55)}
+.target-of{font-size:30px;color:var(--muted);font-weight:600}
+.combocap{font-size:12px;color:var(--muted);letter-spacing:.2em;margin-top:2px}
+.milestone{position:fixed;top:30%;left:50%;transform:translate(-50%,-50%) scale(.6);
+ font-size:46px;font-weight:800;letter-spacing:.04em;opacity:0;pointer-events:none;z-index:40;
+ color:#fff;text-shadow:0 0 40px currentColor;transition:none}
+.milestone.show{animation:flare 1.05s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes flare{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+ 18%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}
+ 70%{opacity:1;transform:translate(-50%,-55%) scale(1)}
+ 100%{opacity:0;transform:translate(-50%,-72%) scale(1)}}
+
+.strip{display:flex;margin:13px 0 16px;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:rgba(255,255,255,.012)}
+.stat{padding:8px 15px;text-align:center;border-right:1px solid var(--line)}
+.stat:last-child{border-right:none}
+.stat .k{font-size:9.5px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase}
+.stat .v{font-size:17px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+.v.safe{color:var(--g2)} .v.safe.zero::after{content:" ✓";font-size:12px}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-bottom:13px}
+button{font-family:inherit;background:#14141e;color:var(--ink);border:1px solid var(--line);
+ padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px;transition:.15s}
+button:hover{border-color:#3a3a47;background:#1a1a26}
+button:disabled{opacity:.4;cursor:not-allowed}
+#stage{background:var(--gold);color:#161007;border-color:var(--gold);font-weight:700}
+#stage:hover:not(:disabled){background:#f6cd62;box-shadow:0 0 22px rgba(240,193,75,.45)}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chip{padding:7px 12px;font-size:12px;border:none;border-right:1px solid var(--line);border-radius:0;background:#14141e}
+.chip:last-child{border-right:none}
+.chip.on{color:var(--gold)}
+#xray{padding:8px 12px;font-size:12.5px}
+#xray.on{border-color:var(--xray);color:var(--xray);box-shadow:0 0 16px rgba(70,201,255,.25)}
+#snd.on{border-color:var(--gold);color:var(--gold)}
+.slider{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+input[type=range]{accent-color:var(--gold);width:80px}
+#log{min-height:18px;font-size:12px;color:var(--muted);margin-bottom:13px;text-align:center}
+#log .ok{color:var(--g2)} #log .x{color:var(--xray)} #log .g{color:var(--gold)}
+
+#stagewrap{position:relative}
+#board{position:relative;border-radius:15px;border:1px solid var(--line);
+ background:linear-gradient(180deg,#12121b,#0c0c13);
+ box-shadow:0 26px 64px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.03);overflow:hidden}
+#board.shake{animation:shake .26s}
+@keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-3px,2px)}40%{transform:translate(3px,-2px)}60%{transform:translate(-2px,-2px)}80%{transform:translate(2px,2px)}}
+.slot{position:absolute;border-radius:10px;cursor:pointer;background:rgba(255,255,255,.018);box-shadow:inset 0 0 0 1px rgba(255,255,255,.015)}
+.slot.hint{box-shadow:inset 0 0 0 2px var(--gold);animation:hintp 1s infinite alternate}
+.slot.sel{box-shadow:inset 0 0 0 2px #fff}
+.slot.err{animation:errsh .26s}
+@keyframes hintp{from{box-shadow:inset 0 0 0 2px var(--gold)}to{box-shadow:inset 0 0 0 2px var(--gold),0 0 16px rgba(240,193,75,.6)}}
+@keyframes errsh{0%,100%{}25%{box-shadow:inset 0 0 0 2px var(--g0)}75%{box-shadow:inset 0 0 0 2px var(--g0)}}
+
+.gem{position:absolute;border-radius:50%;pointer-events:none;will-change:transform;
+ transition:transform .2s cubic-bezier(.34,1.25,.5,1),opacity .16s,box-shadow .2s}
+.gem::after{content:"";position:absolute;top:16%;left:20%;width:34%;height:34%;border-radius:50%;
+ background:rgba(255,255,255,.6);filter:blur(1px)}
+.gem.c0{background:radial-gradient(circle at 34% 28%,#ff9aa3,var(--g0));box-shadow:0 0 11px rgba(255,93,108,.55)}
+.gem.c1{background:radial-gradient(circle at 34% 28%,#a9ccff,var(--g1));box-shadow:0 0 11px rgba(79,155,255,.55)}
+.gem.c2{background:radial-gradient(circle at 34% 28%,#9eedba,var(--g2));box-shadow:0 0 11px rgba(67,209,126,.55)}
+.gem.c3{background:radial-gradient(circle at 34% 28%,#ffe79a,var(--g3));box-shadow:0 0 11px rgba(244,205,74,.55)}
+.gem.c4{background:radial-gradient(circle at 34% 28%,#d7b3ff,var(--g4));box-shadow:0 0 11px rgba(178,116,255,.55)}
+.gem.sel{filter:brightness(1.2)}
+.gem.pop{animation:pop .26s ease-out forwards}
+@keyframes pop{0%{transform:var(--tf) scale(1)}35%{transform:var(--tf) scale(1.32);filter:brightness(2.4)}100%{transform:var(--tf) scale(0);opacity:0;filter:brightness(3)}}
+.gem.land{animation:land .26s ease-out}
+@keyframes land{0%{}55%{}70%{transform:var(--tf) scaleY(.86) scaleX(1.12)}100%{transform:var(--tf)}}
+/* X 光：腳本天降棋子 */
+.xray .gem[data-s="1"]{box-shadow:0 0 0 2px var(--xray),0 0 16px rgba(70,201,255,.75)!important}
+.xray .gem[data-s="1"]::before{content:"";position:absolute;inset:0;border-radius:50%;
+ background:radial-gradient(circle,rgba(70,201,255,.25),transparent 70%)}
+
+.particle{position:absolute;width:6px;height:6px;border-radius:50%;pointer-events:none;z-index:20;will-change:transform,opacity}
+.spotlight{position:absolute;width:160px;height:160px;border-radius:50%;pointer-events:none;z-index:1;
+ background:radial-gradient(circle,rgba(240,193,75,.16),transparent 65%);transform:translate(-50%,-50%);
+ opacity:0;transition:opacity .25s,left .22s,top .22s}
+.spotlight.x{background:radial-gradient(circle,rgba(70,201,255,.16),transparent 65%)}
+
+.method{max-width:600px;margin-top:20px;font-size:11px;line-height:1.85;color:var(--muted);text-align:center}
+.method code{color:var(--ink);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:4px}
+.method .hl{color:var(--xray)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="eyebrow">Honest Magic · Beam-Searched Replay</div>
+<h1>誠實魔術 · <span class="em">Match-3</span></h1>
+<div class="tag">盤面與<b>天降序列</b>由 beam search 事先排好,你只交換一次,之後全照規則:<b>掃描→消除→重力→補珠→再掃描</b>。<br>既有棋子<b>一顆都不會被改寫</b> —— 你知道是假的,但看不出假在哪。</div>
+
+<div class="hero">
+  <div id="combo" class="combo">0</div>
+  <div class="target-of">/ <span id="tgt">30</span></div>
+</div>
+<div class="combocap" id="combocap">COMBO</div>
+<div class="milestone" id="milestone"></div>
+
+<div class="strip">
+  <div class="stat"><div class="k">本波消除</div><div class="v" id="s-clear">—</div></div>
+  <div class="stat"><div class="k">天降腳本珠</div><div class="v" id="s-drop">—</div></div>
+  <div class="stat"><div class="k">既有棋子被改寫</div><div class="v safe zero" id="s-cheat">0</div></div>
+  <div class="stat"><div class="k">走訪格子</div><div class="v" id="s-cov">0/64</div></div>
+</div>
+
+<div class="controls">
+  <button id="stage">🎩 編排並上演</button>
+  <div class="seg" id="tgtseg">
+    <button class="chip on" data-t="30">30</button>
+    <button class="chip" data-t="60">60</button>
+    <button class="chip" data-t="99">99</button>
+  </div>
+  <button id="xray">🔦 X 光拆穿</button>
+  <button id="snd">🔈 音效</button>
+  <div class="slider">速度 <input id="speed" type="range" min="1" max="5" value="3"></div>
+</div>
+
+<div id="log">按「編排並上演」,beam search 會即時排出一套均勻撒滿全盤的天降腳本。</div>
+
+<div id="stagewrap">
+  <div id="board"></div>
+</div>
+
+<div class="method">唯一被預先決定的,只有<code>天降棋子的顏色</code> —— 正常遊戲裡這本來就是亂數,所以你分辨不出它被換成腳本。<span class="hl">開 X 光</span>把腳本天降珠用青色 ▼光圈標出,你能全程確認:<code>既有棋子被改寫 = 0</code>,長 combo 純靠天降顏色 + 真實重力連鎖。</div>
+
+<script>
+const BAKED={"30":{"initialBoard":[[1,2,4,0,4,3,2,0],[1,2,4,1,2,0,1,0],[4,0,0,3,0,2,4,3],[3,4,2,4,1,0,0,1],[2,3,4,3,4,4,2,3],[0,4,3,3,2,0,1,1],[3,4,4,2,4,0,4,2],[0,0,1,1,3,2,1,3]],"swap":{"from":[6,3],"to":[6,4]},"drops":[[{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":2},{"r":0,"c":3,"color":0}],[{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0}],[{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":3},{"r":0,"c":5,"color":0},{"r":1,"c":3,"color":0},{"r":1,"c":5,"color":0},{"r":2,"c":3,"color":2},{"r":2,"c":5,"color":0},{"r":3,"c":3,"color":4},{"r":3,"c":5,"color":0},{"r":4,"c":3,"color":0},{"r":5,"c":3,"color":1}],[{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":1},{"r":1,"c":3,"color":0},{"r":1,"c":5,"color":3},{"r":2,"c":3,"color":4},{"r":2,"c":5,"color":0},{"r":3,"c":5,"color":0}],[{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":1},{"r":0,"c":4,"color":0},{"r":1,"c":2,"color":4},{"r":1,"c":3,"color":4},{"r":1,"c":4,"color":4},{"r":2,"c":2,"color":4},{"r":2,"c":3,"color":0}],[{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":0},{"r":1,"c":2,"color":0},{"r":1,"c":3,"color":0},{"r":2,"c":2,"color":4},{"r":2,"c":3,"color":0},{"r":3,"c":2,"color":0},{"r":3,"c":3,"color":0}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":0},{"r":1,"c":1,"color":2},{"r":1,"c":2,"color":0},{"r":1,"c":3,"color":3},{"r":2,"c":3,"color":3},{"r":3,"c":3,"color":3}],[{"r":0,"c":1,"color":0},{"r":0,"c":3,"color":1},{"r":1,"c":1,"color":0},{"r":1,"c":3,"color":0},{"r":2,"c":1,"color":4},{"r":2,"c":3,"color":4},{"r":3,"c":1,"color":4},{"r":3,"c":3,"color":0}],[{"r":0,"c":0,"color":1},{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":0},{"r":1,"c":1,"color":1},{"r":1,"c":2,"color":1},{"r":1,"c":3,"color":4},{"r":2,"c":1,"color":0},{"r":3,"c":1,"color":0}],[{"r":0,"c":0,"color":0},{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":3},{"r":1,"c":0,"color":3},{"r":1,"c":1,"color":4},{"r":1,"c":2,"color":0},{"r":2,"c":0,"color":3},{"r":2,"c":1,"color":3},{"r":3,"c":1,"color":3}],[{"r":0,"c":0,"color":0},{"r":0,"c":1,"color":1},{"r":0,"c":2,"color":3},{"r":1,"c":0,"color":0},{"r":1,"c":1,"color":0},{"r":2,"c":0,"color":0},{"r":2,"c":1,"color":2},{"r":3,"c":1,"color":3}],[{"r":0,"c":0,"color":4},{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":2},{"r":1,"c":0,"color":0},{"r":2,"c":0,"color":0},{"r":3,"c":0,"color":4},{"r":4,"c":0,"color":4}],[{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":3}],[{"r":0,"c":4,"color":2},{"r":1,"c":4,"color":2},{"r":2,"c":4,"color":2}],[{"r":0,"c":4,"color":3},{"r":1,"c":4,"color":3},{"r":2,"c":4,"color":3}],[{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":4},{"r":1,"c":4,"color":3},{"r":2,"c":4,"color":0},{"r":3,"c":4,"color":0}],[{"r":0,"c":4,"color":1},{"r":0,"c":5,"color":4},{"r":1,"c":4,"color":2},{"r":1,"c":5,"color":3},{"r":2,"c":4,"color":4},{"r":2,"c":5,"color":1},{"r":3,"c":4,"color":4}],[{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":4},{"r":0,"c":6,"color":2},{"r":1,"c":4,"color":4},{"r":2,"c":4,"color":1},{"r":3,"c":4,"color":3}],[{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":4},{"r":0,"c":5,"color":3},{"r":0,"c":6,"color":0},{"r":0,"c":7,"color":0},{"r":1,"c":3,"color":0},{"r":1,"c":5,"color":2},{"r":2,"c":3,"color":0}],[{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":0},{"r":0,"c":7,"color":3},{"r":1,"c":3,"color":3},{"r":1,"c":7,"color":3},{"r":2,"c":3,"color":0},{"r":2,"c":7,"color":3}],[{"r":0,"c":7,"color":0},{"r":1,"c":7,"color":1},{"r":2,"c":7,"color":3},{"r":3,"c":7,"color":3},{"r":4,"c":7,"color":3}],[{"r":0,"c":5,"color":3},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":0},{"r":1,"c":7,"color":0},{"r":2,"c":7,"color":1},{"r":3,"c":7,"color":1}],[{"r":0,"c":7,"color":3},{"r":1,"c":7,"color":0},{"r":2,"c":7,"color":0},{"r":3,"c":7,"color":0}],[{"r":0,"c":5,"color":1},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":3},{"r":1,"c":7,"color":3},{"r":2,"c":7,"color":3},{"r":3,"c":7,"color":3},{"r":4,"c":7,"color":3},{"r":5,"c":7,"color":3}],[{"r":0,"c":7,"color":0},{"r":1,"c":7,"color":0},{"r":2,"c":7,"color":0},{"r":3,"c":7,"color":3},{"r":4,"c":7,"color":2},{"r":5,"c":7,"color":2}],[{"r":0,"c":7,"color":2},{"r":1,"c":7,"color":2},{"r":2,"c":7,"color":3},{"r":3,"c":7,"color":3},{"r":4,"c":7,"color":3},{"r":5,"c":7,"color":2}],[{"r":0,"c":7,"color":4},{"r":1,"c":7,"color":4},{"r":2,"c":7,"color":4}],[{"r":0,"c":7,"color":3},{"r":1,"c":7,"color":4},{"r":2,"c":7,"color":3},{"r":3,"c":7,"color":0},{"r":4,"c":7,"color":0},{"r":5,"c":7,"color":0}],[{"r":0,"c":7,"color":2},{"r":1,"c":7,"color":2},{"r":2,"c":7,"color":2}],[{"r":0,"c":7,"color":3},{"r":1,"c":7,"color":4},{"r":2,"c":7,"color":2},{"r":3,"c":7,"color":3},{"r":4,"c":7,"color":2},{"r":5,"c":7,"color":3}]]},"60":{"initialBoard":[[3,2,4,0,4,4,3,0],[2,0,1,0,4,1,1,3],[0,2,4,1,3,0,3,4],[2,1,3,1,0,1,2,0],[0,0,3,0,2,2,3,2],[2,1,1,0,1,3,2,3],[2,2,3,4,1,4,0,1],[3,0,2,4,4,3,4,4]],"swap":{"from":[6,5],"to":[7,5]},"drops":[[{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":4},{"r":0,"c":5,"color":4},{"r":0,"c":6,"color":4},{"r":0,"c":7,"color":4}],[{"r":0,"c":2,"color":2},{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":3},{"r":0,"c":6,"color":0},{"r":0,"c":7,"color":3},{"r":1,"c":4,"color":0},{"r":2,"c":4,"color":0}],[{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":3},{"r":1,"c":3,"color":1},{"r":1,"c":4,"color":4},{"r":2,"c":3,"color":1},{"r":2,"c":4,"color":1}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":0},{"r":1,"c":3,"color":3},{"r":2,"c":3,"color":1},{"r":3,"c":3,"color":1},{"r":4,"c":3,"color":0}],[{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":1,"c":3,"color":3},{"r":1,"c":4,"color":3},{"r":1,"c":5,"color":3},{"r":2,"c":3,"color":4},{"r":3,"c":3,"color":0},{"r":4,"c":3,"color":1}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":2},{"r":1,"c":2,"color":1},{"r":1,"c":3,"color":0},{"r":1,"c":4,"color":0},{"r":1,"c":5,"color":1},{"r":2,"c":2,"color":4},{"r":2,"c":3,"color":2},{"r":2,"c":4,"color":0},{"r":2,"c":5,"color":1},{"r":3,"c":3,"color":0},{"r":4,"c":3,"color":1},{"r":5,"c":3,"color":0}],[{"r":0,"c":2,"color":3},{"r":0,"c":4,"color":2},{"r":1,"c":2,"color":0},{"r":1,"c":4,"color":2},{"r":2,"c":2,"color":0},{"r":2,"c":4,"color":3}],[{"r":0,"c":0,"color":4},{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":4},{"r":1,"c":1,"color":2},{"r":1,"c":2,"color":1}],[{"r":0,"c":1,"color":1},{"r":0,"c":3,"color":0},{"r":1,"c":1,"color":4},{"r":1,"c":3,"color":4},{"r":2,"c":1,"color":0},{"r":2,"c":3,"color":4},{"r":3,"c":1,"color":0}],[{"r":0,"c":1,"color":0},{"r":0,"c":3,"color":0},{"r":1,"c":1,"color":0},{"r":1,"c":3,"color":0},{"r":2,"c":1,"color":3},{"r":2,"c":3,"color":0},{"r":3,"c":1,"color":0}],[{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":3},{"r":1,"c":1,"color":3},{"r":1,"c":2,"color":1},{"r":1,"c":3,"color":0},{"r":2,"c":3,"color":0},{"r":3,"c":3,"color":3}],[{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":1},{"r":0,"c":4,"color":2},{"r":1,"c":2,"color":3},{"r":2,"c":2,"color":3},{"r":3,"c":2,"color":3}],[{"r":0,"c":0,"color":3},{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":1},{"r":0,"c":4,"color":0},{"r":1,"c":2,"color":1},{"r":1,"c":4,"color":3},{"r":2,"c":2,"color":1},{"r":2,"c":4,"color":3},{"r":3,"c":2,"color":4}],[{"r":0,"c":2,"color":0},{"r":0,"c":4,"color":0},{"r":1,"c":2,"color":0},{"r":1,"c":4,"color":0},{"r":2,"c":2,"color":3},{"r":2,"c":4,"color":0}],[{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":3},{"r":1,"c":4,"color":2},{"r":2,"c":4,"color":2},{"r":3,"c":4,"color":3},{"r":4,"c":4,"color":0}],[{"r":0,"c":5,"color":1},{"r":0,"c":6,"color":0},{"r":0,"c":7,"color":1},{"r":1,"c":5,"color":4},{"r":2,"c":5,"color":3},{"r":3,"c":5,"color":3}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":4},{"r":0,"c":6,"color":0},{"r":0,"c":7,"color":4},{"r":1,"c":5,"color":0},{"r":1,"c":6,"color":0},{"r":2,"c":5,"color":4}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":0},{"r":1,"c":6,"color":3},{"r":2,"c":6,"color":2}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":2},{"r":1,"c":6,"color":2},{"r":2,"c":6,"color":3},{"r":3,"c":6,"color":3}],[{"r":0,"c":6,"color":0},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":1},{"r":3,"c":6,"color":1}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":1},{"r":0,"c":7,"color":0},{"r":1,"c":6,"color":1},{"r":2,"c":6,"color":1}],[{"r":0,"c":4,"color":1},{"r":0,"c":6,"color":4},{"r":1,"c":4,"color":0},{"r":1,"c":6,"color":4},{"r":2,"c":4,"color":4},{"r":2,"c":6,"color":4}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":3},{"r":1,"c":6,"color":1},{"r":2,"c":6,"color":0}],[{"r":0,"c":5,"color":1},{"r":0,"c":6,"color":0},{"r":1,"c":5,"color":3},{"r":1,"c":6,"color":0},{"r":2,"c":5,"color":4},{"r":2,"c":6,"color":0}],[{"r":0,"c":6,"color":3},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":0},{"r":3,"c":6,"color":0},{"r":4,"c":6,"color":4},{"r":5,"c":6,"color":0}],[{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":0},{"r":0,"c":7,"color":1},{"r":1,"c":6,"color":4},{"r":2,"c":6,"color":3},{"r":3,"c":6,"color":0}],[{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":3},{"r":0,"c":5,"color":3},{"r":0,"c":6,"color":1},{"r":1,"c":4,"color":4},{"r":1,"c":5,"color":3}],[{"r":0,"c":5,"color":1},{"r":1,"c":5,"color":4},{"r":2,"c":5,"color":4}],[{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":3},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":3},{"r":1,"c":5,"color":0},{"r":1,"c":6,"color":0},{"r":2,"c":5,"color":1},{"r":3,"c":5,"color":1},{"r":4,"c":5,"color":1}],[{"r":0,"c":5,"color":3},{"r":0,"c":6,"color":0},{"r":0,"c":7,"color":0},{"r":1,"c":5,"color":0},{"r":1,"c":6,"color":3},{"r":1,"c":7,"color":0},{"r":2,"c":5,"color":3},{"r":3,"c":5,"color":3},{"r":4,"c":5,"color":2},{"r":5,"c":5,"color":0}],[{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":3},{"r":0,"c":5,"color":0},{"r":1,"c":3,"color":1},{"r":1,"c":4,"color":2},{"r":1,"c":5,"color":4}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":2},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":1},{"r":1,"c":5,"color":3},{"r":1,"c":6,"color":4},{"r":1,"c":7,"color":0}],[{"r":0,"c":2,"color":2},{"r":0,"c":4,"color":3},{"r":0,"c":5,"color":1},{"r":0,"c":6,"color":3},{"r":1,"c":2,"color":3},{"r":1,"c":4,"color":4},{"r":1,"c":5,"color":2},{"r":1,"c":6,"color":1},{"r":2,"c":2,"color":3}],[{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":3},{"r":1,"c":2,"color":2},{"r":2,"c":2,"color":4},{"r":3,"c":2,"color":4}],[{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":2},{"r":0,"c":3,"color":0},{"r":1,"c":2,"color":3},{"r":2,"c":2,"color":3},{"r":3,"c":2,"color":3},{"r":4,"c":2,"color":1}],[{"r":0,"c":2,"color":1},{"r":1,"c":2,"color":0},{"r":2,"c":2,"color":3},{"r":3,"c":2,"color":3},{"r":4,"c":2,"color":3},{"r":5,"c":2,"color":2}],[{"r":0,"c":0,"color":3},{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":2},{"r":0,"c":3,"color":3},{"r":1,"c":2,"color":2},{"r":2,"c":2,"color":0},{"r":3,"c":2,"color":2},{"r":4,"c":2,"color":4},{"r":5,"c":2,"color":0}],[{"r":0,"c":0,"color":3},{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":3}],[{"r":0,"c":0,"color":0},{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":1},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3},{"r":3,"c":0,"color":4},{"r":4,"c":0,"color":4},{"r":5,"c":0,"color":4}],[{"r":0,"c":0,"color":2},{"r":1,"c":0,"color":0},{"r":2,"c":0,"color":4},{"r":3,"c":0,"color":0}],[{"r":0,"c":0,"color":3},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3}],[{"r":0,"c":0,"color":3},{"r":0,"c":1,"color":1},{"r":0,"c":2,"color":0},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":2},{"r":3,"c":0,"color":2}],[{"r":0,"c":0,"color":3},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3}],[{"r":0,"c":0,"color":3},{"r":1,"c":0,"color":4},{"r":2,"c":0,"color":4},{"r":3,"c":0,"color":4},{"r":4,"c":0,"color":4}],[{"r":0,"c":0,"color":0},{"r":1,"c":0,"color":4},{"r":2,"c":0,"color":4},{"r":3,"c":0,"color":4}],[{"r":0,"c":0,"color":0},{"r":1,"c":0,"color":0},{"r":2,"c":0,"color":0}],[{"r":0,"c":0,"color":3},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3},{"r":3,"c":0,"color":3}],[{"r":0,"c":0,"color":0},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3},{"r":3,"c":0,"color":3},{"r":4,"c":0,"color":0}],[{"r":0,"c":0,"color":4},{"r":1,"c":0,"color":0},{"r":2,"c":0,"color":0}],[{"r":0,"c":0,"color":0},{"r":1,"c":0,"color":0},{"r":2,"c":0,"color":0},{"r":3,"c":0,"color":0},{"r":4,"c":0,"color":4}],[{"r":0,"c":0,"color":3},{"r":1,"c":0,"color":1},{"r":2,"c":0,"color":1},{"r":3,"c":0,"color":1},{"r":4,"c":0,"color":3},{"r":5,"c":0,"color":2},{"r":6,"c":0,"color":3}],[{"r":0,"c":0,"color":3},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3}],[{"r":0,"c":0,"color":0},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3},{"r":3,"c":0,"color":2},{"r":4,"c":0,"color":2}],[{"r":0,"c":0,"color":2},{"r":1,"c":0,"color":2},{"r":2,"c":0,"color":2}],[{"r":0,"c":0,"color":0},{"r":1,"c":0,"color":4},{"r":2,"c":0,"color":2},{"r":3,"c":0,"color":0},{"r":4,"c":0,"color":0},{"r":5,"c":0,"color":0}],[{"r":0,"c":0,"color":0},{"r":1,"c":0,"color":4},{"r":2,"c":0,"color":0},{"r":3,"c":0,"color":0},{"r":4,"c":0,"color":0}],[{"r":0,"c":0,"color":4},{"r":1,"c":0,"color":0},{"r":2,"c":0,"color":0},{"r":3,"c":0,"color":0}],[{"r":0,"c":0,"color":3},{"r":1,"c":0,"color":2},{"r":2,"c":0,"color":4},{"r":3,"c":0,"color":4}],[{"r":0,"c":0,"color":4},{"r":1,"c":0,"color":0},{"r":2,"c":0,"color":0},{"r":3,"c":0,"color":0},{"r":4,"c":0,"color":0}],[{"r":0,"c":0,"color":1},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":0},{"r":3,"c":0,"color":0}]]},"99":{"initialBoard":[[4,2,0,4,0,3,1,4],[3,0,3,0,1,0,0,1],[0,1,4,1,0,2,4,0],[3,1,3,0,4,0,4,0],[1,0,3,2,4,2,1,1],[2,1,0,2,3,2,3,0],[0,3,2,3,2,0,3,3],[0,2,3,3,4,3,4,1]],"swap":{"from":[1,3],"to":[1,4]},"drops":[[{"r":0,"c":4,"color":4},{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":3},{"r":1,"c":4,"color":4},{"r":2,"c":4,"color":4}],[{"r":0,"c":4,"color":2},{"r":1,"c":4,"color":2},{"r":2,"c":4,"color":3},{"r":3,"c":4,"color":3},{"r":4,"c":4,"color":3}],[{"r":0,"c":4,"color":1},{"r":1,"c":4,"color":3},{"r":2,"c":4,"color":4},{"r":3,"c":4,"color":3}],[{"r":0,"c":3,"color":1},{"r":0,"c":4,"color":1},{"r":0,"c":5,"color":1},{"r":1,"c":3,"color":0},{"r":1,"c":4,"color":3},{"r":1,"c":5,"color":2},{"r":2,"c":4,"color":4}],[{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":1},{"r":0,"c":5,"color":3},{"r":1,"c":3,"color":0},{"r":1,"c":4,"color":2}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":4},{"r":1,"c":2,"color":0},{"r":1,"c":3,"color":2},{"r":2,"c":2,"color":1},{"r":2,"c":3,"color":1},{"r":3,"c":2,"color":3}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":1,"c":3,"color":4},{"r":2,"c":3,"color":4},{"r":3,"c":3,"color":4}],[{"r":0,"c":1,"color":4},{"r":0,"c":3,"color":0},{"r":1,"c":1,"color":4},{"r":1,"c":3,"color":3},{"r":2,"c":1,"color":0},{"r":2,"c":3,"color":0},{"r":3,"c":3,"color":2}],[{"r":0,"c":0,"color":3},{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":3},{"r":0,"c":5,"color":3},{"r":1,"c":0,"color":3},{"r":1,"c":1,"color":4},{"r":1,"c":2,"color":2},{"r":1,"c":3,"color":4}],[{"r":0,"c":0,"color":1},{"r":0,"c":1,"color":0},{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":1},{"r":0,"c":6,"color":1},{"r":1,"c":0,"color":2},{"r":1,"c":1,"color":1},{"r":2,"c":0,"color":2},{"r":2,"c":1,"color":1},{"r":3,"c":0,"color":2}],[{"r":0,"c":0,"color":4},{"r":0,"c":1,"color":0},{"r":1,"c":0,"color":1},{"r":1,"c":1,"color":4},{"r":2,"c":0,"color":1},{"r":2,"c":1,"color":0}],[{"r":0,"c":0,"color":3},{"r":0,"c":1,"color":0},{"r":1,"c":0,"color":3},{"r":1,"c":1,"color":2},{"r":2,"c":0,"color":1},{"r":2,"c":1,"color":2},{"r":3,"c":0,"color":1}],[{"r":0,"c":0,"color":0},{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":1}],[{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":3}],[{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":3},{"r":0,"c":5,"color":0},{"r":1,"c":2,"color":0},{"r":2,"c":2,"color":0}],[{"r":0,"c":5,"color":3},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":3}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":0}],[{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":3},{"r":0,"c":5,"color":1}],[{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":0}],[{"r":0,"c":0,"color":1},{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":2},{"r":1,"c":2,"color":2},{"r":2,"c":2,"color":2}],[{"r":0,"c":1,"color":1},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":4},{"r":1,"c":2,"color":0},{"r":2,"c":2,"color":0}],[{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":4},{"r":1,"c":2,"color":4},{"r":1,"c":3,"color":1},{"r":2,"c":2,"color":3},{"r":2,"c":3,"color":3},{"r":3,"c":2,"color":2},{"r":4,"c":2,"color":2},{"r":5,"c":2,"color":3}],[{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":4},{"r":0,"c":5,"color":0},{"r":1,"c":2,"color":1},{"r":1,"c":3,"color":1},{"r":1,"c":4,"color":1},{"r":2,"c":2,"color":0},{"r":2,"c":3,"color":0}],[{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":0},{"r":1,"c":1,"color":0},{"r":1,"c":2,"color":3},{"r":1,"c":3,"color":1}],[{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":1},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":3},{"r":1,"c":5,"color":2},{"r":2,"c":5,"color":2}],[{"r":0,"c":5,"color":0},{"r":1,"c":5,"color":4},{"r":2,"c":5,"color":0},{"r":3,"c":5,"color":2}],[{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":1},{"r":0,"c":5,"color":4},{"r":0,"c":6,"color":1},{"r":0,"c":7,"color":2},{"r":1,"c":4,"color":3},{"r":1,"c":5,"color":4}],[{"r":0,"c":5,"color":0},{"r":0,"c":7,"color":0},{"r":1,"c":5,"color":0},{"r":1,"c":7,"color":2},{"r":2,"c":5,"color":3},{"r":2,"c":7,"color":2}],[{"r":0,"c":7,"color":4},{"r":1,"c":7,"color":0},{"r":2,"c":7,"color":3}],[{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":2},{"r":0,"c":7,"color":2}],[{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":0},{"r":0,"c":7,"color":0},{"r":1,"c":5,"color":2},{"r":2,"c":5,"color":2},{"r":3,"c":5,"color":2}],[{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":2},{"r":0,"c":7,"color":2},{"r":1,"c":5,"color":0},{"r":2,"c":5,"color":0},{"r":3,"c":5,"color":0},{"r":4,"c":5,"color":0}],[{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":0},{"r":1,"c":5,"color":0},{"r":2,"c":5,"color":2},{"r":3,"c":5,"color":0},{"r":4,"c":5,"color":3},{"r":5,"c":5,"color":3},{"r":6,"c":5,"color":3}],[{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":1},{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":3},{"r":1,"c":5,"color":2},{"r":2,"c":5,"color":2},{"r":3,"c":5,"color":2}],[{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":0},{"r":0,"c":5,"color":3},{"r":1,"c":5,"color":2},{"r":2,"c":5,"color":0},{"r":3,"c":5,"color":0},{"r":4,"c":5,"color":0}],[{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":0},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":3},{"r":0,"c":7,"color":1},{"r":1,"c":5,"color":2},{"r":2,"c":5,"color":2},{"r":3,"c":5,"color":2},{"r":4,"c":5,"color":2}],[{"r":0,"c":5,"color":1},{"r":1,"c":5,"color":1},{"r":2,"c":5,"color":1},{"r":3,"c":5,"color":4},{"r":4,"c":5,"color":4},{"r":5,"c":5,"color":0}],[{"r":0,"c":5,"color":1},{"r":1,"c":5,"color":0},{"r":2,"c":5,"color":3},{"r":3,"c":5,"color":0},{"r":4,"c":5,"color":0},{"r":5,"c":5,"color":0}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":2},{"r":0,"c":6,"color":3},{"r":1,"c":5,"color":0},{"r":2,"c":5,"color":0},{"r":3,"c":5,"color":3}],[{"r":0,"c":6,"color":1},{"r":1,"c":6,"color":1},{"r":2,"c":6,"color":1}],[{"r":0,"c":6,"color":4},{"r":1,"c":6,"color":4},{"r":2,"c":6,"color":3},{"r":3,"c":6,"color":3}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":0},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":4}],[{"r":0,"c":3,"color":0},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":0},{"r":1,"c":6,"color":2},{"r":2,"c":6,"color":2},{"r":3,"c":6,"color":2},{"r":4,"c":6,"color":0},{"r":5,"c":6,"color":0}],[{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":1},{"r":0,"c":6,"color":3},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":0},{"r":3,"c":6,"color":3},{"r":4,"c":6,"color":3},{"r":5,"c":6,"color":3},{"r":6,"c":6,"color":3}],[{"r":0,"c":6,"color":3},{"r":1,"c":6,"color":1},{"r":2,"c":6,"color":1},{"r":3,"c":6,"color":1},{"r":4,"c":6,"color":1}],[{"r":0,"c":6,"color":3},{"r":1,"c":6,"color":3},{"r":2,"c":6,"color":0},{"r":3,"c":6,"color":3}],[{"r":0,"c":6,"color":0},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":0}],[{"r":0,"c":6,"color":0},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":0},{"r":3,"c":6,"color":3},{"r":4,"c":6,"color":3},{"r":5,"c":6,"color":3}],[{"r":0,"c":6,"color":2},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":0},{"r":3,"c":6,"color":0},{"r":4,"c":6,"color":1},{"r":5,"c":6,"color":3},{"r":6,"c":6,"color":2},{"r":7,"c":6,"color":4}],[{"r":0,"c":4,"color":4},{"r":0,"c":5,"color":1},{"r":0,"c":6,"color":1},{"r":0,"c":7,"color":1},{"r":1,"c":5,"color":0},{"r":1,"c":6,"color":3},{"r":2,"c":6,"color":3},{"r":3,"c":6,"color":3}],[{"r":0,"c":5,"color":4},{"r":0,"c":6,"color":4},{"r":0,"c":7,"color":3},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":2},{"r":3,"c":6,"color":2}],[{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":0},{"r":1,"c":6,"color":0},{"r":2,"c":6,"color":3},{"r":3,"c":6,"color":1}],[{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":2},{"r":0,"c":7,"color":2},{"r":1,"c":5,"color":1},{"r":1,"c":6,"color":2}],[{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":0},{"r":0,"c":6,"color":1}],[{"r":0,"c":4,"color":1},{"r":1,"c":4,"color":1},{"r":2,"c":4,"color":1}],[{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":4},{"r":0,"c":5,"color":1},{"r":1,"c":4,"color":3},{"r":2,"c":4,"color":0},{"r":3,"c":4,"color":0},{"r":4,"c":4,"color":0}],[{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":2},{"r":0,"c":4,"color":0},{"r":1,"c":4,"color":2},{"r":2,"c":4,"color":2},{"r":3,"c":4,"color":4}],[{"r":0,"c":4,"color":0},{"r":1,"c":4,"color":2},{"r":2,"c":4,"color":1}],[{"r":0,"c":4,"color":3},{"r":1,"c":4,"color":4},{"r":2,"c":4,"color":3}],[{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":4},{"r":0,"c":6,"color":3},{"r":1,"c":4,"color":2},{"r":1,"c":5,"color":0}],[{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":3},{"r":0,"c":5,"color":1},{"r":1,"c":2,"color":4},{"r":1,"c":3,"color":3},{"r":1,"c":4,"color":0}],[{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":1},{"r":1,"c":3,"color":3},{"r":2,"c":3,"color":4}],[{"r":0,"c":1,"color":1},{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":0}],[{"r":0,"c":1,"color":0},{"r":1,"c":1,"color":0},{"r":2,"c":1,"color":2},{"r":3,"c":1,"color":1}],[{"r":0,"c":0,"color":4},{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":3},{"r":1,"c":1,"color":1},{"r":2,"c":1,"color":0}],[{"r":0,"c":0,"color":4},{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":0},{"r":1,"c":1,"color":0},{"r":1,"c":2,"color":4},{"r":2,"c":1,"color":3},{"r":2,"c":2,"color":4},{"r":3,"c":1,"color":3},{"r":3,"c":2,"color":4}],[{"r":0,"c":2,"color":3},{"r":1,"c":2,"color":0},{"r":2,"c":2,"color":0},{"r":3,"c":2,"color":0}],[{"r":0,"c":2,"color":3},{"r":1,"c":2,"color":0},{"r":2,"c":2,"color":3},{"r":3,"c":2,"color":0},{"r":4,"c":2,"color":0}],[{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":3},{"r":1,"c":2,"color":4},{"r":2,"c":2,"color":3},{"r":3,"c":2,"color":2}],[{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":1},{"r":0,"c":4,"color":3},{"r":1,"c":2,"color":4},{"r":2,"c":2,"color":2},{"r":3,"c":2,"color":3}],[{"r":0,"c":0,"color":4},{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":3},{"r":0,"c":4,"color":4},{"r":0,"c":5,"color":2}],[{"r":0,"c":0,"color":0},{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":2},{"r":1,"c":0,"color":0},{"r":1,"c":2,"color":0},{"r":2,"c":0,"color":2},{"r":2,"c":2,"color":2}],[{"r":0,"c":0,"color":2},{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":0}],[{"r":0,"c":2,"color":1},{"r":1,"c":2,"color":3},{"r":2,"c":2,"color":3}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":2},{"r":0,"c":3,"color":3}],[{"r":0,"c":0,"color":4},{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":2},{"r":1,"c":1,"color":4},{"r":2,"c":1,"color":3},{"r":3,"c":1,"color":1},{"r":4,"c":1,"color":1}],[{"r":0,"c":1,"color":4},{"r":1,"c":1,"color":4},{"r":2,"c":1,"color":4}],[{"r":0,"c":1,"color":1},{"r":1,"c":1,"color":1},{"r":2,"c":1,"color":2},{"r":3,"c":1,"color":3},{"r":4,"c":1,"color":3}],[{"r":0,"c":1,"color":4},{"r":1,"c":1,"color":1},{"r":2,"c":1,"color":1},{"r":3,"c":1,"color":1}],[{"r":0,"c":1,"color":1},{"r":1,"c":1,"color":2},{"r":2,"c":1,"color":2},{"r":3,"c":1,"color":4},{"r":4,"c":1,"color":4}],[{"r":0,"c":1,"color":0},{"r":1,"c":1,"color":0},{"r":2,"c":1,"color":0}],[{"r":0,"c":1,"color":0},{"r":1,"c":1,"color":2},{"r":2,"c":1,"color":2},{"r":3,"c":1,"color":3},{"r":4,"c":1,"color":3},{"r":5,"c":1,"color":1},{"r":6,"c":1,"color":1}],[{"r":0,"c":1,"color":0},{"r":1,"c":1,"color":1},{"r":2,"c":1,"color":2}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":2},{"r":0,"c":3,"color":2}],[{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":3}],[{"r":0,"c":3,"color":4},{"r":1,"c":3,"color":1},{"r":2,"c":3,"color":1}],[{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":1},{"r":0,"c":4,"color":2},{"r":1,"c":3,"color":0},{"r":2,"c":3,"color":4}],[{"r":0,"c":0,"color":0},{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":2},{"r":0,"c":3,"color":4},{"r":1,"c":3,"color":1},{"r":2,"c":3,"color":2}],[{"r":0,"c":1,"color":2},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":2}],[{"r":0,"c":1,"color":0},{"r":0,"c":3,"color":1},{"r":0,"c":4,"color":2},{"r":0,"c":5,"color":4},{"r":1,"c":1,"color":2},{"r":2,"c":1,"color":2}],[{"r":0,"c":0,"color":0},{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":0},{"r":0,"c":3,"color":3},{"r":1,"c":1,"color":0},{"r":1,"c":2,"color":4},{"r":2,"c":1,"color":0},{"r":3,"c":1,"color":0}],[{"r":0,"c":0,"color":0},{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":4},{"r":1,"c":1,"color":0},{"r":2,"c":1,"color":2},{"r":3,"c":1,"color":1},{"r":4,"c":1,"color":3}],[{"r":0,"c":0,"color":3},{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":3},{"r":1,"c":0,"color":0},{"r":1,"c":1,"color":2},{"r":1,"c":2,"color":4}],[{"r":0,"c":0,"color":4},{"r":0,"c":1,"color":0},{"r":0,"c":2,"color":4},{"r":0,"c":3,"color":4},{"r":1,"c":0,"color":4},{"r":1,"c":2,"color":0},{"r":2,"c":0,"color":4},{"r":2,"c":2,"color":4},{"r":3,"c":0,"color":1},{"r":3,"c":2,"color":0}],[{"r":0,"c":0,"color":3},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3},{"r":3,"c":0,"color":0},{"r":4,"c":0,"color":3},{"r":5,"c":0,"color":0}],[{"r":0,"c":0,"color":3},{"r":0,"c":1,"color":4},{"r":0,"c":2,"color":4},{"r":1,"c":0,"color":0},{"r":2,"c":0,"color":3},{"r":3,"c":0,"color":3},{"r":4,"c":0,"color":3},{"r":5,"c":0,"color":0},{"r":6,"c":0,"color":0}],[{"r":0,"c":0,"color":2},{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":4},{"r":1,"c":0,"color":3},{"r":1,"c":1,"color":3},{"r":1,"c":2,"color":4},{"r":2,"c":0,"color":3},{"r":3,"c":0,"color":4}],[{"r":0,"c":0,"color":4},{"r":0,"c":2,"color":3},{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":4},{"r":1,"c":0,"color":3},{"r":2,"c":0,"color":3}],[{"r":0,"c":0,"color":0},{"r":0,"c":1,"color":3},{"r":0,"c":2,"color":1},{"r":0,"c":3,"color":4},{"r":0,"c":4,"color":0},{"r":0,"c":5,"color":0}]]}};
+/* ===== 誠實引擎 + beam search(瀏覽器版,int 盤面) ===== */
+const ROWS=8,COLS=8,NCOL=5;
+const rnd=n=>Math.floor(Math.random()*n), clone=b=>b.map(r=>r.slice());
+function scanI(b){const m=new Set();
+ for(let r=0;r<ROWS;r++){let c=0;while(c<COLS-2){const v=b[r][c];if(v!=null&&v===b[r][c+1]&&v===b[r][c+2]){let e=c+2;while(e+1<COLS&&b[r][e+1]===v)e++;for(let x=c;x<=e;x++)m.add(r*COLS+x);c=e+1;}else c++;}}
+ for(let c=0;c<COLS;c++){let r=0;while(r<ROWS-2){const v=b[r][c];if(v!=null&&v===b[r+1][c]&&v===b[r+2][c]){let e=r+2;while(e+1<ROWS&&b[e+1][c]===v)e++;for(let y=r;y<=e;y++)m.add(y*COLS+c);r=e+1;}else r++;}}
+ return m;}
+const hasI=b=>scanI(b).size>0;
+function gravI(b){for(let c=0;c<COLS;c++){let w=ROWS-1;for(let r=ROWS-1;r>=0;r--){if(b[r][c]!=null){b[w][c]=b[r][c];if(w!==r)b[r][c]=null;w--;}}while(w>=0){b[w][c]=null;w--;}}}
+function makeInitial(){for(let a=0;a<800;a++){const b=[];for(let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++){let t;do{t=rnd(NCOL);}while((c>=2&&t===row[c-1]&&t===row[c-2])||(r>=2&&t===b[r-1][c]&&t===b[r-2][c]));row.push(t);}b.push(row);}if(hasI(b))continue;const sw=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)for(const[dr,dc]of[[0,1],[1,0]]){const r2=r+dr,c2=c+dc;if(r2>=ROWS||c2>=COLS)continue;const t=clone(b);const tm=t[r][c];t[r][c]=t[r2][c2];t[r2][c2]=tm;const mm=scanI(t);if(mm.size>=3&&mm.size<=6)sw.push({from:[r,c],to:[r2,c2]});}if(sw.length)return{board:b,swap:sw[rnd(sw.length)]};}return null;}
+const safeColor=(bd,r,c)=>{const o=[0,1,2,3,4].sort(()=>Math.random()-0.5);for(const t of o){bd[r][c]=t;const ok=!hasI(bd);bd[r][c]=null;if(ok)return t;}return o[0];};
+function fillSafe(b){const nb=clone(b),holes=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(nb[r][c]==null)holes.push([r,c]);for(const[r,c]of holes)nb[r][c]=safeColor(nb,r,c);return{nb,fill:holes.map(([r,c])=>({r,c,color:nb[r][c]}))};}
+function candidates(b,heat,branch){const holes=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(b[r][c]==null)holes.push([r,c]);if(!holes.length)return[];
+ const hs=new Set(holes.map(([r,c])=>r*COLS+c)),isHole=(r,c)=>r>=0&&r<ROWS&&c>=0&&c<COLS&&hs.has(r*COLS+c);
+ const tri=[];const tryT=(cells)=>{let color=null,hc=[];for(const[r,c]of cells){if(isHole(r,c))hc.push([r,c]);else{if(color==null)color=b[r][c];else if(b[r][c]!==color)return;}}if(!hc.length)return;if(color==null)color=rnd(NCOL);tri.push({color,hc});};
+ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-2;c++)tryT([[r,c],[r,c+1],[r,c+2]]);
+ for(let c=0;c<COLS;c++)for(let r=0;r<ROWS-2;r++)tryT([[r,c],[r+1,c],[r+2,c]]);
+ if(!tri.length)return[];const cold=k=>1/(1+(heat[k]||0));const out=[];
+ for(const cd of tri){const nb=clone(b);for(const[r,c]of cd.hc)nb[r][c]=cd.color;for(const[r,c]of holes)if(nb[r][c]==null)nb[r][c]=safeColor(nb,r,c);
+  const nm=scanI(nb);if(nm.size<3||nm.size>10)continue;let cov=0;nm.forEach(k=>cov+=cold(k));
+  const la=clone(nb);nm.forEach(k=>{la[Math.floor(k/COLS)][k%COLS]=null;});gravI(la);const m2=scanI(la);let deep=0;if(m2.size){let s=0;m2.forEach(k=>s+=Math.floor(k/COLS));deep=s/m2.size;}
+  let cr=0;nm.forEach(k=>cr+=Math.floor(k/COLS));cr/=nm.size;
+  const local=cov*1.0+deep*0.20+cr*0.05-Math.max(0,nm.size-6)*0.15+Math.random()*0.12;
+  out.push({fill:holes.map(([r,c])=>({r,c,color:nb[r][c]})),board:nb,local});}
+ out.sort((a,b2)=>b2.local-a.local);return out.slice(0,branch);}
+function beamGenerate(target,{beamW=20,branch=8,seeds=6}={}){let frontier=[];
+ for(let i=0;i<seeds;i++){const init=makeInitial();if(!init)continue;let b=clone(init.board);const[fr,fc]=init.swap.from,[tr,tc]=init.swap.to;const tm=b[fr][fc];b[fr][fc]=b[tr][tc];b[tr][tc]=tm;frontier.push({board:b,init,drops:[],heat:new Float64Array(64),cum:0});}
+ if(!frontier.length)return null;
+ for(let step=0;step<target;step++){const last=step===target-1;const children=[];
+  for(const st of frontier){const m=scanI(st.board);if(m.size===0)continue;const heat=Float64Array.from(st.heat);m.forEach(k=>heat[k]++);
+   const pre=clone(st.board);m.forEach(k=>{pre[Math.floor(k/COLS)][k%COLS]=null;});gravI(pre);let cands;
+   if(last){const f=fillSafe(pre);if(hasI(f.nb))continue;cands=[{fill:f.fill,board:f.nb,local:0}];}
+   else if(hasI(pre)){const f=fillSafe(pre);const nm=scanI(f.nb);let cov=0;nm.forEach(k=>cov+=1/(1+heat[k]));cands=[{fill:f.fill,board:f.nb,local:cov+1.0}];}
+   else cands=candidates(pre,heat,branch);
+   for(const cd of cands)children.push({board:cd.board,init:st.init,drops:[...st.drops,cd.fill],heat:Float64Array.from(heat),cum:st.cum+cd.local});}
+  if(!children.length)return null;children.sort((a,b2)=>b2.cum-a.cum);
+  const seen=new Set(),next=[];for(const c of children){const sig=c.board.flat().join('');if(seen.has(sig))continue;seen.add(sig);next.push(c);if(next.length>=beamW)break;}
+  frontier=next.length?next:children.slice(0,beamW);}
+ frontier.sort((a,b2)=>b2.cum-a.cum);const best=frontier[0];return{initialBoard:best.init.board,swap:best.init.swap,drops:best.drops};}
+function verify(s,target){const b=s.initialBoard.map(r=>r.slice());const[fr,fc]=s.swap.from,[tr,tc]=s.swap.to;
+ if(Math.abs(fr-tr)+Math.abs(fc-tc)!==1)return{ok:false};if(hasI(b))return{ok:false};const tm=b[fr][fc];b[fr][fc]=b[tr][tc];b[tr][tc]=tm;if(scanI(b).size===0)return{ok:false};
+ let cheats=0;for(let st=0;st<target;st++){const m=scanI(b);if(m.size===0)return{ok:false};m.forEach(k=>{b[Math.floor(k/COLS)][k%COLS]=null;});gravI(b);const f=s.drops[st];if(!f)return{ok:false};for(const{r,c}of f)if(b[r][c]!=null)cheats++;for(const{r,c,color}of f)b[r][c]=color;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(b[r][c]==null)return{ok:false};}
+ return{ok:cheats===0,cheats};}
+function bestBeam(target){const N=target>=99?2:3;let best=null,bv=-1;for(let i=0;i<N;i++){const s=beamGenerate(target,{beamW:target>=99?18:20,branch:8,seeds:6});if(!s)continue;const v=verify(s,target);if(!v.ok)continue;const heat=new Array(64).fill(0);const bb=s.initialBoard.map(r=>r.slice());const[fr,fc]=s.swap.from,[tr,tc]=s.swap.to;const tm=bb[fr][fc];bb[fr][fc]=bb[tr][tc];bb[tr][tc]=tm;for(let st=0;st<target;st++){const m=scanI(bb);m.forEach(k=>heat[k]++);m.forEach(k=>{bb[Math.floor(k/COLS)][k%COLS]=null;});gravI(bb);for(const{r,c,color}of s.drops[st])bb[r][c]=color;}const vis=heat.filter(x=>x>0).length;if(vis>bv){bv=vis;best=s;}}return best;}
+
+/* ===== 視覺常數(對應 CSS) ===== */
+const CELL=46,GAP=4,PAD=9,GW=42;
+const SIZE=PAD*2+COLS*CELL+(COLS-1)*GAP;
+const sx=c=>PAD+c*(CELL+GAP), sy=r=>PAD+r*(CELL+GAP);
+const gx=c=>sx(c)+(CELL-GW)/2, gy=r=>sy(r)+(CELL-GW)/2;
+
+const boardEl=document.getElementById('board');
+boardEl.style.width=SIZE+'px';boardEl.style.height=SIZE+'px';
+const comboEl=document.getElementById('combo'),combocap=document.getElementById('combocap'),tgtEl=document.getElementById('tgt');
+const logEl=document.getElementById('log'),mileEl=document.getElementById('milestone');
+const sClear=document.getElementById('s-clear'),sDrop=document.getElementById('s-drop'),sCheat=document.getElementById('s-cheat'),sCov=document.getElementById('s-cov');
+const stageBtn=document.getElementById('stage'),xrayBtn=document.getElementById('xray'),sndBtn=document.getElementById('snd'),speedEl=document.getElementById('speed');
+const wrap=document.getElementById('stagewrap');
+const COLHEX=['#ff5d6c','#4f9bff','#43d17e','#f4cd4a','#b274ff'];
+
+let TARGET=30,xray=false,sound=false,busy=false;
+let colorBoard=null, tiles=null, script=null, sel=null, awaitingSwap=false, cheatCount=0, visited=null;
+let spot=null, audio=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const spd=()=>({1:1.9,2:1.35,3:1.0,4:0.66,5:0.42})[speedEl.value];
+const setLog=h=>logEl.innerHTML=h;
+
+/* 建靜態 slot + spotlight */
+const slots=[];
+for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const s=document.createElement('div');s.className='slot';s.style.left=sx(c)+'px';s.style.top=sy(r)+'px';s.style.width=CELL+'px';s.style.height=CELL+'px';s.dataset.r=r;s.dataset.c=c;s.onclick=()=>onClick(r,c);boardEl.appendChild(s);slots[r*COLS+c]=s;}
+spot=document.createElement('div');spot.className='spotlight';boardEl.appendChild(spot);
+
+function place(el,r,c){const tf=`translate(${gx(c)}px,${gy(r)}px)`;el.style.setProperty('--tf',tf);el.style.transform=tf;}
+function makeGem(r,c,color,scripted,fromTop){const el=document.createElement('div');el.className='gem c'+color;el.style.width=GW+'px';el.style.height=GW+'px';el.dataset.s=scripted?'1':'0';el.dataset.color=color;
+ if(fromTop){const tf=`translate(${gx(c)}px,${gy(r)-SIZE}px)`;el.style.setProperty('--tf',tf);el.style.transform=tf;}else place(el,r,c);
+ boardEl.appendChild(el);return el;}
+function clearGems(){[...boardEl.querySelectorAll('.gem,.particle')].forEach(e=>e.remove());}
+
+function loadInitial(s,scripted){clearGems();colorBoard=[];tiles=[];for(let r=0;r<ROWS;r++){const cr=[],tr=[];for(let c=0;c<COLS;c++){cr.push(s.initialBoard[r][c]);tr.push(makeGem(r,c,s.initialBoard[r][c],false,false));}colorBoard.push(cr);tiles.push(tr);}}
+
+function clearSlots(){for(const s of slots)s.classList.remove('hint','sel','err');}
+function showHint(){clearSlots();const[a,b]=[script.swap.from,script.swap.to];slots[a[0]*COLS+a[1]].classList.add('hint');slots[b[0]*COLS+b[1]].classList.add('hint');}
+
+function moveSpot(r,c,on){spot.style.left=(sx(c)+CELL/2)+'px';spot.style.top=(sy(r)+CELL/2)+'px';spot.style.opacity=on?'1':'0';spot.classList.toggle('x',xray);}
+
+function burst(cx,cy,color){const n=9;for(let i=0;i<n;i++){const p=document.createElement('div');p.className='particle';p.style.left=cx+'px';p.style.top=cy+'px';p.style.background=color;p.style.transform='translate(-50%,-50%)';boardEl.appendChild(p);const ang=Math.random()*6.28,dist=20+Math.random()*34;p.style.transition='transform .5s cubic-bezier(.2,.7,.3,1),opacity .5s';requestAnimationFrame(()=>{p.style.transform=`translate(${Math.cos(ang)*dist-3}px,${Math.sin(ang)*dist-3}px) scale(.3)`;p.style.opacity='0';});setTimeout(()=>p.remove(),520);}}
+
+/* 音效 */
+function ensureAudio(){if(!audio){try{audio=new (window.AudioContext||window.webkitAudioContext)();}catch(e){audio=null;}}}
+function blip(combo,big){if(!sound||!audio)return;const t=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type=big?'triangle':'sine';const f=Math.min(1100,300+combo*11);o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(big?0.12:0.06,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+(big?0.22:0.12));o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+0.24);}
+
+const TIERS=[[75,'t75'],[50,'t50'],[25,'t25'],[10,'t10']];
+function tierClass(combo){for(const[n,cl]of TIERS)if(combo>=n)return cl;return '';}
+function updateCombo(combo){comboEl.textContent=combo;comboEl.classList.remove('pop','t10','t25','t50','t75');const cl=tierClass(combo);if(cl)comboEl.classList.add(cl);if(xray)comboEl.classList.add('x');void comboEl.offsetWidth;comboEl.classList.add('pop');}
+function milestone(combo){const map={10:'CHAIN ×10',25:'BLAZING ×25',50:'UNREAL ×50',75:'GODLIKE ×75',99:'★ PERFECT 99 ★'};if(!map[combo])return;mileEl.textContent=map[combo];mileEl.style.color=combo>=75?'#c98bff':combo>=50?'#ff6fb0':combo>=25?'#ff9d4d':'#ffd36b';mileEl.classList.remove('show');void mileEl.offsetWidth;mileEl.classList.add('show');}
+
+async function play(){
+ busy=true;awaitingSwap=false;stageBtn.disabled=true;clearSlots();
+ cheatCount=0;sCheat.textContent='0';sCheat.classList.add('zero');visited=new Set();
+ boardEl.classList.toggle('xray',xray);
+ const MATCH=140*spd(),GRAV=150*spd(),REFILL=150*spd();
+ let combo=0;
+ for(let step=0;;step++){
+   const m=scanI(colorBoard);if(m.size===0)break;combo++;
+   // centroid + color
+   let sr=0,sc=0,col=0;m.forEach(k=>{const r=Math.floor(k/COLS),c=k%COLS;sr+=r;sc+=c;col=colorBoard[r][c];visited.add(k);});
+   const cr=sr/m.size, cc=sc/m.size;
+   updateCombo(combo);blip(combo,m.size>=5);
+   sClear.textContent=m.size;sCov.textContent=visited.size+'/64';
+   moveSpot(Math.round(cr),Math.round(cc),true);
+   setLog(xray?`<span class="x">X 光</span>:第 ${combo} 波,真實三消 ${m.size} 顆(既有棋子改寫 0)`:`<span class="g">第 ${combo} 波</span>連鎖,消除 ${m.size} 顆`);
+   if(m.size>=5||[10,25,50,75,99].includes(combo)){boardEl.classList.remove('shake');void boardEl.offsetWidth;boardEl.classList.add('shake');}
+   milestone(combo);
+   // pop + particles
+   m.forEach(k=>{const r=Math.floor(k/COLS),c=k%COLS;const el=tiles[r][c];if(el){el.classList.add('pop');}});
+   burst(sx(Math.round(cc))+CELL/2, sy(Math.round(cr))+CELL/2, COLHEX[col]);
+   await sleep(MATCH);
+   m.forEach(k=>{const r=Math.floor(k/COLS),c=k%COLS;if(tiles[r][c]){tiles[r][c].remove();tiles[r][c]=null;}colorBoard[r][c]=null;});
+   // gravity (sync + animate)
+   for(let c=0;c<COLS;c++){let w=ROWS-1;for(let r=ROWS-1;r>=0;r--){if(tiles[r][c]!=null){if(w!==r){tiles[w][c]=tiles[r][c];colorBoard[w][c]=colorBoard[r][c];tiles[r][c]=null;colorBoard[r][c]=null;place(tiles[w][c],w,c);}w--;}}while(w>=0){tiles[w][c]=null;colorBoard[w][c]=null;w--;}}
+   await sleep(GRAV);
+   // refill from script
+   const fill=script.drops[step]||[];
+   for(const{r,c,color}of fill){if(colorBoard[r][c]!=null)cheatCount++;colorBoard[r][c]=color;tiles[r][c]=makeGem(r,c,color,true,true);}
+   void boardEl.offsetWidth;
+   for(const{r,c}of fill){place(tiles[r][c],r,c);}
+   sDrop.textContent=fill.length;sCheat.textContent=cheatCount;if(cheatCount>0)sCheat.classList.remove('zero');
+   await sleep(REFILL);
+   if(combo>=TARGET)break;
+ }
+ moveSpot(4,4,false);
+ setLog(`<span class="ok">✅ 上演完畢 ${combo} combo</span> · 走訪 <b>${visited.size}/64</b> 格 · 既有棋子改寫 <b>0</b> 次 ${xray?'':'(開 X 光看穿手法)'}`);
+ busy=false;stageBtn.disabled=false;
+}
+
+function onClick(r,c){
+ if(busy||!awaitingSwap)return;ensureAudio();
+ if(!sel){sel={r,c};slots[r*COLS+c].classList.add('sel');tiles[r][c]&&tiles[r][c].classList.add('sel');return;}
+ const ps=sel;sel=null;clearSlots();tiles[ps.r][ps.c]&&tiles[ps.r][ps.c].classList.remove('sel');showHint();
+ if(ps.r===r&&ps.c===c)return;
+ const adj=Math.abs(ps.r-r)+Math.abs(ps.c-c)===1,nd=script.swap;
+ const ok=adj&&((ps.r===nd.from[0]&&ps.c===nd.from[1]&&r===nd.to[0]&&c===nd.to[1])||(ps.r===nd.to[0]&&ps.c===nd.to[1]&&r===nd.from[0]&&c===nd.from[1]));
+ if(!ok){slots[r*COLS+c].classList.add('err');setLog('請交換<span class="g">金框提示</span>的兩顆。');setTimeout(clearSlots,300);setTimeout(showHint,300);return;}
+ // 正確交換:對調 color + 元素
+ const tc=colorBoard[ps.r][ps.c];colorBoard[ps.r][ps.c]=colorBoard[r][c];colorBoard[r][c]=tc;
+ const te=tiles[ps.r][ps.c];tiles[ps.r][ps.c]=tiles[r][c];tiles[r][c]=te;
+ place(tiles[ps.r][ps.c],ps.r,ps.c);place(tiles[r][c],r,c);
+ clearSlots();setLog('🎩 點火成功 ——');setTimeout(play,180);
+}
+
+function stage(){
+ if(busy)return;busy=true;stageBtn.disabled=true;sel=null;awaitingSwap=false;clearSlots();
+ comboEl.textContent='0';comboEl.className='combo';sClear.textContent='—';sDrop.textContent='—';sCheat.textContent='0';sCheat.classList.add('zero');sCov.textContent='0/64';moveSpot(4,4,false);
+ setLog('<span class="g">編排中…</span> beam search 正在排出均勻撒滿全盤的天降腳本');
+ setTimeout(()=>{
+   let s=null;try{s=bestBeam(TARGET);}catch(e){s=null;}
+   if(!s||!verify(s,TARGET).ok){s=BAKED[String(TARGET)];setLog('使用預先驗證的後備腳本。');}
+   script=s;loadInitial(s,false);awaitingSwap=true;busy=false;stageBtn.disabled=false;showHint();
+   const[fr,fc]=s.swap.from;setLog(`🎩 盤面已排好,看起來就是隨機盤。請交換<span class="g">金框</span>兩顆(<b>${fr+1},${fc+1}</b> 與相鄰),其餘交給規則。`);
+ },30);
+}
+
+document.getElementById('tgtseg').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b||busy)return;TARGET=+b.dataset.t;tgtEl.textContent=TARGET;[...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));});
+xrayBtn.addEventListener('click',()=>{xray=!xray;xrayBtn.classList.toggle('on',xray);boardEl.classList.toggle('xray',xray);comboEl.classList.toggle('x',xray);combocap.textContent=xray?'COMBO · X-RAY':'COMBO';});
+sndBtn.addEventListener('click',()=>{sound=!sound;sndBtn.classList.toggle('on',sound);ensureAudio();if(audio&&audio.state==='suspended')audio.resume();});
+stageBtn.addEventListener('click',stage);
+
+/* 起手示意盤 */
+(function seed(){const init=makeInitial();const src=init?{initialBoard:init.board}:BAKED['30'];loadInitial(src,false);})();
+</script>
+</body>
+</html>
