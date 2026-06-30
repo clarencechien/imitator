@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Match-3 Auto Combo Engine</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #444; }
+        button:disabled { background: #222; color: #555; cursor: not-allowed; }
+        #stats {
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        #board {
+            display: grid;
+            gap: 2px;
+            background: #333;
+            padding: 2px;
+            border: 2px solid #555;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            background-color: #222;
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+        }
+        /* 消除時的特效 */
+        .cell.matched {
+            transform: scale(0);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="controls">
+        <button id="btn-scramble" onclick="scrambleAndResolve()">生成亂數盤面並自動結算 Combo</button>
+    </div>
+    
+    <div id="stats">
+        Combo: <span id="combo-count" style="color: #4CAF50;">0</span>
+    </div>
+
+    <div id="board"></div>
+
+<script>
+    // --- 系統常數設定 ---
+    const ROWS = 8;
+    const COLS = 8;
+    // 使用魔法氣泡風格的顏色/符號代表種類
+    const TYPES = ['🔴', '🔵', '🟢', '🟡', '🟣']; 
+    const SLEEP_MS = 300; // 模擬前端動畫播放的時間差
+
+    // --- 資料層 (Model) ---
+    let boardData = []; 
+    let isProcessing = false;
+
+    const boardEl = document.getElementById('board');
+    const comboEl = document.getElementById('combo-count');
+    const btnScramble = document.getElementById('btn-scramble');
+
+    boardEl.style.gridTemplateColumns = `repeat(${COLS}, 50px)`;
+    boardEl.style.gridTemplateRows = `repeat(${ROWS}, 50px)`;
+
+    // 工具函數：非同步延遲
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // 1. 初始化空盤面
+    function initBoard() {
+        boardData = [];
+        boardEl.innerHTML = '';
+        for (let r = 0; r < ROWS; r++) {
+            let row = [];
+            for (let c = 0; c < COLS; c++) {
+                row.push(null);
+                const cell = document.createElement('div');
+                cell.id = `cell-${r}-${c}`;
+                cell.className = 'cell';
+                boardEl.appendChild(cell);
+            }
+            boardData.push(row);
+        }
+    }
+
+    // 2. 渲染 UI (將 Data 同步到 DOM)
+    function render() {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cell = document.getElementById(`cell-${r}-${c}`);
+                const val = boardData[r][c];
+                cell.textContent = val || '';
+                if (!val) {
+                    cell.style.backgroundColor = '#111'; // 空格
+                } else {
+                    cell.style.backgroundColor = '#2a2a2a'; // 實體
+                }
+                cell.classList.remove('matched');
+            }
+        }
+    }
+
+    // 3. 掃描與標記演算法 (盲點防禦：找出所有匹配再統一回傳，不提早銷毀)
+    function scanMatches() {
+        let matchedSet = new Set();
+
+        // 水平掃描
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS - 2; c++) {
+                let v1 = boardData[r][c];
+                let v2 = boardData[r][c+1];
+                let v3 = boardData[r][c+2];
+                if (v1 && v1 === v2 && v1 === v3) {
+                    matchedSet.add(`${r},${c}`);
+                    matchedSet.add(`${r},${c+1}`);
+                    matchedSet.add(`${r},${c+2}`);
+                }
+            }
+        }
+
+        // 垂直掃描
+        for (let r = 0; r < ROWS - 2; r++) {
+            for (let c = 0; c < COLS; c++) {
+                let v1 = boardData[r][c];
+                let v2 = boardData[r+1][c];
+                let v3 = boardData[r+2][c];
+                if (v1 && v1 === v2 && v1 === v3) {
+                    matchedSet.add(`${r},${c}`);
+                    matchedSet.add(`${r+1},${c}`);
+                    matchedSet.add(`${r+2},${c}`);
+                }
+            }
+        }
+        return matchedSet;
+    }
+
+    // 4. 重力下落演算法 (雙指標，確保時間複雜度停留在 O(N*M))
+    function applyGravity() {
+        for (let c = 0; c < COLS; c++) {
+            let writeIdx = ROWS - 1; // 寫入指標（從底層開始）
+            // 讀取指標往上找實體方塊
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (boardData[r][c] !== null) {
+                    boardData[writeIdx][c] = boardData[r][c];
+                    writeIdx--;
+                }
+            }
+            // 補齊頂部產生的空缺
+            while (writeIdx >= 0) {
+                boardData[writeIdx][c] = null;
+                writeIdx--;
+            }
+        }
+    }
+
+    // 5. 頂部補齊亂數方塊
+    function refillBoard() {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (boardData[r][c] === null) {
+                    const randomType = TYPES[Math.floor(Math.random() * TYPES.length)];
+                    boardData[r][c] = randomType;
+                }
+            }
+        }
+    }
+
+    // --- 核心生命週期：Combo 結算 Loop ---
+    async function resolveCascade() {
+        let combo = 0;
+        let hasMatch = true;
+
+        while (hasMatch) {
+            let matches = scanMatches();
+            
+            // 終止條件：沒有任何符合的三連消
+            if (matches.size === 0) {
+                hasMatch = false;
+                break;
+            }
+
+            // 狀態變更：增加 Combo 並鎖定 UI
+            combo++;
+            comboEl.textContent = combo;
+            
+            // 表現層：標記消除特效
+            matches.forEach(coord => {
+                const [r, c] = coord.split(',').map(Number);
+                document.getElementById(`cell-${r}-${c}`).classList.add('matched');
+                boardData[r][c] = null; // 資料層：設為空值
+            });
+
+            await sleep(SLEEP_MS); // 等待爆炸動畫
+
+            // 執行重力與補齊
+            applyGravity();
+            render(); 
+            await sleep(SLEEP_MS); // 讓使用者看清楚方塊下落
+            
+            refillBoard();
+            render();
+            await sleep(SLEEP_MS); // 讓使用者看清楚新方塊填滿，準備進入下一次迴圈掃描
+        }
+        
+        isProcessing = false;
+        btnScramble.disabled = false;
+    }
+
+    // --- 觸發器 ---
+    async function scrambleAndResolve() {
+        if (isProcessing) return;
+        isProcessing = true;
+        btnScramble.disabled = true;
+        comboEl.textContent = "0";
+
+        // 暴力填充全域亂數，故意不防範初始生成的 Match，用來觸發自動結算
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                boardData[r][c] = TYPES[Math.floor(Math.random() * TYPES.length)];
+            }
+        }
+        render();
+        await sleep(500); // 停頓一下讓眼睛確認盤面
+
+        // 啟動狀態機
+        resolveCascade();
+    }
+
+    // 系統初始化
+    initBoard();
+</script>
+</body>
+</html>
