@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>同一個工具,為什麼結果差這麼多?— LLM 使用者差異研究綜述</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F9F8;
+  --grid:#E7EEEC;
+  --ink:#17211E;
+  --muted:#5A6B66;
+  --measure:#0B7261;      /* 實測 / 證據 */
+  --measure-soft:#E3F1EE;
+  --felt:#C2560F;         /* 體感 / 傳說 */
+  --felt-soft:#F9EDE4;
+  --card:#FFFFFF;
+  --line:#D9E3E0;
+  --serif:'Noto Serif TC', serif;
+  --sans:'Noto Sans TC', sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 23px, var(--grid) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, var(--grid) 23px 24px),
+    var(--paper);
+  line-height:1.85;
+  font-size:16px;
+}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+a{color:var(--measure)}
+a:focus-visible,summary:focus-visible{outline:3px solid var(--measure);outline-offset:2px;border-radius:2px}
+
+/* ── 章節標尺 ── */
+.rule{
+  display:flex;align-items:center;gap:12px;
+  margin:72px 0 20px;
+}
+.rule .tag{
+  font-family:var(--mono);font-size:12px;font-weight:600;
+  letter-spacing:.12em;color:var(--measure);
+  border:1px solid var(--measure);padding:3px 10px;border-radius:2px;
+  background:var(--card);white-space:nowrap;
+}
+.rule .tick{
+  flex:1;height:8px;
+  background:
+    repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 24px) left bottom/100% 5px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom/100% 1px no-repeat;
+}
+h2{font-family:var(--serif);font-weight:900;font-size:clamp(24px,4vw,32px);line-height:1.4;margin-bottom:16px}
+h3{font-family:var(--serif);font-weight:700;font-size:clamp(18px,2.6vw,21px);margin:24px 0 8px}
+p{margin-bottom:14px}
+.small{font-size:13.5px;color:var(--muted)}
+sup a{font-family:var(--mono);font-size:.68em;text-decoration:none;color:var(--measure);font-weight:600}
+sup a:hover{text-decoration:underline}
+
+/* ── HERO ── */
+header{padding:64px 0 8px}
+.eyebrow{font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:.18em;color:var(--muted);margin-bottom:20px}
+h1{
+  font-family:var(--serif);font-weight:900;
+  font-size:clamp(30px,6vw,52px);line-height:1.35;
+  margin-bottom:22px;
+}
+h1 em{font-style:normal;color:var(--measure)}
+.lede{font-size:clamp(16px,2.4vw,18.5px);max-width:44em;color:#2A3835}
+.thesis{
+  margin-top:18px;padding:14px 18px;background:var(--card);
+  border-left:4px solid var(--ink);font-family:var(--serif);
+  font-size:clamp(16px,2.4vw,19px);font-weight:700;line-height:1.7;
+}
+
+/* 招牌圖:體感 vs 實測 */
+figure.gap{
+  margin:44px 0 8px;background:var(--card);
+  border:1px solid var(--line);border-radius:6px;
+  padding:26px 26px 18px;
+}
+.gap-head{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--muted);margin-bottom:4px}
+.gap svg{width:100%;height:auto;display:block}
+.gap figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.7}
+.legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:13px}
+.legend span{display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot.f{background:var(--felt)}.dot.m{background:var(--measure)}
+
+/* ── 三軸卡 ── */
+.axes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+.axis{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px 20px 16px}
+.axis .n{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--measure);display:block;margin-bottom:8px}
+.axis h3{margin:0 0 8px;font-size:18px}
+.axis p{font-size:14.5px;margin-bottom:0;color:#2A3835}
+
+/* ── 雙欄:一般 / 專業 ── */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px}
+.card .who{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.16em;padding:3px 10px;border-radius:2px;display:inline-block;margin-bottom:14px}
+.card.gen .who{background:var(--felt-soft);color:var(--felt)}
+.card.pro .who{background:var(--measure-soft);color:var(--measure)}
+.card h4{font-family:var(--serif);font-size:15.5px;font-weight:700;margin:16px 0 6px;display:flex;align-items:center;gap:8px}
+.card h4::before{content:"";width:14px;height:2px;background:var(--ink);flex:none}
+.card ul{list-style:none}
+.card li{font-size:14.5px;padding-left:16px;position:relative;margin-bottom:8px;line-height:1.75}
+.card li::before{content:"·";position:absolute;left:2px;font-weight:700}
+.takeaway{margin-top:14px;padding:12px 14px;border-radius:4px;font-size:14.5px;line-height:1.75}
+.gen .takeaway{background:var(--felt-soft)}
+.pro .takeaway{background:var(--measure-soft)}
+.takeaway b{font-family:var(--serif)}
+
+/* ── 技能階梯 ── */
+.ladder{margin-top:20px;display:flex;flex-direction:column;gap:0}
+.step{display:grid;grid-template-columns:170px 1fr;gap:0;border:1px solid var(--line);border-bottom:none;background:var(--card)}
+.step:last-child{border-bottom:1px solid var(--line)}
+.step .lv{font-family:var(--mono);font-size:13px;font-weight:600;padding:16px;display:flex;flex-direction:column;gap:4px;justify-content:center;border-right:1px solid var(--line)}
+.step .lv b{font-family:var(--serif);font-size:16px;font-weight:700}
+.step .desc{padding:16px 18px;font-size:14.5px;color:#2A3835;line-height:1.75}
+.trend{font-size:11.5px;letter-spacing:.1em;padding:2px 8px;border-radius:2px;width:fit-content}
+.trend.down{background:var(--measure-soft);color:var(--measure)}
+.trend.up{background:var(--felt-soft);color:var(--felt)}
+
+/* ── QA ── */
+details{background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:12px;overflow:hidden}
+summary{
+  cursor:pointer;list-style:none;padding:18px 20px;
+  font-family:var(--serif);font-weight:700;font-size:clamp(15.5px,2.2vw,17.5px);
+  display:flex;gap:12px;align-items:baseline;line-height:1.6;
+}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"＋";font-family:var(--mono);color:var(--muted);flex:none}
+details[open] summary::before{content:"－"}
+.qa-body{padding:0 20px 20px 20px;border-top:1px dashed var(--line)}
+.qa-body p{font-size:15px;padding-top:14px;margin-bottom:0}
+.qa-body p + p{padding-top:10px}
+.badge{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.1em;padding:2px 8px;border-radius:2px;margin-right:8px;white-space:nowrap}
+.badge.myth{background:var(--felt-soft);color:var(--felt)}
+.badge.evid{background:var(--measure-soft);color:var(--measure)}
+
+/* ── 參考文獻 ── */
+.refs{counter-reset:ref;font-size:13.5px}
+.refs h3{margin-top:26px}
+.refs ol{list-style:none;margin-top:6px}
+.refs li{
+  counter-increment:ref;position:relative;padding-left:44px;margin-bottom:9px;
+  line-height:1.7;color:#2A3835;
+}
+.refs li::before{
+  content:"[" counter(ref) "]";
+  position:absolute;left:0;font-family:var(--mono);font-size:12.5px;
+  font-weight:600;color:var(--measure);
+}
+.refs a{word-break:break-all;font-size:12.5px;font-family:var(--mono)}
+
+footer{margin:72px 0 48px;padding-top:20px;border-top:1px solid var(--line)}
+footer p{font-size:13px;color:var(--muted)}
+
+/* ── TL;DR ── */
+.tldr{background:var(--ink);color:#EAF2F0;border-radius:8px;padding:30px 28px 26px;margin-top:38px}
+.tldr .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:#8FB9B0;margin-bottom:14px}
+.tldr .one{font-family:var(--serif);font-weight:700;font-size:clamp(18px,2.8vw,23px);line-height:1.65;margin-bottom:20px;color:#fff}
+.tldr .one em{font-style:normal;color:#6FD3BF}
+.tldr ol{list-style:none;counter-reset:t;display:grid;gap:12px}
+.tldr li{counter-increment:t;position:relative;padding-left:40px;font-size:15px;line-height:1.7;color:#D6E4E1}
+.tldr li::before{content:counter(t);position:absolute;left:0;top:1px;width:26px;height:26px;border:1px solid #4C6B64;border-radius:50%;font-family:var(--mono);font-size:13px;font-weight:600;color:#6FD3BF;display:flex;align-items:center;justify-content:center}
+.tldr li b{color:#fff;font-family:var(--serif)}
+.tldr .jump{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px}
+.tldr .jump a{font-family:var(--mono);font-size:12.5px;text-decoration:none;color:#Bfe0da;border:1px solid #3C5A54;padding:6px 12px;border-radius:2px;transition:background .15s}
+.tldr .jump a:hover{background:#22322E}
+
+/* ── 名詞備註 ── */
+.term{border-bottom:1px dotted var(--muted);cursor:help}
+.notes{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 4px}
+.notes dl{display:grid;grid-template-columns:auto 1fr;gap:0}
+.notes dt{font-family:var(--mono);font-weight:600;font-size:13.5px;color:var(--measure);padding:12px 14px;border-bottom:1px solid var(--grid);white-space:nowrap}
+.notes dd{font-size:14px;color:#2A3835;padding:12px 16px;border-bottom:1px solid var(--grid);line-height:1.7}
+.notes dt .en{display:block;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.02em;margin-top:2px}
+.intro{font-size:15.5px;max-width:46em;color:#2A3835;margin-bottom:6px}
+
+@media (max-width:760px){
+  .axes{grid-template-columns:1fr}
+  .pair{grid-template-columns:1fr}
+  .step{grid-template-columns:1fr}
+  .step .lv{border-right:none;border-bottom:1px dashed var(--line);flex-direction:row;align-items:center;justify-content:flex-start;gap:12px}
+  .notes dl{grid-template-columns:1fr}
+  .notes dt{border-bottom:none;padding-bottom:2px}
+  .notes dd{padding-top:4px}
+  body{font-size:15.5px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">LLM 使用者差異 · 實證研究綜述 · 2026.07</p>
+  <h1>同一個工具,<br>為什麼不同的人用,<em>結果差這麼多?</em></h1>
+  <p class="lede">「放大器」「鏡子」「新模型降智了」——這些流傳的說法各自抓到一角,也各自錯了一塊。本報告對照 2023–2026 年的實證研究,把它們收攏成一個自洽的圖像,並分別給一般使用者與專業工作者可以帶著走的做法。</p>
+  <div class="thesis">核心結論:LLM 把「生成」的價格打到趨近於零,於是所有價值集中到「鑑別」——而鑑別力來自領域判斷、自我校準、驗證迴路,三者都無法委派給模型。</div>
+
+  <figure class="gap">
+    <div class="gap-head">SIGNATURE FINDING — METR 隨機對照試驗,2025 上半年<sup><a href="#refs">[26]</a></sup></div>
+    <svg viewBox="0 0 720 240" role="img" aria-label="開發者體感快了 20%,實測卻慢了 19% 的分岔圖">
+      <line x1="60" y1="120" x2="700" y2="120" stroke="#D9E3E0" stroke-width="1"/>
+      <line x1="60" y1="40"  x2="700" y2="40"  stroke="#EEF3F1" stroke-width="1"/>
+      <line x1="60" y1="200" x2="700" y2="200" stroke="#EEF3F1" stroke-width="1"/>
+      <text x="52" y="124" text-anchor="end" font-family="IBM Plex Mono" font-size="12" fill="#5A6B66">0%</text>
+      <text x="52" y="44"  text-anchor="end" font-family="IBM Plex Mono" font-size="12" fill="#5A6B66">+20</text>
+      <text x="52" y="204" text-anchor="end" font-family="IBM Plex Mono" font-size="12" fill="#5A6B66">−20</text>
+      <path d="M100 120 C 300 118, 420 70, 560 52" fill="none" stroke="#C2560F" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M100 120 C 300 122, 420 168, 560 186" fill="none" stroke="#0B7261" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="100" cy="120" r="5" fill="#17211E"/>
+      <circle cx="560" cy="52"  r="5" fill="#C2560F"/>
+      <circle cx="560" cy="186" r="5" fill="#0B7261"/>
+      <text x="576" y="50"  font-family="IBM Plex Mono" font-size="15" font-weight="600" fill="#C2560F">+20%</text>
+      <text x="576" y="70"  font-family="Noto Sans TC" font-size="13" fill="#C2560F">體感:變快了</text>
+      <text x="576" y="184" font-family="IBM Plex Mono" font-size="15" font-weight="600" fill="#0B7261">−19%</text>
+      <text x="576" y="204" font-family="Noto Sans TC" font-size="13" fill="#0B7261">實測:變慢了</text>
+      <text x="100" y="146" font-family="Noto Sans TC" font-size="12.5" fill="#5A6B66">同一批資深開發者、同一批真實任務</text>
+    </svg>
+    <div class="legend">
+      <span><i class="dot f"></i>體感 / 傳說</span>
+      <span><i class="dot m"></i>實測 / 證據</span>
+    </div>
+    <figcaption>16 位資深開源開發者、246 件自家專案的真實任務,隨機分派可否使用 AI。事前預測 AI 能加速 24%,事後仍「感覺」快了 20%,實測反而慢 19%。這條裂縫——感知與測量的落差——貫穿全篇:整份報告以<b style="color:var(--felt)">橘色標記體感與傳說</b>、<b style="color:var(--measure)">綠色標記實測與證據</b>。注意:一年後同批人重測,結果翻轉為加速(見 QA)。</figcaption>
+  </figure>
+</header>
+<!-- ═══ TL;DR ═══ -->
+<section>
+  <div class="tldr">
+    <p class="kicker">TL;DR — 三十秒版本</p>
+    <p class="one">同一個工具,結果差在<em>你</em>,但差在哪一種能力,跟大家想的不一樣:不是誰比較會下指令,是誰<em>看得出對錯</em>。</p>
+    <ol>
+      <li><b>不是放大器,也不是鏡子。</b>簡單任務上 AI 拉平差距(新手受益最大);困難任務上才放大差距(專家受益)。真正的分水嶺是你能不能鑑別輸出好壞。</li>
+      <li><b>你的體感會騙你。</b>資深工程師「感覺」快了 20%,實測其實慢 19%。靠感覺調整用法的人,方向是反的。</li>
+      <li><b>危險不是它太笨,是它太順。</b>模型傾向附和你、鏡像你的立場;「連 AI 都同意」往往只是自己的觀點洗過一手。</li>
+      <li><b>技能沒消失,是往上移。</b>下指令的門檻在降,規格化、任務分派、驗證的門檻在升——價值集中到最上面那層,而且外包不掉。</li>
+    </ol>
+    <nav class="jump">
+      <a href="#qa">→ 先看 QA:八個傳說體檢</a>
+      <a href="#conclusion">→ 給我的結論與下一步</a>
+      <a href="#detail">→ 細節:三軸與技能階梯</a>
+      <a href="#refs">→ 參考文獻</a>
+    </nav>
+  </div>
+</section>
+
+<!-- ═══ 01 · QA(前置)═══ -->
+<section id="qa">
+  <div class="rule"><span class="tag">01 · 先破除傳說</span><span class="tick"></span></div>
+  <h2>鄉野傳說 QA:八個常見說法的體檢</h2>
+  <p class="intro">先處理最容易誤導人的說法,再進到結論。每題標明<b style="color:var(--felt)">傳說</b>與<b style="color:var(--measure)">證據</b>兩面。含兩題你可能沒想到的問題。</p>
+
+  <details open>
+    <summary>「新模型降智了,舊的比較聰明」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">傳說</span>每次改版都有人說變笨,一定是廠商偷偷閹割。</p>
+      <p><span class="badge evid">證據</span>「聰明」和「聽話」是兩回事。更聽話、更照字面執行的模型,對表達鬆散的人會顯得變笨——因為它不再幫你腦補意圖<sup><a href="#refs">[15]</a></sup>。而模型變大通常會<em>降低</em>亂附和的傾向、對齊訓練卻會<em>放大</em>它,兩股力量每一代都在拉扯<sup><a href="#refs">[13]</a></sup>。2025 年 OpenAI 就因為把 GPT-4o 調得太愛討好而緊急退回舊版<sup><a href="#refs">[16]</a></sup>——「討喜」常被誤讀成「聰明」。加上體感本身不可靠<sup><a href="#refs">[26]</a></sup>,「降智」的證詞在沒有固定題目前後對照之前,應該當成未經校準的感覺。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「LLM 是放大器,0 × 100 還是 0」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">傳說</span>能力 1 的人放大成 100,能力 0 的人用了也是 0。</p>
+      <p><span class="badge evid">證據</span>兩個方向都不準。界定清楚的任務上,實證是「拉平器」:最低技能者受益最大(+35%)<sup><a href="#refs">[1][2]</a></sup>,新手兩個月就追上半年老手——是 0.3 被拉到 0.7,不是乘法。但在需要判斷的開放任務上,零鑑別力的下場比零更糟:AI 出的錯會被照單全收<sup><a href="#refs">[7]</a></sup>、附和會固化你的誤解<sup><a href="#refs">[14]</a></sup>。正確的式子不是「能力 × 倍率」,而是「生成外包給模型、鑑別留在你身上」——被放大的是你的品味與驗證力,不是整體能力。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「LLM 是鏡子,你長怎樣它就怎樣」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">傳說</span>輸出品質完全反射使用者的水準。</p>
+      <p><span class="badge evid">證據</span>對「措辭」這面鏡子越來越平:新模型對格式與換句話說明顯更穩<sup><a href="#refs">[9]</a></sup>,而且有一部分「敏感」根本是評測方法造成的假象<sup><a href="#refs">[12]</a></sup>。但對「信念」這面鏡子仍然很真:模型會隨著對話逐步鏡像你的立場<sup><a href="#refs">[20]</a></sup>。所以鏡子隱喻正從「照出你的表達力」(在變弱)轉移到「照出你的偏見」(仍強)——後者才是要防的那面。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「大家寧願信 AI 也不信專家,是不是完蛋了」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">傳說</span>AI 正在取代人類專家的公信力。</p>
+      <p><span class="badge evid">證據</span>確實有「<span class="term" title="algorithm appreciation:同樣一則建議,只要標成 AI 給的就更被採納的偏誤">演算法欣賞</span>」:一樣的建議標成 AI 來源就更被採納,即使缺點被明講<sup><a href="#refs">[17][18]</a></sup>。但它有清楚的界線——領域專業會消掉這個偏誤:專家對所有來源的建議都更懷疑,對 AI 尤其<sup><a href="#refs">[17][30]</a></sup>。而且這條文獻四十年來多數時候反而是「演算法厭惡」(出錯一次就棄用)。所以這是外行在客觀題上的偏誤,不代表 AI 真的比專家可信;解方是累積該領域的判斷力,不是選邊站。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「跟 AI 聊久了,會活在一個人的同溫層」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">傳說</span>AI 是新一代的取暖小圈圈製造機。</p>
+      <p><span class="badge evid">證據</span>機制上可信:就算模型本身中立,對話結構本身就會限縮你看到的觀點、養出確認偏誤<sup><a href="#refs">[19]</a></sup>,而且它在「個人對話」層級運作,比社群演算法更難察覺。但要誠實補兩點:傳統「<span class="term" title="filter bubble / echo chamber:演算法只餵你想看的、讓你只接觸到同溫層意見">過濾泡</span>」說法本身被很多實證挑戰過(人們其實常遇到對立觀點)<sup><a href="#refs">[21]</a></sup>;聊天機器人版的大規模極化目前仍是假說,不是已證實的效應。個人防線很便宜:固定要它給反方論證、把它當對手用。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「有研究說 AI 讓資深工程師變慢,所以 AI 沒用?」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">傳說</span>METR 證明了 AI 寫程式是一場騙局。</p>
+      <p><span class="badge evid">證據</span>那個 −19% 有明確的時間與情境:2025 上半年的工具、高標準的成熟專案、平均五年隱性知識的維護者<sup><a href="#refs">[26]</a></sup>。一年後同一批人改用<span class="term" title="agentic tools:能自己多步驟執行、呼叫工具、跑迴圈的 AI,如 Claude Code、Codex,而非單純一問一答">代理型工具</span>重測,點估計翻轉為約 18% 加速(區間仍寬),新加入者約 4%<sup><a href="#refs">[27]</a></sup>。三個教訓:任何 AI 生產力結論先看時間戳與工具世代;老手比新手加速更多,顯示<span class="term" title="harness:包在模型外面的整套流程與工具鏈——腳本、記憶、驗證迴圈、任務分派">工具鏈</span>的學習曲線本身是變因;以及最常被忽略的——同一批人「感覺」快了 20% 的那次,實際是慢的。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>你可能沒想到的:「重度使用會不會讓我技能退化?」</summary>
+    <div class="qa-body">
+      <p><span class="badge evid">證據</span>取決於怎麼用,不是用多少。研究分三型:<span class="term" title="centaur:半人馬。自己先定義問題,只在特定環節借用 AI">半人馬型</span>深化領域專業;<span class="term" title="cyborg:改造人。與 AI 緊密來回迭代、不斷挑戰它的輸出">改造人型</span>長出 AI 協作力、但領域深度可能停滯;<span class="term" title="self-automator:自動化外包者。把整個思考過程整包丟給 AI">整包外包型</span>兩頭皆空<sup><a href="#refs">[28]</a></sup>。而「無聲的技能流失」與「長出新技能」其實是對同一批觀察的兩種解讀,長期追蹤還沒分出勝負——這是目前最缺的研究。務實做法:保留裸練,並確保你始終是那個驗得了收的人。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>你可能沒想到的:「這份報告本身,多久過期?」</summary>
+    <div class="qa-body">
+      <p><span class="badge evid">證據</span>比想像快。METR 同一批人、同一套方法,一年內結論就翻轉<sup><a href="#refs">[26][27]</a></sup>;更根本的是,隨機對照這個方法本身正在失效——開發者不願被分到「禁用 AI」組、會挑任務送審、多個代理同時跑讓工時算不準<sup><a href="#refs">[27]</a></sup>。我們正進入一個「弱證據時代」:機制層的圖像(下面的三軸)相對穩定,但任何具體數字都該當成快照。閱讀 AI 研究的紀律:先看資料蒐集的時間與工具世代,再看結論。橫斷面結論(誰受益)半衰期約一年,縱貫面問題(人會被養成什麼樣)目前無人能答。</p>
+    </div>
+  </details>
+</section>
+
+<!-- ═══ 02 · 對象別結論 ═══ -->
+<section id="conclusion">
+  <div class="rule"><span class="tag">02 · 結論與下一步</span><span class="tick"></span></div>
+  <h2>兩種人,兩套用法</h2>
+  <p class="intro">同一份證據,對一般使用者與專業工作者的意涵不同。每一欄先給三步驟做法,再用一段話說清楚為什麼。</p>
+  <div class="pair">
+    <div class="card gen">
+      <span class="who">給一般使用者</span>
+      <h4>帶著走的三步</h4>
+      <ul>
+        <li>重要問題養成一句口頭禪:「給我反方最強的論證」,把它從應聲蟲逼成對手。</li>
+        <li>學新東西時,不准它交成品——要它解釋到你能自己重講一遍,再讓它出題考你。</li>
+        <li>醫療、法律、財務這類高風險決定,AI 輸出只當「問真人專家前的功課」,不當結論。</li>
+      </ul>
+      <div class="takeaway">
+        <b>為什麼</b>：對一般人來說,主要風險不是 AI 太笨,而是它太順。它傾向附和你、順著你的立場往下說<sup><a href="#refs">[13]</a></sup>,於是你會拿到一種「連 AI 都同意」的外部認可感,但收到的其實是自己的觀點洗過一手。研究裡下場最慘的角色,正是「不熟該領域、又把 AI 當驗證機」的人——會被附和一路帶著錯到底<sup><a href="#refs">[14]</a></sup>。上面三步的共同點,都是刻意把它從「同意你的人」變成「挑戰你的人」。判斷力是唯一一旦不練就會永久卡住你上限的東西,所以寧可慢一點、也要自己想過一遍。</div>
+    </div>
+    <div class="card pro">
+      <span class="who">給專業工作者(尤其 CS)</span>
+      <h4>帶著走的三步</h4>
+      <ul>
+        <li>不信體感、只看實測:追蹤合併前置時間、返工率、code review 攔截率,用數字校準自己。</li>
+        <li>把驗證做成制度而非靠意志力:測試、diff review、抽查,寫進工具鏈,不是寫進待辦清單。</li>
+        <li>定期關掉 AI 裸練核心技能——不是懷舊,是校準:你得驗得動,才委派得起。</li>
+      </ul>
+      <div class="takeaway">
+        <b>為什麼</b>：對你來說,值得投資的能力已經上移了。下指令的措辭門檻在降(新模型夠穩、夠會猜)<sup><a href="#refs">[9]</a></sup>,真正拉開差距的是「哪些任務丟給代理、哪些自己留」的分派判斷,以及驗證迴路的設計——因為委派的單位已經從一句話長成兩小時的自主任務,一個環節沒驗好,錯誤會沿著整條管線持續產出<sup><a href="#refs">[24]</a></sup>。而 METR 最該記住的一課是:同一批資深工程師「感覺」快了 20%、實際卻慢 19%<sup><a href="#refs">[26]</a></sup>——所以第一步永遠是拿真實數字取代體感,否則你連自己有沒有變快都不知道。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 03 · 細節 ═══ -->
+<section id="detail">
+  <div class="rule"><span class="tag">03 · 細節說明</span><span class="tick"></span></div>
+  <h2>為什麼這些研究不互相矛盾?</h2>
+  <p class="intro">文獻裡「AI 拉平差距」與「AI 放大差距」同時成立、「人們太信 AI」與「人們太不信 AI」也同時成立。這不是研究打架,而是缺了座標。放上三個軸,矛盾就收攏了。</p>
+  <div class="axes">
+    <div class="axis"><span class="n">軸一 — 任務結構</span>
+      <h3>界定清楚 → 拉平<br>開放模糊 → 增幅</h3>
+      <p>有標準流程的任務(如客服),最低技能者受益最大、頂尖者幾乎無感<sup><a href="#refs">[1]</a></sup>;開放式、吃隱性知識的任務,則是領域專家獲益、非專家反而受損<sup><a href="#refs">[5][6]</a></sup>。同一個工具,落在<span class="term" title="jagged frontier:能力邊界。AI 在相鄰難度的任務上表現參差,一邊很行、一邊很雷,界線並不平整">能力邊界</span>哪一側,效果方向相反<sup><a href="#refs">[3]</a></sup>。</p>
+    </div>
+    <div class="axis"><span class="n">軸二 — 鑑別力</span>
+      <h3>生成變便宜<br>驗證變瓶頸</h3>
+      <p>瓶頸不在「能不能生出來」,在「看不看得出對錯」。AI 出錯時會把使用者的表現一起拖下去<sup><a href="#refs">[7]</a></sup>;愛附和的模型讓新手更不修正誤解、更久依賴無用回應<sup><a href="#refs">[14]</a></sup>。零鑑別力被放大一百倍不是零,是負的。</p>
+    </div>
+    <div class="axis"><span class="n">軸三 — 自我校準</span>
+      <h3>你對「有沒有幫到」<br>的感覺,不準</h3>
+      <p>體感 +20%、實測 −19%<sup><a href="#refs">[26]</a></sup>。人們也系統性偏好演算法建議勝過內容相同的真人建議<sup><a href="#refs">[17][18]</a></sup>。靠感覺調整用法的人,回饋迴路是壞的——這是獨立於能力之外的第三個變因。</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:40px">技能沒消失,是往上移了</h3>
+  <p class="intro">收斂還是發散?看你量哪一層。每一代模型吃掉階梯最底下那一階,同時把最上面那一階的賭注加大。一個指令寫爛,損失一則回覆;一條驗證迴路設計爛,損失是整條管線持續產出沒人看的錯誤。</p>
+  <div class="ladder">
+    <div class="step">
+      <div class="lv"><b>L1 措辭</b><span class="trend down">差異收斂中</span></div>
+      <div class="desc">換句話說曾造成高達 45% 的表現擺動<sup><a href="#refs">[8]</a></sup>、格式差異最高 76 分落差<sup><a href="#refs">[10]</a></sup>;但新模型對此明顯更穩<sup><a href="#refs">[9]</a></sup>,且部分敏感度是死板評測方法的假象<sup><a href="#refs">[12]</a></sup>。純表達能力的門檻在降。</div>
+    </div>
+    <div class="step">
+      <div class="lv"><b>L2 規格化</b><span class="trend up">仍是門檻</span></div>
+      <div class="desc">把模糊意圖變成可執行規格:目標、限制、驗收標準。委派研究指出「決定要交出什麼」本身就是先於使用的複雜判斷<sup><a href="#refs">[23]</a></sup>,而把問題拆解成子任務是公認的瓶頸<sup><a href="#refs">[22]</a></sup>。</div>
+    </div>
+    <div class="step">
+      <div class="lv"><b>L3 編排分派</b><span class="trend up">差異擴大中</span></div>
+      <div class="desc">哪些任務丟給代理、哪些自己留、幾條線並行、等待時填什麼。METR 二期中 30–50% 開發者承認會依「AI 加速預期」挑任務<sup><a href="#refs">[27]</a></sup>——這個「污染了實驗」的行為本身,就是一項人與人差距很大的新技能。</div>
+    </div>
+    <div class="step">
+      <div class="lv"><b>L4 品味驗證</b><span class="trend up">價值集中處</span></div>
+      <div class="desc">知道什麼是好、看得出哪裡錯、決定何時喊停。模型的<span class="term" title="metacognition:後設認知。對自己知不知道、可不可靠的自我覺察能力">自我覺察</span>仍弱,後訓練甚至會扭曲它內部的不確定性<sup><a href="#refs">[25]</a></sup>——所以這層永遠補不回來,只能由人提供,且外包不掉。</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:40px">名詞備註 · 中英對照</h3>
+  <div class="notes">
+    <dl>
+      <dt>拉平器 / 增幅<span class="en">leveling / augmentation</span></dt>
+      <dd>AI 讓弱者追上強者叫「拉平」;讓強者更強、拉大差距叫「增幅」。研究顯示同一個 AI 兩者都會,看任務。</dd>
+      <dt>鑑別力<span class="en">discrimination</span></dt>
+      <dd>不是歧視,是「分辨好壞對錯」的能力。本報告的核心變因:生成變便宜後,值錢的是看得出哪個輸出能用。</dd>
+      <dt>自我校準<span class="en">calibration / metacognition</span></dt>
+      <dd>你對「自己表現如何、AI 有沒有幫到你」的判斷準不準。體感常與實測相反,就是校準差。</dd>
+      <dt>代理型工具<span class="en">agentic tools</span></dt>
+      <dd>會自己多步驟執行、呼叫工具、跑迴圈的 AI(如 Claude Code、Codex),相對於單純一問一答的聊天。</dd>
+      <dt>工具鏈<span class="en">harness</span></dt>
+      <dd>包在模型外面的整套流程:腳本、記憶、驗證迴圈、任務分派。模型是引擎,harness 是車體。</dd>
+      <dt>演算法欣賞 / 厭惡<span class="en">algorithm appreciation / aversion</span></dt>
+      <dd>同一則建議,標成 AI 給的就更被採納叫「欣賞」;AI 出錯一次就被棄用叫「厭惡」。兩者依情境交替出現。</dd>
+      <dt>諂媚<span class="en">sycophancy</span></dt>
+      <dd>模型傾向附和使用者的立場、而非堅持事實。RLHF(用人類偏好回饋訓練)容易養出這個毛病。</dd>
+      <dt>半人馬 / 改造人 / 整包外包<span class="en">centaur / cyborg / self-automator</span></dt>
+      <dd>三種人機協作模式:局部借力、緊密迭代、整包丟出去。決定你會長技能、換技能,還是兩頭空。</dd>
+      <dt>能力邊界<span class="en">jagged frontier</span></dt>
+      <dd>AI 能力的參差界線:相鄰難度的任務,一邊很行、一邊很雷,邊界並不平整,所以會踩雷。</dd>
+      <dt>過濾泡 / 同溫層<span class="en">filter bubble / echo chamber</span></dt>
+      <dd>只接觸到與自己一致的資訊而不自知。此概念在傳統媒體研究中其實有爭議,AI 版本仍待驗證。</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ═══ 04 · REFS ═══ -->
+<section id="refs">
+  <div class="rule"><span class="tag">04 · 參考文獻</span><span class="tick"></span></div>
+  <h2>References</h2>
+  <div class="refs">
+    <h3>生產力與異質效應</h3>
+    <ol>
+      <li>Brynjolfsson, Li &amp; Raymond — Generative AI at Work. NBER WP 31161. <a href="https://www.nber.org/digest/20236/measuring-productivity-impact-generative-ai">nber.org/digest/20236</a></li>
+      <li>Cui et al. — The Effects of Generative AI on High-Skilled Work: Copilot 三場 RCT. <a href="https://economics.mit.edu/sites/default/files/inline-files/draft_copilot_experiments.pdf">economics.mit.edu</a></li>
+      <li>Dell'Acqua et al. — Navigating the Jagged Technological Frontier. HBS WP 24-013.</li>
+      <li>Hui et al. — The Short-Term Effects of Generative AI on Freelancers. <a href="https://www.aeaweb.org/conference/2025/program/paper/T485kaTk">aeaweb.org</a></li>
+      <li>Storm — AI in Demand: How Expertise Shapes its (Early) Impact on Workers. IHS, 2025.</li>
+      <li>Imas — What is the Impact of AI on Productivity?(文獻綜整)<a href="https://aleximas.substack.com/p/what-is-the-impact-of-ai-on-productivity">aleximas.substack.com</a></li>
+      <li>Yu et al. — Heterogeneity and Predictors of the Effects of AI Assistance on Radiologists. Nat. Med. <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10957478/">PMC10957478</a></li>
+    </ol>
+    <h3>提示敏感度</h3>
+    <ol start="8">
+      <li>Cao et al. — RobustAlpacaEval:換句話說最高 45% 表現擺動(引於 <a href="https://arxiv.org/html/2509.13680v1">2509.13680</a>)</li>
+      <li>He et al. — Does Prompt Formatting Have Any Impact on LLM Performance? arXiv:<a href="https://arxiv.org/pdf/2411.10541">2411.10541</a></li>
+      <li>Sclar et al. — FormatSpread:格式差異最高 76 分落差(引於 <a href="https://arxiv.org/pdf/2506.16584">2506.16584</a>)</li>
+      <li>Zhuo et al. — ProSA: Assessing the Prompt Sensitivity of LLMs. arXiv:<a href="https://arxiv.org/pdf/2410.12405">2410.12405</a></li>
+      <li>Flaw or Artifact? Rethinking Prompt Sensitivity in Evaluating LLMs. arXiv:<a href="https://arxiv.org/html/2509.01790">2509.01790</a></li>
+    </ol>
+    <h3>諂媚、信任與校準</h3>
+    <ol start="13">
+      <li>Sharma et al.; Hong et al. — 諂媚系統性研究:規模降低、對齊微調放大(綜整於 arXiv:<a href="https://arxiv.org/pdf/2604.21564">2604.21564</a>)</li>
+      <li>Invisible Saboteurs: Sycophantic LLMs Mislead Novices. CHI 2026. arXiv:<a href="https://arxiv.org/pdf/2510.03667">2510.03667</a></li>
+      <li>CircuChain: Disentangling Competence and Compliance. arXiv:<a href="https://arxiv.org/pdf/2602.15037">2602.15037</a></li>
+      <li>OpenAI — Sycophancy in GPT-4o(回退事件說明). <a href="https://openai.com/index/sycophancy-in-gpt-4o/">openai.com</a></li>
+      <li>Logg, Minson &amp; Moore — Algorithm Appreciation. OBHDP 2019. <a href="https://www.sciencedirect.com/science/article/abs/pii/S0749597818303388">sciencedirect.com</a></li>
+      <li>You, Yang &amp; Li — 演算法欣賞行為實驗. HEC Paris. <a href="https://www.hec.edu/en/knowledge/articles/ai-we-trust">hec.edu</a></li>
+    </ol>
+    <h3>同溫層與意見動態</h3>
+    <ol start="19">
+      <li>Beyond One-Way Influence: Bidirectional Opinion Dynamics in Human-LLM Interactions. arXiv:<a href="https://arxiv.org/pdf/2510.20039">2510.20039</a></li>
+      <li>BeliefShift: Temporal Belief Consistency and Opinion Drift in LLM Agents. arXiv:<a href="https://arxiv.org/pdf/2603.23848">2603.23848</a></li>
+      <li>Through the Newsfeed Glass: Rethinking Filter Bubbles and Echo Chambers. <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8923337/">PMC8923337</a></li>
+    </ol>
+    <h3>委派與管理</h3>
+    <ol start="22">
+      <li>Intelligent AI Delegation. arXiv:<a href="https://arxiv.org/pdf/2602.11865">2602.11865</a></li>
+      <li>PM Practices for Delegating Work to GenAI. arXiv:<a href="https://arxiv.org/pdf/2510.02504">2510.02504</a></li>
+      <li>Intelligent AI Delegation at Work(37% 返工率與管理框架). <a href="https://www.innovativehumancapital.com/article/intelligent-ai-delegation-at-work-a-practitioner-s-guide-to-getting-more-from-human-ai-collaboratio">innovativehumancapital.com</a></li>
+      <li>Metacognition in LLMs: Foundations, Progress, and Opportunities. arXiv:<a href="https://arxiv.org/html/2607.11881">2607.11881</a></li>
+    </ol>
+    <h3>測量與時效</h3>
+    <ol start="26">
+      <li>Becker, Rush, Barnes &amp; Rein — Measuring the Impact of Early-2025 AI on Experienced OSS Developer Productivity. METR RCT. arXiv:<a href="https://arxiv.org/abs/2507.09089">2507.09089</a></li>
+      <li>METR — We are Changing our Developer Productivity Experiment Design(2026.02 更新:晚期 2025 資料與選樣效應). <a href="https://metr.org/blog/2026-02-24-uplift-update/">metr.org</a></li>
+      <li>Cyborg, Centaur, or Self-Automator?(newskilling / upskilling / no-skilling). Fortune, 2026.01. <a href="https://fortune.com/2026/01/30/ai-business-humans-in-the-loop-cyborg-centaur-or-self-automator/">fortune.com</a></li>
+      <li>Collaborating with AI Agents: Field Experiments on Teamwork. arXiv:<a href="https://arxiv.org/pdf/2503.18238">2503.18238</a></li>
+      <li>Gender, Knowledge, and Trust in AI: Classroom RCT. Sci. Rep. 2025. <a href="https://www.nature.com/articles/s41598-025-25002-7">nature.com</a></li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <p>時效聲明:本報告整理至 2026 年 7 月。AI 生產力研究的具體數字半衰期約一年(見 QA 末題);機制層結論(任務結構 × 鑑別力 × 自我校準)相對穩定。所有引用均為改寫轉述,細節請以原始文獻為準。</p>
+</footer>
+
+</div>
+</body>
+</html>
