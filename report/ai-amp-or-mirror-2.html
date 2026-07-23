@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工具在手,怎麼用才算數?— Claude Code 使用指南(下篇)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F9F8;
+  --grid:#E7EEEC;
+  --ink:#17211E;
+  --muted:#5A6B66;
+  --measure:#0B7261;      /* 實測 / 證據 */
+  --measure-soft:#E3F1EE;
+  --felt:#C2560F;         /* 體感 / 傳說 */
+  --felt-soft:#F9EDE4;
+  --card:#FFFFFF;
+  --line:#D9E3E0;
+  --serif:'Noto Serif TC', serif;
+  --sans:'Noto Sans TC', sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 23px, var(--grid) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, var(--grid) 23px 24px),
+    var(--paper);
+  line-height:1.85;
+  font-size:16px;
+}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+a{color:var(--measure)}
+a:focus-visible,summary:focus-visible{outline:3px solid var(--measure);outline-offset:2px;border-radius:2px}
+
+/* ── 章節標尺 ── */
+.rule{
+  display:flex;align-items:center;gap:12px;
+  margin:72px 0 20px;
+}
+.rule .tag{
+  font-family:var(--mono);font-size:12px;font-weight:600;
+  letter-spacing:.12em;color:var(--measure);
+  border:1px solid var(--measure);padding:3px 10px;border-radius:2px;
+  background:var(--card);white-space:nowrap;
+}
+.rule .tick{
+  flex:1;height:8px;
+  background:
+    repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 24px) left bottom/100% 5px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom/100% 1px no-repeat;
+}
+h2{font-family:var(--serif);font-weight:900;font-size:clamp(24px,4vw,32px);line-height:1.4;margin-bottom:16px}
+h3{font-family:var(--serif);font-weight:700;font-size:clamp(18px,2.6vw,21px);margin:24px 0 8px}
+p{margin-bottom:14px}
+.small{font-size:13.5px;color:var(--muted)}
+sup a{font-family:var(--mono);font-size:.68em;text-decoration:none;color:var(--measure);font-weight:600}
+sup a:hover{text-decoration:underline}
+
+/* ── HERO ── */
+header{padding:64px 0 8px}
+.eyebrow{font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:.18em;color:var(--muted);margin-bottom:20px}
+h1{
+  font-family:var(--serif);font-weight:900;
+  font-size:clamp(30px,6vw,52px);line-height:1.35;
+  margin-bottom:22px;
+}
+h1 em{font-style:normal;color:var(--measure)}
+.lede{font-size:clamp(16px,2.4vw,18.5px);max-width:44em;color:#2A3835}
+.thesis{
+  margin-top:18px;padding:14px 18px;background:var(--card);
+  border-left:4px solid var(--ink);font-family:var(--serif);
+  font-size:clamp(16px,2.4vw,19px);font-weight:700;line-height:1.7;
+}
+
+/* 招牌圖:體感 vs 實測 */
+figure.gap{
+  margin:44px 0 8px;background:var(--card);
+  border:1px solid var(--line);border-radius:6px;
+  padding:26px 26px 18px;
+}
+.gap-head{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--muted);margin-bottom:4px}
+.gap svg{width:100%;height:auto;display:block}
+.gap figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.7}
+.legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:13px}
+.legend span{display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot.f{background:var(--felt)}.dot.m{background:var(--measure)}
+
+/* ── 三軸卡 ── */
+.axes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+.axis{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px 20px 16px}
+.axis .n{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--measure);display:block;margin-bottom:8px}
+.axis h3{margin:0 0 8px;font-size:18px}
+.axis p{font-size:14.5px;margin-bottom:0;color:#2A3835}
+
+/* ── 雙欄:一般 / 專業 ── */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px}
+.card .who{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.16em;padding:3px 10px;border-radius:2px;display:inline-block;margin-bottom:14px}
+.card.gen .who{background:var(--felt-soft);color:var(--felt)}
+.card.pro .who{background:var(--measure-soft);color:var(--measure)}
+.card h4{font-family:var(--serif);font-size:15.5px;font-weight:700;margin:16px 0 6px;display:flex;align-items:center;gap:8px}
+.card h4::before{content:"";width:14px;height:2px;background:var(--ink);flex:none}
+.card ul{list-style:none}
+.card li{font-size:14.5px;padding-left:16px;position:relative;margin-bottom:8px;line-height:1.75}
+.card li::before{content:"·";position:absolute;left:2px;font-weight:700}
+.takeaway{margin-top:14px;padding:12px 14px;border-radius:4px;font-size:14.5px;line-height:1.75}
+.gen .takeaway{background:var(--felt-soft)}
+.pro .takeaway{background:var(--measure-soft)}
+.takeaway b{font-family:var(--serif)}
+
+/* ── 技能階梯 ── */
+.ladder{margin-top:20px;display:flex;flex-direction:column;gap:0}
+.step{display:grid;grid-template-columns:170px 1fr;gap:0;border:1px solid var(--line);border-bottom:none;background:var(--card)}
+.step:last-child{border-bottom:1px solid var(--line)}
+.step .lv{font-family:var(--mono);font-size:13px;font-weight:600;padding:16px;display:flex;flex-direction:column;gap:4px;justify-content:center;border-right:1px solid var(--line)}
+.step .lv b{font-family:var(--serif);font-size:16px;font-weight:700}
+.step .desc{padding:16px 18px;font-size:14.5px;color:#2A3835;line-height:1.75}
+.trend{font-size:11.5px;letter-spacing:.1em;padding:2px 8px;border-radius:2px;width:fit-content}
+.trend.down{background:var(--measure-soft);color:var(--measure)}
+.trend.up{background:var(--felt-soft);color:var(--felt)}
+
+/* ── QA ── */
+details{background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:12px;overflow:hidden}
+summary{
+  cursor:pointer;list-style:none;padding:18px 20px;
+  font-family:var(--serif);font-weight:700;font-size:clamp(15.5px,2.2vw,17.5px);
+  display:flex;gap:12px;align-items:baseline;line-height:1.6;
+}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"＋";font-family:var(--mono);color:var(--muted);flex:none}
+details[open] summary::before{content:"－"}
+.qa-body{padding:0 20px 20px 20px;border-top:1px dashed var(--line)}
+.qa-body p{font-size:15px;padding-top:14px;margin-bottom:0}
+.qa-body p + p{padding-top:10px}
+.badge{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.1em;padding:2px 8px;border-radius:2px;margin-right:8px;white-space:nowrap}
+.badge.myth{background:var(--felt-soft);color:var(--felt)}
+.badge.evid{background:var(--measure-soft);color:var(--measure)}
+
+/* ── 參考文獻 ── */
+.refs{counter-reset:ref;font-size:13.5px}
+.refs h3{margin-top:26px}
+.refs ol{list-style:none;margin-top:6px}
+.refs li{
+  counter-increment:ref;position:relative;padding-left:44px;margin-bottom:9px;
+  line-height:1.7;color:#2A3835;
+}
+.refs li::before{
+  content:"[" counter(ref) "]";
+  position:absolute;left:0;font-family:var(--mono);font-size:12.5px;
+  font-weight:600;color:var(--measure);
+}
+.refs a{word-break:break-all;font-size:12.5px;font-family:var(--mono)}
+
+footer{margin:72px 0 48px;padding-top:20px;border-top:1px solid var(--line)}
+footer p{font-size:13px;color:var(--muted)}
+
+/* ── TL;DR ── */
+.tldr{background:var(--ink);color:#EAF2F0;border-radius:8px;padding:30px 28px 26px;margin-top:38px}
+.tldr .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:#8FB9B0;margin-bottom:14px}
+.tldr .one{font-family:var(--serif);font-weight:700;font-size:clamp(18px,2.8vw,23px);line-height:1.65;margin-bottom:20px;color:#fff}
+.tldr .one em{font-style:normal;color:#6FD3BF}
+.tldr ol{list-style:none;counter-reset:t;display:grid;gap:12px}
+.tldr li{counter-increment:t;position:relative;padding-left:40px;font-size:15px;line-height:1.7;color:#D6E4E1}
+.tldr li::before{content:counter(t);position:absolute;left:0;top:1px;width:26px;height:26px;border:1px solid #4C6B64;border-radius:50%;font-family:var(--mono);font-size:13px;font-weight:600;color:#6FD3BF;display:flex;align-items:center;justify-content:center}
+.tldr li b{color:#fff;font-family:var(--serif)}
+.tldr .jump{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px}
+.tldr .jump a{font-family:var(--mono);font-size:12.5px;text-decoration:none;color:#Bfe0da;border:1px solid #3C5A54;padding:6px 12px;border-radius:2px;transition:background .15s}
+.tldr .jump a:hover{background:#22322E}
+
+
+/* ── 帶回去 prompt ── */
+.relay-intro{max-width:46em;font-size:15.5px;color:#2A3835;margin-bottom:18px}
+.relay-how{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 26px}
+.relay-how .h{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px 16px 14px}
+.relay-how .h b{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--measure);display:block;margin-bottom:6px}
+.relay-how .h span{font-size:14px;color:#2A3835;line-height:1.7}
+.promptbox{position:relative;background:var(--ink);border-radius:8px;overflow:hidden}
+.promptbox .bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2C403B}
+.promptbox .bar .fn{font-family:var(--mono);font-size:12.5px;color:#8FB9B0;letter-spacing:.04em}
+.promptbox .bar button{font-family:var(--mono);font-size:12.5px;font-weight:600;color:#0F1613;background:#6FD3BF;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;transition:background .15s}
+.promptbox .bar button:hover{background:#8FE0CF}
+.promptbox .bar button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.promptbox pre{margin:0;padding:20px 18px;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.promptbox code{font-family:var(--mono);font-size:13px;line-height:1.85;color:#DCE9E5}
+.promptbox code .c{color:#7FA39B}
+.relay-note{font-size:13.5px;color:var(--muted);margin-top:14px;line-height:1.75}
+@media (max-width:760px){.relay-how{grid-template-columns:1fr}}
+
+
+/* ── 番外篇 附錄 ── */
+.bonus-open{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.bonus-open .zh{font-family:var(--serif);font-weight:900;font-size:clamp(22px,3.4vw,28px)}
+.bonus-open .en{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--muted)}
+.bonus-lede{max-width:46em;font-size:15px;color:var(--muted);margin-bottom:26px;line-height:1.8}
+.qbox{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:0;margin-bottom:16px;overflow:hidden}
+.qbox .q{display:flex;gap:12px;align-items:baseline;padding:18px 22px;background:var(--measure-soft);border-bottom:1px solid var(--line)}
+.qbox .q .no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--measure);flex:none}
+.qbox .q .qt{font-family:var(--serif);font-weight:700;font-size:clamp(16px,2.3vw,18.5px);line-height:1.5}
+.qbox .a{padding:20px 22px 22px}
+.qbox .a p{font-size:14.5px;margin-bottom:12px;line-height:1.8}
+.qbox .a p:last-child{margin-bottom:0}
+.verdict{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.05em;padding:3px 10px;border-radius:2px;margin-bottom:14px}
+.verdict.no{background:var(--felt-soft);color:var(--felt)}
+.verdict.yes{background:var(--measure-soft);color:var(--measure)}
+.verdict.dep{background:#EFEAE0;color:#8A6D2B}
+.qbox .a .k{font-family:var(--serif);font-weight:700;color:var(--ink)}
+.thread{background:var(--ink);color:#DCE9E5;border-radius:6px;padding:22px 24px;margin-top:6px}
+.thread .kk{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:#6FD3BF;margin-bottom:10px}
+.thread p{font-size:14.5px;line-height:1.85;color:#D6E4E1;margin:0}
+.thread b{color:#fff;font-family:var(--serif)}
+
+/* ── 名詞備註 ── */
+.term{border-bottom:1px dotted var(--muted);cursor:help}
+.notes{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 4px}
+.notes dl{display:grid;grid-template-columns:auto 1fr;gap:0}
+.notes dt{font-family:var(--mono);font-weight:600;font-size:13.5px;color:var(--measure);padding:12px 14px;border-bottom:1px solid var(--grid);white-space:nowrap}
+.notes dd{font-size:14px;color:#2A3835;padding:12px 16px;border-bottom:1px solid var(--grid);line-height:1.7}
+.notes dt .en{display:block;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.02em;margin-top:2px}
+.intro{font-size:15.5px;max-width:46em;color:#2A3835;margin-bottom:6px}
+
+@media (max-width:760px){
+  .axes{grid-template-columns:1fr}
+  .pair{grid-template-columns:1fr}
+  .step{grid-template-columns:1fr}
+  .step .lv{border-right:none;border-bottom:1px dashed var(--line);flex-direction:row;align-items:center;justify-content:flex-start;gap:12px}
+  .notes dl{grid-template-columns:1fr}
+  .notes dt{border-bottom:none;padding-bottom:2px}
+  .notes dd{padding-top:4px}
+  body{font-size:15.5px}
+}
+
+/* ── 下篇專用 ── */
+.series{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--felt);border:1px solid var(--felt);padding:3px 10px;border-radius:2px;display:inline-block;margin-bottom:14px;background:var(--card)}
+.series a{color:var(--felt);text-decoration:none}
+.quad{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:26px;margin:24px 0 8px}
+.quad svg{width:100%;height:auto;display:block}
+.quad figcaption{font-size:13.5px;color:var(--muted);margin-top:12px;line-height:1.75}
+.surface-table{width:100%;border-collapse:collapse;font-size:14px;background:var(--card);border:1px solid var(--line)}
+.surface-table th{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-align:left;padding:12px 14px;border-bottom:2px solid var(--ink);color:var(--ink);white-space:nowrap}
+.surface-table td{padding:12px 14px;border-bottom:1px solid var(--grid);vertical-align:top;line-height:1.7}
+.surface-table tr:last-child td{border-bottom:none}
+.surface-table .nm{font-family:var(--serif);font-weight:700;white-space:nowrap}
+.tblwrap{overflow-x:auto;margin-top:18px}
+.gate{display:grid;grid-template-columns:64px 1fr;border:1px solid var(--line);border-bottom:none;background:var(--card)}
+.gate:last-of-type{border-bottom:1px solid var(--line)}
+.gate .g{font-family:var(--mono);font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;border-right:1px solid var(--line);color:var(--measure)}
+.gate .gd{padding:14px 18px;font-size:14.5px;line-height:1.75}
+.gate .gd b{font-family:var(--serif)}
+.check{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:22px 24px;margin-top:18px}
+.check h4{font-family:var(--serif);font-size:16px;margin:0 0 10px}
+.check ol{list-style:none;counter-reset:c}
+.check li{counter-increment:c;position:relative;padding-left:34px;margin-bottom:10px;font-size:14.5px;line-height:1.75}
+.check li::before{content:counter(c);position:absolute;left:0;top:2px;width:22px;height:22px;background:var(--measure-soft);color:var(--measure);border-radius:50%;font-family:var(--mono);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+code.inl{font-family:var(--mono);font-size:.88em;background:var(--grid);padding:1px 6px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">CLAUDE CODE 實用指南 · 針對 CS 工作者 · 2026.07</p>
+  <p class="series">系列下篇 · 上篇:<a href="llm-user-variance.html">同一個工具,為什麼結果差這麼多?</a></p>
+  <h1>工具在手,<br><em>怎麼用才算數?</em></h1>
+  <p class="lede">上篇的結論是:生成趨近免費,價值集中到「鑑別力」,而鑑別力外包不掉。下篇回答接下來那個問題——那鑑別力要放在哪裡?答案:<b>寫成 repo 裡可執行、可搬家的工件</b>。以 Claude Code 為主軸,帶到 Cowork 與網頁版,整理你可能知道、也可能不知道、但必須知道的事。</p>
+  <div class="thesis">核心原則:補模型不足的東西,下一版就被吃掉;編碼你約束的東西,模型越強、槓桿越大。所以——往「確定性」與「你擁有」那一象限搬。</div>
+
+  <figure class="quad">
+    <div class="gap-head">SIGNATURE MAP — 你的每一份設定,住在哪一格?</div>
+    <svg viewBox="0 0 720 430" role="img" aria-label="兩軸四象限:建議性到確定性、廠商持有到你持有">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#5A6B66"/>
+        </marker>
+      </defs>
+      <line x1="360" y1="30"  x2="360" y2="400" stroke="#5A6B66" stroke-width="1.5" marker-start="url(#ah)" marker-end="url(#ah)"/>
+      <line x1="60"  y1="215" x2="660" y2="215" stroke="#5A6B66" stroke-width="1.5" marker-start="url(#ah)" marker-end="url(#ah)"/>
+      <text x="360" y="20"  text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#17211E" font-weight="600">確定性(保證發生)</text>
+      <text x="360" y="422" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#5A6B66">建議性(模型可忽略)</text>
+      <text x="52"  y="215" text-anchor="end"   font-family="IBM Plex Mono" font-size="12.5" fill="#5A6B66" transform="rotate(-90 52 215)" ></text>
+      <text x="76"  y="212" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#5A6B66" transform="rotate(-90 76 212)">廠商持有</text>
+      <text x="648" y="212" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#17211E" font-weight="600" transform="rotate(-90 648 212)">你持有(repo)</text>
+      <!-- Q1 top-right: deterministic + yours -->
+      <rect x="380" y="45"  width="255" height="150" rx="6" fill="#E3F1EE"/>
+      <text x="398" y="74"  font-family="Noto Serif TC" font-size="15" font-weight="700" fill="#0B7261">投資這裡</text>
+      <text x="398" y="100" font-family="Noto Sans TC" font-size="13" fill="#17211E">hooks(exit 2 閘門)</text>
+      <text x="398" y="122" font-family="Noto Sans TC" font-size="13" fill="#17211E">tests / 不變量檢查</text>
+      <text x="398" y="144" font-family="Noto Sans TC" font-size="13" fill="#17211E">fitness functions・CI</text>
+      <text x="398" y="166" font-family="Noto Sans TC" font-size="13" fill="#17211E">spec / 驗收標準</text>
+      <!-- Q2 top-left: deterministic + vendor -->
+      <rect x="85"  y="45"  width="255" height="150" rx="6" fill="#F1F4F3"/>
+      <text x="103" y="74"  font-family="Noto Serif TC" font-size="15" font-weight="700" fill="#5A6B66">必要,但別依賴它裝知識</text>
+      <text x="103" y="100" font-family="Noto Sans TC" font-size="13" fill="#2A3835">permission 系統(真安全邊界)</text>
+      <text x="103" y="122" font-family="Noto Sans TC" font-size="13" fill="#2A3835">sandbox / 隔離 VM</text>
+      <text x="103" y="144" font-family="Noto Sans TC" font-size="13" fill="#2A3835">auto mode 分類器</text>
+      <!-- Q3 bottom-right: advisory + yours -->
+      <rect x="380" y="235" width="255" height="150" rx="6" fill="#FBF6EF"/>
+      <text x="398" y="264" font-family="Noto Serif TC" font-size="15" font-weight="700" fill="#8A6D2B">有用,保持精瘦</text>
+      <text x="398" y="290" font-family="Noto Sans TC" font-size="13" fill="#2A3835">CLAUDE.md(短,當路標)</text>
+      <text x="398" y="312" font-family="Noto Sans TC" font-size="13" fill="#2A3835">skills(領域知識,按需載入)</text>
+      <text x="398" y="334" font-family="Noto Sans TC" font-size="13" fill="#2A3835">README / handoff / ADR</text>
+      <!-- Q4 bottom-left: advisory + vendor -->
+      <rect x="85"  y="235" width="255" height="150" rx="6" fill="#F9EDE4"/>
+      <text x="103" y="264" font-family="Noto Serif TC" font-size="15" font-weight="700" fill="#C2560F">方便,但要稽核、別依賴</text>
+      <text x="103" y="290" font-family="Noto Sans TC" font-size="13" fill="#2A3835">auto memory(它自己記的)</text>
+      <text x="103" y="312" font-family="Noto Sans TC" font-size="13" fill="#2A3835">session memory(對話摘要)</text>
+      <text x="103" y="334" font-family="Noto Sans TC" font-size="13" fill="#2A3835">你和某工具的「默契」</text>
+    </svg>
+    <figcaption>橫軸是持有權(搬不搬得走),縱軸是強制力(擋不擋得住)。右上角是唯一「模型越強、價值越高」的一格;左下角最方便,但累積的是廠商格式的資產,而且會靜默地把一次抱怨變成永久政策。本篇所有建議,一句話就是:把東西往右上搬。</figcaption>
+  </figure>
+</header>
+
+<!-- ═══ TL;DR ═══ -->
+<section>
+  <div class="tldr">
+    <p class="kicker">TL;DR — 三十秒版本</p>
+    <p class="one">上篇說鑑別力外包不掉;下篇說:那就把它<em>寫成工件</em>——放進 repo、做成閘門、保持可搬。</p>
+    <ol>
+      <li><b>先給它一個能自己跑的檢查。</b>官方 best practices 第一條:測試、build、可比對的輸出。這是「你得盯著」和「你可以走開」的差別——沒有檢查,你就是驗證迴路本身。</li>
+      <li><b>CLAUDE.md 是路標不是倉庫。</b>判準只有一句:「拿掉這行會不會犯錯?」不會就刪。知識放 repo 和 skills,CLAUDE.md 指路;要擋住的事交給 hook,因為 md 是建議、hook 是保證。</li>
+      <li><b>auto memory 是在位者優勢製造機。</b>它讓你用最久的工具看起來最好,跟模型品質無關;比較工具時必須冷測(關記憶)+ 熱測(開記憶)各跑一輪,對照著讀。</li>
+      <li><b>Chat 是對話,Cowork 交辦檔案,Code 交辦 repo。</b>再用兩個問題選 surface:這次跑在誰的 CPU 上?要不要人盯?CLI 給自動化,桌面給互動,網頁給長時任務。</li>
+    </ol>
+    <nav class="jump">
+      <a href="#qa">→ QA:八個 CS 使用者的誤區</a>
+      <a href="#map">→ 核心圖像:四象限</a>
+      <a href="#surface">→ surface 分工表</a>
+      <a href="#playbook">→ 帶著走:閘門階梯與一週清單</a>
+      <a href="#refs">→ 參考資料</a>
+    </nav>
+  </div>
+</section>
+
+<!-- ═══ 01 QA ═══ -->
+<section id="qa">
+  <div class="rule"><span class="tag">01 · 先破除誤區</span><span class="tick"></span></div>
+  <h2>QA:可能知、可能不知、但必須知的八件事</h2>
+  <p class="intro">延續上篇的體例:<b style="color:var(--felt)">橘色是體感或傳說</b>,<b style="color:var(--measure)">綠色是文件或實證</b>。這八題全部來自 CS 使用者實際會踩的地方。</p>
+
+  <details open>
+    <summary>「我沒寫 CLAUDE.md 也產出了好幾個 app,所以它不重要了?」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">體感</span>網頁版開空 repo、CLAUDE.md 留白,照樣出貨,所以那東西過譽了。</p>
+      <p><span class="badge evid">實情</span>你測的是 greenfield——code 是模型自己寫的,慣例是它當場訂的,沒有「猜不到的東西」可寫,<b>該放進 CLAUDE.md 的內容恰好是空集合</b>。它付錢的三個條件是:既有的、有歷史的 codebase;跨 session 跨月份回頭改;以及不在程式碼裡的外部約束(裝置資源上限、離線假設、不可引入的相依)。玩具專案留白是對的;有歷史與約束的專案,空白才是錯的。順帶一提,補記憶那部分用途確實被 auto memory 吃掉了——縮小是真的,消失不是。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「CLAUDE.md 寫越詳細越好?」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">傳說</span>把 coding style、架構、流程全塞進去,模型就會全部遵守。</p>
+      <p><span class="badge evid">文件</span>方向相反。官方判準只有一句:<b>「拿掉這行會不會讓 Claude 犯錯?」不會就刪</b>;檔案太長時重要規則會淹沒在雜訊裡,模型會忽略掉一半。該排除的是「Claude 讀 code 就能看出來的任何東西」。廣泛適用的少數規則留在 CLAUDE.md;偶爾才用到的領域知識放 skills 按需載入;每次都必須發生的事寫成 hook。一份值錢的 CLAUDE.md 在 2026 年長得像路標:二十行,指向 HANDOFF、ADR、skills 的位置,本身不裝知識。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「repo 裡有 README、handoff、一堆 md,誰記得都無所謂?」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">體感</span>我不記得、模型不記得,repo 記得,所以問題解決了。</p>
+      <p><span class="badge evid">實情</span>「repo 記得」只解決三層裡的第一層。第一層是<b>存在</b>——資訊沒丟;第二層是<b>會不會在對的時刻進到 context</b>——CLAUDE.md 特殊之處不是內容,是保證每次載入;其他 md 要等模型決定去讀才進得來,而它不會全讀。skill 是中間態:有 description 當索引,像有目錄的書;散落的 md 是沒有目錄的書堆。第三層是<b>擋不擋得住</b>——所有 md(含 CLAUDE.md)都在建議層,只有 hook 在保證層。這正是上篇 context store 的論點落到工具層:意圖(spec)、行為(test)、結構(fitness function)三個驗證迴圈,都得是機器可執行的,不是散文。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「auto memory 開著,它越用越懂我,很好啊?」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">體感</span>跨 session 記得我的專案,這是純粹的加分。</p>
+      <p><span class="badge evid">實情</span>方便是真的,但三個代價要知道。一、它是<b>在位者優勢製造機</b>:你用最久的工具知道得最多,表現最好,跟模型品質無關——你在比「共事三個月的同事」和「第一天上班的人」,而且偏誤會複利(越好用→越常用→記越多)。二、它會<b>把一次性抱怨變成永久政策</b>,而且是靜默的;定期跑 <code class="inl">/memory</code> 稽核它記了什麼,不是潔癖,是上篇「驗證」在記憶層的版本。三、它是<b>廠商格式、搬不走</b>;你寫下來的 CLAUDE.md、skills、hook 是純文字,可以整包搬去任何一家。累積可搬的資產,稽核搬不走的方便。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「御三家個性差很多,選對家就贏了?」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">傳說</span>某家適合寫 code、某家適合分析,跑分只是參考,體感才準。</p>
+      <p><span class="badge evid">實證</span>個性差異可測量是真的:模型家族間的行為差異統計顯著、無提示也穩定出現,而且某些行為軸(如道德穩健性)變異超過一個數量級、幾乎完全由家族解釋——後訓練塑造的。但兩個修正:一、傳統跑分已飽和(60 個基準裡 29 個高飽和;445 篇基準論文只有 16% 做過統計檢定),頂端一兩分的差距是雜訊,「跑分差不大」這句話本身是對的。二、你體感到的差距,大半不是模型:<b>只改 harness 不換模型,agent 排名能移動 20 名以上</b>,再疊上 memory 的在位者優勢和你自己的適應。所以正確問法不是「誰強」,是「哪家的預設行為 × 工具鏈,配我的任務」——這是配適問題,用下一題的方法自己量。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>「要比較工具,找個 benchmark 榜單看就好?」</summary>
+    <div class="qa-body">
+      <p><span class="badge evid">做法</span>榜單沒有你的任務分佈,而且記憶變數會污染你自己的日常體感。有效的做法一個下午做得完:從真實工作抽 10–20 個任務,<b>冷熱各跑一輪</b>。冷測(<code class="inl">CLAUDE_CODE_DISABLE_AUTO_MEMORY=1</code>、乾淨目錄、無 CLAUDE.md、字面相同的 prompt)回答「模型誰強」;熱測(記憶全開)回答「我該用哪套」。對照著讀才有資訊:冷熱都 A 贏→放心用;冷測平手熱測 A 贏→你的優勢是累積狀態,狀態可以搬;冷測 B 贏熱測 A 贏→你被鎖住了,先搬狀態再測一次。盲評結果,別看著名字打分。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>你可能沒想到的:「hook 就是我的安全機制?」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">體感</span>寫了 PreToolUse 擋 <code class="inl">rm -rf</code>,安全了。</p>
+      <p><span class="badge evid">文件</span>官方講得很直白:hook 的過濾是 best-effort、解析失敗時 <b>fail open</b>(放行),<b>強制 allow/deny 要用 permission 系統</b>,hook 管的是流程紀律。另外三個必踩的坑:exit code 1 是 Unix 失敗慣例,但 Claude Code 把它當非阻擋錯誤照做,<b>要擋只有 exit 2</b>;PostToolUse 擋不住任何事(工具已跑完);Stop hook 連擋 8 次後會被覆蓋直接結束——它是強力推一把,不是絕對閘門。分工記法:permission 管安全,hook 管紀律,CLAUDE.md 管建議。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>你可能沒想到的:「80% 完成得飛快,所以整體變快了?」</summary>
+    <div class="qa-body">
+      <p><span class="badge myth">體感</span>鷹架長出來、能編譯、demo 會動,這專案穩了。</p>
+      <p><span class="badge evid">實情</span>這是 context store 那篇最有價值的觀察:AI 讓前 80% 感覺飛快,而<b>最後 20% 才是架構所在</b>——整合、邊界情況、沒文件的效能限制、當年取捨的組織記憶;流程中最快的那段,遮住了最慢、後果最重的那段。再疊上上篇的鐵證:同批資深工程師體感 +20%、實測 −19%。兩件事指向同一個紀律:<b>速度要用 merge lead time、返工率這類實測數字量,不要用 demo 會動的那一刻的感覺量</b>。PR 範本裡強制寫「80/20 交接說明」(哪些是鷹架、哪些真的想過)是最便宜的對策。</p>
+    </div>
+  </details>
+</section>
+
+<!-- ═══ 02 核心圖像 ═══ -->
+<section id="map">
+  <div class="rule"><span class="tag">02 · 核心圖像</span><span class="tick"></span></div>
+  <h2>兩個軸,決定每一份設定的命運</h2>
+  <p class="intro">開頭那張四象限就是全篇的骨架,這裡把兩個軸講清楚。</p>
+  <div class="axes">
+    <div class="axis"><span class="n">軸一 — 強制力</span>
+      <h3>建議性 vs 確定性</h3>
+      <p>官方原話:CLAUDE.md 與 memory 都被當成 context,<b>不是強制設定</b>;要無論如何擋住某個動作,用 PreToolUse hook。建議層(md、skills)靠模型自覺;保證層(hooks、tests、permission)靠機器執行。上篇說鑑別力不能只放在你腦裡——在工具層的對應就是:不能只放在建議層。</p>
+    </div>
+    <div class="axis"><span class="n">軸二 — 持有權</span>
+      <h3>廠商持有 vs 你持有</h3>
+      <p>寫進 repo 的純文字(CLAUDE.md、skills、spec、tests、hooks)可以整包搬去任何一家、可以 diff、可以 review;auto memory 是廠商格式,綁定工具。上篇「補不足 vs 編碼約束」的判準在這裡多了一個理由:<b>編碼約束的工件同時也是你的反鎖定保險</b>。</p>
+    </div>
+    <div class="axis"><span class="n">推論 — 投資方向</span>
+      <h3>往右上搬</h3>
+      <p>右上(確定 × 你持有)是唯一「模型越強、價值越高」的一格:模型越能自主跑長任務,你的閘門與不變量被執行的次數就越多。左下(建議 × 廠商)最省力,但那是方便,不是資產。每次想「這條規則放哪」,答案幾乎永遠是:能寫成檢查就寫成檢查,能進 repo 就進 repo。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 03 surface 分工 ═══ -->
+<section id="surface">
+  <div class="rule"><span class="tag">03 · SURFACE 分工</span><span class="tick"></span></div>
+  <h2>Chat、Cowork、Code:一句話 + 兩個問題</h2>
+  <p class="intro">一句話記法:<b>Chat 是對話,Cowork 是交辦檔案工作,Claude Code 是交辦 repo</b>。之後只剩兩個問題:這次跑在誰的 CPU 上?要不要人盯著?</p>
+  <div class="tblwrap">
+    <table class="surface-table">
+      <tr><th>Surface</th><th>交辦對象</th><th>算力在哪</th><th>獨有能力</th><th>適合</th></tr>
+      <tr>
+        <td class="nm">Chat</td>
+        <td>問題與思考</td><td>雲端</td>
+        <td>最快啟動、Memory 個人化</td>
+        <td>一次性問題、當思考對手、輕脈絡任務</td>
+      </tr>
+      <tr>
+        <td class="nm">Cowork</td>
+        <td>一般檔案與工作流</td><td>隔離 VM</td>
+        <td>免 terminal 的 agentic 執行</td>
+        <td>整理資料、產文件、資料分析、排程雜務</td>
+      </tr>
+      <tr>
+        <td class="nm">Code · CLI</td>
+        <td>repo(commit / PR)</td><td><b>你的機器</b></td>
+        <td>唯一可被腳本呼叫:pipe、cron、CI</td>
+        <td>所有自動化;你既有的 <code class="inl">claude -p</code> 管線原封不動</td>
+      </tr>
+      <tr>
+        <td class="nm">Code · 桌面</td>
+        <td>repo</td><td>你的機器</td>
+        <td>平行 session(git 隔離)、視覺化 diff、內建終端;Linux beta 已含 Cowork</td>
+        <td>互動式開發;要人盯著 review 的工作</td>
+      </tr>
+      <tr>
+        <td class="nm">Code · Web</td>
+        <td>repo(回你 PR)</td><td><b>Anthropic 託管 VM</b></td>
+        <td>零安裝、闔蓋照跑、多任務平行;Routines 雲端排程</td>
+        <td>長時間、吃資源、你要出門的任務;弱算力裝置的主力</td>
+      </tr>
+    </table>
+  </div>
+  <p style="margin-top:14px" class="small">三個備註:同一份 CLAUDE.md、settings、MCP 設定跨 surface 通用,切換沒有成本;桌面版取代不了 CLI(要 <code class="inl">claude</code> 指令還是得裝);真正只剩 Win/Mac 獨佔的是 Computer Use 與語音,其餘「桌面超能力」Linux beta 都有——Chromebook 的 Crostini(Debian bookworm)裝得起來。</p>
+</section>
+
+<!-- ═══ 04 帶著走 ═══ -->
+<section id="playbook">
+  <div class="rule"><span class="tag">04 · 帶著走</span><span class="tick"></span></div>
+  <h2>閘門階梯:從「盯著看」到「可以走開」</h2>
+  <p class="intro">官方 best practices 幾乎所有建議源自一個約束:context window 是最重要的資源。而第一原則是——給 Claude 一個它能自己跑的檢查。沒有檢查,「看起來做完了」就是唯一訊號,你就是驗證迴路。閘門有四階,由弱到強:</p>
+  <div class="gate"><div class="g">G1</div><div class="gd"><b>同 prompt 內迭代</b> — 在指令裡直接要求「跑測試,不過就修到過」。今天就能用,但靠模型自覺。</div></div>
+  <div class="gate"><div class="g">G2</div><div class="gd"><b><code class="inl">/goal</code> 條件</b> — 獨立評估器每輪重檢目標是否成立,跨 session 有效。官方說 G2、G3 是「無人值守能正確收尾」的關鍵。</div></div>
+  <div class="gate"><div class="g">G3</div><div class="gd"><b>Stop hook 腳本</b> — 檢查寫成腳本,exit 2 擋住回合結束,stderr 餵回去當理由;記得處理 <code class="inl">stop_hook_active</code> 防迴圈。連擋 8 次會被放行,所以它是強力推一把,不是絕對閘門。</div></div>
+  <div class="gate"><div class="g">G4</div><div class="gd"><b>驗證 subagent</b> — 做事的不當評分的:讓另一個乾淨 context 的模型去反駁結果。無人值守的終點形態。</div></div>
+
+  <div class="check">
+    <h4>一週 easy path(照順序)</h4>
+    <ol>
+      <li><code class="inl">/init</code> 產生 CLAUDE.md,然後<b>砍到 100 行以內</b>——每行問「拿掉會不會出錯」,不會就刪。</li>
+      <li>挑一個你已經有的檢查(pytest、build、lint),定成規矩:每個任務結尾跑它並<b>貼輸出當證據</b>——官方明說看證據比自己重跑快,也比「宣稱成功」可信。</li>
+      <li>多檔案改動先 plan mode;同一問題糾正超過兩次就 <code class="inl">/clear</code> 重來——乾淨 session 配更好的 prompt,幾乎總是贏過一長串失敗嘗試。</li>
+      <li>把「絕不允許」的事從 CLAUDE.md 搬進 hook(PreToolUse 擋相依、Stop 跑不變量);「偶爾才用」的領域知識搬進 skills。</li>
+      <li>跑 <code class="inl">/memory</code> 稽核 auto memory 記了什麼;刪掉那些一次性抱怨變成的「政策」。</li>
+      <li>最後,寫你的領域 skill——那一百行 markdown(部署約束、不變量)是整條鏈上唯一不會被下一版模型吃掉的東西。</li>
+    </ol>
+  </div>
+
+  <h3 style="margin-top:36px">名詞備註 · 中英對照</h3>
+  <div class="notes">
+    <dl>
+      <dt>建議層 / 保證層<span class="en">advisory / deterministic</span></dt>
+      <dd>CLAUDE.md、skills、memory 是建議——模型讀了但可以不理;hooks、tests、permission 是保證——機器執行,不問模型意見。</dd>
+      <dt>CLAUDE.md</dt>
+      <dd>每個 session 保證載入的那份 md。2026 年的正確用法是路標(指向知識所在),不是倉庫(裝知識本身)。</dd>
+      <dt>skill<span class="en">agent skill</span></dt>
+      <dd>帶索引(description)的領域知識包,模型按需載入。相對於散落 md 的差別:有目錄的書 vs 書堆。</dd>
+      <dt>hook</dt>
+      <dd>在生命週期特定時點自動執行的 shell 指令。stdin 吃 JSON、exit 2 阻擋並把 stderr 餵回模型;exit 1 不會擋(最大的坑)。</dd>
+      <dt>auto memory</dt>
+      <dd>Claude 自己記的跨 session 筆記(build 指令、你的糾正),預設開啟,存在 ~/.claude 下、廠商格式。方便,但要用 /memory 稽核。</dd>
+      <dt>session memory</dt>
+      <dd>對話層級的背景摘要,讓 /compact 即時、跨 session 接得上。跟 auto memory 是兩層不同的東西。</dd>
+      <dt>fitness function<span class="en">architectural fitness function</span></dt>
+      <dd>把架構規則寫成可自動執行的檢查(如「不得引入某相依」「延遲不得超標」),進 CI 擋合併。context store 三迴圈之一。</dd>
+      <dt>80/20 交接<span class="en">80/20 handoff</span></dt>
+      <dd>AI 讓前 80% 飛快、最後 20% 才是架構所在。PR 裡註明哪些是鷹架、哪些真的想過,就是把這條裂縫變成可見的。</dd>
+      <dt>冷測 / 熱測<span class="en">cold / hot eval</span></dt>
+      <dd>關記憶、乾淨環境測「模型誰強」;開記憶測「我該用哪套」。兩者對照才能分辨優勢來自模型還是累積狀態。</dd>
+      <dt>在位者優勢<span class="en">incumbent advantage</span></dt>
+      <dd>用越久的工具記得越多、表現越好、你越不想換——與模型品質無關的自我強化迴圈。</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ═══ REFS ═══ -->
+<section id="refs">
+  <div class="rule"><span class="tag">05 · 參考資料</span><span class="tick"></span></div>
+  <h2>References</h2>
+  <div class="refs">
+    <h3>官方文件(每週更新,以現站為準)</h3>
+    <ol>
+      <li>Claude Code — Best Practices(檢查優先、CLAUDE.md 判準、context 為最重要資源). <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
+      <li>Claude Code — How Claude remembers your project(CLAUDE.md 與 auto memory;「context 而非強制設定」). <a href="https://code.claude.com/docs/en/memory">code.claude.com/docs/en/memory</a></li>
+      <li>Claude Code — Hooks(事件、exit code 語意、fail-open 與 permission 的分工). <a href="https://code.claude.com/docs/en/hooks">code.claude.com/docs/en/hooks</a></li>
+      <li>Claude Code — Overview / What's New(Routines、dynamic workflows、auto mode、桌面 Linux beta). <a href="https://code.claude.com/docs/en/overview">code.claude.com/docs/en/overview</a></li>
+    </ol>
+    <h3>本篇引用的研究與文章</h3>
+    <ol start="5">
+      <li>Berhe, Bragner, Maran &amp; Jayaraman — Comprehension at AI Speed: Building a Context Store for Evolutionary Architecture. InfoQ, 2026-07. <a href="https://www.infoq.com/articles/ai-speed-context-store-architecture/">infoq.com</a></li>
+      <li>Becker, Rush, Barnes &amp; Rein — METR RCT(體感 +20% vs 實測 −19%). arXiv:<a href="https://arxiv.org/abs/2507.09089">2507.09089</a>;及 METR 2026-02 更新. <a href="https://metr.org/blog/2026-02-24-uplift-update/">metr.org</a></li>
+      <li>Akhtar et al. — 60 個基準的系統性飽和研究(29 個高飽和;引於 EvalSafetyGap arXiv:<a href="https://arxiv.org/pdf/2606.30219">2606.30219</a>)</li>
+      <li>Bean et al. — 445 篇基準論文回顧,僅 16% 使用統計檢定(引於同上)</li>
+      <li>Heston &amp; Gillette — Large Language Models Demonstrate Distinct Personality Profiles. Cureus 2025. <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12183331/">PMC12183331</a></li>
+      <li>Moral Susceptibility and Robustness under Persona Role-Play(家族差異達數量級、由後訓練塑造). arXiv:<a href="https://arxiv.org/pdf/2511.08565">2511.08565</a></li>
+      <li>Chawla — The Anatomy of an Agent Harness(TerminalBench:僅改 harness 移動 20+ 名). <a href="https://blog.dailydoseofds.com/p/the-anatomy-of-an-agent-harness">dailydoseofds.com</a></li>
+      <li>Osmani — Agent Harness Engineering(「每個元件編碼一個模型做不到什麼的假設」). <a href="https://addyosmani.com/blog/agent-harness-engineering/">addyosmani.com</a></li>
+      <li>系列上篇 — 同一個工具,為什麼結果差這麼多?(本系列的實證基礎與完整文獻). <a href="llm-user-variance.html">llm-user-variance.html</a></li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <p>時效聲明:本篇整理至 2026 年 7 月。Claude Code 文件為每週更新,具體指令與功能請以 code.claude.com 現站為準;上篇的告誡在此同樣適用——具體數字是快照,兩軸四象限的機制圖像相對穩定。</p>
+</footer>
+
+</div>
+</body>
+</html>
