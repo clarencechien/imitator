@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>測試在測什麼?— 可測的、不可測的、與兩者之間的搬運(第三篇)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F9F8;
+  --grid:#E7EEEC;
+  --ink:#17211E;
+  --muted:#5A6B66;
+  --measure:#0B7261;      /* 實測 / 證據 */
+  --measure-soft:#E3F1EE;
+  --felt:#C2560F;         /* 體感 / 傳說 */
+  --felt-soft:#F9EDE4;
+  --card:#FFFFFF;
+  --line:#D9E3E0;
+  --serif:'Noto Serif TC', serif;
+  --sans:'Noto Sans TC', sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 23px, var(--grid) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, var(--grid) 23px 24px),
+    var(--paper);
+  line-height:1.85;
+  font-size:16px;
+}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+a{color:var(--measure)}
+a:focus-visible,summary:focus-visible{outline:3px solid var(--measure);outline-offset:2px;border-radius:2px}
+
+/* ── 章節標尺 ── */
+.rule{
+  display:flex;align-items:center;gap:12px;
+  margin:72px 0 20px;
+}
+.rule .tag{
+  font-family:var(--mono);font-size:12px;font-weight:600;
+  letter-spacing:.12em;color:var(--measure);
+  border:1px solid var(--measure);padding:3px 10px;border-radius:2px;
+  background:var(--card);white-space:nowrap;
+}
+.rule .tick{
+  flex:1;height:8px;
+  background:
+    repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 24px) left bottom/100% 5px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom/100% 1px no-repeat;
+}
+h2{font-family:var(--serif);font-weight:900;font-size:clamp(24px,4vw,32px);line-height:1.4;margin-bottom:16px}
+h3{font-family:var(--serif);font-weight:700;font-size:clamp(18px,2.6vw,21px);margin:24px 0 8px}
+p{margin-bottom:14px}
+.small{font-size:13.5px;color:var(--muted)}
+sup a{font-family:var(--mono);font-size:.68em;text-decoration:none;color:var(--measure);font-weight:600}
+sup a:hover{text-decoration:underline}
+
+/* ── HERO ── */
+header{padding:64px 0 8px}
+.eyebrow{font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:.18em;color:var(--muted);margin-bottom:20px}
+h1{
+  font-family:var(--serif);font-weight:900;
+  font-size:clamp(30px,6vw,52px);line-height:1.35;
+  margin-bottom:22px;
+}
+h1 em{font-style:normal;color:var(--measure)}
+.lede{font-size:clamp(16px,2.4vw,18.5px);max-width:44em;color:#2A3835}
+.thesis{
+  margin-top:18px;padding:14px 18px;background:var(--card);
+  border-left:4px solid var(--ink);font-family:var(--serif);
+  font-size:clamp(16px,2.4vw,19px);font-weight:700;line-height:1.7;
+}
+
+/* 招牌圖:體感 vs 實測 */
+figure.gap{
+  margin:44px 0 8px;background:var(--card);
+  border:1px solid var(--line);border-radius:6px;
+  padding:26px 26px 18px;
+}
+.gap-head{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--muted);margin-bottom:4px}
+.gap svg{width:100%;height:auto;display:block}
+.gap figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.7}
+.legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:13px}
+.legend span{display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot.f{background:var(--felt)}.dot.m{background:var(--measure)}
+
+/* ── 三軸卡 ── */
+.axes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+.axis{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px 20px 16px}
+.axis .n{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--measure);display:block;margin-bottom:8px}
+.axis h3{margin:0 0 8px;font-size:18px}
+.axis p{font-size:14.5px;margin-bottom:0;color:#2A3835}
+
+/* ── 雙欄:一般 / 專業 ── */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px}
+.card .who{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.16em;padding:3px 10px;border-radius:2px;display:inline-block;margin-bottom:14px}
+.card.gen .who{background:var(--felt-soft);color:var(--felt)}
+.card.pro .who{background:var(--measure-soft);color:var(--measure)}
+.card h4{font-family:var(--serif);font-size:15.5px;font-weight:700;margin:16px 0 6px;display:flex;align-items:center;gap:8px}
+.card h4::before{content:"";width:14px;height:2px;background:var(--ink);flex:none}
+.card ul{list-style:none}
+.card li{font-size:14.5px;padding-left:16px;position:relative;margin-bottom:8px;line-height:1.75}
+.card li::before{content:"·";position:absolute;left:2px;font-weight:700}
+.takeaway{margin-top:14px;padding:12px 14px;border-radius:4px;font-size:14.5px;line-height:1.75}
+.gen .takeaway{background:var(--felt-soft)}
+.pro .takeaway{background:var(--measure-soft)}
+.takeaway b{font-family:var(--serif)}
+
+/* ── 技能階梯 ── */
+.ladder{margin-top:20px;display:flex;flex-direction:column;gap:0}
+.step{display:grid;grid-template-columns:170px 1fr;gap:0;border:1px solid var(--line);border-bottom:none;background:var(--card)}
+.step:last-child{border-bottom:1px solid var(--line)}
+.step .lv{font-family:var(--mono);font-size:13px;font-weight:600;padding:16px;display:flex;flex-direction:column;gap:4px;justify-content:center;border-right:1px solid var(--line)}
+.step .lv b{font-family:var(--serif);font-size:16px;font-weight:700}
+.step .desc{padding:16px 18px;font-size:14.5px;color:#2A3835;line-height:1.75}
+.trend{font-size:11.5px;letter-spacing:.1em;padding:2px 8px;border-radius:2px;width:fit-content}
+.trend.down{background:var(--measure-soft);color:var(--measure)}
+.trend.up{background:var(--felt-soft);color:var(--felt)}
+
+/* ── QA ── */
+details{background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:12px;overflow:hidden}
+summary{
+  cursor:pointer;list-style:none;padding:18px 20px;
+  font-family:var(--serif);font-weight:700;font-size:clamp(15.5px,2.2vw,17.5px);
+  display:flex;gap:12px;align-items:baseline;line-height:1.6;
+}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"＋";font-family:var(--mono);color:var(--muted);flex:none}
+details[open] summary::before{content:"－"}
+.qa-body{padding:0 20px 20px 20px;border-top:1px dashed var(--line)}
+.qa-body p{font-size:15px;padding-top:14px;margin-bottom:0}
+.qa-body p + p{padding-top:10px}
+.badge{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.1em;padding:2px 8px;border-radius:2px;margin-right:8px;white-space:nowrap}
+.badge.myth{background:var(--felt-soft);color:var(--felt)}
+.badge.evid{background:var(--measure-soft);color:var(--measure)}
+
+/* ── 參考文獻 ── */
+.refs{counter-reset:ref;font-size:13.5px}
+.refs h3{margin-top:26px}
+.refs ol{list-style:none;margin-top:6px}
+.refs li{
+  counter-increment:ref;position:relative;padding-left:44px;margin-bottom:9px;
+  line-height:1.7;color:#2A3835;
+}
+.refs li::before{
+  content:"[" counter(ref) "]";
+  position:absolute;left:0;font-family:var(--mono);font-size:12.5px;
+  font-weight:600;color:var(--measure);
+}
+.refs a{word-break:break-all;font-size:12.5px;font-family:var(--mono)}
+
+footer{margin:72px 0 48px;padding-top:20px;border-top:1px solid var(--line)}
+footer p{font-size:13px;color:var(--muted)}
+
+/* ── TL;DR ── */
+.tldr{background:var(--ink);color:#EAF2F0;border-radius:8px;padding:30px 28px 26px;margin-top:38px}
+.tldr .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:#8FB9B0;margin-bottom:14px}
+.tldr .one{font-family:var(--serif);font-weight:700;font-size:clamp(18px,2.8vw,23px);line-height:1.65;margin-bottom:20px;color:#fff}
+.tldr .one em{font-style:normal;color:#6FD3BF}
+.tldr ol{list-style:none;counter-reset:t;display:grid;gap:12px}
+.tldr li{counter-increment:t;position:relative;padding-left:40px;font-size:15px;line-height:1.7;color:#D6E4E1}
+.tldr li::before{content:counter(t);position:absolute;left:0;top:1px;width:26px;height:26px;border:1px solid #4C6B64;border-radius:50%;font-family:var(--mono);font-size:13px;font-weight:600;color:#6FD3BF;display:flex;align-items:center;justify-content:center}
+.tldr li b{color:#fff;font-family:var(--serif)}
+.tldr .jump{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px}
+.tldr .jump a{font-family:var(--mono);font-size:12.5px;text-decoration:none;color:#Bfe0da;border:1px solid #3C5A54;padding:6px 12px;border-radius:2px;transition:background .15s}
+.tldr .jump a:hover{background:#22322E}
+
+
+/* ── 帶回去 prompt ── */
+.relay-intro{max-width:46em;font-size:15.5px;color:#2A3835;margin-bottom:18px}
+.relay-how{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 26px}
+.relay-how .h{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px 16px 14px}
+.relay-how .h b{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--measure);display:block;margin-bottom:6px}
+.relay-how .h span{font-size:14px;color:#2A3835;line-height:1.7}
+.promptbox{position:relative;background:var(--ink);border-radius:8px;overflow:hidden}
+.promptbox .bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2C403B}
+.promptbox .bar .fn{font-family:var(--mono);font-size:12.5px;color:#8FB9B0;letter-spacing:.04em}
+.promptbox .bar button{font-family:var(--mono);font-size:12.5px;font-weight:600;color:#0F1613;background:#6FD3BF;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;transition:background .15s}
+.promptbox .bar button:hover{background:#8FE0CF}
+.promptbox .bar button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.promptbox pre{margin:0;padding:20px 18px;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.promptbox code{font-family:var(--mono);font-size:13px;line-height:1.85;color:#DCE9E5}
+.promptbox code .c{color:#7FA39B}
+.relay-note{font-size:13.5px;color:var(--muted);margin-top:14px;line-height:1.75}
+@media (max-width:760px){.relay-how{grid-template-columns:1fr}}
+
+
+/* ── 番外篇 附錄 ── */
+.bonus-open{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.bonus-open .zh{font-family:var(--serif);font-weight:900;font-size:clamp(22px,3.4vw,28px)}
+.bonus-open .en{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--muted)}
+.bonus-lede{max-width:46em;font-size:15px;color:var(--muted);margin-bottom:26px;line-height:1.8}
+.qbox{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:0;margin-bottom:16px;overflow:hidden}
+.qbox .q{display:flex;gap:12px;align-items:baseline;padding:18px 22px;background:var(--measure-soft);border-bottom:1px solid var(--line)}
+.qbox .q .no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--measure);flex:none}
+.qbox .q .qt{font-family:var(--serif);font-weight:700;font-size:clamp(16px,2.3vw,18.5px);line-height:1.5}
+.qbox .a{padding:20px 22px 22px}
+.qbox .a p{font-size:14.5px;margin-bottom:12px;line-height:1.8}
+.qbox .a p:last-child{margin-bottom:0}
+.verdict{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.05em;padding:3px 10px;border-radius:2px;margin-bottom:14px}
+.verdict.no{background:var(--felt-soft);color:var(--felt)}
+.verdict.yes{background:var(--measure-soft);color:var(--measure)}
+.verdict.dep{background:#EFEAE0;color:#8A6D2B}
+.qbox .a .k{font-family:var(--serif);font-weight:700;color:var(--ink)}
+.thread{background:var(--ink);color:#DCE9E5;border-radius:6px;padding:22px 24px;margin-top:6px}
+.thread .kk{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:#6FD3BF;margin-bottom:10px}
+.thread p{font-size:14.5px;line-height:1.85;color:#D6E4E1;margin:0}
+.thread b{color:#fff;font-family:var(--serif)}
+
+/* ── 名詞備註 ── */
+.term{border-bottom:1px dotted var(--muted);cursor:help}
+.notes{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 4px}
+.notes dl{display:grid;grid-template-columns:auto 1fr;gap:0}
+.notes dt{font-family:var(--mono);font-weight:600;font-size:13.5px;color:var(--measure);padding:12px 14px;border-bottom:1px solid var(--grid);white-space:nowrap}
+.notes dd{font-size:14px;color:#2A3835;padding:12px 16px;border-bottom:1px solid var(--grid);line-height:1.7}
+.notes dt .en{display:block;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.02em;margin-top:2px}
+.intro{font-size:15.5px;max-width:46em;color:#2A3835;margin-bottom:6px}
+
+@media (max-width:760px){
+  .axes{grid-template-columns:1fr}
+  .pair{grid-template-columns:1fr}
+  .step{grid-template-columns:1fr}
+  .step .lv{border-right:none;border-bottom:1px dashed var(--line);flex-direction:row;align-items:center;justify-content:flex-start;gap:12px}
+  .notes dl{grid-template-columns:1fr}
+  .notes dt{border-bottom:none;padding-bottom:2px}
+  .notes dd{padding-top:4px}
+  body{font-size:15.5px}
+}
+
+/* ── 下篇專用 ── */
+.series{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--felt);border:1px solid var(--felt);padding:3px 10px;border-radius:2px;display:inline-block;margin-bottom:14px;background:var(--card)}
+.series a{color:var(--felt);text-decoration:none}
+.quad{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:26px;margin:24px 0 8px}
+.quad svg{width:100%;height:auto;display:block}
+.quad figcaption{font-size:13.5px;color:var(--muted);margin-top:12px;line-height:1.75}
+.surface-table{width:100%;border-collapse:collapse;font-size:14px;background:var(--card);border:1px solid var(--line)}
+.surface-table th{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-align:left;padding:12px 14px;border-bottom:2px solid var(--ink);color:var(--ink);white-space:nowrap}
+.surface-table td{padding:12px 14px;border-bottom:1px solid var(--grid);vertical-align:top;line-height:1.7}
+.surface-table tr:last-child td{border-bottom:none}
+.surface-table .nm{font-family:var(--serif);font-weight:700;white-space:nowrap}
+.tblwrap{overflow-x:auto;margin-top:18px}
+.gate{display:grid;grid-template-columns:64px 1fr;border:1px solid var(--line);border-bottom:none;background:var(--card)}
+.gate:last-of-type{border-bottom:1px solid var(--line)}
+.gate .g{font-family:var(--mono);font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;border-right:1px solid var(--line);color:var(--measure)}
+.gate .gd{padding:14px 18px;font-size:14.5px;line-height:1.75}
+.gate .gd b{font-family:var(--serif)}
+.check{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:22px 24px;margin-top:18px}
+.check h4{font-family:var(--serif);font-size:16px;margin:0 0 10px}
+.check ol{list-style:none;counter-reset:c}
+.check li{counter-increment:c;position:relative;padding-left:34px;margin-bottom:10px;font-size:14.5px;line-height:1.75}
+.check li::before{content:counter(c);position:absolute;left:0;top:2px;width:22px;height:22px;background:var(--measure-soft);color:var(--measure);border-radius:50%;font-family:var(--mono);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+code.inl{font-family:var(--mono);font-size:.88em;background:var(--grid);padding:1px 6px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">測試哲學 · 從 UNCLE BOB 到世界線 · 2026.07</p>
+  <p class="series">系列第三篇 · 上篇:<a href="https://clarencechien.github.io/imitator/report/ai-amp-or-mirror.html">為什麼結果差這麼多?</a> · 下篇:<a href="https://clarencechien.github.io/imitator/report/ai-amp-or-mirror-2.html">工具在手,怎麼用才算數?</a></p>
+  <h1>測試在測什麼?<br><em>可測的、不可測的,與兩者之間的搬運</em></h1>
+  <p class="lede">Uncle Bob 說他不讀 AI 寫的程式碼,只讀指標。這句話炸出一連串必須回到初心的問題:測試到底在測什麼?什麼可測、什麼不可測?spec 錯了怎麼辦?你心裡的想法變成文字的那一刻,遺失了多少?本篇從他的關卡開始,一路走到上游——最後收在一張世界線的地圖上。</p>
+  <div class="thesis">核心結論:spec → code 是 verification,靠機器,越自動越好;idea → spec 是 validation,靠迭代中的人類辨識,自動化不了。工程的日常,是不斷把左邊的擔憂改寫成右邊的可測投影——搬不過去的餘量,就是外包不掉的判斷力。</div>
+
+  <figure class="quad">
+    <div class="gap-head">SIGNATURE MAP — 世界線:三個不同的問題</div>
+    <svg viewBox="0 0 720 400" role="img" aria-label="分岔的路徑樹:方位檢查、岔路選擇、與漂移的目的地">
+      <!-- walked path (solid) -->
+      <path d="M60 340 C 140 320, 180 300, 230 260 C 270 228, 300 210, 360 195" fill="none" stroke="#0B7261" stroke-width="4" stroke-linecap="round"/>
+      <!-- future branches (dashed) -->
+      <path d="M360 195 C 420 180, 470 150, 520 100" fill="none" stroke="#5A6B66" stroke-width="2" stroke-dasharray="6 6"/>
+      <path d="M360 195 C 430 190, 500 185, 570 190" fill="none" stroke="#5A6B66" stroke-width="2" stroke-dasharray="6 6"/>
+      <path d="M360 195 C 410 215, 460 250, 500 300" fill="none" stroke="#5A6B66" stroke-width="2" stroke-dasharray="6 6"/>
+      <path d="M520 100 C 560 70, 590 55, 630 45" fill="none" stroke="#D9E3E0" stroke-width="2" stroke-dasharray="4 7"/>
+      <path d="M570 190 C 610 185, 640 175, 668 160" fill="none" stroke="#D9E3E0" stroke-width="2" stroke-dasharray="4 7"/>
+      <!-- original destination (faded star) -->
+      <text x="628" y="40" font-size="22" fill="#C2560F" opacity="0.35">★</text>
+      <text x="600" y="24" font-family="Noto Sans TC" font-size="12" fill="#C2560F" opacity="0.6">最初的目的地(已漂移)</text>
+      <!-- current endpoint -->
+      <circle cx="570" cy="190" r="7" fill="#C2560F"/>
+      <text x="586" y="212" font-family="Noto Sans TC" font-size="12.5" fill="#C2560F" font-weight="bold">當下的終點</text>
+      <!-- you -->
+      <circle cx="360" cy="195" r="7" fill="#17211E"/>
+      <text x="345" y="178" font-family="Noto Sans TC" font-size="12.5" fill="#17211E" font-weight="bold">你在這</text>
+      <!-- verification: compass on walked segment -->
+      <circle cx="230" cy="260" r="16" fill="none" stroke="#0B7261" stroke-width="1.5"/>
+      <line x1="230" y1="272" x2="230" y2="248" stroke="#0B7261" stroke-width="2"/>
+      <path d="M230 248 l-4 7 h8 z" fill="#0B7261"/>
+      <text x="118" y="288" font-family="Noto Sans TC" font-size="12.5" fill="#0B7261">verification:走的是不是南邊</text>
+      <text x="118" y="305" font-family="IBM Plex Mono" font-size="10.5" fill="#5A6B66">局部・可機測・code mirror spec</text>
+      <!-- validation: fork -->
+      <text x="392" y="140" font-family="Noto Sans TC" font-size="12.5" fill="#17211E">validation:選哪條岔路</text>
+      <text x="392" y="157" font-family="IBM Plex Mono" font-size="10.5" fill="#5A6B66">半可測・靠辨識・spec mirror 需求</text>
+      <!-- retrospective map -->
+      <text x="60" y="368" font-family="Noto Sans TC" font-size="12.5" fill="#0B7261">回望已走的路,才畫得出地圖 —— 目的地在重畫中浮現</text>
+    </svg>
+    <figcaption>三個問題,三種可測性:「走的是不是南邊」(verification)沿途每一步都能機測;「選哪條岔路」(validation)只能靠人在岔口辨識;「終點是不是你要的目的地」——連問都要等你回頭看過走過的路、重畫過地圖之後才問得出來。而重畫之後的目的地,常常已經不是最初那顆星。這不是失敗,是量測。</figcaption>
+  </figure>
+</header>
+
+<!-- ═══ TL;DR ═══ -->
+<section>
+  <div class="tldr">
+    <p class="kicker">TL;DR — 三十秒版本</p>
+    <p class="one">測試是<em>校準儀器</em>:量的是同一個意圖的兩份表述——spec 與 code——是否一致。它管不到 spec 本身對不對,更管不到你心裡想的東西有沒有進到文字裡。</p>
+    <ol>
+      <li><b>可測性不是問題的屬性,是表述的屬性。</b>「策略應該賺多少」永遠不可測(沒有 oracle);「訊號是否只用了 t 之前的資料」完全可測(變形關係)。同一個擔憂,換個表述就從不可測變可測——工程功力的一大部分就是這個改寫。</li>
+      <li><b>Uncle Bob 示範的是判斷力的再配置,不是免除。</b>他能不讀 code,是因為五十年的讀寫讓他設計得出那道關卡;而他的清單裡最被低估的一項是依賴結構——它是約束不是偵測:大象不是測出來的,是房間做小到進不來的。</li>
+      <li><b>LLM 是會填空的神燈精靈。</b>你的文字是意圖的有損壓縮,遺失的位元不是留白——模型會把它填成「一般人通常的意思」再加「你會點頭的樣子」,而且填得毫無接縫。它滿足的是你寫下的約束,不是你心裡的約束。</li>
+      <li><b>上游沒有測試,只有校準。</b>例子與反例、假設帳本、non-goals、原型—反應迴圈——最後一項是 validation 唯一真正的儀器:有些 spec 只能被發現,不能被預先寫出。</li>
+    </ol>
+    <nav class="jump">
+      <a href="#bob">→ 從 Uncle Bob 說起</a>
+      <a href="#essence">→ 測試的本質</a>
+      <a href="#testable">→ 可測性四級</a>
+      <a href="#toolbox">→ 工具箱與大象</a>
+      <a href="#upstream">→ 上游:熵與校準</a>
+      <a href="#worldline">→ 世界線</a>
+      <a href="#ledger">→ 附:假設帳本</a>
+    </nav>
+  </div>
+</section>
+
+<!-- ═══ 01 Uncle Bob ═══ -->
+<section id="bob">
+  <div class="rule"><span class="tag">01 · 起點</span><span class="tick"></span></div>
+  <h2>從 Uncle Bob 的「我不讀 code」說起</h2>
+  <p>2026 年,寫了《Clean Code》、推了幾十年 TDD 的 Robert C. Martin 公開說:他不審查 agent 寫的程式碼,改量測試覆蓋率、依賴結構、圈複雜度、模組大小、變異測試——從指標推論品質,程式碼本身交給 AI,理由是人類讀 code 太慢,要生產力就得從 code 抽離、在更高層次管理<sup><a href="#refs">[1]</a></sup>。他的做法不是放手:用單元測試、Gherkin 測試、QA 流程、品質指標、變異測試、覆蓋率把 agent 團團圍住,產出必須跑完整條考驗關卡(gauntlet)他才信任<sup><a href="#refs">[2]</a></sup>。他還描述過四段流水線——Specifier → Coder → Refactorer → Architect,每段人工介入遞減<sup><a href="#refs">[3]</a></sup>。</p>
+  <p>三件事讓這不只是名人語錄。<b>一、他驗證驗證者</b>:變異測試量的不是程式碼,是你的測試有沒有牙齒——這是大多數人的關卡裡缺的那一層。<b>二、他自己在往回修</b>:三週後他說堆滿各種測試「能做不代表該做」,很多時候單元測試加 CRAP 評估就夠,大型專案才需要更多,而且他還在驗證中<sup><a href="#refs">[4]</a></sup>——一個公開修正自己主張的人,比把它包裝成方法論賣的轉述可信。<b>三、也是最容易被聽錯的:他證明的不是「不用讀 code」。</b>他能設計出那道關卡,靠的是 1970 年至今五十幾年的讀與寫。他示範的是判斷力的<b>再配置</b>——從逐行審查搬到閘門設計——不是判斷力的<b>免除</b>。一個從沒讀過 code 的人,設計不出那道 gauntlet。</p>
+  <p>順帶一提:「人類讀 code 太慢所以跳過,生產力就回來了」——這本身是一個沒被量測的宣稱。他感覺快了。上篇那批資深工程師也感覺快了 20%,實測慢 19%。</p>
+</section>
+
+<!-- ═══ 02 本質 ═══ -->
+<section id="essence">
+  <div class="rule"><span class="tag">02 · 初心</span><span class="tick"></span></div>
+  <h2>測試的本質:一台校準儀器</h2>
+  <p>為什麼要測試?標準答案「找 bug」是現象不是本質。本質是:<b>你手上有同一個意圖的兩份表述——spec 和 code——測試量的是這兩份表述是否一致。</b>它是校準儀器,不是品質證明書。</p>
+  <p>軟體工程有一對老詞(Boehm)把這切開<sup><a href="#refs">[5]</a></sup>:<b>verification</b>——are we building the thing <i>right</i>?code 是否忠於 spec;兩邊都是形式化物件,<b>可測</b>。<b>validation</b>——are we building the <i>right</i> thing?spec 是否忠於需求、需求是否忠於你心裡想的;等式左邊不是形式化物件,<b>不可測,只能校準</b>。</p>
+  <p>整條鏈是:<code class="inl">mind → idea → 文字 → spec → code</code>。測試只覆蓋最後一段。所以「有多校準」的問題會一路往上游退——退到一個測試構不到的地方。這篇的路線就是:先把構得到的講透(03、04),再誠實面對構不到的(05、06)。</p>
+</section>
+
+<!-- ═══ 03 可測性 ═══ -->
+<section id="testable">
+  <div class="rule"><span class="tag">03 · 分界線</span><span class="tick"></span></div>
+  <h2>可測與不可測:四級,和一個關鍵改寫</h2>
+  <p class="intro">一個性質要可測,需要兩個條件:<b>可形式化</b>(能寫成機器可判定的命題)+ <b>有 oracle</b>(有辦法知道對錯)。由此分四級:</p>
+  <div class="tblwrap">
+    <table class="surface-table">
+      <tr><th>級別</th><th>條件</th><th>工具</th><th>例子</th></tr>
+      <tr><td class="nm">有明確答案</td><td>形式化 ✓ · oracle ✓</td><td>單元測試</td><td>sort([3,1,2]) = [1,2,3]</td></tr>
+      <tr><td class="nm">沒答案,有恆真關係</td><td>形式化 ✓ · oracle ✗</td><td>變形測試、屬性測試</td><td>「追加未來資料,歷史訊號不得變」</td></tr>
+      <tr><td class="nm">只有統計性質</td><td>形式化 ✓ · oracle 是分佈</td><td>統計檢定(帶錯誤率)</td><td>延遲 p95 < 200ms</td></tr>
+      <tr><td class="nm">意圖、品味、「對的東西」</td><td>形式化 ✗</td><td><b>不可測,只能校準</b></td><td>「這是不是我要的」</td></tr>
+    </table>
+  </div>
+  <h3>案例:前視偏誤</h3>
+  <p>回測時,計算 t 時刻訊號用到了 t 之後才存在的資訊——用當日收盤決定當日開盤的交易、用整段樣本的統計量正規化每一天、用事後修正的財報、拿現在還活著的股票清單回測十年前。後果同一種:回測漂亮,實盤賠錢,因為實盤拿不到未來。</p>
+  <p>這裡要精確切開兩個命題。「這個策略<b>應該賺多少</b>?」——沒有 oracle,永遠不可測。「t 時刻訊號<b>是否只依賴 ≤ t 的資料</b>?」——完全可形式化:在資料尾端追加一筆未來資料,重跑,所有歷史時點的訊號必須逐位元相同;任何一點不同就是前視,而且你不需要知道正確答案是什麼。</p>
+  <p><b>同一個擔憂,兩種表述,一個不可測、一個可測。</b>所以這句話值得寫在牆上:可測性不是你的問題的屬性,是你選擇的表述的屬性。工程功力的一大部分,就是把不可測的擔憂改寫成它的「可形式化投影」——你測不到「策略是好的」,但測得到「沒偷看未來」「成本模型沒被動」「樣本外窗口雜湊不變」。每條投影砍掉一類具體的死法;加起來不等於「好」,但把「壞」的空間收窄了。</p>
+</section>
+
+<!-- ═══ 04 工具箱 ═══ -->
+<section id="toolbox">
+  <div class="rule"><span class="tag">04 · 工具箱</span><span class="tick"></span></div>
+  <h2>每種測試,為了補前一種的洞而存在</h2>
+  <p class="intro">關鍵是「抓不到什麼」那一欄——它決定了下一層為什麼必須被發明。</p>
+  <div class="tblwrap">
+    <table class="surface-table">
+      <tr><th>方法</th><th>為了解決什麼</th><th>抓得到</th><th>抓不到</th></tr>
+      <tr><td class="nm">單元測試</td><td>改 A 壞了 B 要立刻知道</td><td>回歸、你想到的邊界</td><td>「你想的本身是錯的」</td></tr>
+      <tr><td class="nm">Gherkin / 驗收</td><td>單元測試用實作者語言寫,會跟業務漂移</td><td>通過單元測試但不是使用者要的</td><td>利害關係人自己搞錯</td></tr>
+      <tr><td class="nm">QA / 探索</td><td>腳本只找得到你想到的</td><td><b>你沒想到的</b>(唯一為此設計)</td><td>沒被探索到的區域</td></tr>
+      <tr><td class="nm">變異測試</td><td>覆蓋率會騙人:「被執行」≠「被斷言」</td><td>空洞的測試、缺失的斷言</td><td><b>缺失的需求</b></td></tr>
+      <tr><td class="nm">屬性測試</td><td>案例列不完,不變量列得完</td><td>你沒想過的輸入打破不變量</td><td>你沒陳述的不變量</td></tr>
+      <tr><td class="nm">變形測試</td><td><b>沒有 oracle 也要測</b></td><td>違反恆真關係(如前視)</td><td>關係之外的一切</td></tr>
+      <tr><td class="nm">差分測試</td><td>笨而明顯正確的參考實作當 oracle</td><td>快版與笨版的分歧</td><td>兩版共有的錯</td></tr>
+    </table>
+  </div>
+  <p style="margin-top:14px">Gherkin 用 Given/When/Then 加領域詞彙寫成接近自然語言的句子,本質是<b>利害關係人與程式碼之間的翻譯檢查</b>;Uncle Bob 觀察到它對 agent 有額外作用——兩條測試流(驗收+單元)讓模型不能把 code 亂塞一通再補個單元測試了事,因為同時被驗收測試的結構約束住<sup><a href="#refs">[6]</a></sup>。變異測試的機制:逐一對程式碼做語意改動(if 反轉、移除呼叫)產生 mutant,每個都跑測試套件——測試掛掉 = mutant 被殺死(好事);照樣全綠 = mutant 存活(壞事:你的測試沒在檢查那個語意)<sup><a href="#refs">[7]</a></sup>。注意方向是反的:<b>mutant 通過才是壞消息</b>。它用結構操作、做語意檢查,而檢查對象是你的測試——這就是「驗證驗證者」。</p>
+
+  <h3>CRAP:一條公式講完</h3>
+  <p><code class="inl">CRAP(m) = comp(m)² × (1 − cov(m))³ + comp(m)</code>,comp 是圈複雜度(獨立執行路徑數 = 決策點 + 1),cov 是覆蓋率;Savoia 與 Evans 2007 年提出<sup><a href="#refs">[8]</a></sup>。設計全在指數:複雜度平方、未覆蓋率立方——複雜函式加覆蓋率,分數劇烈下降;100% 覆蓋時第一項消失,CRAP = CC(複雜是事實,但已被測試控制);0% 覆蓋、CC=15 時飆到 240。門檻慣例 30;CC 約 30 以上再多覆蓋也壓不下去——意思是「該重構了,不是多寫測試能救的」<sup><a href="#refs">[8]</a></sup>。為什麼要合併:純複雜度懲罰「本來就必須複雜」的 code,純覆蓋率獎勵「在瑣碎 code 上刷測試」;CRAP 鎖定<b>又複雜又沒測</b>的交集——bug 真正的藏身處。</p>
+
+  <h3>Goodhart:當量測變成目標</h3>
+  <p>Charles Goodhart,1975 年談貨幣政策:任何被觀察到的統計規律,一旦被拿來當控制目標就會崩壞;通俗版(Strathern)是那句名言——<b>當一個量測變成目標,它就不再是好的量測</b><sup><a href="#refs">[9]</a></sup>。放進 agent 情境:指標一旦成為閘門,agent 就朝「通過」最佳化而非朝「品質」——而 LLM 特別擅長朝明確標準最佳化,它的強項變成你的風險。具體玩法:覆蓋率 → 執行了但幾乎不斷言的測試;圈複雜度 → 把複雜函式切成一堆瑣碎函式,複雜度轉移到呼叫關係裡;變異分數 → 技術上敏感、語意上無意義的斷言。複合指標提高遊戲難度,但不消除遊戲。</p>
+
+  <h3>依賴結構:清單裡最被低估的一項</h3>
+  <p>原文就是推文裡那兩個字:「dependency structure」<sup><a href="#refs">[1]</a></sup>。對他而言份量特別重,因為量的是他自己 1990 年代發明的那套指標:依賴無環原則(模組依賴圖不得有環)、不穩定度 I = Ce/(Ca+Ce)、穩定依賴原則(依賴指向更穩定的方向)、抽象度 A 與主序距離 D = |A+I−1|,加上 Clean Architecture 的依賴規則——原始碼依賴一律指向內圈,框架與 DB 不得滲入業務政策<sup><a href="#refs">[10]</a></sup>。</p>
+  <p>為什麼最被低估:其他指標(覆蓋率、複雜度、mutation)都是<b>偵測</b>——事後問「有沒有問題」;依賴結構是<b>約束</b>——事前規定「什麼形狀不允許存在」,而且可以做成 fitness function 進 CI(「domain 層 import 了 infrastructure → build 失敗」)。agent 產一萬行你不讀沒關係,但它<b>不可能</b>產出違反依賴方向的架構,因為那個形狀過不了關卡。</p>
+
+  <h3>房間裡的大象</h3>
+  <p>那麼,關著門測得出大象嗎——甚至,分得出牠是大象還是老虎嗎?誠實的答案:<b>光靠測試,測不出來。</b>測試是封閉世界方法,只回答你問的問題;全綠的意思是「沒有我測過的那種大象」,不是「沒有大象」。而且有兩種不同的失敗要分開:<b>偵測失敗</b>(有東西,但你沒問對問題)與<b>辨識失敗</b>(發現了,但抽象錯了——你測延遲,真正的問題是抖動)。</p>
+  <p>真能對付未知的方法,共同點是「會讓你意外」:屬性測試、模糊測試、變形測試、差分測試。但最重要的一句是——<b>你不能靠測試偵測大象,你只能把房間做小到大象進不來。</b>約束優於偵測:偵測問「裡面有什麼」,約束問「裡面能有什麼」——相依白名單、權限與沙盒、依賴方向檢查、資源上限。再補兩塊:<b>抽樣</b>(不必讀全部,讀選得好的一些:隨機+高風險點——統計品管,不是全面審查)與<b>可觀測性</b>(大象最後會出聲;測試是上線前的封閉世界,監控是上線後開的那扇窗)。</p>
+</section>
+
+<!-- ═══ 05 上游 ═══ -->
+<section id="upstream">
+  <div class="rule"><span class="tag">05 · 上游</span><span class="tick"></span></div>
+  <h2>神燈精靈與熵:idea → spec 那段發生了什麼</h2>
+  <p>先給那個直覺一個正式名字:你需要某個東西告訴你「正確答案是什麼」,它叫 <b>oracle</b>——spec、預期值、斷言,或另一個實作。<b>oracle 錯了,整條鏈就忠實地執行錯誤,而且全綠。</b>Dijkstra 那句老話就是在說這個:測試只能顯示 bug 存在,不能證明不存在<sup><a href="#refs">[7]</a></sup>。</p>
+  <p>用資訊論的語言講你的提問:你心裡的意圖是一個分佈,打出來的文字是它的<b>有損壓縮</b>;條件熵 H(intent | text) > 0——同一段文字相容於很多個意圖。這個量無法直接測量,因為 intent 沒有 ground truth,連你自己都拿不到:很多意圖是被追問之後才成形的(Polanyi:我們知道的比說得出的多<sup><a href="#refs">[11]</a></sup>)。</p>
+  <p>LLM 拿到文字後做的不是「還原你的意圖」,是從它的先驗分佈裡取條件於你文字的最可能補全。兩個推論比「有損」更重要:<b>一、遺失的位元不是留白,是被填充</b>——而且填的是「一般人通常的意思」,所以誤差不是均勻雜訊,是系統性地往平均使用者回歸;你的需求越獨特,被靜默改寫的越多,而且改得毫無接縫。<b>二、再疊一層諂媚</b>:它傾向填成你會點頭的樣子——點頭,不代表那是你要的。所以「魔術扭曲事實」會發生,但機制不神秘:<b>模型滿足的是你寫下來的約束,不是你心裡想的約束</b>;兩者差距越大,扭曲越明顯。</p>
+  <p>「熵有多大」沒有絕對答案,但有一個可操作的代理量測:<b>讓模型對同一段需求,獨立生成 k 個刻意分歧的解讀,看它們差在哪。</b>全部收斂 → 你的文字低熵,放心走。發散 → 每一個發散的維度就是 H(intent | text) 的一個具體位元,而且現在它變成選擇題擺在你面前——你只要認得出哪個對,不用憑空寫出完整 spec。人類的辨識遠強於回憶(recognition over recall);這一招等於把不可測的熵,轉換成可枚舉的分歧清單。</p>
+
+  <h3>上游沒有測試,只有五台校準器</h3>
+  <div class="gate"><div class="g">C1</div><div class="gd"><b>用例子當 spec。</b>「搜尋要快」是高熵句;「10 萬筆、冷啟動、p95 < 200ms」是低熵句。任何 spec 必須附三個具體例子加<b>一個反例</b>(什麼情況該拒絕)——反例的資訊量通常最大。這就是 Gherkin/ATDD 存在的深層理由:具體例子的熵遠低於形容詞。</div></div>
+  <div class="gate"><div class="g">C2</div><div class="gd"><b>假設帳本(assumption ledger)。</b>規定模型動工前輸出「我替你做了哪些決定」——不是它理解了什麼,是它<b>替你填了什麼</b>。填充從靜默變顯式,你逐條打勾或打叉。直接攻擊「無接縫填空」機制。</div></div>
+  <div class="gate"><div class="g">C3</div><div class="gd"><b>Non-goals。</b>一頁 PRD 有用,但用對地方:它不是完整 spec(不可能),是決策紀錄——資訊密度最高的欄位是「這次不做什麼」。正向需求有無限種寫法,負向約束一刀砍掉整個子空間。跟依賴結構同構:都是約束,不是偵測。</div></div>
+  <div class="gate"><div class="g">C4</div><div class="gd"><b>原型—反應迴圈。</b>最誠實的一條:承認 spec 的一部分<b>只能被發現,不能被預先寫出</b>。看到會動的東西才知道「不對,不是這個」——那不是流程失敗,那是量測行為本身,是 validation 唯一真正的儀器。AI 把單次迭代成本打到極低,正確用法不是花更久寫完美 spec,是更快丟出可反應的版本、更密地採樣你自己的反應。</div></div>
+  <div class="gate"><div class="g">C5</div><div class="gd"><b>spec 變異測試(推論,非成熟實踐)。</b>既然能 mutate code 看測試抓不抓得到,就能 mutate spec 看<b>你</b>抓不抓得到:把 spec 做幾個語意改動拿給你看,你分不出差別的那些條款,就是你其實沒有約束到的自由度。與 Uncle Bob 的 Gherkin mutation 同方向,再往上游推一層。</div></div>
+</section>
+
+<!-- ═══ 06 世界線 ═══ -->
+<section id="worldline">
+  <div class="rule"><span class="tag">06 · 世界線</span><span class="tick"></span></div>
+  <h2>方位、岔路、與漂移的目的地</h2>
+  <p>把機率論的樹攤開:所有可走的路發散成一棵巨大的樹,而你只活在收束後的一條世界線上。三個問題住在三個不同的層:</p>
+  <p><b>Verification 是方位檢查</b>——「走的是不是南邊」。沿途每一步都能問、都能機測,這是 code mirror spec 的那一段,Uncle Bob 的關卡管的就是它,越自動越好。<b>Validation 是岔路選擇</b>——「走哪條路」。只能在岔口由人辨識,工具(k 個分歧解讀、假設帳本)能把岔路擺清楚,但選擇不能外包。<b>而目的地是第三層</b>——「終點是不是你要的目的地」,這個問題連問都要等你回頭:看過已走的路、重畫過地圖,它才問得出來。</p>
+  <p>而重畫之後的目的地,常常已經不是最初那顆星。LLM 給你的走法、你自己當初寫下的目標,都不是那個真正的目的地——<b>只有回望、重選、再猜,逼近的那個「當下的終點」才是</b>。這不是妥協,是發現:出發時的目的地本來就是在資訊最少的時刻定的,走過的路是你唯一真實的量測資料,不拿它更新地圖才是浪費。原型—反應迴圈是這件事的工程版;敏捷整套方法論的核心洞見,也就這一句。</p>
+  <p>所以整條收攏成一句話:<b>spec → code 之間靠機器,idea → spec 之間靠迭代中的辨識,而目的地本身在行走中重寫。</b>LLM 改變的是:它把第一段的成本打到近零,同時把第二段的風險放大——因為它填空填得太流暢、太討喜,讓你誤以為第二段也被解決了;至於第三段,它連碰都碰不到,那是你回頭看路時才存在的東西。搬不過去的餘量——選岔路的辨識、重畫地圖的回望——就是上篇說的、外包不掉的判斷力。</p>
+</section>
+
+<!-- ═══ 名詞備註 ═══ -->
+<section>
+  <div class="rule"><span class="tag">07 · 名詞備註</span><span class="tick"></span></div>
+  <h2>中英對照</h2>
+  <div class="notes">
+    <dl>
+      <dt>驗證 / 確效<span class="en">verification / validation</span></dt>
+      <dd>Verification:code 忠不忠於 spec(building the thing right),可機測。Validation:spec 對不對得起需求(building the right thing),只能校準。</dd>
+      <dt>oracle<span class="en">test oracle</span></dt>
+      <dd>告訴你「正確答案是什麼」的那個東西——spec、預期值、參考實作。Oracle 錯,全鏈忠實執行錯誤且全綠;沒有 oracle 的問題要改用變形/屬性測試。</dd>
+      <dt>不變量<span class="en">invariant</span></dt>
+      <dd>不管狀態與輸入,恆為真的陳述(餘額不為負、轉帳總額守恆)。測試案例是點,不變量是面;列舉列不完,陳述可以涵蓋無限。</dd>
+      <dt>變異測試<span class="en">mutation testing</span></dt>
+      <dd>對程式碼做語意改動(mutant),看測試套件抓不抓得到。量的是「測試有沒有牙齒」,不是程式碼本身——驗證驗證者。Mutant 存活(全綠)才是壞消息。</dd>
+      <dt>屬性測試<span class="en">property-based testing</span></dt>
+      <dd>你陳述不變量,工具生成數千個你沒想過的輸入去攻擊它,找到反例自動縮小。Python 生態是 Hypothesis。</dd>
+      <dt>變形測試<span class="en">metamorphic testing</span></dt>
+      <dd>不知道 f(x) 該是多少,但知道 f(x) 與 f(g(x)) 必須有的關係。沒有 oracle 也能測——前視偏誤檢查(追加未來資料、歷史訊號不變)就是一例。</dd>
+      <dt>前視偏誤<span class="en">look-ahead bias</span></dt>
+      <dd>回測時 t 時刻的訊號用到 t 之後的資訊(當日收盤決定當日交易、全樣本統計量正規化、存活者名單)。回測漂亮、實盤賠錢的頭號原因。</dd>
+      <dt>CRAP<span class="en">Change Risk Anti-Patterns</span></dt>
+      <dd>comp² × (1−cov)³ + comp。鎖定「又複雜又沒測」的交集;100% 覆蓋時退化為圈複雜度本身;門檻慣例 30。</dd>
+      <dt>圈複雜度<span class="en">cyclomatic complexity</span></dt>
+      <dd>函式中線性獨立執行路徑數 = 決策點 + 1。越高越難理解與維護;約 30 以上被視為該重構而非補測試。</dd>
+      <dt>Goodhart 定律<span class="en">Goodhart's law</span></dt>
+      <dd>量測一旦變成目標就不再是好量測(1975,貨幣政策脈絡)。Agent 會朝閘門指標最佳化——LLM 的強項變成你的風險。</dd>
+      <dt>依賴結構指標<span class="en">ADP / I / A / D</span></dt>
+      <dd>依賴無環;不穩定度 I=Ce/(Ca+Ce);依賴指向更穩定方向;主序距離 D=|A+I−1|。屬於約束不是偵測,可做成 CI 閘門。</dd>
+      <dt>條件熵<span class="en">H(intent | text)</span></dt>
+      <dd>給定你的文字,你的意圖仍剩多少不確定性。無法直接量,但可用「k 個分歧解讀的發散程度」當代理。</dd>
+      <dt>內隱知識<span class="en">tacit knowledge</span></dt>
+      <dd>Polanyi:我們知道的比說得出的多。意圖的一部分只能被追問與原型「挖」出來,寫不進第一版 spec。</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ═══ REFS ═══ -->
+<section id="refs">
+  <div class="rule"><span class="tag">08 · 參考資料</span><span class="tick"></span></div>
+  <h2>References</h2>
+  <div class="refs">
+    <ol>
+      <li>Robert C. Martin — 「I don't review code written by agents...」X, 2026-04. <a href="https://x.com/unclebobmartin/status/2044114698451476492">x.com</a></li>
+      <li>Robert C. Martin — 「My current strategy is to not read any of the code... surround the agents with extreme constraints.」X, 2026-07. <a href="https://x.com/unclebobmartin/status/2080257779395154409">x.com</a></li>
+      <li>Bailador — Uncle Bob's Agent Pipeline: Specifier→Coder→Refactorer→Architect. Medium, 2026-06. <a href="https://medium.com/@adrianbailador/uncle-bobs-agent-pipeline-from-informal-specs-to-mutation-tested-net-code-ac2baa45cfd5">medium.com</a></li>
+      <li>Robert C. Martin — 「Just because we can doesn't mean we should... I'm checking that now.」X, 2026-07. <a href="https://x.com/unclebobmartin/status/2072736888478175413">x.com</a></li>
+      <li>Boehm — Software Engineering Economics(verification/validation 之區分), 1981.</li>
+      <li>swingerman — Disciplined Agentic Engineering(ATDD for Claude Code;引 Martin 論兩條測試流). <a href="https://github.com/swingerman/disciplined-agentic-engineering">github.com</a></li>
+      <li>Robert C. Martin — Mutation Testing. Clean Code Blog, 2016(含 Dijkstra 論測試). <a href="https://blog.cleancoder.com/uncle-bob/2016/06/10/MutationTesting.html">blog.cleancoder.com</a></li>
+      <li>Savoia &amp; Evans — The CRAP Metric, 2007;公式與性質見 Crap4j FAQ 與 Better Stack 解說. <a href="http://www.crap4j.org/faq.html">crap4j.org</a> · <a href="https://betterstack.com/community/guides/ai/crap-metric/">betterstack.com</a></li>
+      <li>Goodhart, 1975;通俗表述 Strathern, 1997 — "When a measure becomes a target, it ceases to be a good measure."</li>
+      <li>Martin — Agile Software Development: Principles, Patterns, and Practices(依賴指標);Clean Architecture(依賴規則).</li>
+      <li>Polanyi — The Tacit Dimension, 1966.</li>
+      <li>系列上篇(實證基礎)與下篇(工具落地). <a href="https://github.com/clarencechien/imitator/blob/main/report/ai-amp-or-mir.html">上篇</a> · <a href="llm-tools-in-hand.html">下篇</a></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ═══ 假設帳本 ═══ -->
+<section id="ledger">
+  <div class="rule"><span class="tag">附 · 假設帳本</span><span class="tick"></span></div>
+  <h2>你的 idea 到這份 output,我替你填了什麼</h2>
+  <p class="intro">你說「讓我看看我的 idea 到你的 output 差了多少」——那就實地示範 C2。以下是我在你沒有明說之處替你做的決定,逐條可打勾或打叉:</p>
+  <div class="check">
+    <ol>
+      <li><b>標題與框架</b>:定為「測試在測什麼」,以可測/不可測/搬運為主軸——你只說「回到本質與初心」,主軸是我選的。</li>
+      <li><b>世界線放在收束</b>:你的比喻出現在對話最後,我把它定為第 06 章的終點意象並延伸出「第三層(目的地)」的說法——「三層」這個結構是我的延伸,不是你的原話。</li>
+      <li><b>「這不是妥協,是發現」的價值判斷</b>:你說「也許不是最初的目的地,而是當下的終點」,語氣中性;我把它詮釋成正面的(發現優於固守)。你若本意帶著惋惜,這裡就填錯了。</li>
+      <li><b>QA 形式拿掉了</b>:前兩篇有 QA 章,本篇改為線性論證——因為內容是一條推導鏈而非誤區清單。這是格式決定,你沒指定。</li>
+      <li><b>C5(spec 變異)標為「推論,非成熟實踐」</b>:這是我的原創延伸,文中已標明,但把它列入五台校準器(與四台成熟做法並列)是我的取捨。</li>
+      <li><b>量化例子全用前視偏誤</b>:你的領域裡我挑了這個當貫穿案例;若你更在意的是別的失敗模式(過擬合、成本模型),重心就偏了。</li>
+      <li><b>對 Uncle Bob 的立場</b>:定調為「方法可學、宣稱未量測、正在迭代」的中性偏肯定;你的原始語氣其實沒有表態。</li>
+    </ol>
+  </div>
+  <p class="small" style="margin-top:14px">這份帳本本身就是本篇論點的執行:填充從靜默變顯式。打叉的項目,就是 H(intent | text) 在這份文件上的實際位元。</p>
+</section>
+
+<footer>
+  <p>時效聲明:本篇整理至 2026 年 7 月。Uncle Bob 的實踐依其本人所述仍在驗證中;本篇的機制論證(可測性四級、約束優於偵測、上游校準)不依賴任何特定工具版本。系列:上篇(實證)→ 下篇(工具)→ 本篇(本質)。</p>
+</footer>
+
+</div>
+</body>
+</html>
