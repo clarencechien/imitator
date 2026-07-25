@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="深入解析 Robert C. Martin（Uncle Bob）為何不逐行閱讀 AI 代理生成的程式碼：原始脈絡、驗證管線、實證、風險與企業落地方法。">
+  <meta name="theme-color" content="#f4efe5">
+  <title>Uncle Bob 為何不讀 AI 寫的程式碼？｜完整研究</title>
+  <style>
+    :root {
+      --paper: #f4efe5;
+      --paper-2: #ebe3d4;
+      --ink: #18211e;
+      --muted: #5f6762;
+      --line: rgba(24, 33, 30, .16);
+      --green: #166b54;
+      --green-2: #0f4e3d;
+      --mint: #dcecdf;
+      --amber: #d9912b;
+      --amber-soft: #f4dfb8;
+      --red: #a9473e;
+      --red-soft: #f0d7d1;
+      --blue: #416b91;
+      --white: #fffdf7;
+      --shadow: 0 18px 50px rgba(39, 43, 36, .10);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      --serif: "Iowan Old Style", "Noto Serif TC", "Songti TC", Georgia, serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 5%, rgba(217, 145, 43, .11), transparent 30rem),
+        radial-gradient(circle at 90% 20%, rgba(22, 107, 84, .08), transparent 34rem),
+        var(--paper);
+      font-family: var(--sans);
+      font-size: 17px;
+      line-height: 1.78;
+      text-rendering: optimizeLegibility;
+    }
+
+    body.dark {
+      --paper: #121715;
+      --paper-2: #1a211e;
+      --ink: #ecf0e9;
+      --muted: #aab5ae;
+      --line: rgba(236, 240, 233, .16);
+      --green: #78c9ad;
+      --green-2: #b4ead7;
+      --mint: #20352e;
+      --amber: #f1b55b;
+      --amber-soft: #3d3120;
+      --red: #ee9389;
+      --red-soft: #3b2926;
+      --blue: #82acd1;
+      --white: #171e1b;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .24);
+      background:
+        radial-gradient(circle at 10% 5%, rgba(217, 145, 43, .10), transparent 30rem),
+        radial-gradient(circle at 90% 20%, rgba(72, 173, 139, .08), transparent 34rem),
+        var(--paper);
+    }
+
+    a {
+      color: var(--green);
+      text-decoration-thickness: .08em;
+      text-underline-offset: .18em;
+    }
+    a:hover { color: var(--amber); }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    ::selection { background: var(--amber-soft); }
+
+    .progress {
+      position: fixed;
+      inset: 0 auto auto 0;
+      width: 0;
+      height: 4px;
+      z-index: 100;
+      background: linear-gradient(90deg, var(--amber), var(--green));
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(18px);
+      background: color-mix(in srgb, var(--paper) 84%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      min-height: 58px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: var(--white);
+      background: var(--green-2);
+      font-family: var(--serif);
+      font-size: .8rem;
+    }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-button {
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: var(--white);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font: 700 .78rem/1 var(--sans);
+      cursor: pointer;
+    }
+    .icon-button:hover { border-color: var(--green); }
+
+    .hero {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 86px 24px 74px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(270px, .7fr);
+      gap: 64px;
+      align-items: end;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      color: var(--green);
+      font-weight: 850;
+      font-size: .75rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 34px;
+      height: 2px;
+      background: var(--green);
+    }
+    h1 {
+      max-width: 850px;
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(3rem, 7vw, 6.8rem);
+      line-height: .94;
+      letter-spacing: -.055em;
+      font-weight: 760;
+    }
+    h1 em {
+      color: var(--green);
+      font-style: italic;
+      font-weight: 500;
+    }
+    .deck {
+      max-width: 780px;
+      margin: 32px 0 0;
+      color: var(--muted);
+      font-family: var(--serif);
+      font-size: clamp(1.2rem, 2vw, 1.55rem);
+      line-height: 1.55;
+    }
+    .hero-meta {
+      border-left: 1px solid var(--line);
+      padding-left: 30px;
+    }
+    .hero-meta dl { margin: 0; }
+    .hero-meta div {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .hero-meta dt {
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .hero-meta dd {
+      margin: 0;
+      font-weight: 750;
+      font-size: .95rem;
+    }
+
+    .layout {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 64px 24px 120px;
+      display: grid;
+      grid-template-columns: 230px minmax(0, 760px);
+      gap: 76px;
+      justify-content: center;
+    }
+    .toc {
+      position: sticky;
+      top: 92px;
+      align-self: start;
+      font-size: .83rem;
+    }
+    .toc-title {
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-weight: 850;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .toc a {
+      display: block;
+      padding: 8px 0 8px 14px;
+      color: var(--muted);
+      border-left: 2px solid var(--line);
+      text-decoration: none;
+      line-height: 1.35;
+    }
+    .toc a:hover,
+    .toc a.active {
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    article { min-width: 0; }
+    section {
+      scroll-margin-top: 92px;
+      margin-bottom: 92px;
+    }
+    .section-label {
+      margin-bottom: 10px;
+      color: var(--amber);
+      font-size: .72rem;
+      font-weight: 850;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    h2 {
+      margin: 0 0 26px;
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4.5vw, 3.55rem);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+    h3 {
+      margin: 42px 0 14px;
+      font-size: 1.2rem;
+      line-height: 1.35;
+    }
+    p { margin: 0 0 1.35em; }
+    .lead {
+      font-family: var(--serif);
+      font-size: 1.28rem;
+      line-height: 1.65;
+    }
+    .dropcap::first-letter {
+      float: left;
+      padding: .12em .12em 0 0;
+      color: var(--green);
+      font-family: var(--serif);
+      font-size: 4.4rem;
+      line-height: .72;
+    }
+    strong { font-weight: 820; }
+    code {
+      font-family: var(--mono);
+      font-size: .88em;
+      background: var(--paper-2);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: .12em .35em;
+    }
+    sup a {
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .verdict {
+      margin: 32px 0 36px;
+      padding: 26px 28px;
+      border: 1px solid color-mix(in srgb, var(--green) 40%, var(--line));
+      border-left: 6px solid var(--green);
+      background: var(--mint);
+      border-radius: 4px 18px 18px 4px;
+    }
+    .verdict-kicker {
+      margin-bottom: 7px;
+      color: var(--green);
+      font-size: .72rem;
+      font-weight: 850;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .verdict p {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      line-height: 1.55;
+    }
+
+    blockquote {
+      position: relative;
+      margin: 36px 0;
+      padding: 8px 0 8px 34px;
+      border-left: 3px solid var(--amber);
+      font-family: var(--serif);
+      font-size: 1.35rem;
+      line-height: 1.55;
+    }
+    blockquote p { margin: 0 0 12px; }
+    blockquote cite {
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: .75rem;
+      font-style: normal;
+    }
+
+    .fact-grid,
+    .reason-grid,
+    .risk-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin: 28px 0 34px;
+    }
+    .card {
+      min-width: 0;
+      padding: 24px;
+      background: color-mix(in srgb, var(--white) 88%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 5px 20px rgba(39, 43, 36, .04);
+    }
+    .card .num {
+      display: block;
+      margin-bottom: 20px;
+      color: var(--amber);
+      font-family: var(--serif);
+      font-size: 1rem;
+      font-style: italic;
+    }
+    .card h3 {
+      margin: 0 0 9px;
+      font-size: 1.05rem;
+    }
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.65;
+    }
+    .card.warning { border-top: 4px solid var(--amber); }
+    .card.danger { border-top: 4px solid var(--red); }
+    .card.safe { border-top: 4px solid var(--green); }
+
+    .pipeline-wrap {
+      margin: 34px 0;
+      padding: 30px;
+      overflow: hidden;
+      color: #f8f7f2;
+      background: #16231f;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+    }
+    .pipeline-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 26px;
+      color: rgba(248, 247, 242, .68);
+      font-size: .75rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .pipeline {
+      display: grid;
+      grid-template-columns: 1fr 34px 1fr 34px 1fr;
+      align-items: stretch;
+      gap: 0;
+    }
+    .pipe-stage {
+      min-height: 164px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .055);
+    }
+    .pipe-stage.human { background: rgba(217, 145, 43, .16); }
+    .pipe-stage.machine { background: rgba(72, 173, 139, .13); }
+    .pipe-stage small {
+      color: rgba(248, 247, 242, .58);
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .pipe-stage strong {
+      display: block;
+      margin: 14px 0;
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      line-height: 1.15;
+    }
+    .pipe-stage span {
+      color: rgba(248, 247, 242, .68);
+      font-size: .74rem;
+      line-height: 1.45;
+    }
+    .pipe-arrow {
+      display: grid;
+      place-items: center;
+      color: #d9a24e;
+      font-size: 1.3rem;
+    }
+
+    .data-panel {
+      margin: 34px 0;
+      padding: 30px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+    .data-panel header {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 28px;
+    }
+    .data-panel h3 { margin: 0 0 4px; }
+    .data-panel header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+    .badge {
+      flex: none;
+      color: var(--green);
+      background: var(--mint);
+      border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .68rem;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .metric { margin: 18px 0; }
+    .metric-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 7px;
+      font-size: .82rem;
+      font-weight: 750;
+    }
+    .track {
+      height: 11px;
+      overflow: hidden;
+      background: var(--paper-2);
+      border-radius: 999px;
+    }
+    .bar {
+      height: 100%;
+      transform-origin: left;
+      animation: grow .9s ease-out both;
+      background: linear-gradient(90deg, var(--green), #69aa8e);
+      border-radius: inherit;
+    }
+    .bar.amber { background: linear-gradient(90deg, var(--amber), #eabb69); }
+    .bar.w-21 { width: 21%; }
+    .bar.w-25 { width: 25%; }
+    .bar.w-33 { width: 33%; }
+    .bar.w-100 { width: 100%; }
+    @keyframes grow { from { transform: scaleX(0); } }
+    .pass-rate {
+      margin-top: 24px;
+      padding-top: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      border-top: 1px solid var(--line);
+    }
+    .pass-rate div {
+      padding: 16px;
+      border-radius: 12px;
+      background: var(--paper);
+    }
+    .pass-rate strong {
+      display: block;
+      font-family: var(--serif);
+      font-size: 2rem;
+      line-height: 1;
+    }
+    .pass-rate span { color: var(--muted); font-size: .75rem; }
+    .data-note {
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: .78rem;
+      line-height: 1.55;
+    }
+
+    .table-wrap {
+      margin: 30px 0;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--white);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 650px;
+      font-size: .86rem;
+      line-height: 1.55;
+    }
+    th, td {
+      padding: 16px 18px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      color: var(--muted);
+      background: var(--paper-2);
+      font-size: .7rem;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .level {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+      font-weight: 800;
+    }
+    .level::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .level.low { color: var(--green); }
+    .level.mid { color: var(--amber); }
+    .level.high { color: var(--red); }
+
+    .myth {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 24px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .myth:last-child { border-bottom: 0; }
+    .myth strong {
+      color: var(--red);
+      font-size: .8rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .myth p { margin: 0; }
+
+    .callout {
+      margin: 28px 0;
+      padding: 22px 24px;
+      border-radius: 14px;
+      background: var(--amber-soft);
+      border: 1px solid color-mix(in srgb, var(--amber) 34%, transparent);
+    }
+    .callout.danger {
+      background: var(--red-soft);
+      border-color: color-mix(in srgb, var(--red) 35%, transparent);
+    }
+    .callout p:last-child { margin-bottom: 0; }
+
+    .steps {
+      margin: 30px 0;
+      counter-reset: step;
+    }
+    .step {
+      position: relative;
+      margin-left: 22px;
+      padding: 4px 0 34px 42px;
+      border-left: 1px solid var(--line);
+      counter-increment: step;
+    }
+    .step:last-child {
+      padding-bottom: 0;
+      border-color: transparent;
+    }
+    .step::before {
+      content: counter(step);
+      position: absolute;
+      left: -17px;
+      top: 0;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      color: var(--white);
+      background: var(--green-2);
+      border-radius: 50%;
+      font-family: var(--serif);
+      font-weight: 800;
+    }
+    .step h3 { margin: 0 0 8px; }
+    .step p { margin: 0; color: var(--muted); }
+
+    pre {
+      margin: 28px 0;
+      padding: 24px;
+      overflow: auto;
+      color: #dce9e2;
+      background: #111a17;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 16px;
+      font: .78rem/1.7 var(--mono);
+      tab-size: 2;
+    }
+    pre code {
+      padding: 0;
+      color: inherit;
+      background: none;
+      border: 0;
+    }
+
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 18px;
+      margin: 26px 0;
+      padding: 0;
+      list-style: none;
+    }
+    .checklist li {
+      position: relative;
+      padding: 13px 14px 13px 42px;
+      background: color-mix(in srgb, var(--white) 80%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: .86rem;
+      line-height: 1.5;
+    }
+    .checklist li::before {
+      content: "✓";
+      position: absolute;
+      left: 15px;
+      top: 12px;
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .sources {
+      padding-top: 36px;
+      border-top: 1px solid var(--line);
+    }
+    .source-list {
+      margin: 26px 0 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: source;
+    }
+    .source-list li {
+      position: relative;
+      padding: 16px 0 16px 48px;
+      border-bottom: 1px solid var(--line);
+      counter-increment: source;
+      font-size: .84rem;
+      line-height: 1.55;
+    }
+    .source-list li::before {
+      content: counter(source, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      top: 18px;
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: .74rem;
+      font-weight: 800;
+    }
+    .source-list a { font-weight: 800; }
+    .source-type {
+      display: inline-block;
+      margin-left: 6px;
+      color: var(--muted);
+      font-size: .68rem;
+      font-weight: 750;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .research-note {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: .76rem;
+      line-height: 1.65;
+    }
+
+    .footer {
+      padding: 40px 24px 60px;
+      text-align: center;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      font-size: .76rem;
+    }
+    .back-top {
+      display: inline-flex;
+      margin-bottom: 18px;
+      padding: 8px 12px;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    @media (max-width: 920px) {
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 44px;
+        padding-top: 62px;
+      }
+      .hero-meta {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding-left: 0;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+      .hero-meta div { padding-right: 18px; }
+      .layout {
+        grid-template-columns: minmax(0, 760px);
+        gap: 0;
+      }
+      .toc { display: none; }
+    }
+
+    @media (max-width: 680px) {
+      body { font-size: 16px; }
+      .topbar-inner { padding: 0 16px; }
+      .hero { padding: 48px 18px 52px; }
+      .hero-meta { grid-template-columns: 1fr; }
+      .layout { padding: 48px 18px 90px; }
+      .fact-grid,
+      .reason-grid,
+      .risk-grid,
+      .checklist { grid-template-columns: 1fr; }
+      .pipeline {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .pipe-arrow { transform: rotate(90deg); min-height: 24px; }
+      .pipeline-wrap, .data-panel { padding: 22px; border-radius: 16px; }
+      .pipeline-title, .data-panel header { flex-direction: column; }
+      .myth { grid-template-columns: 1fr; gap: 8px; }
+      .pass-rate { grid-template-columns: 1fr; }
+      blockquote { padding-left: 22px; font-size: 1.18rem; }
+      .brand span:last-child { display: none; }
+    }
+
+    @media print {
+      .topbar, .progress, .toc, .back-top { display: none !important; }
+      body { background: white; color: #111; font-size: 11pt; }
+      .hero, .layout { max-width: none; padding-left: 0; padding-right: 0; }
+      .layout { display: block; }
+      section { break-inside: auto; margin-bottom: 42px; }
+      .card, .data-panel, .pipeline-wrap, .table-wrap {
+        break-inside: avoid;
+        box-shadow: none;
+      }
+      a { color: inherit; text-decoration: none; }
+      a[href^="http"]::after {
+        content: " (" attr(href) ")";
+        font-size: 8pt;
+        word-break: break-all;
+      }
+    }
+  </style>
+</head>
+<body id="top">
+  <div class="progress" id="progress" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top" aria-label="回到頁首">
+        <span class="brand-mark">UB</span>
+        <span>Agentic Engineering Research</span>
+      </a>
+      <div class="top-actions">
+        <button class="icon-button" id="printButton" type="button">列印 / PDF</button>
+        <button class="icon-button" id="themeButton" type="button" aria-label="切換深色模式">深色</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <header class="hero">
+      <div>
+        <div class="eyebrow">Deep Research · 2026</div>
+        <h1>Uncle Bob 為何<em>不讀</em> AI 寫的程式碼？</h1>
+        <p class="deck">
+          這不是「品質不重要」，而是把品質控制從逐行閱讀，改造成規格、架構、測試與機械化限制共同構成的驗證系統。
+        </p>
+      </div>
+      <aside class="hero-meta" aria-label="文章資訊">
+        <dl>
+          <div>
+            <dt>研究對象</dt>
+            <dd>Robert C. Martin</dd>
+          </div>
+          <div>
+            <dt>資料截點</dt>
+            <dd>2026.07.25</dd>
+          </div>
+          <div>
+            <dt>閱讀時間</dt>
+            <dd>約 16 分鐘</dd>
+          </div>
+        </dl>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav class="toc" aria-label="文章目錄">
+        <div class="toc-title">Contents</div>
+        <a href="#answer">先說結論</a>
+        <a href="#said">他究竟說了什麼</a>
+        <a href="#why">不讀程式碼的原因</a>
+        <a href="#pipeline">真正的驗證管線</a>
+        <a href="#clean-code">Clean Code 矛盾嗎</a>
+        <a href="#evidence">實證支持到哪裡</a>
+        <a href="#risks">六個致命盲點</a>
+        <a href="#fit">什麼情境能採用</a>
+        <a href="#blueprint">企業落地藍圖</a>
+        <a href="#conclusion">最終判讀</a>
+        <a href="#sources">資料來源</a>
+      </nav>
+
+      <article>
+        <section id="answer">
+          <div class="section-label">00 / Executive answer</div>
+          <h2>先說結論：他移動了「人該讀什麼」</h2>
+          <p class="lead dropcap">
+            Uncle Bob 所謂「不讀程式碼」，精確地說，是<strong>不再逐行審查 AI
+            代理產生的實作碼與單元測試</strong>。原因不是他看不懂、懶得看，或突然否定
+            《Clean Code》；而是當代理能以遠高於人類閱讀速度產生程式碼時，逐行 review
+            會立刻成為整個開發系統的新瓶頸。
+          </p>
+
+          <div class="verdict">
+            <div class="verdict-kicker">一句話判讀</div>
+            <p>
+              他不是取消驗證，而是把人類判斷上移到「行為規格、架構邊界與風險」，把低階實作交給代理，再用不可討價還價的自動化關卡驗證。
+            </p>
+          </div>
+
+          <div class="myth">
+            <strong>不是</strong>
+            <p>丟一句 prompt、看畫面能跑就上線的 vibe coding。</p>
+          </div>
+          <div class="myth">
+            <strong>而是</strong>
+            <p>用 Gherkin 驗收規格、單元測試、mutation testing、coverage、複雜度與依賴分析，建立一條代理必須通過的「測試刑場」。</p>
+          </div>
+          <div class="myth">
+            <strong>仍由人負責</strong>
+            <p>需求是否正確、架構是否合理、哪些風險不可接受、驗收規格有沒有漏掉，以及最後產品是否真的解決使用者問題。</p>
+          </div>
+        </section>
+
+        <section id="said">
+          <div class="section-label">01 / Source reconstruction</div>
+          <h2>他究竟說了什麼？</h2>
+          <p>
+            2026 年 7 月，Robert C. Martin 在 X 的討論中表示，他目前的策略是不讀代理寫出的程式碼，因為那是取得代理生產力的唯一方式；替代方案是用「極端限制」包圍代理。該段討論目前可由專文的逐句整理交叉核對，而他在訪談、課程與公開 repository 中留下的實作又與這套說法一致。<sup><a href="#src-1">1</a></sup>
+          </p>
+
+          <blockquote>
+            <p>“My current strategy is to not read any of the code written by my agents.”</p>
+            <cite>Robert C. Martin，2026 年 7 月 X 討論；引文依來源整理節錄，未延伸其字面範圍。</cite>
+          </blockquote>
+
+          <p>他對工作分配的描述更重要：</p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>產物</th>
+                  <th>主要作者</th>
+                  <th>Uncle Bob 如何處理</th>
+                  <th>人類判斷在哪裡</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>實作程式碼</td>
+                  <td>AI 代理</td>
+                  <td>不逐行閱讀</td>
+                  <td>由規格與品質閘門間接約束</td>
+                </tr>
+                <tr>
+                  <td>單元測試</td>
+                  <td>AI 代理</td>
+                  <td>通常不 review</td>
+                  <td>coverage、mutation 與另一條驗收測試流</td>
+                </tr>
+                <tr>
+                  <td>Gherkin 驗收測試</td>
+                  <td>AI 起草</td>
+                  <td>依關鍵程度詳讀或抽查</td>
+                  <td>確認業務行為是否被正確描述</td>
+                </tr>
+                <tr>
+                  <td>QA 程序</td>
+                  <td>AI 起草</td>
+                  <td>依關鍵程度詳讀或抽查</td>
+                  <td>確認驗證範圍與風險情境</td>
+                </tr>
+                <tr>
+                  <td>最終產品行為</td>
+                  <td>系統執行</td>
+                  <td>定期人工測試</td>
+                  <td>確認產品真的可用，而非只有測試變綠</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout">
+            <p>
+              <strong>重要修正：</strong>「不讀」不等於「永遠不看」。當測試怪異失敗、代理陷入自己製造的混亂、架構或安全出現異味時，人工仍要下探到程式碼。差別在於：<strong>讀碼從每次變更的固定流程，變成風險觸發的例外流程</strong>。
+            </p>
+          </div>
+        </section>
+
+        <section id="why">
+          <div class="section-label">02 / Root causes</div>
+          <h2>他不讀程式碼的四個真正原因</h2>
+
+          <div class="reason-grid">
+            <div class="card">
+              <span class="num">01</span>
+              <h3>吞吐量經濟學改變</h3>
+              <p>代理每小時能產生的變更量，遠高於人類可嚴謹閱讀的量。若每一行仍需人工批准，AI 只是把瓶頸從「寫」移到「讀」。</p>
+            </div>
+            <div class="card">
+              <span class="num">02</span>
+              <h3>抽象層再往上爬</h3>
+              <p>工程師早已不逐行審查 compiler 產生的 assembly；他的賭注是：規格與驗證管線會成為下一層可依賴的輸入，實作碼則逐漸像生成物。</p>
+            </div>
+            <div class="card">
+              <span class="num">03</span>
+              <h3>逐行 review 不是最強證據</h3>
+              <p>人眼擅長看可讀性與局部異味，卻不擅長窮舉狀態空間。能執行的驗收測試、mutation testing、型別與靜態分析，可提供可重跑、可阻擋 merge 的證據。</p>
+            </div>
+            <div class="card">
+              <span class="num">04</span>
+              <h3>人的價值移到意圖與取捨</h3>
+              <p>代理能遵守規則，卻未必在建構過程中自然展現「品味」與對未來後果的在意。需求、模組邊界、依賴方向與風險接受度仍需要資深判斷。</p>
+            </div>
+          </div>
+
+          <p>
+            2026 年 6 月的訪談摘要把他的立場說得很清楚：離開程式碼這個「主要 review
+            表面」，不代表離開結構。持久的工程問題仍是模組、邊界、依賴、資料流與系統行為；代理能在被要求時批評設計，卻不一定會在實作時主動運用同等判斷，因此他用複雜度、coverage、函式與模組結構工具把回饋迴路關起來。<sup><a href="#src-2">2</a></sup>
+          </p>
+        </section>
+
+        <section id="pipeline">
+          <div class="section-label">03 / The gauntlet</div>
+          <h2>真正取代逐行 review 的，是一條驗證管線</h2>
+          <p class="lead">
+            最容易誤解之處，是把「不 review 實作碼」看成少做了一件事。實際上，這種方法通常是把一個模糊的人工作業，拆成多個更嚴格、可重跑、可失敗關閉（fail closed）的關卡。
+          </p>
+
+          <div class="pipeline-wrap" role="img" aria-label="人類意圖、代理實作、自動驗證三階段管線">
+            <div class="pipeline-title">
+              <span>Uncle Bob-style control loop</span>
+              <span>Human → Agent → Evidence</span>
+            </div>
+            <div class="pipeline">
+              <div class="pipe-stage human">
+                <small>Human-owned</small>
+                <strong>意圖與邊界</strong>
+                <span>需求、驗收條件、架構、風險等級</span>
+              </div>
+              <div class="pipe-arrow" aria-hidden="true">→</div>
+              <div class="pipe-stage">
+                <small>Agent-owned</small>
+                <strong>測試與實作</strong>
+                <span>Gherkin、單元測試、程式碼、修復迴圈</span>
+              </div>
+              <div class="pipe-arrow" aria-hidden="true">→</div>
+              <div class="pipe-stage machine">
+                <small>Machine-enforced</small>
+                <strong>證據與阻擋</strong>
+                <span>Acceptance、mutation、coverage、architecture、security</span>
+              </div>
+            </div>
+          </div>
+
+          <h3>一、可執行的驗收規格是「人類主要閱讀面」</h3>
+          <p>
+            Uncle Bob 的 <em>Acceptance Pipeline Specification</em> 把流程具體定義為：
+            Gherkin feature → parser → JSON intermediate representation（IR）→ 產生測試入口 →
+            專案測試 runner。另有 acceptance mutation：修改規格裡的重要 example value，
+            再確認測試真的會失敗，而不是規格寫了卻沒有接到實際系統。<sup><a href="#src-3">3</a></sup>
+          </p>
+
+          <h3>二、單元測試與驗收測試必須是兩條不同證據流</h3>
+          <p>
+            單元測試容易貼著實作長，甚至把同一個錯誤假設複製兩次；驗收測試則從外部可觀察行為出發。兩者同時通過，仍不能證明絕對正確，但比「代理寫 implementation，再讓同一代理寫一組只驗證自己想法的 unit tests」更有獨立性。
+          </p>
+
+          <h3>三、品質規則必須是工具，不是 prompt 願望</h3>
+          <p>
+            函式大小、認知複雜度、重複碼、coverage、依賴循環、禁止跨層呼叫、檔案大小與命名規則，都應由 CI 中的 deterministic tools 判定。提示詞會隨長對話弱化；失敗就擋住的工具不會被代理說服。公開的
+            <em>empire-2025</em> 專案也可看到 acceptance pipeline、dependency checker、
+            acceptance boundary 與 AI map access audit 等實際關卡。<sup><a href="#src-4">4</a></sup>
+          </p>
+
+          <h3>四、管線深度依 criticality 調整</h3>
+          <p>
+            Uncle Bob 也公開反省「把所有測試都疊上去」可能過度。他提到 Gherkin、unit、QA、
+            mutation 與 Gherkin mutation 很容易叫 AI 做，但「做得到」不代表每次都值得；很多時候他也只用 unit tests 與 CRAP 分析。<sup><a href="#src-5">5</a></sup>
+            因此這不是單一教條，而是一個風險加權的驗證架構。
+          </p>
+        </section>
+
+        <section id="clean-code">
+          <div class="section-label">04 / The apparent paradox</div>
+          <h2>《Clean Code》作者不讀 code，矛盾嗎？</h2>
+          <p class="lead">
+            表面上非常矛盾，實際上只矛盾了一半：程式碼的主要讀者可能從人類變成代理，但結構品質仍直接影響代理工作的成本與穩定性。
+          </p>
+
+          <div class="fact-grid">
+            <div class="card safe">
+              <h3>仍然成立</h3>
+              <p>小函式、低複雜度、清楚命名、邊界分明、低耦合與無循環依賴，讓代理更容易定位、修改、測試與自我修復。</p>
+            </div>
+            <div class="card warning">
+              <h3>改變的是目的</h3>
+              <p>過去主要為人類 maintainability；現在也同時是 AI 的 context efficiency、導航效率與修復可收斂性。</p>
+            </div>
+            <div class="card danger">
+              <h3>沒有自動成立</h3>
+              <p>「測試全綠」不等於架構乾淨。若沒有 architecture fitness functions，代理仍可能在每次局部成功中累積整體腐化。</p>
+            </div>
+            <div class="card safe">
+              <h3>人仍需偶爾下探</h3>
+              <p>遇到安全、效能、資料一致性、奇怪失敗或代理反覆修改同一區域時，乾淨結構讓人可以快速接手，而不是面對不可讀生成物。</p>
+            </div>
+          </div>
+
+          <blockquote>
+            <p>Clean Code 沒有消失；它從「請人仔細遵守的美德」，變成「代理無法繞過的機械性預算」。</p>
+            <cite>本文綜合判讀</cite>
+          </blockquote>
+        </section>
+
+        <section id="evidence">
+          <div class="section-label">05 / Evidence</div>
+          <h2>實證支持到哪裡？不要把立場當定論</h2>
+          <p>
+            一項 2026 年 5 月的受控 minimal-pair 研究，建立六組外部行為相同、但結構與靜態分析品質不同的 repository，設計 33 個任務，以 Claude Code / Claude Sonnet 4.6 各跑十次，共 660 次 trial。結果是：乾淨程式碼<strong>沒有改善通過率</strong>，卻明顯縮小代理的操作足跡。<sup><a href="#src-6">6</a></sup>
+          </p>
+
+          <div class="data-panel">
+            <header>
+              <div>
+                <h3>乾淨版本相對髒亂版本</h3>
+                <p>33 tasks · 6 repo pairs · 660 trials</p>
+              </div>
+              <span class="badge">Controlled preprint</span>
+            </header>
+
+            <div class="metric">
+              <div class="metric-head">
+                <span>Input tokens 減少</span>
+                <strong>−7.1%</strong>
+              </div>
+              <div class="track"><div class="bar w-21"></div></div>
+            </div>
+            <div class="metric">
+              <div class="metric-head">
+                <span>Output tokens 減少</span>
+                <strong>−8.5%</strong>
+              </div>
+              <div class="track"><div class="bar w-25"></div></div>
+            </div>
+            <div class="metric">
+              <div class="metric-head">
+                <span>Reasoning characters 減少</span>
+                <strong>−11.1%</strong>
+              </div>
+              <div class="track"><div class="bar amber w-33"></div></div>
+            </div>
+            <div class="metric">
+              <div class="metric-head">
+                <span>重讀已編輯檔案減少</span>
+                <strong>−33.8%</strong>
+              </div>
+              <div class="track"><div class="bar amber w-100"></div></div>
+            </div>
+
+            <div class="pass-rate">
+              <div>
+                <strong>91.3%</strong>
+                <span>乾淨版本 pass rate</span>
+              </div>
+              <div>
+                <strong>92.1%</strong>
+                <span>髒亂版本 pass rate</span>
+              </div>
+            </div>
+            <p class="data-note">
+              圖條以最大變化 33.8% 正規化，只用來比較幅度；不是 0–100% 的成功率刻度。Pass rate 差異為 −0.9 個百分點，研究者判定整體任務成功率未因 cleanliness 改變。
+            </p>
+          </div>
+
+          <h3>這支持了什麼？</h3>
+          <p>
+            它支持 Uncle Bob 的一個較窄主張：髒亂程式碼會讓代理花更多 token、產生更多往返與重讀；乾淨程式碼是代理效率問題，不只是人類審美。但該研究沒有證明「不需要 human review」，也沒有證明 Gherkin + mutation 管線足以取代所有人工查核。
+          </p>
+
+          <h3>另一篇「code review 終結」論文又代表什麼？</h3>
+          <p>
+            2026 年 6 月的 <em>The End of Code Review</em> 主張 agent-driven verification
+            可取代傳統 mandatory human review；但作者明確說這是綜合既有資料的<strong>立場論文，不是新的實證研究</strong>。它也承認模型可能有 false negative、生成與審查盲點高度相關、程式碼內 prompt injection，以及架構一致性仍需人類判斷。<sup><a href="#src-7">7</a></sup>
+          </p>
+
+          <div class="callout danger">
+            <p>
+              <strong>研究結論的正確強度：</strong>目前資料足以支持「逐行人工 review 不應再是唯一品質關卡」，還不足以支持「所有團隊、所有系統都能安全停止讀碼」。
+            </p>
+          </div>
+        </section>
+
+        <section id="risks">
+          <div class="section-label">06 / Failure modes</div>
+          <h2>六個不能被漂亮管線掩蓋的盲點</h2>
+
+          <div class="risk-grid">
+            <div class="card danger">
+              <span class="num">01</span>
+              <h3>同源錯誤</h3>
+              <p>同一代理寫規格、程式與測試，可能把同一個誤解複製三次。綠燈只證明三者一致，不證明它符合真實需求。</p>
+            </div>
+            <div class="card danger">
+              <span class="num">02</span>
+              <h3>規格未寫出的世界</h3>
+              <p>資料遷移、時序競態、資源耗盡、網路分割、觀測性、復原與人因錯誤，往往不在 happy-path Gherkin 裡。</p>
+            </div>
+            <div class="card warning">
+              <span class="num">03</span>
+              <h3>架構緩慢腐化</h3>
+              <p>每個 feature 都通過外部行為測試，系統仍可能多一層不必要抽象、重複能力或錯誤依賴方向。</p>
+            </div>
+            <div class="card danger">
+              <span class="num">04</span>
+              <h3>安全與 adversarial code</h3>
+              <p>產生與審查模型可能共享盲點；程式碼中的自然語言甚至可能對 reviewer agent 形成 prompt injection。</p>
+            </div>
+            <div class="card warning">
+              <span class="num">05</span>
+              <h3>知識傳承斷層</h3>
+              <p>若人不讀 code，又沒有架構地圖、決策紀錄與可追溯規格，團隊可能只知道系統「有通過」，不知道為何如此設計。</p>
+            </div>
+            <div class="card danger">
+              <span class="num">06</span>
+              <h3>責任不能外包</h3>
+              <p>醫療、金融、工控、安全連鎖與法規稽核要求的是可歸責決策。代理通過測試，不等於組織完成專業簽核。</p>
+            </div>
+          </div>
+
+          <p>
+            最大的陷阱，是新手只複製「我不看 code」這句話，卻沒有複製 Uncle Bob
+            數十年累積的架構判斷，也沒有建立同等嚴格的 deterministic guardrails。
+            這兩者看起來都叫 no-look coding，風險卻完全不同。
+          </p>
+        </section>
+
+        <section id="fit">
+          <div class="section-label">07 / Applicability</div>
+          <h2>什麼情境能採用？用風險分級，而非信仰表態</h2>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>情境</th>
+                  <th>建議模式</th>
+                  <th>人應該讀什麼</th>
+                  <th>最低必要關卡</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>一次性 prototype、內部展示</td>
+                  <td><span class="level low">可大幅 no-look</span></td>
+                  <td>需求、demo 行為、明顯安全風險</td>
+                  <td>build、unit、lint、手動 smoke test</td>
+                </tr>
+                <tr>
+                  <td>內部 CRUD、一般報表與 dashboard</td>
+                  <td><span class="level mid">風險抽樣</span></td>
+                  <td>驗收規格、權限、資料查詢、migration</td>
+                  <td>acceptance + unit、RBAC 測試、SAST、schema 檢查</td>
+                </tr>
+                <tr>
+                  <td>OEE／良率計算、事件處理、MES 整合</td>
+                  <td><span class="level mid">保留熱點 review</span></td>
+                  <td>公式、時序、idempotency、錯誤恢復、資料契約</td>
+                  <td>property tests、replay、contract、load、故障注入</td>
+                </tr>
+                <tr>
+                  <td>身分驗證、付款、個資、基礎設施</td>
+                  <td><span class="level high">不可純 no-look</span></td>
+                  <td>security boundary、secret、權限提升、rollback</td>
+                  <td>獨立安全審查、threat model、SCA/SAST/DAST、audit</td>
+                </tr>
+                <tr>
+                  <td>產線控制、安全 interlock、醫療／金融核心</td>
+                  <td><span class="level high">人工簽核必須保留</span></td>
+                  <td>關鍵路徑程式碼、危害分析、fail-safe 行為</td>
+                  <td>獨立 V&amp;V、traceability、正式 change control</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>
+            最務實的中間路線不是「全讀」或「全不讀」，而是：
+            <strong>規格與架構必讀、低風險實作不讀、關鍵路徑與異常訊號觸發閱讀</strong>。
+            這既保留代理吞吐量，也不把高風險責任藏進綠色 CI。
+          </p>
+        </section>
+
+        <section id="blueprint">
+          <div class="section-label">08 / Adoption blueprint</div>
+          <h2>企業落地：先建證據，再降低 review</h2>
+          <p class="lead">
+            不要先宣布「從今天起不看程式碼」。安全順序剛好相反：先測量現有品質、補齊規格與關卡，再逐級縮小人工作業。
+          </p>
+
+          <div class="steps">
+            <div class="step">
+              <h3>建立風險分類與不可 no-look 路徑</h3>
+              <p>把 security、billing、migration、production control、PII、deployment 與 shared libraries 標成 protected paths，預設要求人工簽核。</p>
+            </div>
+            <div class="step">
+              <h3>把需求轉成可執行行為契約</h3>
+              <p>先寫 acceptance criteria，再由代理轉成 Gherkin；人要審查 happy path、edge cases、錯誤、安全與跨系統條件，而不是只看語法漂亮。</p>
+            </div>
+            <div class="step">
+              <h3>讓證據彼此獨立</h3>
+              <p>實作代理不應是唯一 reviewer。可用不同 agent/model 產生反例、獨立 QA scenarios，並將隱藏測試或 production replay 與實作者隔離。</p>
+            </div>
+            <div class="step">
+              <h3>建立 fail-closed 的 deterministic gates</h3>
+              <p>build、type、lint、unit、acceptance、coverage、mutation、dependency、duplicate、SAST/SCA、secret scan；失敗就阻擋，代理不能以文字解釋略過。</p>
+            </div>
+            <div class="step">
+              <h3>保留 architecture 與 hotspot review</h3>
+              <p>人工審查 plan、模組圖、依賴差異、資料流與風險熱點；觸發條件包括高複雜度、異常 churn、測試反覆修改、跨邊界變更或未知 failure。</p>
+            </div>
+            <div class="step">
+              <h3>用 shadow mode 證明可行</h3>
+              <p>先讓新管線與既有人工作業並行 4–8 週，記錄 escaped defects、rollback、review latency、agent retry、token cost 與人工工時，再決定哪些類別能降級。</p>
+            </div>
+          </div>
+
+          <h3>一個可操作的 policy 骨架</h3>
+          <pre><code>change_policy:
+  default_mode: risk_sampled_review
+
+  protected_paths:
+    - "auth/**"
+    - "billing/**"
+    - "migrations/**"
+    - "control/**"
+    - "infra/**"
+
+  human_owned_artifacts:
+    - acceptance_criteria
+    - architecture_plan
+    - threat_model
+    - rollback_plan
+
+  mandatory_gates:
+    - build
+    - typecheck
+    - unit_tests
+    - acceptance_tests
+    - coverage_budget
+    - complexity_budget
+    - dependency_rules
+    - sast_and_sca
+
+  escalate_to_code_review_when:
+    - protected_path_changed
+    - architecture_boundary_changed
+    - complexity_budget_exceeded
+    - tests_modified_repeatedly
+    - migration_or_data_loss_risk
+    - security_agent_disagrees
+    - rollback_or_manual_test_fails</code></pre>
+
+          <h3>上線前最低檢核表</h3>
+          <ul class="checklist">
+            <li>行為規格由懂 domain 的人確認</li>
+            <li>驗收與單元測試不是同一證據</li>
+            <li>coverage 門檻搭配 mutation，不只看百分比</li>
+            <li>模組依賴、循環與複雜度有硬性預算</li>
+            <li>權限、secret、供應鏈與輸入安全已掃描</li>
+            <li>migration、rollback、backup 已演練</li>
+            <li>效能、容量、併發與故障模式有驗證</li>
+            <li>變更、代理、模型與測試結果可稽核</li>
+            <li>異常時能快速定位並由人接手</li>
+            <li>production 指標能證明產品行為正常</li>
+          </ul>
+        </section>
+
+        <section id="conclusion">
+          <div class="section-label">09 / Final judgment</div>
+          <h2>最終判讀：這是高紀律的「不看」，不是低責任的「不管」</h2>
+          <p class="lead">
+            Uncle Bob 的核心洞察是對的：當 AI 代理的產出速度持續增加，人類逐行 review
+            不可能無限擴張；工程控制必須上移到意圖、結構與可執行證據。
+          </p>
+          <p>
+            但「不讀程式碼」本身不是方法，只是成熟方法可能產生的結果。真正的方法是：
+            可審查的規格、明確架構、兩條以上的驗證流、mutation、靜態與依賴分析、
+            criticality-based review、人工最終行為測試，以及失敗時願意下探程式碼的資深判斷。
+          </p>
+          <p>
+            因此，團隊不應問「我們要不要學 Uncle Bob 不看 code？」；應問：
+            <strong>「我們是否已建立足夠獨立、可重跑、會阻擋錯誤的證據，讓某一類低風險變更不再需要逐行閱讀？」</strong>
+            如果答案還是否定的，跳過 review 只是少了一層防線，不是升上新的抽象層。
+          </p>
+
+          <div class="verdict">
+            <div class="verdict-kicker">可帶走的決策原則</div>
+            <p>
+              先把品質寫進系統，再把人從低價值的逐行檢查中解放；高風險處仍由人負責，且責任永不交給綠燈。
+            </p>
+          </div>
+        </section>
+
+        <section class="sources" id="sources">
+          <div class="section-label">Sources &amp; methodology</div>
+          <h2>資料來源與證據分級</h2>
+          <ol class="source-list">
+            <li id="src-1">
+              <a href="https://www.explainx.ai/blog/uncle-bob-ai-coding-gauntlet-tests-not-reviews-july-2026" target="_blank" rel="noreferrer">
+                Uncle Bob Doesn’t Review AI Code. He Builds a Gauntlet Instead
+              </a>
+              <span class="source-type">二手逐句整理 · 2026-07-23</span><br>
+              用於還原 2026 年 7 月 X 討論與參與者回覆；原文主張另以訪談、課程與 repository 交叉核對。
+            </li>
+            <li id="src-2">
+              <a href="https://www.epicproduct.engineer/architecture-ai-agents-and-product-empathy-with-robert-c-martin~yr5vf" target="_blank" rel="noreferrer">
+                Architecture, AI agents, and product empathy with Robert C. Martin
+              </a>
+              <span class="source-type">本人受訪 · 2026-06-27</span><br>
+              支持「離開 code、保留 structure」、代理缺乏持續設計品味，以及用 complexity、coverage 與 module review 關閉回饋迴路。
+            </li>
+            <li id="src-3">
+              <a href="https://github.com/unclebob/Acceptance-Pipeline-Specification" target="_blank" rel="noreferrer">
+                unclebob / Acceptance-Pipeline-Specification
+              </a>
+              <span class="source-type">本人 repository · 一手實作</span><br>
+              定義 Gherkin → JSON IR → generated acceptance entry points → runner，以及 acceptance mutation 的目的與邊界。
+            </li>
+            <li id="src-4">
+              <a href="https://github.com/unclebob/empire-2025" target="_blank" rel="noreferrer">
+                unclebob / empire-2025
+              </a>
+              <span class="source-type">本人 repository · 一手實作</span><br>
+              可見 acceptance tests、dependency analysis、test boundary 與 AI access audit 等機械性關卡。
+            </li>
+            <li id="src-5">
+              <a href="https://x.com/unclebobmartin/status/2072736888478175413" target="_blank" rel="noreferrer">
+                Robert C. Martin：反思 test overload
+              </a>
+              <span class="source-type">本人 X 貼文 · 一手陳述</span><br>
+              說明 Gherkin、unit、QA、mutation 等層層疊加不一定每次都值得，應依 criticality 調節。
+            </li>
+            <li id="src-6">
+              <a href="https://arxiv.org/abs/2605.20049" target="_blank" rel="noreferrer">
+                Does Code Cleanliness Affect Coding Agents? A Controlled Minimal-Pair Study
+              </a>
+              <span class="source-type">受控研究 preprint · 2026-05-19</span><br>
+              6 組 repository、33 tasks、660 trials；通過率不變，但 tokens 與 file revisitation 下降。限制：單一主要 agent/model configuration，cleanliness 以 SonarQube violations 等代理指標衡量。
+            </li>
+            <li id="src-7">
+              <a href="https://arxiv.org/abs/2606.13175" target="_blank" rel="noreferrer">
+                The End of Code Review: Coding Agents Supersede Human Inspection
+              </a>
+              <span class="source-type">立場論文 · 2026-06-11</span><br>
+              用於理解「human review 成為瓶頸」的完整論證與反方風險；作者明示並非新實證研究。
+            </li>
+            <li>
+              <a href="https://www.oreilly.com/live-events/ai-agents-for-clean-code-with-uncle-bob-martin/0642572376765/" target="_blank" rel="noreferrer">
+                AI Agents for Clean Code with “Uncle Bob” Martin
+              </a>
+              <span class="source-type">本人課程說明</span><br>
+              課程明列 acceptance testing、unit testing、mutation testing 與 code quality analysis，支持「不讀碼」背後是紀律套件，而不是無條件信任。
+            </li>
+            <li>
+              <a href="https://github.com/swingerman/disciplined-agentic-engineering" target="_blank" rel="noreferrer">
+                Disciplined Agentic Engineering
+              </a>
+              <span class="source-type">社群形式化實作</span><br>
+              將 Uncle Bob 實驗延伸成 ATDD、mutation、architecture fitness 與 checkpoint guardrails；用於展示可落地形態，不視為 Uncle Bob 本人完整背書。
+            </li>
+          </ol>
+
+          <p class="research-note">
+            <strong>研究方法：</strong>優先採 Robert C. Martin 本人 repository、本人受訪與本人貼文；
+            對無法直接擷取全文的 X 討論，採可追溯的逐句整理，再以公開課程與實作 repository
+            做主張一致性核對。學術來源區分「受控實驗」與「立場論文」，不把 preprint
+            或單一模型實驗外推為跨團隊定律。本文是工程方法分析，不是對無人工監督上線的建議。
+          </p>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <a class="back-top" href="#top">↑ 回到頁首</a>
+    <div>Research cutoff: 2026-07-25 · Traditional Chinese edition</div>
+  </footer>
+
+  <script>
+    (() => {
+      const body = document.body;
+      const themeButton = document.getElementById("themeButton");
+      const printButton = document.getElementById("printButton");
+      const progress = document.getElementById("progress");
+      const links = [...document.querySelectorAll(".toc a")];
+      const sections = links
+        .map(link => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      const savedTheme = localStorage.getItem("uncle-bob-research-theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+        body.classList.add("dark");
+        themeButton.textContent = "淺色";
+      }
+
+      themeButton.addEventListener("click", () => {
+        body.classList.toggle("dark");
+        const dark = body.classList.contains("dark");
+        themeButton.textContent = dark ? "淺色" : "深色";
+        localStorage.setItem("uncle-bob-research-theme", dark ? "dark" : "light");
+      });
+
+      printButton.addEventListener("click", () => window.print());
+
+      const updateScroll = () => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.width = `${max > 0 ? (window.scrollY / max) * 100 : 0}%`;
+
+        let current = sections[0];
+        for (const section of sections) {
+          if (section.getBoundingClientRect().top <= 150) current = section;
+        }
+        links.forEach(link => {
+          link.classList.toggle(
+            "active",
+            current && link.getAttribute("href") === `#${current.id}`
+          );
+        });
+      };
+
+      updateScroll();
+      window.addEventListener("scroll", updateScroll, { passive: true });
+      window.addEventListener("resize", updateScroll);
+    })();
+  </script>
+</body>
+</html>
