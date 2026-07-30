@@ -185,7 +185,7 @@
       </div>
     </div>
     
-    <div class="founder-only note" style="margin-bottom:12px">＊老闆視角的成本與毛利以「用戶用滿整包分鐘」的<b>最壞情況</b>估算;實際多數用戶用不滿,毛利會更高。</div>
+    <div class="founder-only note" style="margin-bottom:12px">＊ 老闆視角：預設引入了 Markdown 中的「佔空比 (實際發話率)」，真實情境中牆鐘時間並不等於全程 API 計費時間。</div>
     
     <div class="grid" id="planGrid"></div>
   </section>
@@ -193,13 +193,18 @@
   <!-- FOUNDER ECONOMICS -->
   <section class="founder-only">
     <h2><span class="n">02</span>單位經濟試算 (TWD / USD)</h2>
-    <p class="lead">拉桿看不同成本、抽成、匯率下的毛利與 break-even。台幣方案 (49/199/349) 在綠界/LINE Pay 手續費下，其實際毛利表現如何？</p>
+    <p class="lead">拉桿看不同成本、抽成、匯率下的毛利。核心差異：儲值額度的 1 分鐘 (牆鐘時間)，在實際對話中只有約 22% 的時間在消耗 API (發話與聽譯)。</p>
     <div class="panel">
       <div class="ctrls">
         <div class="ctrl">
           <label>模型成本 <span class="v" id="costV"></span></label>
           <input type="range" id="cost" min="0.015" max="0.05" step="0.001" value="0.023">
           <div class="note">findings 實測 prompt mode ~$0.023/min</div>
+        </div>
+        <div class="ctrl">
+          <label>對話佔空比 (發話率) <span class="v" id="ratioV">21.7%</span></label>
+          <input type="range" id="activeRatio" min="0.1" max="1" step="0.01" value="0.217">
+          <div class="note">牆鐘時間的實際 API 消耗比例 (預設 21.7% = 30分耗NT$4.8)</div>
         </div>
         <div class="ctrl">
           <label>通路抽成</label>
@@ -221,7 +226,7 @@
     <!-- Margin Comparison Chart -->
     <section style="margin-top:26px">
       <figure>
-        <figcaption><b>台幣與美金方案毛利率比較 (%)</b> — 直觀比較 TWD 方案與 USD 方案的獲利能力 (依左側手續費與匯率動態計算)。</figcaption>
+        <figcaption><b>台幣與美金方案毛利率比較 (%)</b> — 直觀比較 TWD 方案與 USD 方案的獲利能力。</figcaption>
         <div class="chart" id="marginChart"></div>
         <div class="lg">
           <span><i style="background:var(--brand)"></i>TWD 方案毛利率</span>
@@ -233,7 +238,7 @@
     <!-- effective price per minute -->
     <section style="margin-top:26px">
       <figure>
-        <figcaption><b>方案有效單價(TWD/min)</b> — 越大包越便宜,和 eSIM 的 $/GB 曲線一樣往下走。橫線是你的成本。</figcaption>
+        <figcaption><b>方案有效單價(TWD/min)</b> — 越大包越便宜。虛線為加入「佔空比」後的<b>有效每分鐘成本</b>。</figcaption>
         <div class="chart" id="effChart"></div>
       </figure>
     </section>
@@ -244,8 +249,8 @@
       <div class="callout">
         <b>台幣 49/199/349 方案總結：</b><br>
         1. <b>體驗包 (NT$49, 90分)</b>：毛利率最高，適合低門檻獲客。<br>
-        2. <b>旅程包 (NT$199, 10小時)</b>：對齊「一趟旅行」心智，與 eSIM 完全同構，是主力 SKU。<br>
-        3. <b>雙人旅程 (NT$349, 20小時)</b>：兩人份的重度包。<br>
+        2. <b>旅程包 (NT$199, 600分)</b>：對齊「一趟旅行」心智，與 eSIM 完全同構，是主力 SKU。<br>
+        3. <b>雙人旅程 (NT$349, 1200分)</b>：兩人份的重度包。<br>
         <br>
         <b>重點提醒：</b>千萬別用 Stripe TW 收台幣小額（NT$10/筆固定費會殺死 49 元方案），務必使用<b>綠界或 LINE Pay (~3% 無固定費)</b>。
       </div>
@@ -269,7 +274,7 @@ const PLANS = [
   {id:'usd_max',   cur:'USD', zh:'長程',      en:'Max (USD)',      min:1000, days:60, price:49.99,pop:false}
 ];
 
-let state = {cost:0.023, cut:0.03, fx:32, viewCur:'TWD'};
+let state = {cost:0.023, cut:0.03, fx:32, activeRatio:0.2174, viewCur:'TWD'};
 
 const formatMoney = (val, cur) => {
   if (cur === 'TWD') return 'NT$' + Math.round(val).toLocaleString();
@@ -277,14 +282,13 @@ const formatMoney = (val, cur) => {
 };
 
 function calc(p){
-  // Convert price to TWD for unified backend calculation if needed
   const priceTWD = p.cur === 'TWD' ? p.price : p.price * state.fx;
   
   // rev is after cut
   const revTWD = priceTWD * (1 - state.cut);
   
-  // cost is in USD, convert to TWD
-  const costUSD = p.min * state.cost;
+  // cost is in USD, converted to TWD. Multiply by activeRatio (because wall-clock min != api min)
+  const costUSD = p.min * state.activeRatio * state.cost;
   const costTWD = costUSD * state.fx;
   
   const profitTWD = revTWD - costTWD;
@@ -319,25 +323,25 @@ function renderPlans(){
     el.className='card'+(p.pop?' pop':'');
     
     // In user view, hide USD plans if TWD is selected, etc.
-    const priceStr = p.cur === 'TWD' ? `NT$ ${p.price}` : `$ ${p.price}`;
+    const priceStr = p.cur === 'TWD' ? \`NT$ \${p.price}\` : \`$ \${p.price}\`;
     
-    el.innerHTML = `
-      ${p.pop?'<span class="tag">最熱門</span>':''}
-      <div class="name">${p.zh}</div>
-      <div class="en">${p.en}</div>
-      <div class="price">${priceStr}</div>
-      <div class="spec"><b>${p.min>=60?(p.min/60)+' 小時':p.min+' 分鐘'}</b> · 效期 <b>${p.days} 天</b></div>
-      <div class="eff founder-only">有效單價 NT$${c.effTWD.toFixed(1)}/min</div>
+    el.innerHTML = \`
+      \${p.pop?'<span class="tag">最熱門</span>':''}
+      <div class="name">\${p.zh}</div>
+      <div class="en">\${p.en}</div>
+      <div class="price">\${priceStr}</div>
+      <div class="spec"><b>\${p.min} 分鐘</b> · 效期 <b>\${p.days} 天</b></div>
+      <div class="eff founder-only">有效單價 NT$\${c.effTWD.toFixed(1)}/min</div>
       
       <button class="buy-btn user-only">立即購買</button>
 
       <div class="fbar">
-        <div class="frow"><span>成本(用滿)</span><b>NT$${Math.round(c.costTWD)}</b></div>
-        <div class="frow"><span>淨收(抽成後)</span><b>NT$${Math.round(c.revTWD)}</b></div>
-        <div class="frow"><span>毛利</span><b>NT$${Math.round(c.profitTWD)}</b></div>
+        <div class="frow"><span>預估成本(算入佔空比)</span><b>NT$\${Math.round(c.costTWD)}</b></div>
+        <div class="frow"><span>淨收(抽成後)</span><b>NT$\${Math.round(c.revTWD)}</b></div>
+        <div class="frow"><span>毛利</span><b>NT$\${Math.round(c.profitTWD)}</b></div>
         <div class="frow" style="margin-top:6px"><span>毛利率</span>
-          <span class="mbadge ${mClass(c.margin)}">${Math.round(c.margin*100)}% ${mWord(c.margin)}</span></div>
-      </div>`;
+          <span class="mbadge \${mClass(c.margin)}">\${Math.round(c.margin*100)}% \${mWord(c.margin)}</span></div>
+      </div>\`;
     g.appendChild(el);
   });
 }
@@ -346,16 +350,16 @@ function renderTiles(){
   const twdStd = calc(PLANS.find(p=>p.id==='twd_std')); // 199
   const twdTrial = calc(PLANS.find(p=>p.id==='twd_trial')); // 49
   
-  const costPerMinTWD = state.cost * state.fx;
+  const effectiveCostPerMinTWD = state.cost * state.fx * state.activeRatio;
   
   const t = [
-    {k:'模型成本 (TWD)', val:'NT$'+costPerMinTWD.toFixed(2)+'/min', cap:'≈ NT$'+Math.round(costPerMinTWD*60)+'/小時'},
-    {k:'49元體驗包 毛利', val:Math.round(twdTrial.margin*100)+'%', cap:'90分鐘 (1.5小時)'},
-    {k:'199元旅程包 毛利', val:Math.round(twdStd.margin*100)+'%', cap:'600分鐘 (10小時)'},
+    {k:'有效成本/牆鐘分鐘', val:'NT$'+effectiveCostPerMinTWD.toFixed(2)+'/min', cap:'≈ NT$'+Math.round(effectiveCostPerMinTWD*30)+'/30分鐘'},
+    {k:'49元體驗包 毛利', val:Math.round(twdTrial.margin*100)+'%', cap:'90分鐘'},
+    {k:'199元旅程包 毛利', val:Math.round(twdStd.margin*100)+'%', cap:'600分鐘'},
     {k:'最佳金流選擇', val:'綠界/LINE Pay', cap:'避免 Stripe TW (有固定費)'},
   ];
-  document.getElementById('tiles').innerHTML = t.map(x=>`
-    <div class="tile"><div class="k">${x.k}</div><div class="val">${x.val}</div><div class="cap">${x.cap}</div></div>`).join('');
+  document.getElementById('tiles').innerHTML = t.map(x=>\`
+    <div class="tile"><div class="k">\${x.k}</div><div class="val">\${x.val}</div><div class="cap">\${x.cap}</div></div>\`).join('');
 }
 
 function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -368,27 +372,28 @@ function renderEff(){
   const bw = iw/data.length*0.56, gap=iw/data.length;
   const y = v=> pad.t+ih-(v/max)*ih;
   
-  const costLineTWD = state.cost * state.fx;
+  const effectiveCostLineTWD = state.cost * state.fx * state.activeRatio;
   
   let bars='';
   data.forEach((d,i)=>{
     const x = pad.l + gap*i + (gap-bw)/2;
     const yy = y(d.v), h=pad.t+ih-yy;
     const color = d.cur === 'TWD' ? css('--brand') : css('--accent');
-    bars += `<rect x="${x}" y="${yy}" width="${bw}" height="${h}" rx="4" fill="${color}"><title>${d.label}: NT$${d.v.toFixed(1)}/min</title></rect>
-      <text x="${x+bw/2}" y="${yy-6}" text-anchor="middle" font-size="11" fill="${css('--ink2')}" style="font-variant-numeric:tabular-nums">${d.v.toFixed(1)}</text>
-      <text x="${x+bw/2}" y="${pad.t+ih+18}" text-anchor="middle" font-size="12" fill="${css('--muted')}">${d.label}</text>`;
+    bars += \`<rect x="\${x}" y="\${yy}" width="\${bw}" height="\${h}" rx="4" fill="\${color}"><title>\${d.label}: NT$\${d.v.toFixed(1)}/min</title></rect>
+      <text x="\${x+bw/2}" y="\${yy-6}" text-anchor="middle" font-size="11" fill="\${css('--ink2')}" style="font-variant-numeric:tabular-nums">\${d.v.toFixed(1)}</text>
+      <text x="\${x+bw/2}" y="\${pad.t+ih+18}" text-anchor="middle" font-size="12" fill="\${css('--muted')}">\${d.label}</text>\`;
   });
   // gridlines
   let grid='';
   for(let i=0;i<=4;i++){ const gv=max*i/4, yy=y(gv);
-    grid += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}" stroke="${css('--grid')}" stroke-width="1"/>
-      <text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css('--muted')}" style="font-variant-numeric:tabular-nums">${gv.toFixed(1)}</text>`; }
-  const cy=y(costLineTWD);
-  const costMark = `<line x1="${pad.l}" x2="${W-pad.r}" y1="${cy}" y2="${cy}" stroke="${css('--critical')}" stroke-width="2" stroke-dasharray="5 4"/>
-    <text x="${W-pad.r}" y="${cy-6}" text-anchor="end" font-size="11" font-weight="700" fill="${css('--critical')}">成本 NT$${costLineTWD.toFixed(2)}</text>`;
+    grid += \`<line x1="\${pad.l}" x2="\${W-pad.r}" y1="\${yy}" y2="\${yy}" stroke="\${css('--grid')}" stroke-width="1"/>
+      <text x="\${pad.l-8}" y="\${yy+4}" text-anchor="end" font-size="11" fill="\${css('--muted')}" style="font-variant-numeric:tabular-nums">\${gv.toFixed(1)}</text>\`; }
+  
+  const cy=y(effectiveCostLineTWD);
+  const costMark = \`<line x1="\${pad.l}" x2="\${W-pad.r}" y1="\${cy}" y2="\${cy}" stroke="\${css('--critical')}" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="\${W-pad.r}" y="\${cy-6}" text-anchor="end" font-size="11" font-weight="700" fill="\${css('--critical')}">實際有效成本 NT$\${effectiveCostLineTWD.toFixed(2)}</text>\`;
   document.getElementById('effChart').innerHTML =
-    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="各方案有效單價">${grid}${bars}${costMark}</svg>`;
+    \`<svg viewBox="0 0 \${W} \${H}" role="img" aria-label="各方案有效單價">\${grid}\${bars}\${costMark}</svg>\`;
 }
 
 function renderMarginChart(){
@@ -413,31 +418,32 @@ function renderMarginChart(){
     // TWD bar
     const x1 = cx - bw - 2;
     const y1 = y(p.twd), h1=pad.t+ih-y1;
-    bars += `<rect x="${x1}" y="${y1}" width="${bw}" height="${h1}" rx="2" fill="${css('--brand')}"></rect>
-             <text x="${x1+bw/2}" y="${y1-4}" text-anchor="middle" font-size="10" fill="${css('--ink2')}">${Math.round(p.twd)}%</text>`;
+    bars += \`<rect x="\${x1}" y="\${y1}" width="\${bw}" height="\${h1}" rx="2" fill="\${css('--brand')}"></rect>
+             <text x="\${x1+bw/2}" y="\${y1-4}" text-anchor="middle" font-size="10" fill="\${css('--ink2')}">\${Math.round(p.twd)}%</text>\`;
              
     // USD bar
     const x2 = cx + 2;
     const y2 = y(p.usd), h2=pad.t+ih-y2;
-    bars += `<rect x="${x2}" y="${y2}" width="${bw}" height="${h2}" rx="2" fill="${css('--accent')}"></rect>
-             <text x="${x2+bw/2}" y="${y2-4}" text-anchor="middle" font-size="10" fill="${css('--ink2')}">${Math.round(p.usd)}%</text>`;
+    bars += \`<rect x="\${x2}" y="\${y2}" width="\${bw}" height="\${h2}" rx="2" fill="\${css('--accent')}"></rect>
+             <text x="\${x2+bw/2}" y="\${y2-4}" text-anchor="middle" font-size="10" fill="\${css('--ink2')}">\${Math.round(p.usd)}%</text>\`;
              
     // Label
-    bars += `<text x="${cx}" y="${pad.t+ih+18}" text-anchor="middle" font-size="12" fill="${css('--muted')}">${p.name}</text>`;
+    bars += \`<text x="\${cx}" y="\${pad.t+ih+18}" text-anchor="middle" font-size="12" fill="\${css('--muted')}">\${p.name}</text>\`;
   });
   
   // gridlines
   let grid='';
   for(let i=0;i<=4;i++){ const gv=max*i/4, yy=y(gv);
-    grid += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}" stroke="${css('--grid')}" stroke-width="1"/>
-      <text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css('--muted')}" style="font-variant-numeric:tabular-nums">${gv}%</text>`; }
+    grid += \`<line x1="\${pad.l}" x2="\${W-pad.r}" y1="\${yy}" y2="\${yy}" stroke="\${css('--grid')}" stroke-width="1"/>
+      <text x="\${pad.l-8}" y="\${yy+4}" text-anchor="end" font-size="11" fill="\${css('--muted')}" style="font-variant-numeric:tabular-nums">\${gv}%</text>\`; }
 
   document.getElementById('marginChart').innerHTML =
-    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="毛利比較">${grid}${bars}</svg>`;
+    \`<svg viewBox="0 0 \${W} \${H}" role="img" aria-label="毛利比較">\${grid}\${bars}\</svg>\`;
 }
 
 function renderAll(){
   document.getElementById('costV').textContent = '$'+state.cost.toFixed(3)+'/min';
+  document.getElementById('ratioV').textContent = (state.activeRatio*100).toFixed(1)+'%';
   document.getElementById('fxV').textContent = '1 USD = '+state.fx+' TWD';
   
   renderPlans(); 
@@ -495,6 +501,7 @@ document.getElementById('themeBtn').onclick = ()=>{
 
 // form controls
 document.getElementById('cost').oninput = e=>{ state.cost=+e.target.value; renderAll(); };
+document.getElementById('activeRatio').oninput = e=>{ state.activeRatio=+e.target.value; renderAll(); };
 document.getElementById('fxRate').oninput = e=>{ state.fx=+e.target.value; renderAll(); };
 
 document.getElementById('cutBox').addEventListener('click', e=>{
