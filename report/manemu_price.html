@@ -1,254 +1,511 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant" data-theme="auto">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manemu 方案與策略平台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manemu 方案與策略平台</title>
+<style>
+  :root{
+    color-scheme: light;
+    --plane:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --brand:#2a78d6; --brand-100:#cde2fb; --brand-250:#86b6ef; --brand-400:#3987e5;
+    --accent:#eb6834;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --good-ink:#006300;
+    --radius:16px; --radius-sm:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where([data-theme="auto"]){
+      color-scheme: dark;
+      --plane:#0d0d0d; --surface:#1a1a19;
+      --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+      --brand:#3987e5; --brand-400:#3987e5;
+      --good-ink:#0ca30c;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19;
+    --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --brand:#3987e5; --brand-400:#3987e5; --good-ink:#0ca30c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--plane); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 72px}
+  header.top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--ink2);max-width:60ch;margin:0}
+  .pill{display:inline-block;font-size:12px;font-weight:600;color:var(--brand);
+    background:color-mix(in srgb,var(--brand) 12%,transparent);
+    padding:3px 10px;border-radius:999px;margin-bottom:10px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button.seg,.toggle{border:1px solid var(--border);background:var(--surface);color:var(--ink);
+    border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
+  button.seg.active{background:var(--brand);color:#fff;border-color:transparent}
+  .note{font-size:12.5px;color:var(--muted)}
+
+  section{margin-top:34px}
+  h2{font-size:18px;margin:0 0 4px;letter-spacing:-.01em}
+  h2 .n{color:var(--muted);font-weight:600;margin-right:8px}
+  .lead{color:var(--ink2);margin:0 0 18px;max-width:72ch}
+
+  /* plan grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 18px 16px;position:relative;display:flex;flex-direction:column;gap:2px}
+  .card.pop{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
+  .tag{position:absolute;top:-10px;right:14px;font-size:11px;font-weight:700;color:#fff;
+    background:var(--brand);padding:2px 9px;border-radius:999px}
+  .card .name{font-weight:700;font-size:15px}
+  .card .en{color:var(--muted);font-size:12px;margin-bottom:8px}
+  .card .price{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+  .card .price small{font-size:13px;font-weight:600;color:var(--ink2)}
+  .card .spec{font-size:13.5px;color:var(--ink2);margin-top:8px}
+  .card .spec b{color:var(--ink)}
+  .card .eff{font-size:12.5px;color:var(--muted);margin-top:2px}
+  
+  /* Buttons for user view */
+  .card .buy-btn{display:none;margin-top:16px;padding:8px 0;background:var(--plane);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;text-align:center;cursor:pointer;transition:all 0.2s}
+  .card .buy-btn:hover{background:var(--brand);color:#fff;border-color:transparent}
+  body:not(.founder) .card .buy-btn{display:block}
+  
+  .card .fbar{margin-top:12px;padding-top:12px;border-top:1px solid var(--grid);display:none}
+  body.founder .card .fbar{display:block}
+  .frow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2);margin:2px 0}
+  .frow b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .mbadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+    padding:2px 8px;border-radius:999px}
+  .mbadge::before{content:"";width:8px;height:8px;border-radius:2px;background:currentColor}
+  .m-good{color:var(--good)} .m-warn{color:var(--warning)} .m-bad{color:var(--critical)}
+
+  /* founder-only blocks */
+  .founder-only{display:none}
+  body.founder .founder-only{display:block}
+  
+  /* user-only blocks */
+  .user-only{display:block}
+  body.founder .user-only{display:none}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+  .ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px 26px;margin-bottom:6px}
+  .ctrl label{display:block;font-size:13px;font-weight:600;margin-bottom:8px}
+  .ctrl label .v{float:right;color:var(--brand);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--brand)}
+  .segbox{display:flex;gap:6px}
+  .segbox button{flex:1;border:1px solid var(--border);background:var(--plane);color:var(--ink);
+    border-radius:var(--radius-sm);padding:7px;font-size:13px;font-weight:600;cursor:pointer}
+  .segbox button.active{background:var(--brand);color:#fff;border-color:transparent}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+  .tile{background:var(--plane);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 15px}
+  .tile .k{font-size:12px;color:var(--muted);font-weight:600}
+  .tile .val{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+  .tile .cap{font-size:11.5px;color:var(--ink2);margin-top:2px}
+
+  figure{margin:0}
+  figcaption{font-size:13px;color:var(--ink2);margin:0 0 10px}
+  figcaption b{color:var(--ink)}
+  .chart{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .lg{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-top:10px}
+  .lg span{display:inline-flex;align-items:center;gap:6px}
+  .lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px}
+  th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted);font-weight:600;font-size:12px}
+
+  .callout{border-left:3px solid var(--brand);background:color-mix(in srgb,var(--brand) 7%,transparent);
+    padding:12px 16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-top:16px;font-size:14px;color:var(--ink2)}
+  .callout.warn{border-color:var(--critical);background:color-mix(in srgb,var(--critical) 8%,transparent)}
+  .callout b{color:var(--ink)}
+  footer{margin-top:44px;color:var(--muted);font-size:12px;border-top:1px solid var(--grid);padding-top:16px}
+  a{color:var(--brand)}
+  
+  /* Login Overlay */
+  .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:100}
+  .login-box{background:var(--surface);padding:30px;border-radius:var(--radius);width:100%;max-width:320px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.1)}
+  .login-box h3{margin:0 0 20px;font-size:18px}
+  .login-box input{width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:16px;background:var(--plane);color:var(--ink)}
+  .login-box button{width:100%;padding:10px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer}
+  .login-box .err{color:var(--critical);font-size:12px;margin-top:10px;display:none}
+  .hidden{display:none !important}
+</style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+<body class="">
+
+<div id="loginOverlay" class="overlay hidden">
+  <div class="login-box">
+    <h3>老闆專屬機密後台</h3>
+    <input type="password" id="bossPwd" placeholder="請輸入解鎖密碼">
+    <button onclick="checkPwd()">解鎖報告</button>
+    <button onclick="cancelLogin()" style="background:transparent;color:var(--muted);margin-top:8px">取消</button>
+    <div id="loginErr" class="err">密碼錯誤</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <span class="pill">Manemu · 定價與單位經濟學</span>
+      <h1 class="user-only">慶祝 Closed Beta 圓滿結束</h1>
+      <h1 class="founder-only">把「翻譯分鐘」當 eSIM 流量賣</h1>
+      
+      <p class="sub user-only">感謝各位早鳥用戶的支持！正式上線後，我們提供以下「分鐘儲值包」方案。按需購買，絕無綁約與超額費用。我們提供台幣(TWD)在地方案以及國際美金(USD)方案。</p>
+      
+      <p class="sub founder-only">即時口語翻譯的成本是按分鐘燒的(~$0.023/min),跟 eSIM 的流量一樣。所以定價也照 eSIM:賣<b>有效期的分鐘包</b>,而不是無限訂閱。以下已整合 GitHub Markdown (台幣 49/199/349) 與原本的美金方案進行毛利大對決。</p>
+    </div>
+    <div class="controls">
+      <button class="seg" id="viewFounder">老闆視角</button>
+      <button class="seg active" id="viewCustomer">客戶視角</button>
+      <button class="toggle" id="themeBtn" title="切換深/淺色">◐ 主題</button>
+    </div>
+  </header>
+
+  <!-- PLANS -->
+  <section>
+    <h2><span class="n">01</span><span class="user-only">選擇您的方案 (台幣 vs 美金)</span><span class="founder-only">方案 (台幣 vs 美金毛利對比)</span></h2>
+    <p class="lead">效期越長、分鐘越多,單價越低——跟 eSIM 買越大包越便宜一樣。包含原本的國際美金方案，以及最新的台幣在地方案 (體驗包、旅程包、雙人旅程)。</p>
     
-    <!-- Navbar / Toggle -->
-    <nav class="bg-white shadow p-4 flex justify-between items-center">
-        <div class="text-xl font-bold text-blue-600">Manemu Live Translate</div>
-        <div class="space-x-2">
-            <button onclick="switchView('customer')" class="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium transition">客戶視角 (Customer View)</button>
-            <button onclick="promptBossLogin()" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 font-medium transition">老闆視角 (Boss View)</button>
+    <div class="ctrls user-only" style="margin-bottom:20px; max-width:300px">
+      <div class="segbox">
+        <button id="showTWDBtn" class="active" onclick="setCurrencyView('TWD')">台幣方案 (TWD)</button>
+        <button id="showUSDBtn" onclick="setCurrencyView('USD')">美金方案 (USD)</button>
+      </div>
+    </div>
+    
+    <div class="founder-only note" style="margin-bottom:12px">＊老闆視角的成本與毛利以「用戶用滿整包分鐘」的<b>最壞情況</b>估算;實際多數用戶用不滿,毛利會更高。</div>
+    
+    <div class="grid" id="planGrid"></div>
+  </section>
+
+  <!-- FOUNDER ECONOMICS -->
+  <section class="founder-only">
+    <h2><span class="n">02</span>單位經濟試算 (TWD / USD)</h2>
+    <p class="lead">拉桿看不同成本、抽成、匯率下的毛利與 break-even。台幣方案 (49/199/349) 在綠界/LINE Pay 手續費下，其實際毛利表現如何？</p>
+    <div class="panel">
+      <div class="ctrls">
+        <div class="ctrl">
+          <label>模型成本 <span class="v" id="costV"></span></label>
+          <input type="range" id="cost" min="0.015" max="0.05" step="0.001" value="0.023">
+          <div class="note">findings 實測 prompt mode ~$0.023/min</div>
         </div>
-    </nav>
-
-    <!-- Main Container -->
-    <div class="max-w-6xl mx-auto mt-10 p-4">
-
-        <!-- ================= CUSTOMER VIEW ================= -->
-        <div id="customer-view" class="space-y-12 block">
-            <div class="text-center space-y-4">
-                <h1 class="text-4xl font-extrabold text-gray-900">慶祝 Closed Beta 圓滿結束</h1>
-                <p class="text-lg text-gray-500">感謝各位早鳥用戶的支持！正式上線後，我們提供以下兩種訂閱方案：</p>
-            </div>
-
-            <!-- TWD Plan -->
-            <div>
-                <h2 class="text-2xl font-bold text-center mb-8">台幣在地方案 (TWD)</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Tier 1 -->
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden border-t-4 border-blue-500 p-8 text-center hover:-translate-y-1 transition duration-300">
-                        <h3 class="text-xl font-semibold text-gray-700">入門版</h3>
-                        <div class="my-4"><span class="text-4xl font-bold">NT$ 49</span> <span class="text-gray-500">/ 月</span></div>
-                        <ul class="text-gray-600 space-y-2 mb-6">
-                            <li>基礎即時翻譯</li>
-                            <li>每月 50 萬字額度</li>
-                            <li>標準社群支援</li>
-                        </ul>
-                        <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">立即訂閱</button>
-                    </div>
-                    <!-- Tier 2 -->
-                    <div class="bg-white rounded-xl shadow-lg border-2 border-blue-500 p-8 text-center relative hover:-translate-y-1 transition duration-300">
-                        <div class="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-bl-lg text-sm font-bold">最受歡迎</div>
-                        <h3 class="text-xl font-semibold text-gray-700">進階版</h3>
-                        <div class="my-4"><span class="text-4xl font-bold">NT$ 199</span> <span class="text-gray-500">/ 月</span></div>
-                        <ul class="text-gray-600 space-y-2 mb-6">
-                            <li>進階即時翻譯</li>
-                            <li>每月 300 萬字額度</li>
-                            <li>優先客服支援</li>
-                        </ul>
-                        <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">立即訂閱</button>
-                    </div>
-                    <!-- Tier 3 -->
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden border-t-4 border-blue-500 p-8 text-center hover:-translate-y-1 transition duration-300">
-                        <h3 class="text-xl font-semibold text-gray-700">專業版</h3>
-                        <div class="my-4"><span class="text-4xl font-bold">NT$ 349</span> <span class="text-gray-500">/ 月</span></div>
-                        <ul class="text-gray-600 space-y-2 mb-6">
-                            <li>無限制即時翻譯</li>
-                            <li>API 串接支援</li>
-                            <li>1 對 1 專屬顧問</li>
-                        </ul>
-                        <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">立即訂閱</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- USD Plan -->
-            <div class="mt-16">
-                <h2 class="text-2xl font-bold text-center mb-8">國際美金方案 (USD)</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 opacity-90">
-                    <div class="bg-white rounded-xl shadow-sm border p-6 text-center border-t-4 border-green-500">
-                        <h3 class="text-lg font-medium text-gray-700">Basic</h3>
-                        <div class="my-3"><span class="text-3xl font-bold">$ 1.99</span> <span class="text-gray-500">/ mo</span></div>
-                        <button class="w-full bg-gray-100 text-gray-700 py-2 rounded hover:bg-gray-200">Subscribe</button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border p-6 text-center border-t-4 border-green-500">
-                        <h3 class="text-lg font-medium text-gray-700">Pro</h3>
-                        <div class="my-3"><span class="text-3xl font-bold">$ 6.99</span> <span class="text-gray-500">/ mo</span></div>
-                        <button class="w-full bg-gray-100 text-gray-700 py-2 rounded hover:bg-gray-200">Subscribe</button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border p-6 text-center border-t-4 border-green-500">
-                        <h3 class="text-lg font-medium text-gray-700">Ultra</h3>
-                        <div class="my-3"><span class="text-3xl font-bold">$ 11.99</span> <span class="text-gray-500">/ mo</span></div>
-                        <button class="w-full bg-gray-100 text-gray-700 py-2 rounded hover:bg-gray-200">Subscribe</button>
-                    </div>
-                </div>
-            </div>
+        <div class="ctrl">
+          <label>通路抽成</label>
+          <div class="segbox" id="cutBox">
+            <button data-cut="0.03" class="active">綠界/LINE Pay ~3%</button>
+            <button data-cut="0.15">15%</button>
+            <button data-cut="0.30">App Store 30%</button>
+          </div>
         </div>
-
-        <!-- ================= BOSS LOGIN ================= -->
-        <div id="boss-login" class="hidden max-w-md mx-auto mt-20 bg-white p-8 rounded-xl shadow-md border">
-            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">老闆專屬機密後台</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">請輸入解鎖密碼</label>
-                    <input type="password" id="boss-pwd" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Password">
-                </div>
-                <button onclick="checkBossLogin()" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 focus:outline-none">解鎖報告</button>
-                <p id="login-error" class="text-red-500 text-sm text-center hidden">密碼錯誤，請重試！</p>
-            </div>
+        <div class="ctrl">
+          <label>匯率 (TWD/USD)</label>
+          <input type="range" id="fxRate" min="28" max="35" step="0.5" value="32">
+          <div class="note" id="fxV">1 USD = 32 TWD</div>
         </div>
-
-        <!-- ================= BOSS DASHBOARD ================= -->
-        <div id="boss-dashboard" class="hidden space-y-8">
-            <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-gray-800">
-                <h1 class="text-3xl font-bold text-gray-900">Manemu 獲利結構與定價策略評估</h1>
-                <p class="text-gray-600 mt-2">Closed Beta 結案分析：如何確保在最低成本下維持穩健毛利 (匯率基準: 1 USD = 31 TWD)</p>
-            </div>
-
-            <div class="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">方案利潤對比表</h2>
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方案層級</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">台幣定價 (TWD)</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">美金定價 (USD)</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">預估單客成本 (TWD)</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-blue-600 uppercase tracking-wider">台幣方案毛利</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-green-600 uppercase tracking-wider">美金方案毛利</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">入門版 (Basic)</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">NT$ 49</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">$1.99 (~NT$ 62)</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-red-500">NT$ 25</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-600 font-bold">NT$ 24 <span class="text-xs text-gray-400">(49%)</span></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-bold">NT$ 37 <span class="text-xs text-gray-400">(60%)</span></td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">進階版 (Pro)</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">NT$ 199</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">$6.99 (~NT$ 217)</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-red-500">NT$ 90</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-600 font-bold">NT$ 109 <span class="text-xs text-gray-400">(55%)</span></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-bold">NT$ 127 <span class="text-xs text-gray-400">(59%)</span></td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">專業版 (Ultra)</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">NT$ 349</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">$11.99 (~NT$ 372)</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-red-500">NT$ 200</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-600 font-bold">NT$ 149 <span class="text-xs text-gray-400">(43%)</span></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-bold">NT$ 172 <span class="text-xs text-gray-400">(46%)</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Chart -->
-                <div class="bg-white p-6 rounded-xl shadow-md flex items-center justify-center">
-                    <canvas id="marginChart" width="400" height="300"></canvas>
-                </div>
-                
-                <!-- Conclusion -->
-                <div class="bg-gray-800 text-white p-6 rounded-xl shadow-md space-y-4">
-                    <h3 class="text-xl font-bold border-b border-gray-600 pb-2">策略洞察與結論</h3>
-                    <ul class="space-y-3 text-gray-300">
-                        <li><strong class="text-white">引流與最低成本獲利：</strong> NT$ 49 的入門方案將是打開市場的利器。只要將 API 成本加上伺服器分攤控制在 NT$ 25 以下，即便是極低客單價也能維持約 50% 毛利率，實現「薄利但絕不虧錢」的市場擴張。</li>
-                        <li><strong class="text-white">美金定價的溢價紅利：</strong> 美金方案 ($1.99/$6.99/$11.99) 在換算後皆高於台幣定價，毛利結構更佳 (最高達 60%)。海外市場或願意支付美金的客戶將是主要利潤來源。</li>
-                        <li><strong class="text-white">高用量風險控管：</strong> 專業版因提供大量翻譯，成本預估較高，毛利率降至 43-46%。需建立「防濫用機制 (Fair Use Policy)」，避免單一極端用戶拖垮整體獲利。</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
+      </div>
+      <div class="tiles" id="tiles"></div>
     </div>
 
-    <script>
-        function switchView(view) {
-            document.getElementById('customer-view').classList.add('hidden');
-            document.getElementById('boss-login').classList.add('hidden');
-            document.getElementById('boss-dashboard').classList.add('hidden');
+    <!-- Margin Comparison Chart -->
+    <section style="margin-top:26px">
+      <figure>
+        <figcaption><b>台幣與美金方案毛利率比較 (%)</b> — 直觀比較 TWD 方案與 USD 方案的獲利能力 (依左側手續費與匯率動態計算)。</figcaption>
+        <div class="chart" id="marginChart"></div>
+        <div class="lg">
+          <span><i style="background:var(--brand)"></i>TWD 方案毛利率</span>
+          <span><i style="background:var(--accent)"></i>USD 方案毛利率</span>
+        </div>
+      </figure>
+    </section>
+    
+    <!-- effective price per minute -->
+    <section style="margin-top:26px">
+      <figure>
+        <figcaption><b>方案有效單價(TWD/min)</b> — 越大包越便宜,和 eSIM 的 $/GB 曲線一樣往下走。橫線是你的成本。</figcaption>
+        <div class="chart" id="effChart"></div>
+      </figure>
+    </section>
 
-            if (view === 'customer') {
-                document.getElementById('customer-view').classList.remove('hidden');
-            }
-        }
+    <!-- verdict table -->
+    <section style="margin-top:26px">
+      <h2><span class="n">03</span>台幣定價結論 (Pricing.md)</h2>
+      <div class="callout">
+        <b>台幣 49/199/349 方案總結：</b><br>
+        1. <b>體驗包 (NT$49, 90分)</b>：毛利率最高，適合低門檻獲客。<br>
+        2. <b>旅程包 (NT$199, 10小時)</b>：對齊「一趟旅行」心智，與 eSIM 完全同構，是主力 SKU。<br>
+        3. <b>雙人旅程 (NT$349, 20小時)</b>：兩人份的重度包。<br>
+        <br>
+        <b>重點提醒：</b>千萬別用 Stripe TW 收台幣小額（NT$10/筆固定費會殺死 49 元方案），務必使用<b>綠界或 LINE Pay (~3% 無固定費)</b>。
+      </div>
+    </section>
+  </section>
 
-        function promptBossLogin() {
-            document.getElementById('customer-view').classList.add('hidden');
-            document.getElementById('boss-dashboard').classList.add('hidden');
-            document.getElementById('boss-login').classList.remove('hidden');
-            
-            document.getElementById('boss-pwd').value = '';
-            document.getElementById('login-error').classList.add('hidden');
-        }
+  <footer>
+    成本基準來自 manemu findings.md 與 pricing.md (2026-07-30 實測)。台幣方案為最新決策。此頁為雙用展示：客戶視角隱藏成本，老闆視角揭露所有毛利與風險試算。
+  </footer>
+</div>
 
-        function checkBossLogin() {
-            const pwd = document.getElementById('boss-pwd').value;
-            if (pwd === 'manemu@20260730') {
-                document.getElementById('boss-login').classList.add('hidden');
-                document.getElementById('boss-dashboard').classList.remove('hidden');
-                renderChart();
-            } else {
-                document.getElementById('login-error').classList.remove('hidden');
-            }
-        }
+<script>
+// Combined plans from MD (TWD) and HTML (USD)
+const PLANS = [
+  {id:'twd_trial', cur:'TWD', zh:'體驗包',    en:'Trial (TWD)',    min:90,   days:14, price:49,   pop:false},
+  {id:'twd_std',   cur:'TWD', zh:'旅程包',    en:'Traveler (TWD)', min:600,  days:14, price:199,  pop:true},
+  {id:'twd_pro',   cur:'TWD', zh:'雙人旅程',  en:'Duo (TWD)',      min:1200, days:14, price:349,  pop:false},
+  
+  {id:'usd_lite',  cur:'USD', zh:'輕旅行',    en:'Lite (USD)',     min:100,  days:15, price:8.99, pop:false},
+  {id:'usd_std',   cur:'USD', zh:'標準',      en:'Traveler (USD)', min:300,  days:30, price:19.99,pop:true},
+  {id:'usd_max',   cur:'USD', zh:'長程',      en:'Max (USD)',      min:1000, days:60, price:49.99,pop:false}
+];
 
-        let chartRendered = false;
-        function renderChart() {
-            if (chartRendered) return;
-            chartRendered = true;
+let state = {cost:0.023, cut:0.03, fx:32, viewCur:'TWD'};
 
-            const ctx = document.getElementById('marginChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['入門版 (Basic)', '進階版 (Pro)', '專業版 (Ultra)'],
-                    datasets: [
-                        {
-                            label: '單客成本 (TWD)',
-                            data: [25, 90, 200],
-                            backgroundColor: 'rgba(239, 68, 68, 0.7)', 
-                            borderRadius: 4
-                        },
-                        {
-                            label: '台幣方案毛利',
-                            data: [24, 109, 149],
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)', 
-                            borderRadius: 4
-                        },
-                        {
-                            label: '美金方案毛利',
-                            data: [37, 127, 172],
-                            backgroundColor: 'rgba(34, 197, 94, 0.7)', 
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: '各方案成本與毛利結構 (TWD)' }
-                    },
-                    scales: {
-                        x: { stacked: true },
-                        y: { stacked: true, beginAtZero: true }
-                    }
-                }
-            });
-        }
-    </script>
+const formatMoney = (val, cur) => {
+  if (cur === 'TWD') return 'NT$' + Math.round(val).toLocaleString();
+  return '$' + (val >= 10 ? val.toFixed(val % 1 ? 2 : 0) : val.toFixed(2));
+};
+
+function calc(p){
+  // Convert price to TWD for unified backend calculation if needed
+  const priceTWD = p.cur === 'TWD' ? p.price : p.price * state.fx;
+  
+  // rev is after cut
+  const revTWD = priceTWD * (1 - state.cut);
+  
+  // cost is in USD, convert to TWD
+  const costUSD = p.min * state.cost;
+  const costTWD = costUSD * state.fx;
+  
+  const profitTWD = revTWD - costTWD;
+  const margin = revTWD > 0 ? profitTWD / revTWD : 0;
+  
+  // eff is TWD per minute
+  const effTWD = priceTWD / p.min;
+  
+  return {
+    priceTWD, revTWD, costTWD, profitTWD, margin, effTWD,
+    priceOrig: p.price, cur: p.cur
+  };
+}
+
+function mClass(m){ return m>=0.6?'m-good':(m>=0.4?'m-warn':'m-bad'); }
+function mWord(m){ return m>=0.6?'健康':(m>=0.4?'偏低':'危險'); }
+
+function renderPlans(){
+  const g = document.getElementById('planGrid'); g.innerHTML='';
+  
+  const isFounder = document.body.classList.contains('founder');
+  
+  // Filter for user view
+  let plansToRender = PLANS;
+  if (!isFounder) {
+    plansToRender = PLANS.filter(p => p.cur === state.viewCur);
+  }
+
+  plansToRender.forEach(p=>{
+    const c = calc(p);
+    const el = document.createElement('div');
+    el.className='card'+(p.pop?' pop':'');
+    
+    // In user view, hide USD plans if TWD is selected, etc.
+    const priceStr = p.cur === 'TWD' ? `NT$ ${p.price}` : `$ ${p.price}`;
+    
+    el.innerHTML = `
+      ${p.pop?'<span class="tag">最熱門</span>':''}
+      <div class="name">${p.zh}</div>
+      <div class="en">${p.en}</div>
+      <div class="price">${priceStr}</div>
+      <div class="spec"><b>${p.min>=60?(p.min/60)+' 小時':p.min+' 分鐘'}</b> · 效期 <b>${p.days} 天</b></div>
+      <div class="eff founder-only">有效單價 NT$${c.effTWD.toFixed(1)}/min</div>
+      
+      <button class="buy-btn user-only">立即購買</button>
+
+      <div class="fbar">
+        <div class="frow"><span>成本(用滿)</span><b>NT$${Math.round(c.costTWD)}</b></div>
+        <div class="frow"><span>淨收(抽成後)</span><b>NT$${Math.round(c.revTWD)}</b></div>
+        <div class="frow"><span>毛利</span><b>NT$${Math.round(c.profitTWD)}</b></div>
+        <div class="frow" style="margin-top:6px"><span>毛利率</span>
+          <span class="mbadge ${mClass(c.margin)}">${Math.round(c.margin*100)}% ${mWord(c.margin)}</span></div>
+      </div>`;
+    g.appendChild(el);
+  });
+}
+
+function renderTiles(){
+  const twdStd = calc(PLANS.find(p=>p.id==='twd_std')); // 199
+  const twdTrial = calc(PLANS.find(p=>p.id==='twd_trial')); // 49
+  
+  const costPerMinTWD = state.cost * state.fx;
+  
+  const t = [
+    {k:'模型成本 (TWD)', val:'NT$'+costPerMinTWD.toFixed(2)+'/min', cap:'≈ NT$'+Math.round(costPerMinTWD*60)+'/小時'},
+    {k:'49元體驗包 毛利', val:Math.round(twdTrial.margin*100)+'%', cap:'90分鐘 (1.5小時)'},
+    {k:'199元旅程包 毛利', val:Math.round(twdStd.margin*100)+'%', cap:'600分鐘 (10小時)'},
+    {k:'最佳金流選擇', val:'綠界/LINE Pay', cap:'避免 Stripe TW (有固定費)'},
+  ];
+  document.getElementById('tiles').innerHTML = t.map(x=>`
+    <div class="tile"><div class="k">${x.k}</div><div class="val">${x.val}</div><div class="cap">${x.cap}</div></div>`).join('');
+}
+
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function renderEff(){
+  const W=680,H=260, pad={l:52,r:16,t:10,b:44};
+  const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  const data = PLANS.map(p=>({label:p.zh, v:calc(p).effTWD, cur:p.cur}));
+  const max = Math.max(...data.map(d=>d.v))*1.15;
+  const bw = iw/data.length*0.56, gap=iw/data.length;
+  const y = v=> pad.t+ih-(v/max)*ih;
+  
+  const costLineTWD = state.cost * state.fx;
+  
+  let bars='';
+  data.forEach((d,i)=>{
+    const x = pad.l + gap*i + (gap-bw)/2;
+    const yy = y(d.v), h=pad.t+ih-yy;
+    const color = d.cur === 'TWD' ? css('--brand') : css('--accent');
+    bars += `<rect x="${x}" y="${yy}" width="${bw}" height="${h}" rx="4" fill="${color}"><title>${d.label}: NT$${d.v.toFixed(1)}/min</title></rect>
+      <text x="${x+bw/2}" y="${yy-6}" text-anchor="middle" font-size="11" fill="${css('--ink2')}" style="font-variant-numeric:tabular-nums">${d.v.toFixed(1)}</text>
+      <text x="${x+bw/2}" y="${pad.t+ih+18}" text-anchor="middle" font-size="12" fill="${css('--muted')}">${d.label}</text>`;
+  });
+  // gridlines
+  let grid='';
+  for(let i=0;i<=4;i++){ const gv=max*i/4, yy=y(gv);
+    grid += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}" stroke="${css('--grid')}" stroke-width="1"/>
+      <text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css('--muted')}" style="font-variant-numeric:tabular-nums">${gv.toFixed(1)}</text>`; }
+  const cy=y(costLineTWD);
+  const costMark = `<line x1="${pad.l}" x2="${W-pad.r}" y1="${cy}" y2="${cy}" stroke="${css('--critical')}" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="${W-pad.r}" y="${cy-6}" text-anchor="end" font-size="11" font-weight="700" fill="${css('--critical')}">成本 NT$${costLineTWD.toFixed(2)}</text>`;
+  document.getElementById('effChart').innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="各方案有效單價">${grid}${bars}${costMark}</svg>`;
+}
+
+function renderMarginChart(){
+  const W=680,H=240, pad={l:52,r:16,t:10,b:44};
+  const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  
+  // pair TWD vs USD roughly by size
+  const pairs = [
+    {name: '小包/輕量', twd: calc(PLANS[0]).margin*100, usd: calc(PLANS[3]).margin*100},
+    {name: '中包/標準', twd: calc(PLANS[1]).margin*100, usd: calc(PLANS[4]).margin*100},
+    {name: '大包/長程', twd: calc(PLANS[2]).margin*100, usd: calc(PLANS[5]).margin*100}
+  ];
+  
+  const max = 100; // max margin percentage
+  const bw = (iw/pairs.length)*0.3, gap=iw/pairs.length;
+  const y = v=> pad.t+ih-(v/max)*ih;
+  
+  let bars='';
+  pairs.forEach((p,i)=>{
+    const cx = pad.l + gap*i + gap/2;
+    
+    // TWD bar
+    const x1 = cx - bw - 2;
+    const y1 = y(p.twd), h1=pad.t+ih-y1;
+    bars += `<rect x="${x1}" y="${y1}" width="${bw}" height="${h1}" rx="2" fill="${css('--brand')}"></rect>
+             <text x="${x1+bw/2}" y="${y1-4}" text-anchor="middle" font-size="10" fill="${css('--ink2')}">${Math.round(p.twd)}%</text>`;
+             
+    // USD bar
+    const x2 = cx + 2;
+    const y2 = y(p.usd), h2=pad.t+ih-y2;
+    bars += `<rect x="${x2}" y="${y2}" width="${bw}" height="${h2}" rx="2" fill="${css('--accent')}"></rect>
+             <text x="${x2+bw/2}" y="${y2-4}" text-anchor="middle" font-size="10" fill="${css('--ink2')}">${Math.round(p.usd)}%</text>`;
+             
+    // Label
+    bars += `<text x="${cx}" y="${pad.t+ih+18}" text-anchor="middle" font-size="12" fill="${css('--muted')}">${p.name}</text>`;
+  });
+  
+  // gridlines
+  let grid='';
+  for(let i=0;i<=4;i++){ const gv=max*i/4, yy=y(gv);
+    grid += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}" stroke="${css('--grid')}" stroke-width="1"/>
+      <text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css('--muted')}" style="font-variant-numeric:tabular-nums">${gv}%</text>`; }
+
+  document.getElementById('marginChart').innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="毛利比較">${grid}${bars}</svg>`;
+}
+
+function renderAll(){
+  document.getElementById('costV').textContent = '$'+state.cost.toFixed(3)+'/min';
+  document.getElementById('fxV').textContent = '1 USD = '+state.fx+' TWD';
+  
+  renderPlans(); 
+  if(document.body.classList.contains('founder')) {
+    renderTiles(); renderEff(); renderMarginChart();
+  }
+}
+
+// User Currency Toggle
+function setCurrencyView(cur) {
+  state.viewCur = cur;
+  document.getElementById('showTWDBtn').classList.toggle('active', cur==='TWD');
+  document.getElementById('showUSDBtn').classList.toggle('active', cur==='USD');
+  renderAll();
+}
+
+// view toggle with password
+document.getElementById('viewFounder').onclick = e=>{
+  if(!document.body.classList.contains('founder')){
+    document.getElementById('loginOverlay').classList.remove('hidden');
+    document.getElementById('bossPwd').value = '';
+    document.getElementById('loginErr').style.display = 'none';
+  }
+};
+
+function checkPwd() {
+  if(document.getElementById('bossPwd').value === 'manemu@20260730'){
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.body.classList.add('founder');
+    document.getElementById('viewFounder').classList.add('active'); 
+    document.getElementById('viewCustomer').classList.remove('active');
+    renderAll();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+  }
+}
+
+function cancelLogin() {
+  document.getElementById('loginOverlay').classList.add('hidden');
+}
+
+document.getElementById('viewCustomer').onclick = e=>{
+  document.body.classList.remove('founder');
+  e.target.classList.add('active'); document.getElementById('viewFounder').classList.remove('active');
+  renderAll();
+};
+
+// theme toggle
+document.getElementById('themeBtn').onclick = ()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const dark = cur==='dark' || (cur==='auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark?'light':'dark');
+  renderAll();
+};
+
+// form controls
+document.getElementById('cost').oninput = e=>{ state.cost=+e.target.value; renderAll(); };
+document.getElementById('fxRate').oninput = e=>{ state.fx=+e.target.value; renderAll(); };
+
+document.getElementById('cutBox').addEventListener('click', e=>{
+  if(!e.target.dataset.cut) return;
+  state.cut=+e.target.dataset.cut;
+  [...e.currentTarget.children].forEach(b=>b.classList.toggle('active', b===e.target));
+  renderAll();
+});
+
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll);
+renderAll();
+</script>
 </body>
 </html>
