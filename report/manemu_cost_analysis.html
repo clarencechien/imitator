@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>manemu 完整成本分析 · 字幕 fallback + 金流毛利</title>
+<style>
+  :root{
+    color-scheme: light;
+    --plane:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --brand:#2a78d6; --accent:#eb6834;
+    --good:#0ca30c; --warning:#fab219; --critical:#d03b3b; --good-ink:#006300;
+    --radius:16px; --radius-sm:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where([data-theme="auto"]){ color-scheme:dark;
+      --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+      --brand:#3987e5; --good-ink:#0ca30c; }
+  }
+  :root[data-theme="dark"]{ color-scheme:dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --brand:#3987e5; --good-ink:#0ca30c; }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--plane);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 72px}
+  h1{font-size:25px;margin:0 0 6px;letter-spacing:-.01em}
+  .pill{display:inline-block;font-size:12px;font-weight:600;color:var(--brand);background:color-mix(in srgb,var(--brand) 12%,transparent);padding:3px 10px;border-radius:999px;margin-bottom:10px}
+  .sub{color:var(--ink2);max-width:70ch;margin:0}
+  .sub b{color:var(--ink)}
+  section{margin-top:32px}
+  h2{font-size:18px;margin:0 0 4px;letter-spacing:-.01em}
+  h2 .n{color:var(--muted);font-weight:600;margin-right:8px}
+  .lead{color:var(--ink2);margin:0 0 16px;max-width:74ch}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+  .ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px 24px}
+  .ctrl label{display:block;font-size:13px;font-weight:600;margin-bottom:8px}
+  .ctrl label .v{float:right;color:var(--brand);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--brand)}
+  .note{font-size:12px;color:var(--muted);margin-top:4px}
+  .segbox{display:flex;gap:6px;flex-wrap:wrap}
+  .segbox button{flex:1;min-width:64px;border:1px solid var(--border);background:var(--plane);color:var(--ink);border-radius:var(--radius-sm);padding:7px 6px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .segbox button.active{background:var(--brand);color:#fff;border-color:transparent}
+  .toggle{border:1px solid var(--border);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}
+  .tile{background:var(--plane);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 15px}
+  .tile .k{font-size:12px;color:var(--muted);font-weight:600}
+  .tile .val{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+  .tile .cap{font-size:11.5px;color:var(--ink2);margin-top:2px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 16px 14px;position:relative}
+  .card.pop{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
+  .curtag{position:absolute;top:14px;right:14px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px}
+  .cur-twd{color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent)}
+  .cur-usd{color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+  .card .name{font-weight:700;font-size:15px}
+  .card .spec{font-size:12.5px;color:var(--muted);margin:2px 0 8px}
+  .card .price{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  .wf{margin-top:10px;border-top:1px solid var(--grid);padding-top:8px}
+  .frow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2);margin:2.5px 0}
+  .frow b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .frow.neg b{color:var(--critical)}
+  .frow.tot{border-top:1px solid var(--grid);margin-top:6px;padding-top:6px;font-size:13px}
+  .mbadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .mbadge::before{content:"";width:8px;height:8px;border-radius:2px;background:currentColor}
+  .m-good{color:var(--good)} .m-warn{color:var(--warning)} .m-bad{color:var(--critical)}
+
+  figure{margin:0} figcaption{font-size:13px;color:var(--ink2);margin:0 0 10px} figcaption b{color:var(--ink)}
+  .chart{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .lg{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-top:10px}
+  .lg span{display:inline-flex;align-items:center;gap:6px} .lg i{width:11px;height:11px;border-radius:3px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  th,td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted);font-weight:600;font-size:11.5px}
+  .callout{border-left:3px solid var(--brand);background:color-mix(in srgb,var(--brand) 7%,transparent);padding:12px 16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-top:16px;font-size:13.5px;color:var(--ink2)}
+  .callout.warn{border-color:var(--critical);background:color-mix(in srgb,var(--critical) 8%,transparent)}
+  .callout b{color:var(--ink)}
+  footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid var(--grid);padding-top:16px}
+  a{color:var(--brand)}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <span class="pill">manemu · 完整成本分析</span>
+      <h1>字幕 fallback + 金流毛利對比</h1>
+      <p class="sub">以 pricing.md 實測為底:完整語音 <b>$0.023/min</b>(輸出音訊佔 78%)、字幕模式只付輸入 <b>$0.005/min ≈ 22%</b>、佔空比 <b>21.7%</b>。核心結論:<b>Stripe 的固定手續費是「小額殺手」,大票面的美金方案幾乎不受影響。</b></p>
+    </div>
+    <button class="toggle" id="themeBtn">◐ 主題</button>
+  </div>
+
+  <!-- CONTROLS -->
+  <section>
+    <div class="panel">
+      <div class="ctrls">
+        <div class="ctrl">
+          <label>模型成本 <span class="v" id="costV"></span></label>
+          <input type="range" id="cost" min="0.015" max="0.05" step="0.001" value="0.023">
+          <div class="note">完整語音;字幕模式自動取輸入部分 ~22%</div>
+        </div>
+        <div class="ctrl">
+          <label>佔空比(發話率) <span class="v" id="ratioV"></span></label>
+          <input type="range" id="ratio" min="0.1" max="1" step="0.01" value="0.217">
+          <div class="note">牆鐘時間中實際計費的比例</div>
+        </div>
+        <div class="ctrl">
+          <label>字幕 fallback(用完後送文字)</label>
+          <div class="segbox" id="fbBox">
+            <button data-fb="off">關閉</button>
+            <button data-fb="equal">送等量</button>
+            <button data-fb="daily">日上限30分</button>
+            <button data-fb="smart" class="active">兩者取小</button>
+          </div>
+          <div class="note">worst-case 成本;實務用量更低</div>
+        </div>
+        <div class="ctrl">
+          <label>台幣金流</label>
+          <div class="segbox" id="twGw">
+            <button data-gw="ecpay" class="active">綠界 2.8%</button>
+            <button data-gw="linepay">LINE Pay 3.1%</button>
+            <button data-gw="stripe_tw">Stripe TW 3.4%+NT$10</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>美金金流</label>
+          <div class="segbox" id="usGw">
+            <button data-gw="stripe_us" class="active">Stripe US 2.9%+$.30</button>
+            <button data-gw="stripe_intl">Stripe 國際 3.9%+$.30</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>匯率 <span class="v" id="fxV"></span></label>
+          <input type="range" id="fx" min="28" max="35" step="0.5" value="32">
+          <div class="note">TWD per USD</div>
+        </div>
+      </div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+  </section>
+
+  <!-- PLAN BREAKDOWN -->
+  <section>
+    <h2><span class="n">01</span>各方案成本瀑布(含金流 + 字幕 fallback)</h2>
+    <p class="lead">每張卡從票面一路扣到毛利:先扣<b>金流手續費</b>、再扣<b>語音成本</b>、再扣<b>字幕 fallback</b>(worst case)。藍=台幣包、橘=美金包。</p>
+    <div class="grid" id="planGrid"></div>
+  </section>
+
+  <!-- THE STRIPE ANSWER -->
+  <section>
+    <h2><span class="n">02</span>回答:美金走 Stripe 毛利掉更多嗎?</h2>
+    <p class="lead">下圖是<b>手續費佔票面 %</b> 對<b>票面大小</b>(以 USD 換算)。Stripe 有固定費($0.30),票面越小、佔比越高——這是<b>小額殺手</b>。無固定費的綠界則是平的。你的美金包都落在 Stripe 曲線已經壓平的區段,所以走 Stripe 幾乎不痛;真正該閃 Stripe 的是 NT$49 那種小額台幣包。</p>
+    <figure>
+      <div class="chart" id="feeChart"></div>
+      <div class="lg">
+        <span><i style="background:var(--accent)"></i>Stripe(%＋固定費)</span>
+        <span><i style="background:var(--brand)"></i>綠界(純 %,無固定費)</span>
+        <span><i style="background:var(--critical)"></i>手續費 &gt; 10%(小額危險區)</span>
+      </div>
+    </figure>
+  </section>
+
+  <!-- MARGIN COMPARE -->
+  <section>
+    <h2><span class="n">03</span>最終毛利率對比(全部成本扣完)</h2>
+    <p class="lead">含金流 + 語音 + 字幕 fallback 後的淨毛利率。美金包即使走 Stripe 國際卡,仍遠高於台幣包——差距來自<b>定價</b>(美金每分鐘賣得比台幣貴約 6 倍),不是金流。</p>
+    <figure>
+      <div class="chart" id="marginChart"></div>
+    </figure>
+    <table id="tbl"></table>
+  </section>
+
+  <section>
+    <div class="callout"><b>結論一句話:</b>美金走 Stripe 毛利<b>幾乎不掉</b>(~83–87%),因為票面大、固定費被稀釋;台幣包毛利較低(~31–63%)是<b>定價策略</b>造成的(在地引流價),跟金流無關。真正的金流地雷是「小額 × 固定費」——NT$49 走 Stripe TW 會被吃掉 ~24%,所以台幣一律走綠界/LINE Pay。字幕 fallback 用「兩者取小」封頂後,對毛利只吃幾個百分點,安全。</div>
+  </section>
+
+  <footer>
+    成本基準:manemu <a href="https://github.com/clarencechien/manemu/blob/main/live-translate-poc/docs/findings.md">findings.md</a> + pricing.md(2026-07-30 實測)。金流費率為訓練資料估計,簽約前以最新牌價為準;「%＋固定費 vs 純%」的結構差異不變。成本以「用戶用滿整包(含 fallback 上限)」的最壞情況估算。
+  </footer>
+</div>
+
+<script>
+const PLANS = [
+  {id:'tw_trial', cur:'TWD', zh:'體驗包',   min:90,   days:14, price:49},
+  {id:'tw_std',   cur:'TWD', zh:'旅程包',   min:600,  days:14, price:199, pop:true},
+  {id:'tw_duo',   cur:'TWD', zh:'雙人旅程', min:1200, days:14, price:349},
+  {id:'us_lite',  cur:'USD', zh:'輕旅行',   min:100,  days:15, price:8.99},
+  {id:'us_std',   cur:'USD', zh:'標準',     min:300,  days:30, price:19.99, pop:true},
+  {id:'us_max',   cur:'USD', zh:'長程',     min:1000, days:60, price:49.99},
+];
+const GW = {
+  ecpay:{pct:0.028, fixed:0, cur:'TWD', name:'綠界'},
+  linepay:{pct:0.031, fixed:0, cur:'TWD', name:'LINE Pay'},
+  stripe_tw:{pct:0.034, fixed:10, cur:'TWD', name:'Stripe TW'},
+  stripe_us:{pct:0.029, fixed:0.30, cur:'USD', name:'Stripe US'},
+  stripe_intl:{pct:0.039, fixed:0.30, cur:'USD', name:'Stripe 國際'},
+};
+let state={cost:0.023, ratio:0.217, fb:'smart', fx:32, twGw:'ecpay', usGw:'stripe_us'};
+
+const TEXT_FRAC = ()=> 0.005/0.023;          // 字幕 = 輸入佔比(隨成本滑桿等比縮放無妨,結構固定)
+function textMinutes(p){
+  if(state.fb==='off') return 0;
+  if(state.fb==='equal') return p.min;
+  if(state.fb==='daily') return 30*p.days;
+  return Math.min(p.min, 30*p.days);          // smart
+}
+function calc(p){
+  const gw = GW[p.cur==='TWD'?state.twGw:state.usGw];
+  const fee = p.price*gw.pct + gw.fixed;      // in plan currency
+  // costs in USD then convert to plan currency
+  const voiceUSD = p.min * state.ratio * state.cost;
+  const textUSD  = textMinutes(p) * state.ratio * (state.cost*TEXT_FRAC());
+  const toLocal = v => p.cur==='TWD' ? v*state.fx : v;
+  const voice = toLocal(voiceUSD), text = toLocal(textUSD);
+  const profit = p.price - fee - voice - text;
+  const margin = profit/p.price;
+  const grossMargin = (p.price - voice - text)/p.price;
+  return {gw, fee, voice, text, profit, margin, grossMargin};
+}
+const fmt = (v,cur)=> cur==='TWD' ? 'NT$'+Math.round(v).toLocaleString() : '$'+(Math.abs(v)>=10?v.toFixed(2):v.toFixed(2));
+const mCls = m=> m>=0.6?'m-good':(m>=0.4?'m-warn':'m-bad');
+const mWord= m=> m>=0.6?'健康':(m>=0.4?'偏低':'危險');
+const css = v=> getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function renderTiles(){
+  const us=calc(PLANS.find(p=>p.id==='us_std'));
+  const tw=calc(PLANS.find(p=>p.id==='tw_std'));
+  // small TWD via stripe illustration
+  const p49=49, stripeFee49=p49*0.034+10;
+  const t=[
+    {k:'美金標準包 淨毛利', val:Math.round(us.margin*100)+'%', cap:us.gw.name+' · $19.99/300min'},
+    {k:'台幣旅程包 淨毛利', val:Math.round(tw.margin*100)+'%', cap:tw.gw.name+' · NT$199/600min'},
+    {k:'NT$49 走 Stripe TW', val:Math.round(stripeFee49/p49*100)+'%', cap:'手續費佔票面 → 小額殺手'},
+    {k:'字幕成本/完整', val:'22%', cap:'省掉輸出音訊(78%)'},
+  ];
+  document.getElementById('tiles').innerHTML=t.map(x=>`<div class="tile"><div class="k">${x.k}</div><div class="val">${x.val}</div><div class="cap">${x.cap}</div></div>`).join('');
+}
+function renderPlans(){
+  const g=document.getElementById('planGrid'); g.innerHTML='';
+  PLANS.forEach(p=>{
+    const c=calc(p);
+    const el=document.createElement('div'); el.className='card'+(p.pop?' pop':'');
+    el.innerHTML=`
+      <span class="curtag ${p.cur==='TWD'?'cur-twd':'cur-usd'}">${p.cur}</span>
+      <div class="name">${p.zh}</div>
+      <div class="spec">${p.min} 分鐘 · ${p.days} 天 · ${c.gw.name}</div>
+      <div class="price">${fmt(p.price,p.cur)}</div>
+      <div class="wf">
+        <div class="frow neg"><span>− 金流手續費</span><b>−${fmt(c.fee,p.cur)}</b></div>
+        <div class="frow neg"><span>− 語音成本</span><b>−${fmt(c.voice,p.cur)}</b></div>
+        <div class="frow neg"><span>− 字幕 fallback</span><b>−${fmt(c.text,p.cur)}</b></div>
+        <div class="frow tot"><span>= 毛利</span><b>${fmt(c.profit,p.cur)}</b></div>
+        <div class="frow" style="margin-top:6px"><span>毛利率</span>
+          <span class="mbadge ${mCls(c.margin)}">${Math.round(c.margin*100)}% ${mWord(c.margin)}</span></div>
+      </div>`;
+    g.appendChild(el);
+  });
+}
+function renderFeeChart(){
+  const W=680,H=300,pad={l:48,r:16,t:14,b:44};
+  const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  const xmax=55, ymax=0.28;
+  const x=v=>pad.l+(v/xmax)*iw, y=v=>pad.t+ih-(Math.min(v,ymax)/ymax)*ih;
+  let out='';
+  // danger zone >10%
+  out+=`<rect x="${pad.l}" y="${pad.t}" width="${iw}" height="${y(0.10)-pad.t}" fill="${css('--critical')}" opacity="0.07"/>`;
+  out+=`<line x1="${pad.l}" x2="${W-pad.r}" y1="${y(0.10)}" y2="${y(0.10)}" stroke="${css('--critical')}" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="${pad.l+4}" y="${y(0.10)-5}" font-size="10.5" fill="${css('--critical')}">10% 危險線</text>`;
+  // gridlines y
+  for(let i=0;i<=4;i++){const gv=ymax*i/4,yy=y(gv);
+    out+=`<line x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}" stroke="${css('--grid')}" stroke-width="1"/>
+      <text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css('--muted')}">${Math.round(gv*100)}%</text>`;}
+  // x ticks ($)
+  [1,5,10,20,30,40,50].forEach(t=>{out+=`<text x="${x(t)}" y="${pad.t+ih+18}" text-anchor="middle" font-size="11" fill="${css('--muted')}">$${t}</text>`;});
+  out+=`<text x="${pad.l+iw/2}" y="${H-4}" text-anchor="middle" font-size="11.5" fill="${css('--ink2')}">票面大小(USD 換算)</text>`;
+  // curves
+  const stripe=v=> 0.029 + 0.30/v;      // stripe US as representative %+fixed
+  const ecpay=v=> 0.028;
+  let ds='',de='';
+  for(let v=0.8; v<=xmax; v+=0.4){ ds+=(ds?'L':'M')+x(v)+' '+y(stripe(v))+' '; de+=(de?'L':'M')+x(v)+' '+y(ecpay(v))+' '; }
+  out+=`<path d="${de}" fill="none" stroke="${css('--brand')}" stroke-width="2.5"/>`;
+  out+=`<path d="${ds}" fill="none" stroke="${css('--accent')}" stroke-width="2.5"/>`;
+  // plan markers
+  const marks=[
+    {label:'NT$49', usd:49/state.fx, on:'stripe', danger:true},
+    {label:'$8.99', usd:8.99, on:'stripe'},
+    {label:'$19.99', usd:19.99, on:'stripe'},
+    {label:'$49.99', usd:49.99, on:'stripe'},
+  ];
+  marks.forEach(m=>{
+    const fv=stripe(m.usd), col=m.danger?css('--critical'):css('--accent');
+    out+=`<circle cx="${x(m.usd)}" cy="${y(fv)}" r="4.5" fill="${col}"/>
+      <text x="${x(m.usd)}" y="${y(fv)-9}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${col}">${m.label} · ${Math.round(fv*100)}%</text>`;
+  });
+  document.getElementById('feeChart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="手續費佔票面比例對票面大小">${out}</svg>`;
+}
+function renderMarginChart(){
+  const W=680,H=250,pad={l:44,r:16,t:14,b:46};
+  const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b, ymax=1;
+  const y=v=>pad.t+ih-(v/ymax)*ih;
+  const data=PLANS.map(p=>({zh:p.zh,cur:p.cur,m:calc(p).margin}));
+  const bw=iw/data.length*0.5, gap=iw/data.length;
+  let out='';
+  for(let i=0;i<=5;i++){const gv=i/5,yy=y(gv);
+    out+=`<line x1="${pad.l}" x2="${W-pad.r}" y1="${yy}" y2="${yy}" stroke="${css('--grid')}" stroke-width="1"/>
+      <text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${css('--muted')}">${Math.round(gv*100)}%</text>`;}
+  data.forEach((d,i)=>{
+    const xx=pad.l+gap*i+(gap-bw)/2, yy=y(d.m), h=pad.t+ih-yy;
+    const col=d.cur==='TWD'?css('--brand'):css('--accent');
+    out+=`<rect x="${xx}" y="${yy}" width="${bw}" height="${h}" rx="4" fill="${col}"><title>${d.zh}: ${Math.round(d.m*100)}%</title></rect>
+      <text x="${xx+bw/2}" y="${yy-6}" text-anchor="middle" font-size="11" font-weight="700" fill="${css('--ink2')}">${Math.round(d.m*100)}%</text>
+      <text x="${xx+bw/2}" y="${pad.t+ih+18}" text-anchor="middle" font-size="11.5" fill="${css('--muted')}">${d.zh}</text>`;
+  });
+  document.getElementById('marginChart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="各方案淨毛利率">${out}</svg>`;
+}
+function renderTable(){
+  let rows=PLANS.map(p=>{const c=calc(p);
+    return `<tr><td>${p.zh} <span style="color:var(--muted)">${p.cur}</span></td>
+      <td>${fmt(p.price,p.cur)}</td><td>−${fmt(c.fee,p.cur)}</td><td>−${fmt(c.voice,p.cur)}</td>
+      <td>−${fmt(c.text,p.cur)}</td><td><b>${fmt(c.profit,p.cur)}</b></td>
+      <td style="color:${c.margin>=0.6?'var(--good-ink)':(c.margin>=0.4?'var(--warning)':'var(--critical)')};font-weight:700">${Math.round(c.margin*100)}%</td></tr>`;}).join('');
+  document.getElementById('tbl').innerHTML=`<thead><tr><th>方案</th><th>票面</th><th>金流</th><th>語音</th><th>字幕</th><th>毛利</th><th>毛利率</th></tr></thead><tbody>${rows}</tbody>`;
+}
+function renderAll(){
+  document.getElementById('costV').textContent='$'+state.cost.toFixed(3)+'/min';
+  document.getElementById('ratioV').textContent=(state.ratio*100).toFixed(1)+'%';
+  document.getElementById('fxV').textContent='1USD='+state.fx+'TWD';
+  renderTiles(); renderPlans(); renderFeeChart(); renderMarginChart(); renderTable();
+}
+function seg(boxId, key){
+  document.getElementById(boxId).addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    [...e.currentTarget.children].forEach(x=>x.classList.toggle('active',x===b));
+    state[key]=b.dataset.fb||b.dataset.gw; renderAll();
+  });
+}
+document.getElementById('fbBox').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...e.currentTarget.children].forEach(x=>x.classList.toggle('active',x===b));state.fb=b.dataset.fb;renderAll();});
+document.getElementById('twGw').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...e.currentTarget.children].forEach(x=>x.classList.toggle('active',x===b));state.twGw=b.dataset.gw;renderAll();});
+document.getElementById('usGw').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...e.currentTarget.children].forEach(x=>x.classList.toggle('active',x===b));state.usGw=b.dataset.gw;renderAll();});
+document.getElementById('cost').oninput=e=>{state.cost=+e.target.value;renderAll();};
+document.getElementById('ratio').oninput=e=>{state.ratio=+e.target.value;renderAll();};
+document.getElementById('fx').oninput=e=>{state.fx=+e.target.value;renderAll();};
+document.getElementById('themeBtn').onclick=()=>{const cur=document.documentElement.getAttribute('data-theme');const dark=cur==='dark'||(cur==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'light':'dark');renderAll();};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',renderAll);
+renderAll();
+</script>
+</body>
+</html>
