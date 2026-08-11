@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一個 agent loop,還是一條有界的流程?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9EAE4;
+  --card:#F6F6F2;
+  --ink:#131A20;
+  --ink-soft:#4A5560;
+  --slate:#35566A;
+  --violet:#584AB0;
+  --red:#A5372A;
+  --rule:#C7C9C0;
+  --rule-hard:#9EA298;
+  --mono:"IBM Plex Mono","Noto Sans TC",ui-monospace,monospace;
+  --disp:"IBM Plex Sans Condensed","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:16px;
+  line-height:1.75;
+  letter-spacing:.01em;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 120px}
+
+/* ─── shared type ─────────────────────────────── */
+.eyebrow{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.tag{
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  padding:2px 7px;
+  border:1px solid currentColor;
+  white-space:nowrap;
+}
+.t-code{color:var(--slate)}
+.t-model{color:var(--violet)}
+.t-bad{color:var(--red)}
+
+/* ─── hero ────────────────────────────────────── */
+.hero{padding:80px 0 56px;border-bottom:2px solid var(--ink)}
+.hero h1{
+  font-family:var(--disp);
+  font-weight:700;
+  font-size:clamp(38px,7.2vw,76px);
+  line-height:1.06;
+  letter-spacing:-.015em;
+  margin:22px 0 0;
+  max-width:15ch;
+}
+.hero h1 em{font-style:normal;color:var(--violet)}
+.hero .lede{
+  margin:28px 0 0;
+  max-width:56ch;
+  font-size:17px;
+  color:var(--ink-soft);
+}
+.pipe{
+  font-family:var(--mono);
+  font-size:12.5px;
+  margin-top:34px;
+  color:var(--ink);
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 4px;
+  align-items:center;
+}
+.pipe span{background:#DFE0D9;padding:4px 9px;border:1px solid var(--rule-hard)}
+.pipe i{font-style:normal;color:var(--rule-hard)}
+
+/* ─── section frame ───────────────────────────── */
+.sec{padding:72px 0 0}
+.sec-head{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-bottom:8px;
+}
+.sec-head::after{content:"";flex:1;border-top:1px solid var(--rule-hard)}
+.sec h2{
+  font-family:var(--disp);
+  font-weight:700;
+  font-size:clamp(25px,3.6vw,38px);
+  line-height:1.2;
+  letter-spacing:-.01em;
+  margin:0 0 14px;
+  max-width:24ch;
+}
+.sec p.note{max-width:62ch;color:var(--ink-soft);margin:0 0 26px}
+
+/* ─── ledger (6 steps) ────────────────────────── */
+.ledger{border-top:1px solid var(--ink)}
+.row{
+  display:grid;
+  grid-template-columns:38px 1fr 92px minmax(0,1.25fr);
+  gap:16px;
+  align-items:baseline;
+  padding:15px 0;
+  border-bottom:1px solid var(--rule);
+}
+.row .n{font-family:var(--mono);font-size:12px;color:var(--rule-hard)}
+.row .what{font-weight:500}
+.row .who{justify-self:start}
+.row .why{font-size:14px;color:var(--ink-soft);line-height:1.6}
+.row.is-model{background:linear-gradient(90deg,rgba(88,74,176,.07),rgba(88,74,176,0) 72%)}
+.row.is-model .what{color:var(--violet)}
+.tally{
+  font-family:var(--mono);
+  font-size:13px;
+  margin-top:20px;
+  color:var(--ink);
+  border-left:3px solid var(--violet);
+  padding-left:14px;
+}
+
+/* ─── the two traces (signature) ──────────────── */
+.traces{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:8px}
+.trace{
+  background:var(--card);
+  border:1px solid var(--rule-hard);
+  padding:0 0 22px;
+}
+.trace-top{padding:18px 20px 14px;border-bottom:1px solid var(--rule)}
+.trace-top .lab{
+  font-family:var(--disp);
+  font-weight:700;
+  font-size:21px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.trace-top .lab b{
+  font-family:var(--mono);
+  font-size:12px;
+  font-weight:600;
+  border:1px solid var(--ink);
+  padding:2px 8px;
+}
+.trace-top .sub{font-size:13.5px;color:var(--ink-soft);margin-top:6px;line-height:1.55}
+.steps{list-style:none;margin:0;padding:16px 20px 0;font-family:var(--mono);font-size:12.5px;line-height:1.5}
+.steps li{
+  display:grid;
+  grid-template-columns:26px 1fr;
+  gap:9px;
+  padding:5px 0;
+  border-left:2px solid var(--rule);
+  padding-left:12px;
+  margin-left:2px;
+}
+.steps li .i{color:var(--rule-hard)}
+.steps li.m{border-left-color:var(--violet)}
+.steps li.m .i{color:var(--violet)}
+.steps li.c{border-left-color:var(--slate)}
+.steps li.c .i{color:var(--slate)}
+.steps li.err{border-left-color:var(--red);background:rgba(165,55,42,.09)}
+.steps li.err .i,.steps li.err span:last-child{color:var(--red);font-weight:600}
+.steps li.tainted{
+  border-left-color:var(--red);
+  background:repeating-linear-gradient(-45deg,rgba(165,55,42,.10) 0 5px,transparent 5px 10px);
+  color:var(--ink-soft);
+}
+.verdict{
+  margin:16px 20px 0;
+  padding:12px 14px;
+  font-size:13.5px;
+  line-height:1.6;
+  border:1px dashed var(--red);
+  color:var(--red);
+}
+.verdict.ok{border-color:var(--slate);color:var(--slate)}
+
+/* bounded box inside trace B */
+.bounded{
+  margin:8px 20px;
+  border:2px solid var(--slate);
+  background:rgba(53,86,106,.05);
+  position:relative;
+  padding:22px 0 10px;
+}
+.bounded::before{
+  content:"BOUNDED · max 3 · exit → needs_human";
+  position:absolute;top:-10px;left:12px;
+  background:var(--card);
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.1em;
+  color:var(--slate);
+  padding:0 7px;
+}
+.bounded .steps{padding:0 16px}
+.bounded .steps li{border-left-color:var(--slate)}
+
+/* ─── anti-patterns ───────────────────────────── */
+.aps{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule-hard);border:1px solid var(--rule-hard);margin-top:6px}
+.ap{background:var(--card);padding:22px 22px 24px}
+.ap .id{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  color:var(--red);
+  display:block;
+  margin-bottom:9px;
+}
+.ap h3{font-family:var(--disp);font-weight:700;font-size:19px;margin:0 0 9px;line-height:1.3}
+.ap p{margin:0;font-size:14.5px;color:var(--ink-soft);line-height:1.7}
+.ap .fix{
+  margin-top:12px;
+  padding-top:11px;
+  border-top:1px solid var(--rule);
+  font-size:13.5px;
+  color:var(--ink);
+}
+.ap .fix b{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--slate);display:block;margin-bottom:3px}
+
+/* ─── code ────────────────────────────────────── */
+pre{
+  background:#1A222B;
+  color:#DDE3E8;
+  font-family:var(--mono);
+  font-size:13px;
+  line-height:1.72;
+  padding:24px 22px;
+  overflow-x:auto;
+  margin:0;
+  border:1px solid var(--ink);
+}
+pre .k{color:#9BB8D8}
+pre .s{color:#B9CBA0}
+pre .cm{color:#7C8A96;font-style:italic}
+pre .hl{color:#C3A6E8}
+
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:26px 0 0}
+.check{border-top:2px solid var(--slate);padding-top:12px}
+.check b{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--slate);display:block;margin-bottom:5px}
+.check span{font-size:14.5px;color:var(--ink-soft);line-height:1.65}
+
+/* ─── closing rule ────────────────────────────── */
+.rule-out{
+  margin-top:76px;
+  border-top:2px solid var(--ink);
+  padding-top:34px;
+}
+.rule-out .big{
+  font-family:var(--disp);
+  font-weight:700;
+  font-size:clamp(26px,4.6vw,46px);
+  line-height:1.22;
+  letter-spacing:-.01em;
+  max-width:20ch;
+  margin:0;
+}
+.rule-out .big em{font-style:normal;border-bottom:6px solid var(--violet);}
+.rule-out p{max-width:58ch;color:var(--ink-soft);margin:20px 0 0}
+
+/* ─── motion ──────────────────────────────────── */
+.reveal{opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+}
+
+/* ─── responsive ──────────────────────────────── */
+@media (max-width:860px){
+  .traces{grid-template-columns:1fr}
+  .aps{grid-template-columns:1fr}
+  .checks{grid-template-columns:1fr}
+  .row{grid-template-columns:30px 1fr;row-gap:6px}
+  .row .who{grid-column:2}
+  .row .why{grid-column:2}
+  .wrap{padding:0 18px 80px}
+  .hero{padding:52px 0 40px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">架構筆記 · Test Agent · 2026-08</div>
+  <h1>一個 agent loop,<br>還是<em>一條有界的流程</em>?</h1>
+  <p class="lede">同一個需求,兩種蓋法。差別不在「用不用 LLM」,而在<strong>控制流由誰決定</strong>——以及判斷錯的時候,錯誤會擴散多遠。</p>
+  <div class="pipe">
+    <span>Jira 工單</span><i>→</i><span>test case</span><i>→</i><span>test code</span><i>→</i><span>執行</span><i>→</i><span>report</span><i>→</i><span>寫回 Jira</span>
+  </div>
+</header>
+
+<!-- ── 六個步驟 ─────────────────────────────── -->
+<section class="sec reveal">
+  <div class="sec-head">先拆清楚</div>
+  <h2>六個步驟,只有兩個真的需要模型</h2>
+  <p class="note">在選架構之前,先問每一段「這裡的判斷,規則寫得出來嗎?」寫得出來的,就不要付錢請模型想。</p>
+
+  <div class="ledger">
+    <div class="row">
+      <div class="n">01</div>
+      <div class="what">從 Jira 拉工單</div>
+      <div class="who"><span class="tag t-code">Code</span></div>
+      <div class="why">就是 REST API,沒有模糊空間</div>
+    </div>
+    <div class="row is-model">
+      <div class="n">02</div>
+      <div class="what">工單 → test case</div>
+      <div class="who"><span class="tag t-model">Model</span></div>
+      <div class="why">真正的判斷:從自然語言的需求推出該驗什麼</div>
+    </div>
+    <div class="row is-model">
+      <div class="n">03</div>
+      <div class="what">test case → test code</div>
+      <div class="who"><span class="tag t-model">Model</span></div>
+      <div class="why">需要模型,但輸出用 schema 綁死格式</div>
+    </div>
+    <div class="row">
+      <div class="n">04</div>
+      <div class="what">執行測試</div>
+      <div class="who"><span class="tag t-code">Code</span></div>
+      <div class="why"><code>subprocess</code> 跑 pytest。這一段絕對不要交給模型決定何時跑</div>
+    </div>
+    <div class="row">
+      <div class="n">05</div>
+      <div class="what">產出 report</div>
+      <div class="who"><span class="tag t-code">Code</span></div>
+      <div class="why">大半是 templating,只有摘要那句話可選用模型</div>
+    </div>
+    <div class="row">
+      <div class="n">06</div>
+      <div class="what">寫回 Jira</div>
+      <div class="who"><span class="tag t-code">Code</span></div>
+      <div class="why">API。順序你早就知道了</div>
+    </div>
+  </div>
+
+  <p class="tally">6 段裡 2 段吃模型能力。把整條交給 agent,等於付錢請它「決定現在該呼叫 Jira 了」——而且它可能決定錯,或跑完測試忘記寫回去。</p>
+</section>
+
+<!-- ── A vs B ──────────────────────────────── -->
+<section class="sec reveal">
+  <div class="sec-head">同一張工單,兩條軌跡</div>
+  <h2>錯誤的傳播半徑</h2>
+  <p class="note">左邊是 agent loop 的真實 trace 長相:每一步由模型決定下一步。第 09 步判斷錯了之後,後面每一步都建立在錯的前提上。右邊把不確定性關進盒子。</p>
+
+  <div class="traces">
+
+    <!-- A -->
+    <div class="trace">
+      <div class="trace-top">
+        <div class="lab"><b>A</b> 一個 agent loop</div>
+        <div class="sub">6 個 tool,模型自己排順序、自己決定何時停</div>
+      </div>
+      <ol class="steps">
+        <li class="c"><span class="i">01</span><span>read_issue(PROJ-812)</span></li>
+        <li class="m"><span class="i">02</span><span>think: 需要先看程式碼</span></li>
+        <li class="c"><span class="i">03</span><span>list_files(repo/)</span></li>
+        <li class="c"><span class="i">04</span><span>read_file(auth.py)</span></li>
+        <li class="c"><span class="i">05</span><span>read_file(utils.py)</span></li>
+        <li class="m"><span class="i">06</span><span>write_file(test_auth.py)</span></li>
+        <li class="c"><span class="i">07</span><span>run_pytest → 2 failed</span></li>
+        <li class="c"><span class="i">08</span><span>read_file(conftest.py)</span></li>
+        <li class="err"><span class="i">09</span><span>判定:fixture 沒建好<br>實際是環境缺套件 ✗</span></li>
+        <li class="tainted"><span class="i">10</span><span>write_file(conftest.py)</span></li>
+        <li class="tainted"><span class="i">11</span><span>run_pytest → 3 failed</span></li>
+        <li class="tainted"><span class="i">12</span><span>改寫 assert,放寬條件</span></li>
+        <li class="tainted"><span class="i">13</span><span>run_pytest → passed</span></li>
+        <li class="tainted"><span class="i">14</span><span>jira_comment("全部通過")</span></li>
+      </ol>
+      <div class="verdict">通過率 100%,而測試已經不檢查任何東西。<br>模型沒有說謊——它只是為了讓迴圈收斂,把目標換掉了。</div>
+    </div>
+
+    <!-- B -->
+    <div class="trace">
+      <div class="trace-top">
+        <div class="lab"><b>B</b> 骨架 + 有界迴圈</div>
+        <div class="sub">順序寫死在程式碼,模型只做兩件事,修復迴圈有上限</div>
+      </div>
+      <ol class="steps">
+        <li class="c"><span class="i">S1</span><span>jira.get(key)</span></li>
+        <li class="m"><span class="i">S2</span><span>llm_gen_cases() → schema</span></li>
+        <li class="m"><span class="i">S3</span><span>llm_gen_code() → schema</span></li>
+      </ol>
+      <div class="bounded">
+        <ol class="steps">
+          <li><span class="i">1/3</span><span>run_in_sandbox → fail</span></li>
+          <li class="m"><span class="i">↻</span><span>llm_fix(code, stderr)</span></li>
+          <li><span class="i">2/3</span><span>run_in_sandbox → fail</span></li>
+          <li class="m"><span class="i">↻</span><span>llm_fix(code, stderr)</span></li>
+          <li><span class="i">3/3</span><span>run_in_sandbox → fail</span></li>
+          <li class="err"><span class="i">✕</span><span>exit → needs_human</span></li>
+        </ol>
+      </div>
+      <ol class="steps">
+        <li class="c"><span class="i">S5</span><span>render_report(needs_human)</span></li>
+        <li class="c"><span class="i">S6</span><span>jira.comment(report)</span></li>
+      </ol>
+      <div class="verdict ok">迴圈三次都失敗,S5 / S6 照常執行,只是內容變成「需要人看」。<br>錯誤沒有外溢成「跳過寫回」或「改寬 assert」。</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── anti-patterns ───────────────────────── -->
+<section class="sec reveal">
+  <div class="sec-head">六個會咬人的地方</div>
+  <h2>Anti-patterns</h2>
+  <p class="note">前三個是架構問題,後三個是 test agent 特有的。<strong>AP-03 比架構選型更值得先想清楚</strong>——它會讓你以為系統在運作。</p>
+
+  <div class="aps">
+
+    <div class="ap">
+      <span class="id">AP-01 · CONTROL_FLOW_GIVEN_AWAY</span>
+      <h3>把已知的順序交給模型決定</h3>
+      <p>「拉工單 → 產 case → 跑 → 寫回」這個順序,你在寫 code 之前就知道了。交給模型 runtime 決定,只是多付一次 token、多一個出錯機會。</p>
+      <div class="fix"><b>判準</b>畫得出流程圖的,就寫流程圖。</div>
+    </div>
+
+    <div class="ap">
+      <span class="id">AP-02 · UNBOUNDED_LOOP</span>
+      <h3>沒有 step 上限</h3>
+      <p>單步 95% 正確,20 步下來是 36%。Agent 的可靠度隨軌跡長度衰減,不會自己收斂到對的地方——只會收斂到「能停下來」的地方。</p>
+      <div class="fix"><b>做法</b>每個迴圈都要有 max attempts,超過就走失敗出口,不是繼續試。</div>
+    </div>
+
+    <div class="ap">
+      <span class="id">AP-03 · TAUTOLOGICAL_TEST</span>
+      <h3>一定會過的測試</h3>
+      <p>模型很擅長讀完程式碼,然後 assert 現在的行為。這種測試通過率 100%、鑑別力 0,抓不到任何 bug,還給你虛假的安全感。這是 test agent 最大的陷阱。</p>
+      <div class="fix"><b>防守</b>拿一個已知有 bug 的版本當基準,生成的測試<strong>必須在那個版本上失敗</strong>;或用 mutation testing 量鑑別力。</div>
+    </div>
+
+    <div class="ap">
+      <span class="id">AP-04 · NO_SANDBOX</span>
+      <h3>生成的程式碼直連正式環境</h3>
+      <p>不是理論風險。模型寫的測試很容易照著 config 連到真的資料庫、真的產線 API,然後做出寫入動作。</p>
+      <div class="fix"><b>做法</b>跑在容器裡,不給正式憑證,網路白名單。</div>
+    </div>
+
+    <div class="ap">
+      <span class="id">AP-05 · WRITE_BACK_TOO_EARLY</span>
+      <h3>一上線就讓它改工單狀態</h3>
+      <p>準確率還沒量出來之前就給寫入權,錯誤會直接進到別人的工作流,而且很難回溯是哪一次跑壞的。</p>
+      <div class="fix"><b>做法</b>初期只發 comment 或開 sub-task,不動 status。累積夠多樣本再放開。</div>
+    </div>
+
+    <div class="ap">
+      <span class="id">AP-06 · FRAMEWORK_HIDES_CONTEXT</span>
+      <h3>框架把 context 組裝藏起來</h3>
+      <p>調 agent 最主要就是調進 context 的東西。框架包掉這層之後,你會變成隔著兩層抽象在猜——而它給你的持久化、重試、tracing,自己寫大概一天的工。</p>
+      <div class="fix"><b>判準</b>你已經有自己的 state 管理習慣的話,框架帶來的多半是抽象稅。</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── 有界的作法 ──────────────────────────── -->
+<section class="sec reveal">
+  <div class="sec-head">B 的實作</div>
+  <h2>確定性骨架,節點內包一個有界迴圈</h2>
+  <p class="note">保留探索能力,但把不確定性關在盒子裡。整段大概 30 行,每一行你都懂,出事時 stack trace 直接指到問題點。</p>
+
+<pre><code><span class="k">def</span> process(issue_key):
+    issue = jira.get(issue_key)              <span class="cm"># code</span>
+    cases = llm_gen_cases(issue)             <span class="hl"># model → schema</span>
+    code  = llm_gen_code(cases)              <span class="hl"># model → schema</span>
+
+    <span class="cm"># ── 有界迴圈:上限 3,失敗有出口 ──</span>
+    <span class="k">for</span> attempt <span class="k">in</span> range(<span class="s">3</span>):
+        result = run_in_sandbox(code)        <span class="cm"># 容器,無正式憑證</span>
+        <span class="k">if</span> result.ok:
+            <span class="k">break</span>
+        code = llm_fix(code, result.stderr)
+    <span class="k">else</span>:
+        <span class="k">return</span> mark_needs_human(issue_key, result)
+
+    <span class="k">if not</span> discriminates(code, known_buggy_rev):  <span class="cm"># AP-03 防守</span>
+        <span class="k">return</span> mark_needs_human(issue_key, <span class="s">"測試無鑑別力"</span>)
+
+    jira.comment(issue_key, render_report(cases, result))</code></pre>
+
+  <div class="checks">
+    <div class="check"><b>UPPER BOUND</b><span>最多跑幾次?沒有這個數字,就不叫有界。</span></div>
+    <div class="check"><b>EXIT CONDITION</b><span>什麼情況算成功?要能用程式判斷,不是模型自評。</span></div>
+    <div class="check"><b>FAILURE PATH</b><span>用完次數之後往哪走?預設不能是「繼續試」或「當作成功」。</span></div>
+  </div>
+</section>
+
+<!-- ── 收尾 ────────────────────────────────── -->
+<section class="rule-out reveal">
+  <p class="big">畫得出流程圖的,<em>就寫流程圖</em>。</p>
+  <p>需要 agent 的條件是「分支事先枚舉不完」。這條流程裡唯一符合的,是測試失敗後的修復判斷——語法錯、缺套件、fixture 沒建好,還是真的抓到 bug。那一段值得放迴圈,其餘的不值得。</p>
+  <p>另外,框架解決的是 workflow 那一側的問題:狀態機、持久化、重試。它不會讓 agent 變可靠。</p>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var els = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(function(e){ e.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, { rootMargin: '0px 0px -8% 0px' });
+  els.forEach(function(e){ io.observe(e); });
+})();
+</script>
+</body>
+</html>
