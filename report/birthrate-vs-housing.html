@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>熄燈的窗 · 台灣少子化與房價</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@300;400;500&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+html,body{height:100%;margin:0;padding:0;background:#080E19;}
+
+.dk-root{
+  --ink:#0B1220; --slab:#141F35; --tile:#22314F; --edge:#31456B;
+  --lit:#F5B33C; --jade:#79B8A8; --paper:#EDE7DA; --dim:#8496B5;
+  position:relative; display:flex; flex-direction:column;
+  height:100vh; height:100dvh; min-height:480px; width:100%;
+  background:
+    radial-gradient(120% 90% at 15% 0%, #1A2740 0%, transparent 60%),
+    linear-gradient(180deg,#0B1220 0%,#080E19 100%);
+  color:var(--paper);
+  font-family:'Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
+  font-weight:300; overflow:hidden;
+}
+.dk-root *{box-sizing:border-box;}
+.dk-root button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;}
+.dk-root button:focus-visible{outline:2px solid var(--lit);outline-offset:3px;}
+
+/* 進度 */
+.dk-progress{display:flex;gap:4px;padding:14px 28px 0;flex:0 0 auto;}
+.dk-seg{flex:1;height:3px;background:rgba(237,231,218,.14);border-radius:2px;overflow:hidden;padding:0;}
+.dk-seg-fill{display:block;height:100%;width:0;background:var(--lit);}
+
+/* 舞台 */
+.dk-stage{flex:1 1 auto;position:relative;min-height:0;overflow:hidden;}
+.dk-enter{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  animation:dkIn .6s cubic-bezier(.2,.7,.3,1) both;}
+@keyframes dkIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+.dk-slide{min-height:100%;padding:22px clamp(18px,5vw,72px) 20px;display:flex;flex-direction:column;gap:16px;}
+
+/* 文字 */
+.dk-eyebrow,.dk-kicker{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;letter-spacing:.22em;color:var(--lit);text-transform:uppercase;}
+.dk-h1{font-family:'Noto Serif TC',serif;font-weight:900;font-size:clamp(30px,4.6vw,62px);line-height:1.14;margin:14px 0 0;letter-spacing:-.01em;}
+.dk-h2{font-family:'Noto Serif TC',serif;font-weight:700;font-size:clamp(22px,3vw,40px);line-height:1.25;margin:6px 0 0;}
+.dk-lede{font-size:clamp(13px,1.25vw,17px);line-height:1.85;color:#C7D2E4;max-width:46ch;margin:14px 0 0;font-weight:300;}
+.dk-note{font-size:13px;line-height:1.8;color:var(--dim);max-width:70ch;margin:0;}
+.dk-note em{display:block;font-style:normal;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#5E708F;margin-top:4px;}
+.dk-head{flex:0 0 auto;}
+.dk-num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;font-size:clamp(34px,5vw,64px);color:var(--lit);line-height:1;font-variant-numeric:tabular-nums;}
+.dk-num-xl{font-size:clamp(64px,11vw,150px);}
+.dk-unit{font-size:12px;color:var(--dim);line-height:1.6;}
+.dk-unit em{display:block;font-style:normal;color:#5E708F;font-family:'IBM Plex Mono',ui-monospace,monospace;}
+
+/* 封面 */
+.dk-cover{padding-top:0;}
+.dk-cover-copy{padding-top:6px;}
+.dk-cover-stat{display:flex;align-items:flex-end;gap:14px;margin-top:22px;}
+
+/* 窗牆 */
+.dk-wall{flex:0 0 auto;margin:0 calc(-1 * clamp(18px,5vw,72px));padding:20px clamp(18px,5vw,72px);
+  background:linear-gradient(180deg,#101B2E 0%,#0B1220 100%);border-bottom:1px solid var(--edge);}
+.dk-wall-grid{display:grid;gap:5px;}
+.dk-wall-sm .dk-win{height:14px;}
+.dk-win{height:22px;border-radius:1px;background:var(--tile);transition:background .5s ease,box-shadow .5s ease;}
+.dk-win-on{background:var(--lit);box-shadow:0 0 14px rgba(245,179,60,.45);}
+.dk-win-fading{background:#6C5C34;box-shadow:none;}
+
+/* 圖表 */
+.dk-chartbox{position:relative;flex:1 1 auto;min-height:200px;display:flex;}
+.dk-chart{width:100%;height:auto;max-height:100%;margin:auto;}
+.dk-grid{stroke:rgba(237,231,218,.10);stroke-width:1;}
+.dk-axis{fill:#6A7C9B;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:15px;}
+.dk-line{stroke-width:3;stroke-linecap:round;stroke-linejoin:round;fill:none;
+  stroke-dasharray:3000;stroke-dashoffset:3000;transition:stroke-dashoffset 1.8s cubic-bezier(.3,.7,.3,1);}
+.dk-chart.on .dk-line{stroke-dashoffset:0;}
+.dk-area{opacity:0;transition:opacity 1.2s ease .9s;}
+.dk-chart.on .dk-area{opacity:.10;}
+.dk-dot{opacity:0;transition:opacity .4s ease;}
+.dk-chart.on .dk-dot{opacity:1;}
+.dk-dot-last{filter:drop-shadow(0 0 8px currentColor);}
+.dk-annot{position:absolute;padding:10px 14px;border-left:2px solid var(--lit);background:rgba(20,31,53,.9);max-width:230px;}
+.dk-annot-r{right:2%;top:12%;}
+.dk-annot-l{left:16%;top:6%;}
+.dk-annot strong{display:block;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:22px;color:var(--lit);}
+.dk-annot span{font-size:11.5px;line-height:1.6;color:var(--dim);}
+
+/* 長條 */
+.dk-split{display:flex;gap:clamp(24px,5vw,64px);align-items:center;flex:1 1 auto;min-height:0;flex-wrap:wrap;}
+.dk-bignum{flex:1 1 300px;}
+.dk-bars{flex:1 1 340px;display:flex;flex-direction:column;gap:14px;}
+.dk-bars-wide{flex:1 1 auto;justify-content:center;}
+.dk-bar-row{display:flex;align-items:center;gap:14px;}
+.dk-bar-label{width:76px;font-size:13px;color:#C7D2E4;flex:0 0 auto;}
+.dk-bar-track{position:relative;flex:1 1 auto;height:20px;background:rgba(237,231,218,.07);}
+.dk-bar{height:100%;width:0;transition:width 1.1s cubic-bezier(.2,.8,.3,1);}
+.dk-bar-lit{background:linear-gradient(90deg,#B87F1F,var(--lit));}
+.dk-bar-alt{background:linear-gradient(90deg,#3E6D63,var(--jade));}
+.dk-bar-ghost{background:rgba(237,231,218,.22);}
+.dk-bar-mark{position:absolute;top:-4px;bottom:-4px;width:1px;background:repeating-linear-gradient(180deg,var(--paper) 0 3px,transparent 3px 7px);opacity:.5;}
+.dk-bar-val{width:74px;text-align:right;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;color:var(--paper);flex:0 0 auto;}
+
+/* 卡片 */
+.dk-cards{display:flex;gap:18px;flex:1 1 auto;align-items:stretch;flex-wrap:wrap;min-height:0;}
+.dk-card{flex:1 1 240px;background:rgba(20,31,53,.72);border-top:2px solid var(--jade);padding:22px;
+  opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.3,1);}
+.dk-card.on{opacity:1;transform:none;}
+.dk-card h3{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin:0 0 10px;}
+.dk-card p{font-size:13px;line-height:1.85;color:var(--dim);margin:0;}
+
+/* 假說 */
+.dk-hyp{display:flex;flex-direction:column;gap:12px;flex:1 1 auto;justify-content:center;}
+.dk-hyp-row{position:relative;padding:16px 22px;opacity:0;transition:opacity .6s ease;overflow:hidden;}
+.dk-hyp-row.on{opacity:1;}
+.dk-hyp-bar{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,rgba(245,179,60,.20),rgba(245,179,60,.02));
+  transition:width 1.2s cubic-bezier(.2,.8,.3,1);border-left:2px solid var(--lit);}
+.dk-hyp-text{position:relative;}
+.dk-hyp-text h3{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin:0 0 5px;}
+.dk-hyp-text p{font-size:13px;line-height:1.75;color:#B5C2D8;margin:0;max-width:62ch;}
+
+/* 結尾 */
+.dk-closing{padding-top:0;}
+.dk-close-copy{padding-top:14px;}
+.dk-sources{margin-top:24px;border-top:1px solid var(--edge);padding-top:12px;max-width:74ch;}
+.dk-sources span{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.2em;color:var(--lit);}
+.dk-sources p{font-size:11.5px;line-height:1.8;color:#5E708F;margin:6px 0 0;}
+
+/* 底列 */
+.dk-foot{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;
+  padding:12px clamp(18px,5vw,72px) 16px;border-top:1px solid rgba(49,69,107,.5);}
+.dk-brand{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;color:#5E708F;}
+.dk-ctrl{display:flex;align-items:center;gap:6px;}
+.dk-ctrl button{width:32px;height:32px;border:1px solid var(--edge);color:var(--dim);font-size:14px;line-height:1;}
+.dk-ctrl button:hover{color:var(--lit);border-color:var(--lit);}
+.dk-page{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:var(--dim);margin-left:10px;}
+
+@media (max-width:720px){
+  .dk-win{height:11px;}
+  .dk-wall-sm .dk-win{height:9px;}
+  .dk-wall-grid{gap:3px;}
+  .dk-lede{max-width:none;font-size:14px;line-height:1.8;}
+  .dk-annot{position:static;max-width:none;margin-top:10px;}
+  .dk-annot-r,.dk-annot-l{right:auto;left:auto;top:auto;}
+  .dk-chartbox{flex-direction:column;min-height:180px;}
+  .dk-axis{font-size:22px;}
+  .dk-bar-label{width:56px;font-size:12px;}
+  .dk-bar-val{width:60px;font-size:12px;}
+  .dk-bar-track{height:16px;}
+  .dk-split{gap:20px;}
+  .dk-cards{flex-direction:column;}
+  .dk-card{padding:16px;}
+  .dk-num-xl{font-size:76px;}
+  .dk-brand{display:none;}
+  .dk-progress{padding:10px 16px 0;}
+  .dk-foot{padding:10px 16px 12px;}
+}
+@media (prefers-reduced-motion:reduce){
+  .dk-enter{animation:none;}
+  .dk-line{transition:none;stroke-dashoffset:0;}
+  .dk-bar,.dk-hyp-bar,.dk-card,.dk-win{transition:none;}
+}
+</style>
+</head>
+<body>
+<div class="dk-root">
+  <div class="dk-progress" id="dkProgress"></div>
+  <div class="dk-stage" id="dkStage"></div>
+  <div class="dk-foot">
+    <span class="dk-brand">熄燈的窗 · 台灣少子化與房價</span>
+    <div class="dk-ctrl">
+      <button id="dkPrev" aria-label="上一頁">&lsaquo;</button>
+      <button id="dkPlay" aria-label="暫停">&#10073;&#10073;</button>
+      <button id="dkNext" aria-label="下一頁">&rsaquo;</button>
+      <span class="dk-page" id="dkPage">01 / 08</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var REDUCE = window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ----------------------------- 資料 ----------------------------- */
+
+  var BIRTHS = [
+    { y: "2016", v: 208440 }, { y: "2017", v: 193844 }, { y: "2018", v: 181601 },
+    { y: "2019", v: 177767 }, { y: "2020", v: 165249 }, { y: "2021", v: 153820 },
+    { y: "2022", v: 138986 }, { y: "2023", v: 135571 }, { y: "2024", v: 134856 },
+    { y: "2025", v: 107812 }
+  ];
+
+  var PRICE_INCOME = [
+    { y: "24Q3", v: 10.82 }, { y: "24Q4", v: 10.76 }, { y: "25Q1", v: 10.24 },
+    { y: "25Q2", v: 9.94 }, { y: "25Q3", v: 9.71 }, { y: "25Q4", v: 9.32 }
+  ];
+
+  var BURDEN = [
+    { city: "臺北市", v: 65.47 }, { city: "新北市", v: 56.77 },
+    { city: "臺中市", v: 50.05 }, { city: "高雄市", v: 41.01 },
+    { city: "臺南市", v: 39.65 }, { city: "桃園市", v: 37.13 }
+  ];
+
+  /* ----------------------------- 工具 ----------------------------- */
+
+  function nf(n, d) {
+    d = d || 0;
+    return n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+
+  // 宣告式的動畫掛勾：slide 的 HTML 標好屬性，activate() 統一啟動
+  function attr(o) {
+    var s = "";
+    for (var k in o) if (o[k] !== undefined && o[k] !== null) s += " " + k + '="' + o[k] + '"';
+    return s;
+  }
+
+  function lineChart(opts) {
+    var data = opts.data, H = opts.height || 260, color = opts.color || "var(--lit)";
+    var yFmt = opts.yFmt || function (v) { return nf(v); };
+    var W = 1000, padL = 56, padR = 28, padT = 28, padB = 42;
+
+    var vals = data.map(function (d) { return d.v; });
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var lo = min - (max - min) * 0.35, hi = max + (max - min) * 0.2;
+    var x = function (i) { return padL + (i * (W - padL - padR)) / (data.length - 1); };
+    var y = function (v) { return padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB); };
+
+    var path = data.map(function (d, i) {
+      return (i ? "L" : "M") + x(i) + "," + y(d.v);
+    }).join(" ");
+    var area = path + " L" + x(data.length - 1) + "," + (H - padB) + " L" + x(0) + "," + (H - padB) + " Z";
+
+    var grid = [0, 0.5, 1].map(function (t) {
+      var gv = lo + (hi - lo) * (0.15 + t * 0.8);
+      return '<line class="dk-grid" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(gv) + '" y2="' + y(gv) + '"/>' +
+        '<text class="dk-axis" x="' + (padL - 12) + '" y="' + (y(gv) + 5) + '" text-anchor="end">' + yFmt(gv) + "</text>";
+    }).join("");
+
+    var dots = data.map(function (d, i) {
+      var last = i === data.length - 1;
+      return '<circle class="dk-dot' + (last ? " dk-dot-last" : "") + '" cx="' + x(i) + '" cy="' + y(d.v) +
+        '" r="' + (last ? 7 : 4) + '" fill="' + color + '" style="transition-delay:' + (900 + i * 60) + 'ms"/>';
+    }).join("");
+
+    var labels = data.map(function (d, i) {
+      return '<text class="dk-axis" x="' + x(i) + '" y="' + (H - 14) + '" text-anchor="middle">' + d.y + "</text>";
+    }).join("");
+
+    return '<svg class="dk-chart" data-chart="1" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="xMidYMid meet">' +
+      grid +
+      (opts.fill === false ? "" : '<path class="dk-area" d="' + area + '" fill="' + color + '"/>') +
+      '<path class="dk-line" d="' + path + '" stroke="' + color + '"/>' +
+      dots + labels + "</svg>";
+  }
+
+  function wall(o) {
+    var cols = o.cols || 20, rows = o.rows || 8;
+    var cells = "";
+    for (var i = 0; i < cols * rows; i++) {
+      cells += '<span class="dk-win' + (i < o.litStart ? " dk-win-on" : "") + '"></span>';
+    }
+    return '<div class="dk-wall' + (o.compact ? " dk-wall-sm" : "") + '"' +
+      attr({ "data-lit-start": o.litStart, "data-lit-end": o.litEnd }) + ">" +
+      '<div class="dk-wall-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + "</div></div>";
+  }
+
+  function counter(o) {
+    return '<span class="dk-num' + (o.xl ? " dk-num-xl" : "") + '"' + attr({
+      "data-count": "1", "data-from": o.from, "data-to": o.to,
+      "data-dec": o.dec || 0, "data-delay": o.delay || 600, "data-dur": o.dur || 2000
+    }) + ">" + nf(REDUCE ? o.to : o.from, o.dec || 0) + "</span>";
+  }
+
+  function barRow(label, value, pct, tone, fmt, mark) {
+    return '<div class="dk-bar-row"><span class="dk-bar-label">' + label + "</span>" +
+      '<div class="dk-bar-track"><div class="dk-bar dk-bar-' + tone + '" data-bar="' + pct + '"></div>' +
+      (mark ? '<span class="dk-bar-mark" style="left:30%"></span>' : "") + "</div>" +
+      '<span class="dk-bar-val">' + fmt + "</span></div>";
+  }
+
+  /* ----------------------------- 頁面 ----------------------------- */
+
+  var SLIDES = [
+    {
+      id: "cover", ms: 11000, html: function () {
+        return '<div class="dk-slide dk-cover">' +
+          wall({ litStart: 104, litEnd: 54 }) +
+          '<div class="dk-cover-copy">' +
+          '<div class="dk-eyebrow">專題 · 台灣人口與居住</div>' +
+          '<h1 class="dk-h1">房價，<br>真的是那盞熄掉的燈嗎？</h1>' +
+          '<p class="dk-lede">十年之間，台灣的新生兒少了一半。同一段時間，房價漲了。兩件事同時發生 —— 但「同時」不等於「因為」。</p>' +
+          '<div class="dk-cover-stat">' + counter({ from: 208440, to: 107812, delay: 900, dur: 2600 }) +
+          '<span class="dk-unit">2025 年新生兒（人）<em>2016 年為 208,440</em></span></div>' +
+          "</div></div>";
+      }
+    },
+    {
+      id: "births", ms: 10000, html: function () {
+        return '<div class="dk-slide">' +
+          '<div class="dk-head"><span class="dk-kicker">01 — 事實</span>' +
+          '<h2 class="dk-h2">連續十年下降，2025 年直接掉了兩成</h2></div>' +
+          '<div class="dk-chartbox">' +
+          lineChart({ data: BIRTHS, height: 280, yFmt: function (v) { return nf(Math.round(v / 1000)) + "k"; } }) +
+          '<div class="dk-annot dk-annot-r"><strong>−20%</strong><span>2025 年較前一年少 27,044 人，是史上最快的單年跌幅</span></div>' +
+          "</div>" +
+          '<p class="dk-note">虎年、龍年都沒有反彈。過去被視為會拉抬生育的生肖效應，這一輪失效了。</p></div>';
+      }
+    },
+    {
+      id: "tfr", ms: 10000, html: function () {
+        return '<div class="dk-slide">' +
+          '<div class="dk-head"><span class="dk-kicker">02 — 事實</span>' +
+          '<h2 class="dk-h2">總生育率 0.695，全球最低</h2></div>' +
+          '<div class="dk-split"><div class="dk-bignum">' +
+          counter({ from: 0.885, to: 0.695, dec: 3, delay: 600, dur: 2200, xl: true }) +
+          '<p class="dk-lede">女性一生平均生不到 0.7 個小孩。前一年還是 0.885 —— 這是有統計以來崩得最快的一年。長年墊底的南韓，同一年回升到 0.8。</p></div>' +
+          '<div class="dk-bars">' +
+          barRow("替代水準", 2.1, (2.1 / 2.1) * 100, "ghost", "2.1") +
+          barRow("南韓 2025", 0.8, (0.8 / 2.1) * 100, "alt", "0.800") +
+          barRow("台灣 2025", 0.695, (0.695 / 2.1) * 100, "lit", "0.695") +
+          "</div></div></div>";
+      }
+    },
+    {
+      id: "burden", ms: 10000, html: function () {
+        return '<div class="dk-slide">' +
+          '<div class="dk-head"><span class="dk-kicker">03 — 另一條線</span>' +
+          '<h2 class="dk-h2">六都的薪水，先繳給房貸</h2></div>' +
+          '<div class="dk-bars dk-bars-wide">' +
+          BURDEN.map(function (b) {
+            return barRow(b.city, b.v, b.v, b.v >= 50 ? "lit" : "alt", b.v.toFixed(2) + "%", true);
+          }).join("") +
+          "</div>" +
+          '<p class="dk-note">虛線是「可合理負擔」的 30%。六都沒有一都在線內；台北市的中位數家庭，每月可支配所得有 65% 拿去繳房貸。<em>2025 年第 3 季，內政部</em></p></div>';
+      }
+    },
+    {
+      id: "pi", ms: 10000, html: function () {
+        return '<div class="dk-slide">' +
+          '<div class="dk-head"><span class="dk-kicker">04 — 轉折</span>' +
+          '<h2 class="dk-h2">房價負擔已經連五季回落</h2></div>' +
+          '<div class="dk-chartbox">' +
+          lineChart({
+            data: PRICE_INCOME, height: 260, color: "var(--jade)",
+            yFmt: function (v) { return v.toFixed(1); }
+          }) +
+          '<div class="dk-annot dk-annot-l"><strong>10.82</strong><span>2024Q3 見頂</span></div>' +
+          "</div>" +
+          '<p class="dk-note">全國房價所得比從 10.82 倍降到 9.32 倍。央行第七波信用管制之後，房市明顯降溫，2025 年建物買賣移轉棟數年減 25.5%。</p></div>';
+      }
+    },
+    {
+      id: "contra", ms: 12000, html: function () {
+        var cards = [
+          ["負擔在降，生育卻在崩", "2025 年房價所得比連五季下滑，同一年總生育率卻從 0.885 掉到 0.695。如果房價是主因，方向不該相反。"],
+          ["領先指標其實是結婚", "結婚對數從 12.3 萬對掉到 10.4 萬對。台灣的生育高度綁定婚姻，不婚與晚婚比房價更靠近源頭。"],
+          ["南韓做了對照組", "首爾房價同樣高，但南韓 2025 年生育率回升到 0.8。同樣的壓力，不同的結果。"]
+        ];
+        return '<div class="dk-slide">' +
+          '<div class="dk-head"><span class="dk-kicker">05 — 反證</span>' +
+          '<h2 class="dk-h2">三個不支持「房價說」的訊號</h2></div>' +
+          '<div class="dk-cards">' + cards.map(function (c) {
+            return '<div class="dk-card"><h3>' + c[0] + "</h3><p>" + c[1] + "</p></div>";
+          }).join("") + "</div></div>";
+      }
+    },
+    {
+      id: "hyp", ms: 12000, html: function () {
+        var rows = [
+          ["延後，而不是取消", "房價可能不決定「生不生」，而是決定「幾歲生」。而延後本身就會壓低總量。", 82],
+          ["空間被壓縮", "全台交易坪數集中在 20–28 坪，小宅化定局。第二胎的房間先消失了。", 64],
+          ["補貼追不上", "擴大生育補助每胎 10 萬，相對於中位數住宅 975 萬，是量級上的落差。", 46]
+        ];
+        return '<div class="dk-slide">' +
+          '<div class="dk-head"><span class="dk-kicker">06 — 可能性</span>' +
+          '<h2 class="dk-h2">如果房價有影響，比較像這三種形狀</h2></div>' +
+          '<div class="dk-hyp">' + rows.map(function (r) {
+            return '<div class="dk-hyp-row"><div class="dk-hyp-bar" data-bar="' + r[2] + '"></div>' +
+              '<div class="dk-hyp-text"><h3>' + r[0] + "</h3><p>" + r[1] + "</p></div></div>";
+          }).join("") + "</div>" +
+          '<p class="dk-note">條寬代表推論強度，不是統計顯著性。這一頁是假說，不是結論。</p></div>';
+      }
+    },
+    {
+      id: "close", ms: 12000, html: function () {
+        return '<div class="dk-slide dk-closing">' +
+          wall({ cols: 26, rows: 5, litStart: 130, litEnd: 67, compact: true }) +
+          '<div class="dk-close-copy"><h2 class="dk-h2">燈會繼續滅，問題是誰在關</h2>' +
+          '<p class="dk-lede">2025 年，台灣正式進入超高齡社會，65 歲以上人口占 ' +
+          counter({ from: 0, to: 20.6, dec: 1, delay: 500, dur: 1800 }) +
+          '%；出生 10.8 萬人，死亡 20.0 萬人。房價是這道題的其中一個變數，不是唯一那個 —— 但它是少數政策真的握得到的變數。</p>' +
+          '<div class="dk-sources"><span>資料來源</span><p>內政部戶政司人口統計、內政部不動產資訊平台房價負擔能力指標、國家發展委員會人口推估。2025 年出生數、總生育率、六都房貸負擔率、房價所得比為公告值；2017–2021 年出生數為年度統計概數，請以戶政司原始資料為準。</p></div>' +
+          "</div></div>";
+      }
+    }
+  ];
+
+  /* --------------------------- 動畫啟動 --------------------------- */
+
+  var timers = [];
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+  function clearTimers() {
+    timers.forEach(clearTimeout);
+    timers.forEach(clearInterval);
+    timers = [];
+  }
+
+  function activate(root) {
+    // 計數器
+    root.querySelectorAll("[data-count]").forEach(function (el) {
+      var from = parseFloat(el.dataset.from), to = parseFloat(el.dataset.to);
+      var dec = parseInt(el.dataset.dec, 10) || 0;
+      var dur = parseInt(el.dataset.dur, 10) || 2000;
+      if (REDUCE) { el.textContent = nf(to, dec); return; }
+      later(function () {
+        var t0 = 0;
+        function step(ts) {
+          if (!t0) t0 = ts;
+          var p = Math.min((ts - t0) / dur, 1);
+          var e = 1 - Math.pow(1 - p, 3);
+          el.textContent = nf(from + (to - from) * e, dec);
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }, parseInt(el.dataset.delay, 10) || 0);
+    });
+
+    // 折線
+    root.querySelectorAll("[data-chart]").forEach(function (svg) {
+      if (REDUCE) { svg.classList.add("on"); return; }
+      later(function () { svg.classList.add("on"); }, 300);
+    });
+
+    // 長條（含假說底條），依序展開
+    var bars = root.querySelectorAll("[data-bar]");
+    bars.forEach(function (b, i) {
+      later(function () { b.style.width = b.dataset.bar + "%"; }, REDUCE ? 0 : 400 + i * 220);
+    });
+
+    // 卡片 / 假說列淡入
+    root.querySelectorAll(".dk-card, .dk-hyp-row").forEach(function (el, i) {
+      later(function () { el.classList.add("on"); }, REDUCE ? 0 : 400 + i * 520);
+    });
+
+    // 窗牆逐格熄燈
+    root.querySelectorAll(".dk-wall[data-lit-start]").forEach(function (w) {
+      var cells = w.querySelectorAll(".dk-win");
+      var lit = parseInt(w.dataset.litStart, 10);
+      var end = parseInt(w.dataset.litEnd, 10);
+      if (REDUCE) {
+        for (var i = end; i < lit; i++) cells[i].classList.remove("dk-win-on");
+        return;
+      }
+      later(function () {
+        var id = setInterval(function () {
+          lit -= 1;
+          if (lit < end) { clearInterval(id); return; }
+          var c = cells[lit];
+          if (!c) return;
+          c.classList.remove("dk-win-on");
+          c.classList.add("dk-win-fading");
+          setTimeout(function () { c.classList.remove("dk-win-fading"); }, 600);
+        }, 38);
+        timers.push(id);
+      }, 900);
+    });
+  }
+
+  /* ----------------------------- 播放 ----------------------------- */
+
+  var stage = document.getElementById("dkStage");
+  var progress = document.getElementById("dkProgress");
+  var pageEl = document.getElementById("dkPage");
+  var playBtn = document.getElementById("dkPlay");
+
+  var idx = 0, playing = !REDUCE, raf = 0, startedAt = 0, elapsed = 0;
+
+  SLIDES.forEach(function (s, i) {
+    var seg = document.createElement("button");
+    seg.className = "dk-seg";
+    seg.setAttribute("aria-label", "第 " + (i + 1) + " 頁");
+    seg.innerHTML = '<span class="dk-seg-fill"></span>';
+    seg.addEventListener("click", function () { go(i); });
+    progress.appendChild(seg);
+  });
+  var fills = progress.querySelectorAll(".dk-seg-fill");
+
+  function paintProgress(p) {
+    for (var i = 0; i < fills.length; i++) {
+      fills[i].style.width = i < idx ? "100%" : i === idx ? (p * 100) + "%" : "0%";
+    }
+  }
+
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  function render() {
+    clearTimers();
+    cancelAnimationFrame(raf);
+    stage.innerHTML = '<div class="dk-enter">' + SLIDES[idx].html() + "</div>";
+    activate(stage);
+    pageEl.textContent = pad(idx + 1) + " / " + pad(SLIDES.length);
+    elapsed = 0; startedAt = 0;
+    paintProgress(0);
+    if (playing) raf = requestAnimationFrame(loop);
+  }
+
+  function loop(ts) {
+    if (!playing) return;
+    if (!startedAt) startedAt = ts - elapsed;
+    elapsed = ts - startedAt;
+    var p = Math.min(elapsed / SLIDES[idx].ms, 1);
+    paintProgress(p);
+    if (p >= 1) { go(idx + 1); return; }
+    raf = requestAnimationFrame(loop);
+  }
+
+  function go(n) {
+    idx = ((n % SLIDES.length) + SLIDES.length) % SLIDES.length;
+    render();
+  }
+
+  function setPlaying(v) {
+    playing = v;
+    playBtn.innerHTML = v ? "&#10073;&#10073;" : "&#9654;";
+    playBtn.setAttribute("aria-label", v ? "暫停" : "播放");
+    cancelAnimationFrame(raf);
+    startedAt = 0;
+    if (v) raf = requestAnimationFrame(loop);
+  }
+
+  document.getElementById("dkPrev").addEventListener("click", function () { go(idx - 1); });
+  document.getElementById("dkNext").addEventListener("click", function () { go(idx + 1); });
+  playBtn.addEventListener("click", function () { setPlaying(!playing); });
+
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight") go(idx + 1);
+    else if (e.key === "ArrowLeft") go(idx - 1);
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  });
+
+  // 觸控左右滑
+  var tx = 0;
+  stage.addEventListener("touchstart", function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  stage.addEventListener("touchend", function (e) {
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 60) go(idx + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { cancelAnimationFrame(raf); startedAt = 0; }
+    else if (playing) raf = requestAnimationFrame(loop);
+  });
+
+  setPlaying(playing);
+  render();
+})();
+</script>
+</body>
+</html>
