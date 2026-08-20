@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>迴圈工程</title>
+<meta name="theme-color" content="#E9EAE4">
+<meta name="description" content="迴圈工程：一個 agent loop，還是一條有界的流程？它們不會報錯，它們會成功。第一百次，要比第一次聰明。">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9EAE4;--card:#F6F6F2;--ink:#131A20;--ink-soft:#4A5560;
+  --slate:#35566A;--violet:#584AB0;--red:#A5372A;
+  --rule:#C7C9C0;--rule-hard:#9EA298;--wash:#DFE0D9;
+  --mono:"IBM Plex Mono","Noto Sans TC",ui-monospace,monospace;
+  --disp:"IBM Plex Sans Condensed","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.75;letter-spacing:.01em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+button:not(:disabled),[role=button]:not(:disabled){cursor:pointer}
+h1,h2,h3{text-wrap:balance;font-family:var(--disp)}
+p{text-wrap:pretty}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+::selection{background:rgba(165,55,42,.22)}
+.skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:var(--paper);padding:8px 12px;z-index:80}
+.skip:focus{left:8px}
+.progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--red);transform-origin:left;transform:scaleX(0);z-index:50;pointer-events:none}
+.top{position:sticky;top:0;z-index:40;border-bottom:1px solid var(--ink);background:rgba(233,234,228,.92);backdrop-filter:blur(2px)}
+.top-in{max-width:1080px;margin:0 auto;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px}
+.brand{font-family:var(--disp);font-weight:700;font-size:18px;text-decoration:none;letter-spacing:-.02em}
+.brand small{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-soft);margin-left:10px;text-transform:uppercase;font-weight:400}
+.toc-btn{height:44px;border:1px solid var(--ink);background:transparent;padding:0 14px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;display:none}
+.shell{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:188px minmax(0,1fr);gap:40px;padding:24px 28px 120px}
+main,article{min-width:0}
+.rail{position:sticky;top:80px;align-self:start}
+.rail .k{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 12px}
+.toc{list-style:none;margin:0;padding:0}
+.toc a{display:flex;gap:12px;align-items:baseline;border-left:1px solid var(--rule);padding:8px 0 8px 12px;text-decoration:none;color:var(--ink-soft)}
+.toc a:hover,.toc a.on{border-color:var(--ink);color:var(--ink)}
+.toc .n{font-family:var(--mono);font-size:10px;letter-spacing:.14em}
+.toc .t{font-family:var(--disp);font-weight:700;font-size:15px;line-height:1.2}
+.drawer{display:none;position:fixed;inset:0;z-index:60}
+.drawer.open{display:block}
+.drawer .mask{position:absolute;inset:0;background:rgba(19,26,32,.35)}
+.drawer .panel{position:absolute;inset:0 auto 0 0;width:min(100%,320px);background:var(--paper);padding:24px;overflow:auto}
+.drawer h2{margin:0;font-size:22px}
+.drawer .close{position:absolute;top:16px;right:16px;width:44px;height:44px;border:1px solid var(--ink);background:transparent}
+.hero{border-bottom:2px solid var(--ink);padding:72px 0 48px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft)}
+.hero h1{font-size:clamp(38px,7.2vw,80px);line-height:1.05;letter-spacing:-.015em;margin:22px 0 0;max-width:14ch;font-weight:700}
+.hero h1 em{font-style:normal;color:var(--red)}
+.lede{margin:28px 0 0;max-width:min(58ch,100%);font-size:17px;color:var(--ink-soft)}
+.index{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--rule-hard);border:1px solid var(--rule-hard);margin-top:38px}
+.index a{background:var(--card);padding:16px 18px;text-decoration:none;display:block;color:var(--ink);min-height:92px}
+.index a:hover{background:#EDEDE7}
+.index .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--ink-soft);display:block}
+.index .t{font-family:var(--disp);font-weight:700;font-size:18px;margin-top:6px;display:block;line-height:1.25}
+.index .d{font-size:13px;color:var(--ink-soft);margin-top:4px;display:block;line-height:1.5}
+.sec{padding:72px 0 0;scroll-margin-top:80px}
+.sec-head{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);display:flex;align-items:center;gap:14px;margin:0 0 8px}
+.sec-head:after{content:"";flex:1;border-top:1px solid var(--rule-hard)}
+.sec h2{font-size:clamp(25px,3.6vw,38px);line-height:1.2;letter-spacing:-.01em;margin:0 0 16px;max-width:24ch;font-weight:700}
+.sec h3{font-size:22px;margin:28px 0 10px}
+.prose{max-width:64ch;margin:0 0 16px}
+.muted{color:var(--ink-soft)}
+.strong{font-weight:500}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;padding:2px 7px;border:1px solid currentColor;white-space:nowrap}
+.t-code{color:var(--slate);border-color:var(--slate)}
+.t-model{color:var(--violet);border-color:var(--violet)}
+.t-red{color:var(--red);border-color:var(--red)}
+.pull{border-left:3px solid var(--violet);padding-left:14px;font-family:var(--mono);font-size:13px;max-width:64ch;margin:8px 0 20px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
+.box{border:1px solid var(--rule-hard);background:var(--card);padding:20px}
+.box.slate{border-color:var(--slate)}
+.box.red{border-color:var(--red)}
+.box.ink{border-color:var(--ink)}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin:0}
+.box.slate .kicker{color:var(--slate)}
+.box.red .kicker{color:var(--red)}
+.box h3{margin:8px 0 0;font-size:20px}
+.pipe{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:14px;font-family:var(--mono);font-size:12px}
+.pipe span{background:var(--wash);border:1px solid var(--rule-hard);padding:4px 9px}
+.pipe i{font-style:normal;color:var(--rule-hard)}
+.oracle{display:inline-block;margin-top:14px;font-family:var(--mono);font-size:12.5px;padding:6px 12px;border:2px solid var(--slate);color:var(--slate)}
+.oracle.no{border-color:var(--red);color:var(--red)}
+.matrix{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--ink);border:2px solid var(--ink);margin:16px 0 20px}
+.matrix>div{background:var(--card);padding:24px 22px}
+.matrix .q{font-family:var(--mono);font-size:11px;letter-spacing:.14em;margin-bottom:10px}
+.matrix .yes .q{color:var(--slate)}
+.matrix .no .q{color:var(--red)}
+.matrix h3{font-family:var(--disp);font-weight:700;font-size:21px;margin:0 0 10px;line-height:1.3}
+.matrix p{margin:0 0 12px;font-size:14.5px;color:var(--ink-soft);line-height:1.7}
+.matrix .where{font-family:var(--mono);font-size:12px;color:var(--ink)}
+.quiz{border:1px solid var(--ink);background:var(--card);margin:8px 0 20px}
+.quiz-q{padding:20px;border-bottom:1px solid var(--rule)}
+.quiz-q h3{margin:8px 0 12px;font-size:20px}
+.choice{display:block;width:100%;text-align:left;min-height:44px;border:1px solid var(--rule-hard);background:transparent;padding:8px 12px;margin:6px 0 0;font-size:13px}
+.choice.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.quiz-out{padding:20px;border-top:1px solid var(--ink)}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--ink);margin:12px 0 20px;max-width:100%}
+table{width:100%;min-width:640px;border-collapse:collapse;text-align:left;font-size:14px}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;padding:12px 16px 12px 0}
+td{border-top:1px solid var(--rule);padding:14px 16px 14px 0;vertical-align:top}
+.eras{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--rule-hard);margin:12px 0 20px}
+.eras article{background:var(--card);padding:16px}
+.eras .y{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+.eras h3{margin:4px 0;font-size:20px}
+.eras .push{color:var(--red);font-size:12.5px}
+.band{margin-top:88px;border-top:2px solid var(--ink);padding-top:26px;scroll-margin-top:72px}
+.band .k{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--violet)}
+.band h2{font-family:var(--disp);font-weight:700;font-size:clamp(30px,5vw,52px);line-height:1.12;letter-spacing:-.015em;margin:10px 0 0;max-width:18ch}
+.band .sub{margin:14px 0 0;max-width:56ch;color:var(--ink-soft)}
+.ledger{border-top:1px solid var(--ink);margin:18px 0 20px}
+.row{display:grid;grid-template-columns:38px 1fr 92px minmax(0,1.35fr);gap:16px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--rule)}
+.row.is-model{background:linear-gradient(90deg,rgba(88,74,176,.1),transparent 72%)}
+.row .n{font-family:var(--mono);font-size:12px;color:var(--rule-hard)}
+.row.is-model .what{color:var(--violet)}
+.row .why{font-size:14px;color:var(--ink-soft);line-height:1.6}
+.traces{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin:8px 0 20px}
+.trace{background:var(--card);border:1px solid var(--rule-hard);padding:0 0 22px}
+.trace-top{padding:18px 20px 14px;border-bottom:1px solid var(--rule)}
+.trace-top .lab{font-family:var(--disp);font-weight:700;font-size:21px;display:flex;align-items:center;gap:10px}
+.trace-top .lab b{font-family:var(--mono);font-size:12px;font-weight:600;border:1px solid var(--ink);padding:2px 8px}
+.trace-top .sub{font-size:13.5px;color:var(--ink-soft);margin-top:6px;line-height:1.55}
+.play{height:44px;border:1px solid var(--ink);background:transparent;padding:0 14px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.steps{list-style:none;margin:0;padding:16px 20px 0;font-family:var(--mono);font-size:12.5px;line-height:1.5}
+.steps li{display:grid;grid-template-columns:34px 1fr;gap:9px;padding:5px 0 5px 12px;border-left:2px solid var(--rule);margin-left:2px}
+.steps .i{color:var(--rule-hard)}
+.steps li.m{border-left-color:var(--violet)}
+.steps li.m .i{color:var(--violet)}
+.steps li.c,.steps li.ok{border-left-color:var(--slate)}
+.steps li.c .i,.steps li.ok .i{color:var(--slate)}
+.steps li.think{color:var(--ink-soft)}
+.steps li.err{border-left-color:var(--red);background:rgba(165,55,42,.09)}
+.steps li.err .i,.steps li.err span:last-child{color:var(--red);font-weight:600}
+.steps li.tainted{border-left-color:var(--red);color:var(--ink-soft);background:repeating-linear-gradient(-45deg,rgba(165,55,42,.1) 0 5px,transparent 5px 10px)}
+.steps li.fakegreen{border-left-color:var(--red);background:rgba(165,55,42,.18)}
+.steps li.fakegreen span:last-child{color:var(--red);font-weight:600}
+.steps li.human{border-left-color:var(--ink);font-weight:500}
+.steps li.ok{background:rgba(53,86,106,.08)}
+.steps li.dim{opacity:.28}
+.steps li.live{background:rgba(19,26,32,.06)}
+.bounded{margin:8px 20px;border:2px solid var(--slate);background:rgba(53,86,106,.05);position:relative;padding:22px 0 10px}
+.bounded:before{content:attr(data-label);position:absolute;top:-10px;left:12px;background:var(--card);font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--slate);padding:0 7px}
+.bounded .steps{padding:0 16px}
+.verdict{margin:16px 20px 0;padding:12px 14px;font-size:13.5px;line-height:1.6;border:1px dashed var(--red);color:var(--red)}
+.verdict.ok{border-color:var(--slate);color:var(--slate)}
+.code-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:26px 0 8px}
+pre{background:#1A222B;color:#DDE3E8;font-family:var(--mono);font-size:13px;line-height:1.72;padding:24px 22px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 8px;border:1px solid var(--ink);max-width:100%}
+pre .k{color:#9BB8D8}
+pre .s{color:#B9CBA0}
+pre .cm{color:#7C8A96;font-style:italic}
+pre .hl{color:#C3A6E8}
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:18px 0 8px}
+.check{border-top:2px solid var(--slate);padding-top:12px}
+.check b{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--slate);display:block;margin-bottom:5px}
+.check span{font-size:14.5px;color:var(--ink-soft);line-height:1.65}
+.dissect{background:var(--card);border:1px solid var(--rule-hard);padding:26px 24px;margin:12px 0}
+.dissect .para{font-size:19px;line-height:2;margin:0 0 22px;padding-bottom:22px;border-bottom:1px solid var(--rule)}
+.dissect mark{background:rgba(165,55,42,.14);color:var(--ink);padding:1px 3px;font-weight:500}
+.dissect mark sup{font-family:var(--mono);font-size:10px;color:var(--red);vertical-align:super;margin-left:2px}
+.dissect ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px 26px}
+.dissect li{display:grid;grid-template-columns:28px 1fr;gap:12px;font-size:14px}
+.dissect .fail{font-family:var(--mono);font-size:12.5px;color:var(--red);margin:16px 0 0}
+.swap{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule-hard);border:1px solid var(--rule-hard);margin:12px 0 20px}
+.swap>div{background:var(--card);padding:20px}
+.swap .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:12px}
+.swap .m-out{font-family:var(--mono);font-size:12.5px;line-height:1.85;word-break:break-word}
+.swap .m-out b{color:var(--violet);font-weight:500}
+.swap .built{font-size:16px;line-height:1.9}
+.swap .built b{color:var(--slate);font-weight:600}
+.axis{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 8px}
+.cells{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.cell{min-height:120px;border:1px solid var(--rule-hard);background:var(--card);padding:16px;text-align:left}
+.cell.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.cell.on.danger{border-color:var(--red);background:var(--red)}
+.cell .id{font-family:var(--mono);font-size:11px;letter-spacing:.14em}
+.cell .name{font-family:var(--disp);font-weight:700;font-size:18px;display:block;margin-top:4px}
+.cell .tagline{display:block;margin-top:8px;font-size:12px;opacity:.8}
+.unk{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule-hard);margin:12px 0 20px}
+.unk article{background:var(--card);padding:20px}
+.unk .star{box-shadow:inset 0 0 0 2px var(--ink)}
+.ratchet{border:1px solid var(--ink);background:var(--card);padding:24px;margin:12px 0 20px}
+.ratchet input{width:100%;accent-color:var(--ink);height:44px}
+.bands{display:flex;height:40px;border:1px solid var(--ink);margin-top:16px;overflow:hidden}
+.bands .t{background:var(--slate)}
+.bands .r{background:var(--violet)}
+.bands .h{background:var(--red)}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:16px;font-size:14px}
+.stats b{font-family:var(--mono);font-size:24px;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.chip{height:44px;border:1px solid var(--rule-hard);background:transparent;padding:0 12px;font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.chip.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule-hard);border:1px solid var(--rule-hard);margin:0 0 28px}
+.ap{background:var(--card);padding:22px}
+.ap .id{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--red);display:block;margin-bottom:9px}
+.ap .id i{font-style:normal;color:var(--rule-hard);margin-left:6px}
+.ap h3{font-family:var(--disp);font-weight:700;font-size:19px;margin:0 0 9px;line-height:1.3}
+.ap p{margin:0;font-size:14.5px;color:var(--ink-soft);line-height:1.7}
+.ap .fix{margin-top:12px;padding-top:11px;border-top:1px solid var(--rule);color:var(--slate);font-size:14px}
+.fam{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin:28px 0 8px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--ink);margin:12px 0 20px}
+.fields article{background:var(--paper);padding:20px}
+.fields .k{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink-soft)}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:8px 0 20px}
+.rule{border-top:1px solid var(--ink);padding-top:16px}
+.rule .k{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+.rule-out{margin-top:64px;border-top:2px solid var(--ink);padding-top:34px}
+.rule-out .big{font-family:var(--disp);font-weight:700;font-size:clamp(26px,4.6vw,46px);line-height:1.22;letter-spacing:-.01em;max-width:22ch;margin:0 0 8px}
+.rule-out .big em{font-style:normal;border-bottom:6px solid var(--violet)}
+.coda{margin-top:28px;padding-top:22px;border-top:1px solid var(--rule);font-size:14.5px;color:var(--ink-soft);max-width:62ch}
+footer{border-top:2px solid var(--ink);margin-top:80px;padding-top:32px}
+footer .k{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+footer ul{padding:0;list-style:none}
+footer a{text-underline-offset:4px}
+.reveal{opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+@media(max-width:1080px){
+  .shell{grid-template-columns:minmax(0,1fr);padding:16px 20px 96px}
+  .rail{display:none}
+  .toc-btn{display:inline-flex;align-items:center}
+  .brand small{display:none}
+}
+@media(max-width:880px){
+  .index,.grid-2,.traces,.unk,.fields,.rules,.stats,.matrix,.swap,.ap-grid,.dissect ol,.checks,.eras{grid-template-columns:1fr}
+  .row{grid-template-columns:32px 1fr auto;gap:6px 12px}
+  .row .why{grid-column:2/-1}
+  .hero{padding:40px 0 36px}
+  .dissect .para{font-size:17px}
+  .prose,.pull,.coda,.lede{max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#open">跳到正文</a>
+<div class="progress" id="progress"></div>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#open">迴圈工程 <small>Loop Engineering</small></a>
+    <button class="toc-btn" type="button" id="tocOpen">章節</button>
+  </div>
+</header>
+<div class="drawer" id="drawer">
+  <div class="mask" id="tocClose"></div>
+  <div class="panel">
+    <button class="close" type="button" id="tocX" aria-label="關閉">×</button>
+    <h2>章節</h2>
+    <ol class="toc" id="tocMobile"></ol>
+  </div>
+</div>
+<div class="shell">
+<aside class="rail">
+  <p class="k">Contents</p>
+  <ol class="toc" id="tocDesk"></ol>
+</aside>
+<main>
+<article>
+
+<header class="hero" id="open">
+  <p class="eyebrow">Loop Engineering · 迴圈工程</p>
+  <h1>一個 agent loop，還是<em>一條有界的流程</em>？</h1>
+  <p class="lede">迴圈工程不是「把 agent 跑起來」的別名。它問三件更窄、也更貴的事：這一步該不該讓模型決定；錯了的時候錯誤會走多遠；跑到第一百次，系統有沒有變聰明。</p>
+  <p class="lede">大多數系統死在同一種壞法。它們不會報錯。它們會成功——跑完、亮綠燈、交出一份看起來很專業的東西，裡面是錯的。</p>
+  <nav class="index" aria-label="章節">
+    <a href="#axes"><span class="k">01</span><span class="t">兩軸</span><span class="d">控制流 × 裁判</span></a>
+    <a href="#vocab"><span class="k">02</span><span class="t">詞彙</span><span class="d">正確性從哪裡來</span></a>
+    <a href="#case1"><span class="k">03</span><span class="t">修復</span><span class="d">有 pytest 的迴圈</span></a>
+    <a href="#case2"><span class="k">04</span><span class="t">探索</span><span class="d">沒有裁判的報告</span></a>
+    <a href="#map"><span class="k">05</span><span class="t">四格</span><span class="d">右下那格只能拆</span></a>
+    <a href="#explore"><span class="k">06</span><span class="t">未知</span><span class="d">unknown known</span></a>
+    <a href="#ratchet"><span class="k">07</span><span class="t">棘輪</span><span class="d">第一百次</span></a>
+    <a href="#aps"><span class="k">08</span><span class="t">反模式</span><span class="d">AP-01 到 AP-15</span></a>
+    <a href="#rules"><span class="k">09</span><span class="t">規則</span><span class="d">四個必填欄位</span></a>
+  </nav>
+</header>
+
+<section class="sec reveal" id="axes">
+  <p class="sec-head">01 · 兩軸</p>
+  <h2>選型不是 agent 或 workflow，是控制流 × 裁判</h2>
+  <p class="prose">「用不用 LLM」幾乎不改變答案。同一個需求，兩種蓋法，真正分岔的是兩條獨立的軸。Q1：下一步做什麼，誰決定？Q2：有沒有一個程式能判定對錯的東西？</p>
+  <p class="prose">Q1 決定錯誤的傳播半徑。模型在 runtime 排順序，第 9 步判斷錯，後面每一步都建立在錯的前提上。程式把順序寫死，錯誤被關在單一節點裡，不讓它改掉後面整條軌跡。</p>
+  <p class="prose">Q2 決定迴圈該放哪一段。有 oracle——exit code、schema、對帳數字——迴圈放修復，裁判當退出條件。沒有 oracle，修復迴圈是假的，它只會收斂到「build 得過」。迴圈要往前移到蒐集資料，正確性改用限制模型能講什麼來守。</p>
+  <div class="quiz" id="quiz">
+    <div class="grid-2" style="margin:0;gap:0">
+      <div class="quiz-q">
+        <p class="kicker">Q1 · 控制流</p>
+        <h3>分支事先枚舉得完嗎？</h3>
+        <button class="choice" data-q="q1" data-v="1">是 · 畫得出流程圖 → 寫流程圖</button>
+        <button class="choice" data-q="q1" data-v="0">否 · 枚舉不完 → 才考慮 loop</button>
+      </div>
+      <div class="quiz-q">
+        <p class="kicker">Q2 · 可驗證性</p>
+        <h3>有沒有程式能判定對錯的東西？</h3>
+        <button class="choice" data-q="q2" data-v="1">是 · 有 oracle → 迴圈放修復</button>
+        <button class="choice" data-q="q2" data-v="0">否 · 沒有 → 迴圈放探索，契約守正確性</button>
+      </div>
+    </div>
+    <div class="quiz-out" id="quizOut">兩題都選完，才知道該不該給模型控制流。</div>
+  </div>
+  <p class="prose muted">常見誤解：以為 workflow 消除了隨機性。沒有。它只是不讓隨機性改寫整條軌跡。</p>
+  <div class="matrix">
+    <div class="yes">
+      <p class="q">Q2 = YES · 有 oracle</p>
+      <h3>迴圈放修復</h3>
+      <p>做 → 驗 → 修 → 再驗。退出條件是 oracle 說 ok，不是模型自評。Bound 是 max attempts。</p>
+      <p class="where">WHERE · CASE 01 · pytest exit code</p>
+    </div>
+    <div class="no">
+      <p class="q">Q2 = NO · 沒有 oracle</p>
+      <h3>迴圈放探索</h3>
+      <p>退出條件是查詢預算用完。產出必須是可檢查的清單，不是結論。寫作段用契約守正確性，重試幫不上忙。</p>
+      <p class="where">WHERE · CASE 02 · 你沒辦法「執行」一份根因分析</p>
+    </div>
+  </div>
+  <p class="prose">下面兩個案子，同一條原則的兩種位置。一個有 pytest 當裁判。一個沒有。</p>
+</section>
+
+<section class="sec reveal" id="vocab">
+  <p class="sec-head">02 · 正確性從哪裡來</p>
+  <h2>Loop 與 Graph 不是第 4、第 5 階，是同一層的分岔</h2>
+  <p class="prose">Prompt、Context、Harness、Loop、Graph 常被畫成 1→5 的進階。前三層確實是累加的基座。第四、第五層不是下一級——它們是「控制流交給誰」的兩個答案。五層是詞彙表。兩軸才是選擇函數。</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>層</th><th>正確性來源</th><th>何時失效</th></tr></thead>
+      <tbody>
+        <tr><td><span style="font-family:var(--mono);font-size:12px;color:var(--ink-soft)">1</span><br><b>Prompt</b><br><span style="font-family:var(--mono);font-size:10px;color:var(--ink-soft)">THE INSTRUCTION</span></td><td>指令品質——把要求講清楚</td><td class="muted">任務需要事實時</td></tr>
+        <tr><td><span style="font-family:var(--mono);font-size:12px;color:var(--ink-soft)">2</span><br><b>Context</b><br><span style="font-family:var(--mono);font-size:10px;color:var(--ink-soft)">THE INFORMATION</span></td><td>資訊完整度——該看的都在視野裡</td><td class="muted">任務需要動作時</td></tr>
+        <tr><td><span style="font-family:var(--mono);font-size:12px;color:var(--ink-soft)">3</span><br><b>Harness</b><br><span style="font-family:var(--mono);font-size:10px;color:var(--ink-soft)">THE OPERATING ENV</span></td><td>不產生正確性——它界定錯誤的代價</td><td class="muted">它不會失效，它只會被略過</td></tr>
+        <tr><td><span style="font-family:var(--mono);font-size:12px;color:var(--ink-soft)">4a</span><br><b>Loop</b><br><span style="font-family:var(--mono);font-size:10px;color:var(--ink-soft)">THE FEEDBACK</span></td><td>回饋——做、驗、修，由裁判收斂</td><td class="muted">沒有 oracle 時</td></tr>
+        <tr><td><span style="font-family:var(--mono);font-size:12px;color:var(--ink-soft)">4b</span><br><b>Graph</b><br><span style="font-family:var(--mono);font-size:10px;color:var(--ink-soft)">THE STRUCTURE</span></td><td>結構——順序寫死，錯誤關進節點</td><td class="muted">分支枚舉不完時</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose">Harness 不產生正確性。它界定錯誤的代價。工具表裡只該留下「做事」的能力；排程、掛載、裝套件、加 MCP server 一律移出。Turn 上限限的是單次爆炸半徑。這條規則限的是它能不能活過這一次——容器 --rm 之後，排程是注入唯一活得過 session 的路徑。</p>
+  <h3>歸因錯誤：coding agent 的成功證明的是 oracle</h3>
+  <p class="prose">每一代失敗都把修法往上推一層。2023 以為是指令，2024 以為是資訊，接著給它手、給它沙箱。2025–26 寫程式的 agent 突然可靠，歸因發生在這裡，然後被外推到所有領域。</p>
+  <p class="prose">成功的主因是 pytest，不是模型變聰明了。廉價 oracle 讓每一輪都有真實回饋，多轉幾圈真的會收斂。沒有 oracle 的領域——RCA、分析、報告——重試只會收斂到「能停下來」的地方。那一步外推，在邏輯上沒有依據。</p>
+  <div class="eras">
+    <article><p class="y">2023</p><h3>PROMPT</h3><p>ReAct、AutoGPT</p><p class="muted">無界迴圈、目標漂移、在第 40 步忘記自己要幹嘛。</p><p class="push">問題不在指令，在它看得到什麼。</p></article>
+    <article><p class="y">2024</p><h3>CONTEXT</h3><p>RAG 與檢索管線</p><p class="muted">資訊夠了，但只能「說」，不能「做」。</p><p class="push">得給它手。</p></article>
+    <article><p class="y">2024–25</p><h3>HARNESS</h3><p>Function calling、MCP、沙箱</p><p class="muted">能動作但不安全、不可稽核。</p><p class="push">界定代價之後，還缺收斂機制。</p></article>
+    <article><p class="y">2025–26</p><h3>LOOP</h3><p>Coding agent 大勝</p><p class="muted">歸因錯誤發生在這裡。被外推到所有領域。</p><p class="push">成功的主因是 pytest，不是模型變聰明了。</p></article>
+    <article><p class="y">2026</p><h3>GRAPH</h3><p>回頭發現結構</p><p class="muted">沒有 oracle 的領域接連翻車。</p><p class="push">那裡的正確性要靠結構守，不是靠重試。</p></article>
+  </div>
+  <p class="prose muted">所以平台商真正在蓋的是審批、隔離、稽核，不是更聰明的 orchestrator。沒有 oracle 的地方，人就是 oracle，只是變得很貴。human-in-the-loop 本質上是租一個裁判。租金要花在刀口上。</p>
+</section>
+
+<section class="band reveal" id="case1">
+  <p class="k">CASE 01 · Test Agent</p>
+  <h2>有裁判：把不確定性關進盒子</h2>
+  <p class="sub">Jira 工單 → test case → test code → 執行 → report → 寫回。選架構之前先問每一段——這裡的判斷，規則寫得出來嗎？寫得出來的，不要付錢請模型想。</p>
+  <div class="pipe"><span>Jira 工單</span><i>→</i><span>test case</span><i>→</i><span>test code</span><i>→</i><span>執行</span><i>→</i><span>report</span><i>→</i><span>寫回 Jira</span></div>
+  <div class="oracle">ORACLE = pytest exit code</div>
+  <div class="ledger">
+    <div class="row"><div class="n">01</div><div class="what">從 Jira 拉工單</div><div><span class="tag t-code">Code</span></div><div class="why">就是 REST API，沒有模糊空間</div></div>
+    <div class="row is-model"><div class="n">02</div><div class="what">工單 → test case</div><div><span class="tag t-model">Model</span></div><div class="why">真正的判斷：從自然語言推出該驗什麼</div></div>
+    <div class="row is-model"><div class="n">03</div><div class="what">test case → test code</div><div><span class="tag t-model">Model</span></div><div class="why">需要模型，但輸出用 schema 綁死格式</div></div>
+    <div class="row"><div class="n">04</div><div class="what">執行測試</div><div><span class="tag t-code">Code</span></div><div class="why">subprocess 跑 pytest。絕對不要交給模型決定何時跑</div></div>
+    <div class="row"><div class="n">05</div><div class="what">產出 report</div><div><span class="tag t-code">Code</span></div><div class="why">大半是 templating，只有摘要那句可選用模型</div></div>
+    <div class="row"><div class="n">06</div><div class="what">寫回 Jira</div><div><span class="tag t-code">Code</span></div><div class="why">API。順序你早就知道了</div></div>
+  </div>
+  <p class="pull">六段裡兩段吃模型能力。把整條交給 agent，等於付錢請它「決定現在該呼叫 Jira 了」——而且它可能決定錯，或跑完忘記寫回去。</p>
+  <h3>錯誤的傳播半徑</h3>
+  <p class="prose">左邊是 agent loop 的真實軌跡。第 09 步把「環境缺套件」判成「fixture 沒建好」，後面每一筆都建立在錯的前提上。為了讓迴圈收斂，它把 assert 放寬。通過率 100%，測試已經不檢查任何東西。模型沒有說謊，它把目標換掉了。</p>
+  <p class="prose">右邊順序寫死。模型只產 case 與 code，修復迴圈上限三次。三次都失敗，report 與寫回照常執行，內容變成「需要人看」。</p>
+  <div style="display:flex;justify-content:flex-end;margin:8px 0"><button class="play" type="button" data-play="t1">播放軌跡</button></div>
+  <div class="traces">
+    <article class="trace">
+      <div class="trace-top"><div class="lab"><b>A</b> 一個 agent loop</div><p class="sub">6 個 tool，模型自己排順序、自己決定何時停</p></div>
+      <ol class="steps" data-trace="t1a">
+        <li class="c"><span class="i">01</span><span>read_issue(PROJ-812)</span></li>
+        <li class="think"><span class="i">02</span><span>think: 需要先看程式碼</span></li>
+        <li class="c"><span class="i">03</span><span>list_files(repo/)</span></li>
+        <li class="c"><span class="i">04</span><span>read_file(auth.py)</span></li>
+        <li class="c"><span class="i">05</span><span>read_file(utils.py)</span></li>
+        <li class="m"><span class="i">06</span><span>write_file(test_auth.py)</span></li>
+        <li class="c"><span class="i">07</span><span>run_pytest → 2 failed</span></li>
+        <li class="c"><span class="i">08</span><span>read_file(conftest.py)</span></li>
+        <li class="err"><span class="i">09</span><span>判定：fixture 沒建好 · 實際是環境缺套件</span></li>
+        <li class="tainted"><span class="i">10</span><span>write_file(conftest.py)</span></li>
+        <li class="tainted"><span class="i">11</span><span>run_pytest → 3 failed</span></li>
+        <li class="tainted"><span class="i">12</span><span>改寫 assert，放寬條件</span></li>
+        <li class="fakegreen"><span class="i">13</span><span>run_pytest → passed</span></li>
+        <li class="fakegreen"><span class="i">14</span><span>jira_comment("全部通過")</span></li>
+      </ol>
+      <p class="verdict">通過率 100%，而測試已經不檢查任何東西。模型沒有說謊——它只是為了讓迴圈收斂，把目標換掉了。</p>
+    </article>
+    <article class="trace">
+      <div class="trace-top"><div class="lab"><b>B</b> 骨架 + 有界迴圈</div><p class="sub">順序寫死在程式碼，模型只做兩件事，修復迴圈有上限</p></div>
+      <ol class="steps" data-trace="t1b">
+        <li class="c"><span class="i">S1</span><span>jira.get(key)</span></li>
+        <li class="m"><span class="i">S2</span><span>llm_gen_cases() → schema</span></li>
+        <li class="m"><span class="i">S3</span><span>llm_gen_code() → schema</span></li>
+      </ol>
+      <div class="bounded" data-label="BOUNDED · MAX 3">
+        <ol class="steps" data-trace="t1b-mid">
+          <li class="c"><span class="i">1/3</span><span>run_in_sandbox → fail</span></li>
+          <li class="m"><span class="i">↻</span><span>llm_fix(code, stderr)</span></li>
+          <li class="c"><span class="i">2/3</span><span>run_in_sandbox → fail</span></li>
+          <li class="m"><span class="i">↻</span><span>llm_fix(code, stderr)</span></li>
+          <li class="c"><span class="i">3/3</span><span>run_in_sandbox → fail</span></li>
+          <li class="human"><span class="i">✕</span><span>exit → needs_human</span></li>
+        </ol>
+      </div>
+      <ol class="steps" data-trace="t1b-tail">
+        <li class="c"><span class="i">S5</span><span>render_report(needs_human)</span></li>
+        <li class="c"><span class="i">S6</span><span>jira.comment(report)</span></li>
+      </ol>
+      <p class="verdict ok">迴圈三次都失敗，S5 / S6 照常執行，只是內容變成「需要人看」。錯誤沒有外溢成「跳過寫回」或「改寬 assert」。</p>
+    </article>
+  </div>
+  <p class="prose">還有一道比架構更先要想的防線：生成的測試必須能在已知有 bug 的版本上失敗。否則你得到的是同義反覆的測試——通過率滿分，鑑別力為零。</p>
+  <p class="code-lbl">Case 01 · B 的骨架</p>
+<pre><code><span class="k">def</span> process(issue_key):
+    issue = jira.get(issue_key)              <span class="cm"># code</span>
+    cases = llm_gen_cases(issue)             <span class="hl"># model → schema</span>
+    code  = llm_gen_code(cases)              <span class="hl"># model → schema</span>
+
+    <span class="k">for</span> attempt <span class="k">in</span> range(<span class="s">3</span>):          <span class="cm"># 有界：上限 3</span>
+        result = run_in_sandbox(code)        <span class="cm"># 容器，無正式憑證</span>
+        <span class="k">if</span> result.ok:
+            <span class="k">break</span>
+        code = llm_fix(code, result.stderr)
+    <span class="k">else</span>:
+        <span class="k">return</span> mark_needs_human(issue_key, result)
+
+    <span class="k">if not</span> discriminates(code, known_buggy_rev):  <span class="cm"># AP-03 防守</span>
+        <span class="k">return</span> mark_needs_human(issue_key, <span class="s">"測試無鑑別力"</span>)
+
+    jira.comment(issue_key, render_report(cases, result))</code></pre>
+  <div class="checks">
+    <div class="check"><b>UPPER BOUND</b><span>max attempts = 3。不是「修到過為止」。</span></div>
+    <div class="check"><b>EXIT CONDITION</b><span>pytest 綠燈，且測試能在已知 buggy rev 上失敗。</span></div>
+    <div class="check"><b>FAILURE PATH</b><span>三次都失敗 → needs_human。S5 / S6 照跑。</span></div>
+  </div>
+</section>
+
+<section class="band reveal" id="case2">
+  <p class="k">CASE 02 · RCA Report</p>
+  <h2>沒有裁判：失敗不會顯形</h2>
+  <p class="sub">一份文字通順、圖表齊全、結論斬釘截鐵的報告，和一份正確的報告，在「build 成功」這件事上完全一樣。危險之處不是它會失敗，是它不會失敗。</p>
+  <div class="pipe"><span>Alert / 手動</span><i>→</i><span>Grafana 查詢</span><i>→</i><span>snapshot</span><i>→</i><span>Evidence md</span><i>→</i><span>build</span><i>→</i><span>S3</span></div>
+  <div class="oracle no">ORACLE = 無 · 你沒辦法「執行」一份根因分析</div>
+  <p class="prose" style="margin-top:22px">結構仍是六段、兩個模型節點，但節點換了位置：探索在前，寫作在後，中間隔一道凍結的資料層。</p>
+  <div class="ledger">
+    <div class="row"><div class="n">01</div><div class="what">觸發（alert / 手動）</div><div><span class="tag t-code">Code</span></div><div class="why">本質是「產一份 snapshot report」</div></div>
+    <div class="row is-model"><div class="n">02</div><div class="what">決定要看哪些 metric / log</div><div><span class="tag t-model">Model</span></div><div class="why">磁碟、網路分區、連線池——假設空間事先枚舉不完</div></div>
+    <div class="row"><div class="n">03</div><div class="what">執行查詢 → 凍結 snapshot</div><div><span class="tag t-code">Code</span></div><div class="why">Polars / DuckDB 出 parquet，綁 run_id</div></div>
+    <div class="row is-model"><div class="n">04</div><div class="what">寫敘事骨架</div><div><span class="tag t-model">Model</span></div><div class="why">只寫因果推論與敘事。不准打數字</div></div>
+    <div class="row"><div class="n">05</div><div class="what">Evidence build</div><div><span class="tag t-code">Code</span></div><div class="why">SQL 在 build 時把數字與圖表填進去</div></div>
+    <div class="row"><div class="n">06</div><div class="what">發佈</div><div><span class="tag t-code">Code</span></div><div class="why">先落 draft/，人 review 過才 promote</div></div>
+  </div>
+  <h3>一段完美的段落</h3>
+  <p class="prose muted">LLM 直接讀 Grafana、直接寫 markdown，會長出這種東西。四個具體數字、一個時間關聯、一個明確結論。讀起來沒有破綻。</p>
+  <div class="dissect">
+    <p class="para">P99 延遲從 <mark>12ms<sup>1</sup></mark> 升到 <mark>340ms<sup>2</sup></mark>，起始於 <mark>14:23<sup>3</sup></mark>，與 order-service 在 <mark>14:21<sup>4</sup></mark> 的部署時間吻合，判定為 <mark>連線池耗盡<sup>5</sup></mark>。</p>
+    <ol>
+      <li><span style="font-family:var(--mono);color:var(--red)">1</span><span><b>正確。</b> <span class="muted">查詢真的有回傳這個值。</span></span></li>
+      <li><span style="font-family:var(--mono);color:var(--red)">2</span><span><b>估的。</b> <span class="muted">從圖表視覺讀出來，實際是 287ms。</span></span></li>
+      <li><span style="font-family:var(--mono);color:var(--red)">3</span><span><b>對到分鐘。</b> <span class="muted">取的是 alert 觸發時間，不是指標偏離時間。</span></span></li>
+      <li><span style="font-family:var(--mono);color:var(--red)">4</span><span><b>不存在。</b> <span class="muted">模型的先驗是「事故通常跟部署有關」，於是補了一次部署。</span></span></li>
+      <li><span style="font-family:var(--mono);color:var(--red)">5</span><span><b>資料只支持相關性。</b> <span class="muted">被寫成了因果，而且沒有列出任何被排除的假設。</span></span></li>
+    </ol>
+    <p class="fail">五個數字三個有問題。Build 綠燈。報告已經上傳。沒有任何一步報錯。</p>
+  </div>
+  <p class="prose">同一種壞法：為了讓任務收斂，把目標換掉。這裡沒有 pytest 會抗議。更陰險的是第 11 步——build 失敗就改 markdown 直到綠燈，剛好把你可能設下的防線繞過去。</p>
+  <div style="display:flex;justify-content:flex-end;margin:8px 0"><button class="play" type="button" data-play="t2">播放軌跡</button></div>
+  <div class="traces">
+    <article class="trace">
+      <div class="trace-top"><div class="lab"><b>A</b> 直出 report 上傳 S3</div><p class="sub">LLM 讀 Grafana、寫 md、build、上傳，一條到底</p></div>
+      <ol class="steps" data-trace="t2a">
+        <li class="c"><span class="i">01</span><span>read_alert(ALERT-4471)</span></li>
+        <li class="c"><span class="i">02</span><span>grafana_query(overview)</span></li>
+        <li class="think"><span class="i">03</span><span>think: 看起來是延遲問題</span></li>
+        <li class="c"><span class="i">04</span><span>grafana_query(latency panel)</span></li>
+        <li class="err"><span class="i">05</span><span>估讀 peak = 340ms · 實際 287ms</span></li>
+        <li class="think"><span class="i">06</span><span>think: 事故通常跟部署有關</span></li>
+        <li class="err"><span class="i">07</span><span>補完：14:21 部署 · 該次部署不存在</span></li>
+        <li class="tainted"><span class="i">08</span><span>write report.md（數字寫死）</span></li>
+        <li class="c"><span class="i">09</span><span>evidence build → 語法 error</span></li>
+        <li class="tainted"><span class="i">10</span><span>改 md 直到 build 過</span></li>
+        <li class="fakegreen"><span class="i">11</span><span>evidence build → ok</span></li>
+        <li class="fakegreen"><span class="i">12</span><span>upload s3://reports/</span></li>
+      </ol>
+      <p class="verdict">跟修復迴圈完全同一種壞法。差別是這裡沒有 pytest 會抗議。注意第 11 步——那一步正好把你原本可能有的防線繞過去了。</p>
+    </article>
+    <article class="trace">
+      <div class="trace-top"><div class="lab"><b>B</b> 有界探索 + 凍結 + 契約</div><p class="sub">迴圈往前移到探索，寫作階段禁止產生數字</p></div>
+      <ol class="steps" data-trace="t2b">
+        <li class="c"><span class="i">S1</span><span>trigger(run_id=2026-08-11-a)</span></li>
+      </ol>
+      <div class="bounded" data-label="BOUNDED EXPLORE · MAX 8 QUERIES">
+        <ol class="steps" data-trace="t2b-mid">
+          <li class="c"><span class="i">q1</span><span>error rate by service</span></li>
+          <li class="c"><span class="i">q2</span><span>p99 latency, 2h window</span></li>
+          <li class="m"><span class="i">↻</span><span>收斂到 order-service</span></li>
+          <li class="c"><span class="i">q3</span><span>conn pool saturation</span></li>
+          <li class="ok"><span class="i">✓</span><span>manifest [schema] {sql, range, 為什麼看}</span></li>
+        </ol>
+      </div>
+      <ol class="steps" data-trace="t2b-tail">
+        <li class="c"><span class="i">S3</span><span>execute → snapshot.parquet（凍結）</span></li>
+        <li class="m"><span class="i">S4</span><span>llm_write_skeleton() · 禁數字</span></li>
+        <li class="c"><span class="i">S5</span><span>evidence build · 數字由 SQL 填入</span></li>
+        <li class="c"><span class="i">S6</span><span>→ s3://reports/draft/</span></li>
+        <li class="human"><span class="i">S7</span><span>人 review → promote</span></li>
+      </ol>
+      <p class="verdict ok">模型引用了不存在的查詢，build 直接失敗。它沒有辦法「改一改讓 build 過」，因為它不被允許碰數值來源。</p>
+    </article>
+  </div>
+  <h3>不准打數字</h3>
+  <p class="prose">不是請求模型別編造，是型別檢查。敘事層只準引用查詢，數字由 SQL 在 build 時從凍結的 snapshot 填入。引用了不存在的 query，build 失敗；query 本身寫錯，你能在 SQL 層 review。幻覺數值在結構上不可能發生。</p>
+  <div class="swap">
+    <div>
+      <p class="lbl">模型輸出 · 禁數字</p>
+      <p class="m-out">P99 從 <b><Value data={baseline} column=p99/></b> 升到 <b><Value data={peak} column=p99/></b>，偏離起於 <b><Value data={onset} column=ts/></b>。</p>
+    </div>
+    <div>
+      <p class="lbl">Build 後 · 數字來自 snapshot</p>
+      <p class="built">P99 從 <b>12ms</b> 升到 <b>287ms</b>，偏離起於 <b>14:19</b>。</p>
+    </div>
+  </div>
+  <p class="prose muted">順便買到可重現性。三個月後 retention 過期、recording rule 補算過，同一份報告重 build 仍是同樣的數字——它綁在 parquet 上，不是綁在當下的 Grafana。</p>
+  <p class="code-lbl">Case 02 · B 的骨架</p>
+<pre><code><span class="k">def</span> build_rca(trigger, run_id):
+    ctx = collect_trigger_context(trigger)         <span class="cm"># code</span>
+
+    <span class="cm"># ── 有界探索：上限 8 次查詢，產出是清單不是結論 ──</span>
+    manifest = llm_explore(ctx, max_queries=<span class="s">8</span>)   <span class="hl"># model → schema</span>
+    validate_manifest(manifest)                    <span class="cm"># SQL 白名單 / 時間範圍檢查</span>
+
+    snap = execute_and_freeze(manifest, run_id)    <span class="cm"># → parquet，之後只讀它</span>
+
+    md = llm_write_skeleton(manifest, snap.schema) <span class="hl"># model，禁數字</span>
+    <span class="k">if</span> contains_literal_numbers(md):               <span class="cm"># AP-07 防守</span>
+        <span class="k">return</span> needs_human(run_id, <span class="s">"敘事層出現寫死數值"</span>)
+    <span class="k">if not</span> has_ruled_out_section(md):              <span class="cm"># AP-09 防守</span>
+        <span class="k">return</span> needs_human(run_id, <span class="s">"缺少已排除假設"</span>)
+
+    site = evidence_build(md, snap)                <span class="cm"># 失敗不重寫數值，只回報引用錯誤</span>
+    upload(site, prefix=<span class="s">f"draft/{run_id}/"</span>)      <span class="cm"># 人 review 後才 promote</span></code></pre>
+  <div class="checks">
+    <div class="check"><b>UPPER BOUND</b><span>max queries = 8。產出是清單，不是結論。</span></div>
+    <div class="check"><b>EXIT CONDITION</b><span>預算用完，或 manifest 通過白名單。</span></div>
+    <div class="check"><b>FAILURE PATH</b><span>寫死數字、缺排除假設、引用錯誤 → needs_human。</span></div>
+  </div>
+</section>
+
+<section class="sec reveal" id="map">
+  <p class="sec-head">05 · 四格</p>
+  <h2>兩軸展開是四格。右下那格不能直接做，只能拆</h2>
+  <p class="prose">有裁判的 Test Agent 落在「枚舉不完 × 有 oracle」——那是 agent loop 的主場，勝利不可外推。沒有裁判的 RCA，原始形態其實在右下：分支列不完，又沒有程式能判定對錯。直接做，就是五個數字錯三個、build 綠燈、沒有一步報錯。</p>
+  <div class="grid-2" style="gap:8px;margin-bottom:8px">
+    <p class="axis">Q2 = YES · 有 oracle</p>
+    <p class="axis">Q2 = NO · 沒有 oracle</p>
+  </div>
+  <p class="axis">Q1 · 分支可枚舉</p>
+  <div class="cells">
+    <button class="cell" data-cell="A" type="button"><span class="id">CELL A</span><span class="name">純 flow engine</span><span class="tagline">可能連模型都不用</span></button>
+    <button class="cell" data-cell="B" type="button"><span class="id">CELL B</span><span class="name">flow + 輸出契約</span><span class="tagline">大多數企業 LLM 應用</span></button>
+  </div>
+  <p class="axis" style="margin-top:20px">Q1 · 枚舉不完</p>
+  <div class="cells">
+    <button class="cell" data-cell="C" type="button"><span class="id">CELL C</span><span class="name">agent loop 主場</span><span class="tagline">勝利不可外推</span></button>
+    <button class="cell on danger" data-cell="D" type="button"><span class="id">CELL D</span><span class="name">禁區</span><span class="tagline">不能直接做——只能拆</span></button>
+  </div>
+  <div class="box ink" id="cellOut" style="margin-top:16px">
+    <p class="kicker">CELL D · 不能直接做——只能拆</p>
+    <h3>禁區</h3>
+    <p>分支列不完，又沒有裁判。直接做，就是五個數字錯三個、build 綠燈、沒有一步報錯的完美段落。</p>
+    <p>拆成探索段（查詢預算當假 oracle）+ 寫作段（契約代替驗證），中間隔凍結層。</p>
+  </div>
+  <p class="prose">RCA 真正做的事，是把那一格拆開。探索段用 8 次查詢預算換一個人造退出條件，輸出限定成清單——清單可以被白名單與時間範圍檢查，結論不行。寫作段把骨架寫死，任務從禁區掉回「flow + 契約」。中間隔凍結的 parquet，兩段永遠不直接對話。</p>
+  <p class="prose muted">這也解釋了為什麼「改到 build 過為止」特別陰險：那不是修格式，是寫作段偷偷退回禁區。模型一碰數值來源，枚舉性和契約同時失去，整套拆解白做。</p>
+</section>
+
+<section class="sec reveal" id="explore">
+  <p class="sec-head">06 · 未知</p>
+  <h2>有界探索真正買到的，幾乎都是 unknown known</h2>
+  <p class="prose">「agent 找出了未知的未知」——成功案例幾乎全部是誤標。模型沒有發現新現象。它把一個一直躺在資料面、只是沒人合起來看的相關性翻出來。資料面通常遠大於儀表板面，落差就是 unknown known，也就是那 8 次查詢預算真正在賺的錢。</p>
+  <div class="unk">
+    <article><p class="axis">資料有 × 知道問</p><h3>Known Known</h3><p class="muted">這個 alert 對應這個原因，查三張表確認。已經是 template，或者今晚就能變成 template。</p><p>瓶頸：沒有。CELL A 的地盤。</p></article>
+    <article><p class="axis">資料有 × 不知道是哪一個</p><h3>Known Unknown</h3><p class="muted">假設空間可列舉——三十種故障模式，不知道是哪一種。候選生成 + 證據排序 + 人確認。</p><p>瓶頸：排序品質。契約與凍結在這格工作。</p></article>
+    <article class="star"><p class="axis">資料有 × 不知道要問</p><h3>Unknown Known <span class="tag">迴圈真正有用</span></h3><p class="muted">資料早就在了，但沒有任何一張儀表板顯示它。埋了點沒人看的 metric、跨兩個系統才看得出的相關性。</p><p>瓶頸：查詢涵蓋率。迴圈深度真的有用。</p></article>
+    <article><p class="axis">資料沒有 × 不知道要問</p><h3>Unknown Unknown</h3><p class="muted">沒見過，而且可能連埋點都沒有。任何深度的推理迴圈都碰不到。</p><p>瓶頸：量測涵蓋率。解法是新埋點，那是資本支出。</p></article>
+  </div>
+  <p class="prose">承認這件事有兩個後果。天花板與逼近速度是兩個變數：量測涵蓋率決定上限，推理深度只決定你多快逼近。上限太低時，加預算、換更大的模型、拉長 max turns 全部無效——那是在用軟體預算解一個感測器問題。</p>
+  <p class="prose">兩格的投資語言也不同。unknown known 的解是新查詢、新檢視，週級的軟體變更。unknown unknown 的解是新埋點，月季級的採購與工程。混在同一張需求清單裡，第二類永遠排不進去，因為它看起來像「做不到」，而不是「需要買感測器」。</p>
+</section>
+
+<section class="sec reveal" id="ratchet">
+  <p class="sec-head">07 · 棘輪</p>
+  <h2>needs_human 不是放棄出口，是唯一的學習入口</h2>
+  <p class="prose">凍結、契約、有界迴圈，守的是單次執行。它們沒回答：同一套系統跑到第一百次，憑什麼比第一次強？agent loop 沒有跨執行的記憶結構。每次都從同一個起點開始猜。棘輪要刻意設計。</p>
+  <p class="prose">人查明的結論如果只存在會議記錄裡，系統第一百次跟第一次一樣笨。回寫產物有兩種，必須分流——成本差三個數量級，決策層級差兩層。不分流，第二條永遠不會被提出，只會被記成又一次「查不出來」，同一個缺口每季再付一次人工排查的錢。</p>
+  <div class="grid-2">
+    <div class="box slate"><p class="kicker">Outflow 1 · 軟體側</p><h3>資料本來就有，只是沒人看</h3><p class="muted">unknown known。結論收斂成新查詢、新檢視、新規則，併進 template。下一次同型 alert 直接落在決定性那一格。</p><p style="font-family:var(--mono);font-size:12px">產物 · 新 template + 新查詢<br>週期 · 天<br>決策 · 工程師自己就能定</p></div>
+    <div class="box red"><p class="kicker">Outflow 2 · 資本側</p><h3>這需要新的埋點</h3><p class="muted">unknown unknown。結論是一張 instrumentation 需求單。下一輪之後，它才進得了資料面。</p><p style="font-family:var(--mono);font-size:12px">產物 · 埋點需求 → 採購 / 工程立案<br>週期 · 月 ~ 季<br>決策 · 要上到預算層級</p></div>
+  </div>
+  <div class="ratchet">
+    <p class="axis">棘輪 · 跨執行</p>
+    <p style="font-family:var(--disp);font-size:28px;font-weight:700;margin:4px 0 0" id="runLabel">RUN 100</p>
+    <input type="range" min="1" max="100" value="100" id="run" aria-label="執行次數">
+    <div class="bands"><div class="t" id="bT"></div><div class="r" id="bR"></div><div class="h" id="bH"></div></div>
+    <div class="stats">
+      <div>Template 帶<br><b id="nT">81%</b><br><span class="muted">CELL A · 決定性</span></div>
+      <div>候選排序帶<br><b id="nR">13%</b><br><span class="muted">CELL B · 契約</span></div>
+      <div>needs_human<br><b id="nH">6%</b><br><span class="muted">學習入口</span></div>
+    </div>
+  </div>
+  <p class="prose">被 template 化的案型不會退回未知——這是棘輪。純 agent loop 的三帶比例永遠不變，因為沒有任何東西被寫回結構。<span class="strong">系統的價值不是看第一次跑多好，是看第一百次和第一次差多少。</span></p>
+  <p class="prose">三帶的初始比例決定該先蓋哪一段。九成流量已在 template 帶，就先做產製與回寫，而不是先做探索。未知帶佔三成，探索才是主戰場。這個比例要先量，不能假設。多數導入失敗的樣子完全相同：自動化做完了，回寫沒人做，系統停在第一天。</p>
+</section>
+
+<section class="sec reveal" id="aps">
+  <p class="sec-head">08 · 反模式</p>
+  <h2>十五個會咬人的地方，按失敗機制分，不按案子分</h2>
+  <p class="prose">同一個機制會在修復迴圈和探索迴圈裡以不同面貌出現。目標置換那一組最值得先想清楚——系統沒有報錯，它成功了，只是把要達成的事換掉。同義反覆的測試會讓你以為系統在運作。</p>
+  <div class="chips" id="chips"></div>
+  <div id="apList"></div>
+</section>
+
+<section class="sec reveal" id="rules">
+  <p class="sec-head">09 · 規則</p>
+  <h2>有界迴圈四個必填欄位。少一個，就不叫有界</h2>
+  <p class="prose">沒有上限、沒有程式可判的退出條件、沒有失敗出口，只是還沒跑爆的無界迴圈。跨執行再補第四欄：出口之後，往哪學。第四欄空缺，前三欄再完善，也只得一個永遠停在第一天的安全系統。</p>
+  <div class="fields">
+    <article><p class="k">01 · UPPER BOUND</p><h3>最多幾次？</h3><p class="muted">Case 01 是 3 次重試。Case 02 是 8 次查詢預算。沒有這個數字，就不叫有界。</p></article>
+    <article><p class="k">02 · EXIT CONDITION</p><h3>什麼算成功？</h3><p class="muted">要能用程式判斷。有 oracle 用 oracle，沒有就用預算——但不能用模型自評。</p></article>
+    <article><p class="k">03 · FAILURE PATH</p><h3>用完之後往哪走？</h3><p class="muted">預設不能是「繼續試」或「當作成功」。needs_human 是正常出口。</p></article>
+    <article><p class="k">04 · LEARNING PATH</p><h3>出口之後，往哪學？</h3><p class="muted">人查明的結論回寫成 template、埋點清單，還是只回會議記錄？第四欄空缺，前三欄再完善也只得一個永遠停在第一天的安全系統。</p></article>
+  </div>
+  <div class="rules">
+    <div class="rule"><p class="k">Rule 01 · 控制流</p><p>畫得出流程圖的，就寫流程圖。需要 agent 的條件是分支事先枚舉不完。其餘的不值得。</p></div>
+    <div class="rule"><p class="k">Rule 02 · 正確性</p><p>有 oracle，用它當退出條件，迴圈放修復。沒有 oracle，重試是假防線——凍結資料、輸出契約、強制留一個資料不足的出口。</p></div>
+    <div class="rule"><p class="k">Rule 03 · 天花板</p><p>量測涵蓋率決定上限，推理深度只決定逼近速度。上限問題用埋點解，不用預算解。</p></div>
+    <div class="rule"><p class="k">Rule 04 · 累積</p><p>系統的價值，看第一百次與第一次的差。差為零的系統，單次再正確，也只是一個很貴的一次性函式。</p></div>
+  </div>
+  <div class="rule-out">
+    <p class="big">畫得出流程圖的，<em>就寫流程圖</em>。</p>
+    <p class="coda">先用兩軸決定這條流程能不能、該不該交給模型。再用棘輪決定它值不值得存在。防線讓單次執行不產出一份漂亮的錯。棘輪讓第一百次比第一次聰明。兩件事合在一起，才叫迴圈工程。</p>
+  </div>
+</section>
+
+<footer>
+  <p class="k">Sources</p>
+  <p class="muted" style="max-width:62ch">案例、編號與反模式沿用這三篇架構筆記。這份是把它們寫成同一門功課：迴圈工程。</p>
+  <ul>
+    <li><a href="https://clarencechien.github.io/imitator/report/test-agent-arch.html">一個 agent loop，還是一條有界的流程？</a></li>
+    <li><a href="https://clarencechien.github.io/imitator/report/agent-arch.html">它們不會報錯，它們會成功</a></li>
+    <li><a href="https://clarencechien.github.io/imitator/report/agent-arch-2.html">第一百次，要比第一次聰明</a></li>
+  </ul>
+</footer>
+</article>
+</main>
+</div>
+<script>
+const CHAPTERS = [
+  ["open","00","開篇"],["axes","01","兩軸"],["vocab","02","詞彙"],["case1","03","修復"],
+  ["case2","04","探索"],["map","05","四格"],["explore","06","未知"],["ratchet","07","棘輪"],
+  ["aps","08","反模式"],["rules","09","規則"]
+];
+function tocHTML(){return CHAPTERS.map(([id,n,t])=>`<li><a href="#${id}"><span class="n">${n}</span><span class="t">${t}</span></a></li>`).join("")}
+document.getElementById("tocDesk").innerHTML = tocHTML();
+document.getElementById("tocMobile").innerHTML = tocHTML();
+const drawer = document.getElementById("drawer");
+document.getElementById("tocOpen").onclick = () => drawer.classList.add("open");
+document.getElementById("tocClose").onclick = () => drawer.classList.remove("open");
+document.getElementById("tocX").onclick = () => drawer.classList.remove("open");
+document.getElementById("tocMobile").onclick = e => { if(e.target.closest("a")) drawer.classList.remove("open"); };
+
+const bar = document.getElementById("progress");
+const secs = CHAPTERS.map(([id])=>document.getElementById(id)).filter(Boolean);
+function onScroll(){
+  const el = document.documentElement;
+  const max = el.scrollHeight - el.clientHeight;
+  bar.style.transform = `scaleX(${max>0 ? el.scrollTop/max : 0})`;
+  let active = CHAPTERS[0][0];
+  for (const n of secs){ if (n.getBoundingClientRect().top < innerHeight*0.35) active = n.id; }
+  document.querySelectorAll(".toc a").forEach(a => a.classList.toggle("on", a.getAttribute("href")==="#"+active));
+}
+addEventListener("scroll", onScroll, {passive:true}); onScroll();
+
+if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
+  }, {threshold: 0.08});
+  document.querySelectorAll(".reveal").forEach(n => io.observe(n));
+} else {
+  document.querySelectorAll(".reveal").forEach(n => n.classList.add("in"));
+}
+
+const CELLS = {
+  A:{id:"A",name:"純 flow engine",tag:"可能連模型都不用",body:"順序已知，對錯可判。ETL、對帳、排程掃描全在這格。用了 agent 只是付錢請它「決定現在該呼叫 API 了」。",dest:"n8n / Node-RED / cron。模型頂多當節點裡的函式。"},
+  B:{id:"B",name:"flow + 輸出契約",tag:"大多數企業 LLM 應用",body:"順序已知，但沒有程式能判定輸出對不對——摘要、分類、報告草稿。正確性靠 schema、白名單、禁數字這類契約守，不靠重試。",dest:"骨架寫死，契約當裁判。重試是假防線。"},
+  C:{id:"C",name:"agent loop 主場",tag:"勝利不可外推",body:"分支列不完，但每一步有裁判——寫程式、修測試、資料修復。迴圈放「修復」，oracle 當退出條件。",dest:"這格的勝利，證明的是 oracle 的價值，不是模型的普遍能力。"},
+  D:{id:"D",name:"禁區",tag:"不能直接做——只能拆",body:"分支列不完，又沒有裁判。直接做，就是五個數字錯三個、build 綠燈、沒有一步報錯的完美段落。",dest:"拆成探索段（查詢預算當假 oracle）+ 寫作段（契約代替驗證），中間隔凍結層。"}
+};
+const q = {q1:null,q2:null};
+document.querySelectorAll(".choice").forEach(btn => {
+  btn.onclick = () => {
+    const k = btn.dataset.q, v = btn.dataset.v === "1";
+    q[k] = v;
+    document.querySelectorAll(`.choice[data-q="${k}"]`).forEach(b => b.classList.toggle("on", b===btn));
+    if (q.q1==null || q.q2==null) return;
+    const id = q.q1 && q.q2 ? "A" : q.q1 && !q.q2 ? "B" : !q.q1 && q.q2 ? "C" : "D";
+    const c = CELLS[id];
+    document.getElementById("quizOut").innerHTML = `<p class="axis">你落在 CELL ${c.id}</p><h3 style="margin:4px 0">${c.name}</h3><p>${c.body} ${c.dest}</p>`;
+  };
+});
+const out = document.getElementById("cellOut");
+document.querySelectorAll(".cell").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".cell").forEach(b => b.classList.remove("on","danger"));
+    btn.classList.add("on");
+    if (btn.dataset.cell==="D") btn.classList.add("danger");
+    const c = CELLS[btn.dataset.cell];
+    out.innerHTML = `<p class="kicker">CELL ${c.id} · ${c.tag}</p><h3>${c.name}</h3><p>${c.body}</p><p>${c.dest}</p>`;
+  };
+});
+
+function playTrace(prefix){
+  const lists = [...document.querySelectorAll(`[data-trace^="${prefix}"]`)];
+  const items = lists.flatMap(ol => [...ol.children]);
+  let i = 0;
+  items.forEach(li => li.classList.add("dim"));
+  const tick = () => {
+    items.forEach((li,idx) => { li.classList.toggle("dim", idx>i); li.classList.toggle("live", idx===i); });
+    i++;
+    if (i < items.length) setTimeout(tick, 380);
+  };
+  tick();
+}
+document.querySelectorAll("[data-play]").forEach(b => b.onclick = () => playTrace(b.dataset.play));
+
+const STOPS = [{run:1,t:18,r:32,h:50},{run:20,t:38,r:34,h:28},{run:60,t:62,r:24,h:14},{run:100,t:81,r:13,h:6}];
+function lerpRun(n){
+  let lo=STOPS[0], hi=STOPS[STOPS.length-1];
+  for (let i=0;i<STOPS.length-1;i++) if (n>=STOPS[i].run && n<=STOPS[i+1].run){ lo=STOPS[i]; hi=STOPS[i+1]; }
+  if (lo.run===hi.run) return lo;
+  const x = (n-lo.run)/(hi.run-lo.run);
+  const L = (a,b)=>Math.round(a+(b-a)*x);
+  return {run:n,t:L(lo.t,hi.t),r:L(lo.r,hi.r),h:L(lo.h,hi.h)};
+}
+const run = document.getElementById("run");
+function paintRun(){
+  const s = lerpRun(+run.value);
+  document.getElementById("runLabel").textContent = "RUN " + String(s.run).padStart(3,"0");
+  document.getElementById("bT").style.width = s.t+"%";
+  document.getElementById("bR").style.width = s.r+"%";
+  document.getElementById("bH").style.width = s.h+"%";
+  document.getElementById("nT").textContent = s.t+"%";
+  document.getElementById("nR").textContent = s.r+"%";
+  document.getElementById("nH").textContent = s.h+"%";
+}
+run.oninput = paintRun; paintRun();
+
+const FAM = {A:"控制流交錯了人",B:"目標置換",C:"資料不可信",H:"Harness",D:"發佈太早",E:"不會變強"};
+const APS = [
+  ["AP-01","CONTROL_FLOW_GIVEN_AWAY","A","兩案通用","「拉工單 → 產 case → 跑 → 寫回」「查 → 凍結 → 寫 → build → 發佈」，這些順序你在寫 code 之前就知道了。交給模型 runtime 決定，只是多付一次 token、多一個出錯機會。","畫得出流程圖的，就寫流程圖。"],
+  ["AP-02","UNBOUNDED_LOOP","A","兩案通用","單步 95% 正確，20 步下來是 36%。Agent 的可靠度隨軌跡長度衰減，不會自己收斂到對的地方——只會收斂到「能停下來」的地方。","每個迴圈都要有 max attempts，超過就走失敗出口，不是繼續試。"],
+  ["AP-03","TAUTOLOGICAL_TEST","B","Test Agent","模型很擅長讀完程式碼，然後 assert 現在的行為。這種測試通過率 100%、鑑別力 0，抓不到任何 bug，還給你虛假的安全感。這是 test agent 最大的陷阱。","拿一個已知有 bug 的版本當基準，生成的測試必須在那個版本上失敗；或用 mutation testing 量鑑別力。"],
+  ["AP-04","NO_SANDBOX","H","Test Agent","不是理論風險。模型寫的測試很容易照著 config 連到真的資料庫、真的產線 API，然後做出寫入動作。Harness 不決定系統對不對，它決定錯了會多貴。","跑在容器裡，不給正式憑證，網路白名單。"],
+  ["AP-05","WRITE_BACK_TOO_EARLY","D","Test Agent","準確率還沒量出來之前就給寫入權，錯誤會直接進到別人的工作流，而且很難回溯是哪一次跑壞的。","初期只發 comment 或開 sub-task，不動 status。累積夠多樣本再放開。"],
+  ["AP-06","FRAMEWORK_HIDES_CONTEXT","A","兩案通用","調 agent 最主要就是調進 context 的東西。框架包掉這層之後，你會變成隔著兩層抽象在猜——而它給你的持久化、重試、tracing，自己寫大概一天的工。","你已經有自己的 state 管理習慣的話，框架帶來的多半是抽象稅。"],
+  ["AP-07","NUMBER_FROM_MODEL","C","RCA Report","模型直接打出數字，自信給出錯誤數值，是這類系統最貴的錯。而且它混在正確的數字中間，審閱的人抓不出來。","敘事層禁數字，一律用佔位符。Build 時由 SQL 從凍結的 snapshot 填入。"],
+  ["AP-08","LIVE_QUERY_AT_READ_TIME","C","RCA Report","讀報告時才查資料。事故當下的數字和一週後檢討時的數字會不一樣，而且沒人知道它變了。Retention 過期、recording rule 補算，都會默默改寫歷史。","snapshot 凍結成 parquet、綁 run_id，跟報告一起存。報告只讀 snapshot。"],
+  ["AP-09","MANDATORY_ROOT_CAUSE","B","RCA Report","你問模型「根因是什麼」，它一定會給你一個。它永遠不會說「資料不足以判斷」。任務要求有結論，那就生一個出來。","模板強制要有「已排除的假設」。把 insufficient_evidence 設成正常出口，不是失敗。"],
+  ["AP-10","BUILD_UNTIL_GREEN","B","RCA Report","Evidence build 失敗時讓模型自己改 md，它會把引用不到的元件換成寫死的數字——恰好繞過你整條防線。那是寫作段偷偷退回 CELL D。","修 build 錯誤限制在格式層。引用錯誤直接走 needs_human。"],
+  ["AP-11","PUBLISH_WITHOUT_GATE","D","RCA Report","直接上傳到正式路徑。事件檢討報告是要進 review、可能給客戶看的東西。錯的數字比沒有報告糟得多。","先落 draft/ 前綴，人看過才 promote 到正式路徑。"],
+  ["AP-12","LOOP_DEPTH_FOR_COVERAGE","E","跨執行","探索查不出根因，直覺反應是加預算。如果根因在沒埋點的地方，任何深度都碰不到——你在付軟體的錢，解感測器的問題。更糟的是它會「成功」。","探索段結束時強制輸出「查過但資料不足以區分」的假設清單。同一項連續出現，即為埋點需求。"],
+  ["AP-13","AUTOMATION_WITHOUT_WRITEBACK","E","跨執行","只執行自動化，卻未把 needs_human 後的人類查明結論回寫至系統。這是最常見的失敗模式，因為它不會報錯：系統每次都「正常運作」，但未進步。","把「回寫」設成結案條件。回寫率是這類系統唯一值得放上儀表板的北極星。"],
+  ["AP-14","CONFLATED_OUTFLOWS","E","跨執行","把兩種學習產物——軟體側的「加一條查詢」與資本側的「加一顆感測器」——混進同一條 backlog。混流導致後者被前者淹沒。","結案表單分兩欄，各自追蹤各自週期。"],
+  ["AP-15","ORACLE_EXTRAPOLATION","B","組織層級","把有裁判領域的成功外推到無裁判領域：「coding agent 都能自己修 bug 了，RCA 當然也行」。CELL C 的勝利證明的是 oracle 的價值，而非模型的普遍能力。","立案前先回答：此領域的 oracle 是什麼？答不出，就從 CELL D 的拆解開始。"]
+];
+let fam = "all";
+const chips = document.getElementById("chips");
+const apList = document.getElementById("apList");
+function renderAPs(){
+  chips.innerHTML = `<button class="chip ${fam==="all"?"on":""}" data-f="all">全部 ${APS.length}</button>` +
+    Object.entries(FAM).map(([k,v])=>`<button class="chip ${fam===k?"on":""}" data-f="${k}">${k} · ${v}</button>`).join("");
+  chips.querySelectorAll(".chip").forEach(c => c.onclick = () => { fam = c.dataset.f; renderAPs(); });
+  const rows = fam==="all" ? APS : APS.filter(a => a[2]===fam);
+  apList.innerHTML = `<div class="ap-grid">` + rows.map(a =>
+    `<article class="ap"><span class="id">${a[0]} · ${a[1]} <i>${a[3]}</i></span><h3>${FAM[a[2]]}</h3><p>${a[4]}</p><p class="fix">${a[5]}</p></article>`
+  ).join("") + `</div>`;
+}
+renderAPs();
+
+window.addEventListener("message", (e) => {
+  const d = e.data;
+  if (!d || d.channel !== "grok-preview-bridge") return;
+  if (d.type === "hello") {
+    try { e.source.postMessage({channel:"grok-preview-bridge",version:1,type:"ready"}, e.origin); } catch(_){}
+  }
+  if (d.type === "navigate" && typeof d.path === "string" && d.path.startsWith("/") && !d.path.startsWith("//")) {
+    const url = new URL(d.path, location.origin);
+    if (url.hash) location.hash = url.hash;
+    else if (url.pathname !== location.pathname) location.assign(d.path);
+  }
+  if (d.type === "history" && typeof d.delta === "number") history.go(d.delta);
+});
+</script>
+</body>
+</html>
