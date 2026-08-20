@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第一百次,要比第一次聰明 — Agent 系統的演進設計</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9EAE4; --card:#F6F6F2; --ink:#131A20; --ink-soft:#4A5560;
+  --slate:#35566A; --violet:#584AB0; --red:#A5372A;
+  --green:#2E6E52; --green-soft:#E4EDE7;
+  --amber:#8A6A1F; --amber-soft:#F0EAD8;
+  --rule:#C7C9C0; --rule-hard:#9EA298;
+  --mono:"IBM Plex Mono","Noto Sans TC",ui-monospace,monospace;
+  --disp:"IBM Plex Sans Condensed","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px}
+a{color:var(--slate)}
+::selection{background:var(--green);color:#fff}
+
+/* ---------- masthead ---------- */
+header.mast{padding:56px 0 0}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--ink-soft);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.kicker .vol{color:var(--green);font-weight:600}
+h1.title{font-family:var(--disp);font-weight:700;font-size:clamp(42px,8vw,84px);line-height:1.06;letter-spacing:-.01em;margin:20px 0 6px}
+h1.title em{font-style:normal;color:var(--green)}
+.lede{max-width:66ch;color:var(--ink-soft);margin:22px 0 0;font-size:17px}
+.lede strong{color:var(--ink)}
+.prev-note{margin-top:26px;border-left:3px solid var(--rule-hard);padding:10px 18px;font-size:14.5px;color:var(--ink-soft)}
+.prev-note b{color:var(--ink)}
+.prev-note .mono{font-family:var(--mono);font-size:12.5px}
+
+/* ---------- section scaffolding ---------- */
+section{margin:0;padding:64px 0 8px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--green);text-transform:uppercase;display:flex;align-items:center;gap:12px}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+h2{font-family:var(--disp);font-weight:700;font-size:clamp(28px,4.4vw,42px);line-height:1.15;margin:12px 0 14px}
+h3{font-family:var(--disp);font-weight:700;font-size:21px;margin:30px 0 8px}
+p{max-width:70ch;margin:0 0 16px}
+p.mute{color:var(--ink-soft)}
+.pull{font-family:var(--disp);font-weight:700;font-size:clamp(20px,3vw,27px);line-height:1.4;border-left:4px solid var(--green);padding:6px 0 6px 22px;margin:30px 0;max-width:62ch}
+.pull.red{border-color:var(--red)}
+.pull .hl{background:linear-gradient(transparent 62%,rgba(46,110,82,.28) 62%)}
+.footref{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+
+/* ---------- layer table ---------- */
+.layers{margin:26px 0;border-top:2px solid var(--ink)}
+.lrow{display:grid;grid-template-columns:52px 150px 1fr 1fr;gap:0;border-bottom:1px solid var(--rule);align-items:stretch}
+.lrow>div{padding:14px 14px}
+.lrow .n{font-family:var(--mono);font-size:13px;color:var(--ink-soft);padding-top:17px}
+.lrow .name{font-family:var(--disp);font-weight:700;font-size:17px}
+.lrow .name small{display:block;font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.08em;color:var(--ink-soft);margin-top:2px}
+.lrow .src,.lrow .fail{font-size:14px;color:var(--ink-soft)}
+.lrow .src b,.lrow .fail b{color:var(--ink);font-weight:500}
+.lrow.head>div{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;color:var(--ink-soft);padding:8px 14px}
+.lrow.fork{background:var(--card)}
+.lrow.fork .name{color:var(--green)}
+.lrow.harness .name{color:var(--slate)}
+.fork-note{display:flex;gap:14px;align-items:flex-start;margin:18px 0 0;font-size:14.5px;color:var(--ink-soft);max-width:72ch}
+.fork-note .tag{flex:none;font-family:var(--mono);font-size:11px;letter-spacing:.1em;background:var(--ink);color:var(--paper);padding:3px 9px;margin-top:4px}
+
+/* ---------- timeline ---------- */
+.tl{margin:30px 0;border-left:2px solid var(--rule-hard);padding-left:0}
+.tl-item{position:relative;padding:0 0 30px 30px}
+.tl-item::before{content:"";position:absolute;left:-7px;top:9px;width:12px;height:12px;background:var(--paper);border:2px solid var(--ink);border-radius:50%}
+.tl-item.hot::before{background:var(--red);border-color:var(--red)}
+.tl-item .yr{font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;color:var(--ink-soft)}
+.tl-item .yr b{color:var(--ink)}
+.tl-item h4{font-family:var(--disp);font-weight:700;font-size:18px;margin:3px 0 4px}
+.tl-item p{font-size:14.5px;color:var(--ink-soft);margin:0;max-width:66ch}
+.tl-item .push{display:inline-block;font-family:var(--mono);font-size:11.5px;color:var(--slate);margin-top:6px}
+
+/* ---------- 2x2 map ---------- */
+.map{margin:30px 0}
+.map-grid{display:grid;grid-template-columns:110px 1fr 1fr;grid-template-rows:52px 1fr 1fr;gap:10px}
+.map-axis{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.5}
+.map-axis.side{writing-mode:vertical-rl;transform:rotate(180deg)}
+.cell{background:var(--card);border:1px solid var(--rule);padding:20px 20px 18px;min-height:180px;display:flex;flex-direction:column}
+.cell .cn{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink-soft)}
+.cell h4{font-family:var(--disp);font-weight:700;font-size:19px;margin:6px 0 6px}
+.cell p{font-size:13.5px;color:var(--ink-soft);margin:0;line-height:1.7}
+.cell .verdict{margin-top:auto;padding-top:12px;font-family:var(--mono);font-size:12px;color:var(--slate)}
+.cell.home{border-color:var(--slate)}
+.cell.home h4{color:var(--slate)}
+.cell.common{border-color:var(--green)}
+.cell.common h4{color:var(--green)}
+.cell.forbidden{border:1.5px solid var(--red);background:
+  repeating-linear-gradient(-45deg,rgba(165,55,42,.07) 0 8px,transparent 8px 16px),var(--card)}
+.cell.forbidden h4{color:var(--red)}
+.cell.forbidden .verdict{color:var(--red)}
+.split-note{margin:26px 0 0;background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--red);padding:22px 24px;max-width:none}
+.split-note h4{font-family:var(--disp);font-weight:700;font-size:18px;margin:0 0 8px}
+.split-flow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-family:var(--mono);font-size:12.5px;margin:14px 0 10px}
+.split-flow .box{border:1px solid var(--rule-hard);padding:8px 12px;background:#fff}
+.split-flow .box b{display:block;font-family:var(--disp);font-size:14px;letter-spacing:0}
+.split-flow .arr{color:var(--ink-soft)}
+.split-flow .box.q2{border-color:var(--green);color:var(--green)}
+.split-note p{font-size:14.5px;color:var(--ink-soft);margin:8px 0 0;max-width:none}
+
+/* ---------- quadrant of knowledge ---------- */
+.kmap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:28px 0}
+.kcell{background:var(--card);border:1px solid var(--rule);padding:20px 22px}
+.kcell .cn{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink-soft)}
+.kcell h4{font-family:var(--disp);font-weight:700;font-size:19px;margin:5px 0 7px}
+.kcell p{font-size:13.5px;color:var(--ink-soft);margin:0 0 6px;line-height:1.7}
+.kcell .bn{font-family:var(--mono);font-size:12px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--rule)}
+.kcell.uk{border:1.5px solid var(--amber);background:var(--amber-soft)}
+.kcell.uk h4{color:var(--amber)}
+.kcell.uu .bn{color:var(--red)}
+.kcell.uk .bn{color:var(--amber)}
+.kaxes{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);letter-spacing:.06em;margin:0 0 8px}
+
+/* ---------- ratchet (signature) ---------- */
+.ratchet{margin:34px 0 10px;background:var(--card);border:1px solid var(--rule);padding:28px 26px 22px}
+.ratchet h4{font-family:var(--disp);font-weight:700;font-size:18px;margin:0 0 4px}
+.ratchet .sub{font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin:0 0 20px}
+.rrow{display:grid;grid-template-columns:88px 1fr;gap:14px;align-items:center;margin:0 0 12px}
+.rrow .rl{font-family:var(--mono);font-size:12px;color:var(--ink-soft);text-align:right}
+.rbar{display:flex;height:26px;border:1px solid var(--rule-hard);background:#fff;overflow:hidden}
+.rbar .seg{height:100%}
+.seg.t{background:var(--green)}
+.seg.m{background:repeating-linear-gradient(-45deg,#B9C9C0 0 6px,#CBD8D0 6px 12px)}
+.seg.u{background:repeating-linear-gradient(-45deg,rgba(165,55,42,.35) 0 6px,rgba(165,55,42,.18) 6px 12px)}
+.rleg{display:flex;gap:22px;flex-wrap:wrap;margin-top:16px;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+.rleg span{display:flex;gap:8px;align-items:center}
+.rleg i{width:14px;height:14px;border:1px solid var(--rule-hard);display:inline-block}
+.rleg i.t{background:var(--green)}
+.rleg i.m{background:repeating-linear-gradient(-45deg,#B9C9C0 0 5px,#CBD8D0 5px 10px)}
+.rleg i.u{background:repeating-linear-gradient(-45deg,rgba(165,55,42,.35) 0 5px,rgba(165,55,42,.18) 5px 10px)}
+.ratchet .caption{font-size:13.5px;color:var(--ink-soft);margin:16px 0 0;max-width:70ch}
+.ratchet .caption b{color:var(--ink)}
+
+/* ---------- two outflows ---------- */
+.outflows{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:26px 0}
+.oflow{background:var(--card);border:1px solid var(--rule);border-top:3px solid var(--green);padding:20px 22px}
+.oflow.cap{border-top-color:var(--red)}
+.oflow .on{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink-soft)}
+.oflow h4{font-family:var(--disp);font-weight:700;font-size:18px;margin:5px 0 8px}
+.oflow p{font-size:13.5px;color:var(--ink-soft);margin:0 0 6px;line-height:1.7}
+.oflow dl{margin:12px 0 0;font-size:13px}
+.oflow dt{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-soft);float:left;width:64px;clear:left;padding:3px 0}
+.oflow dd{margin-left:76px;padding:3px 0;border-bottom:1px dashed var(--rule)}
+.oflow dd:last-child{border-bottom:none}
+
+/* ---------- anti-patterns ---------- */
+.ap{margin:18px 0;border:1px solid var(--rule);background:var(--card)}
+.ap-head{display:flex;gap:14px;align-items:baseline;padding:16px 20px 0;flex-wrap:wrap}
+.ap-head .code{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--red);font-weight:600}
+.ap-head .scope{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-left:auto}
+.ap h4{font-family:var(--disp);font-weight:700;font-size:19px;padding:4px 20px 0}
+.ap .body{padding:8px 20px 16px;font-size:14.5px;color:var(--ink-soft);max-width:none}
+.ap .body p{max-width:72ch}
+.ap .fix{border-top:1px dashed var(--rule);padding:12px 20px 14px;font-size:13.5px}
+.ap .fix b{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--green);display:inline-block;margin-right:10px}
+
+/* ---------- bounded fields ---------- */
+.fields{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:26px 0}
+.field{border:1px solid var(--rule);background:var(--card);padding:18px 18px 16px}
+.field .fn{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-soft)}
+.field h5{font-family:var(--disp);font-weight:700;font-size:16px;margin:5px 0 6px}
+.field p{font-size:12.5px;line-height:1.65;color:var(--ink-soft);margin:0}
+.field.new{border:1.5px solid var(--green)}
+.field.new .fn{color:var(--green)}
+.field.new h5{color:var(--green)}
+
+/* ---------- rules ---------- */
+.rules{margin:30px 0 10px;border-top:2px solid var(--ink)}
+.rule-item{display:grid;grid-template-columns:190px 1fr;gap:18px;padding:20px 0;border-bottom:1px solid var(--rule)}
+.rule-item .rn{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;color:var(--green);font-weight:600}
+.rule-item p{font-size:15px;margin:0;max-width:none}
+.rule-item p b{color:var(--ink)}
+
+/* ---------- misc ---------- */
+.divider{height:1px;background:var(--rule-hard);margin:60px 0 0}
+footer{padding:44px 0 72px;font-family:var(--mono);font-size:12px;color:var(--ink-soft);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+
+@media (max-width:760px){
+  .lrow{grid-template-columns:40px 1fr;grid-auto-rows:auto}
+  .lrow .src,.lrow .fail{grid-column:2;padding-top:0}
+  .lrow.head{display:none}
+  .lrow .src::before{content:"正確性來源 — ";font-family:var(--mono);font-size:10.5px;letter-spacing:.08em}
+  .lrow .fail::before{content:"何時失效 — ";font-family:var(--mono);font-size:10.5px;letter-spacing:.08em}
+  .map-grid{grid-template-columns:1fr;grid-template-rows:auto}
+  .map-axis{display:none}
+  .kmap,.outflows{grid-template-columns:1fr}
+  .fields{grid-template-columns:1fr 1fr}
+  .rule-item{grid-template-columns:1fr;gap:6px}
+  .rrow{grid-template-columns:64px 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="kicker">架構筆記 · Agent vs Workflow · <span class="vol">VOL. 2</span> · 2026-08</div>
+  <h1 class="title">第一百次,<br>要比第一次<em>聰明</em></h1>
+  <p class="lede">上一篇講單次執行怎麼不出錯——凍結、契約、有界迴圈,那是<strong>防線</strong>。這一篇講防線沒回答的問題:同一套系統跑到第一百次,憑什麼比第一次強?<strong>agent loop 不會自己累積,棘輪要刻意設計。</strong></p>
+  <div class="prev-note">
+    <span class="mono">← VOL. 1</span> · <b>它們不會報錯,它們會成功</b> — 兩個案子(有 oracle 的 Test Agent、沒 oracle 的 RCA Report)、兩條軸(Q1 控制流由誰決定、Q2 有沒有裁判)、十一個 anti-pattern。本篇沿用全部編號與詞彙,不重複內容。
+  </div>
+</header>
+
+<!-- ================= 01 五層詞彙 ================= -->
+<section id="layers">
+  <div class="eyebrow">01 · Vocabulary</div>
+  <h2>五層詞彙,與一個常見的誤讀</h2>
+  <p>市面上把 AI 工程拆成五個詞:Prompt、Context、Harness、Loop、Graph,常畫成 1→5 的遞進階梯。前三層確實是累加的基座,但第 4、5 層不是第 4、5 階——<b>Loop 與 Graph 是同一層的分岔</b>,是「控制流交給誰」這個問題的兩個答案。</p>
+  <p>比較有用的讀法:五層各自回答「<b>正確性從哪裡來</b>」。</p>
+
+  <div class="layers reveal">
+    <div class="lrow head"><div></div><div>層</div><div>正確性來源</div><div>何時失效</div></div>
+    <div class="lrow"><div class="n">1</div><div class="name">Prompt<small>THE INSTRUCTION</small></div><div class="src"><b>指令品質</b> — 把要求講清楚</div><div class="fail">任務需要<b>事實</b>時</div></div>
+    <div class="lrow"><div class="n">2</div><div class="name">Context<small>THE INFORMATION</small></div><div class="src"><b>資訊完整度</b> — 該看的都在視野裡</div><div class="fail">任務需要<b>動作</b>時</div></div>
+    <div class="lrow harness"><div class="n">3</div><div class="name">Harness<small>THE OPERATING ENV</small></div><div class="src"><b>不產生正確性</b> — 它界定錯誤的<b>代價</b></div><div class="fail">——它不會失效,它只會被略過</div></div>
+    <div class="lrow fork"><div class="n">4a</div><div class="name">Loop<small>THE FEEDBACK</small></div><div class="src"><b>回饋</b> — 做、驗、修,由裁判收斂</div><div class="fail">沒有 <b>oracle</b> 時</div></div>
+    <div class="lrow fork"><div class="n">4b</div><div class="name">Graph<small>THE STRUCTURE</small></div><div class="src"><b>結構</b> — 順序寫死,錯誤關進節點</div><div class="fail">分支<b>枚舉不完</b>時</div></div>
+  </div>
+
+  <div class="fork-note"><span class="tag">接回 VOL.1</span><span>Q1(控制流交給誰)就是 4a/4b 這個分岔本身;Q2(有沒有裁判)決定你該站在分岔的哪一邊。五層是詞彙表,<b>兩軸是選擇函數</b>。</span></div>
+
+  <h3>Harness 該獨立成一族</h3>
+  <p>上一篇把「無沙箱」(AP-04)與「太早給寫入權」(AP-05)散在兩個 family 裡,回頭看,它們是同一層的東西:Harness 不決定系統對不對,它決定<b>錯了會多貴</b>。這層有一條可以直接抄的設計規則,來自 NanoClaw 一整季的 breaking changes:</p>
+  <div class="pull">agent 能呼叫的工具只能「做事」,<span class="hl">不能改變自己的能力邊界</span>。排程、掛載、裝套件、加 MCP server——一律移出工具表,改走 host-only CLI 或人類審批。</div>
+  <p class="mute">理由不是整潔,是持久化:容器 <span class="footref">--rm</span> 之後,排程是注入唯一活得過 session 的路徑。一次成功的注入,能種一個每天自己重新注入的後門。turn 上限限的是單次爆炸半徑,這條規則限的是它能不能活過這一次。</p>
+</section>
+
+<!-- ================= 02 歷史線 ================= -->
+<section id="history">
+  <div class="eyebrow">02 · The Attribution Error</div>
+  <h2>每一代的失敗,把修法往上推一層</h2>
+  <p>這條歷史線不是懷舊,它導出一個 2026 年被普遍搞錯的因果。</p>
+
+  <div class="tl reveal">
+    <div class="tl-item"><div class="yr"><b>2023</b> · PROMPT 時代</div><h4>ReAct、AutoGPT</h4><p>讓模型自己想、自己做。失敗形態:無界迴圈、目標漂移、在第 40 步忘記自己要幹嘛。</p><span class="push">→ 修法上推:問題不在指令,在它看得到什麼</span></div>
+    <div class="tl-item"><div class="yr"><b>2024</b> · CONTEXT 時代</div><h4>RAG 與檢索管線</h4><p>把對的資訊塞進視野。失敗形態:資訊夠了,但只能「說」,不能「做」。</p><span class="push">→ 修法上推:得給它手</span></div>
+    <div class="tl-item"><div class="yr"><b>2024–25</b> · HARNESS 時代</div><h4>Function calling、MCP、沙箱</h4><p>能動作了。失敗形態:能動作但不安全、不可稽核。這條線一路長成 2026 年的權限模型競賽——審批卡、egress 封鎖、憑證不落地。</p><span class="push">→ 修法上推:界定代價之後,還缺收斂機制</span></div>
+    <div class="tl-item hot"><div class="yr"><b>2025–26</b> · LOOP 時代</div><h4>Coding agent 大勝</h4><p>寫程式、SQL、資料轉換、爬蟲修復——agent 突然可靠了。<b>歸因錯誤發生在這裡。</b></p><span class="push">→ 被外推到所有領域</span></div>
+    <div class="tl-item"><div class="yr"><b>2026</b> · GRAPH 時代</div><h4>回頭發現結構</h4><p>沒有 oracle 的領域(RCA、分析、報告)接連翻車,大家重新發現:那裡的正確性要靠結構守,不是靠重試。</p><span class="push">→ 也就是 VOL.1 的全部內容</span></div>
+  </div>
+
+  <div class="pull red">Coding agent 成功的主因是 <span style="font-family:var(--mono);font-size:.85em">pytest</span>,不是模型變聰明了。</div>
+  <p>模型確實變強,但成功案例高度集中在<b>有廉價 oracle</b> 的領域:exit code、schema 驗證、對帳數字——每一輪迴圈都有真實回饋,多轉幾圈真的會收斂。整個 2026 的 agent platform 熱潮,建立在把這個成功外推到沒有 oracle 的領域,而那一步在邏輯上沒有依據。</p>
+  <p>這也解釋了為什麼平台商真正在蓋的是審批、隔離、稽核,而不是更聰明的 orchestrator:<b>在沒有 oracle 的地方,人就是 oracle</b>——只是變得很貴。所謂 human-in-the-loop,本質上是租一個裁判。租金要花在刀口上,這是第 05 節的主題。</p>
+</section>
+
+<!-- ================= 03 完整 2x2 ================= -->
+<section id="map">
+  <div class="eyebrow">03 · The Full Map</div>
+  <h2>兩軸展開是四格,上一篇只寫了兩格</h2>
+  <p>Q1(分支可否事先枚舉)× Q2(有無 oracle)。Case 01 與 Case 02 各佔一格,另外兩格值得補上——尤其右下那格,它才是 RCA 原始形態真正的位置。</p>
+
+  <div class="map reveal">
+    <div class="map-grid">
+      <div class="map-axis"></div>
+      <div class="map-axis">Q2 = YES<br>有 oracle</div>
+      <div class="map-axis">Q2 = NO<br>沒有 oracle</div>
+
+      <div class="map-axis side">Q1 · 分支可枚舉</div>
+      <div class="cell">
+        <div class="cn">CELL A</div><h4>純 flow engine</h4>
+        <p>順序已知,對錯可判。可能連模型都不用——ETL、對帳、排程掃描全在這格。用了 agent 只是付錢請它「決定現在該呼叫 API 了」。</p>
+        <div class="verdict">→ n8n / Node-RED / cron,模型頂多當節點裡的函式</div>
+      </div>
+      <div class="cell common">
+        <div class="cn">CELL B</div><h4>flow + 輸出契約</h4>
+        <p>順序已知,但沒有程式能判定輸出對不對——摘要、分類、報告草稿。正確性靠 schema、白名單、禁數字這類<b>契約</b>守,不靠重試。</p>
+        <div class="verdict">→ 大多數企業 LLM 應用其實在這格,只是沒意識到</div>
+      </div>
+
+      <div class="map-axis side">Q1 · 枚舉不完</div>
+      <div class="cell home">
+        <div class="cn">CELL C</div><h4>agent loop 主場</h4>
+        <p>分支列不完,但每一步有裁判——寫程式、修測試、資料修復。VOL.1 的 Case 01。迴圈放「修復」,oracle 當退出條件。</p>
+        <div class="verdict">→ 這格的勝利,不可外推</div>
+      </div>
+      <div class="cell forbidden">
+        <div class="cn">CELL D</div><h4>禁區</h4>
+        <p>分支列不完,又沒有裁判。直接做,就是 VOL.1 那段五個數字錯三個、build 綠燈、沒有一步報錯的完美段落。</p>
+        <div class="verdict">✕ 不能直接做——只能拆</div>
+      </div>
+    </div>
+
+    <div class="split-note">
+      <h4>Case 02 真正做的事:把一格 D 拆成兩格 B</h4>
+      <div class="split-flow">
+        <span class="box" style="border-color:var(--red);color:var(--red)"><b>CELL D</b>RCA 原始形態</span>
+        <span class="arr">拆成 →</span>
+        <span class="box q2"><b>探索段</b>查詢預算當假 oracle<br>輸出 manifest,不是結論</span>
+        <span class="arr">+</span>
+        <span class="box q2"><b>寫作段</b>骨架固定 = 變回可枚舉<br>契約代替驗證,禁數字</span>
+      </div>
+      <p>探索段用 8 次查詢預算換一個人造的退出條件,且輸出被限定成「清單」——清單可以被白名單與時間範圍檢查,結論不行。寫作段把骨架寫死,任務就從 D 掉回 B。中間隔一層凍結的 parquet,兩段永遠不直接對話。</p>
+      <p>這也給了 AP-10(改到 build 過為止)更深的解釋:那不只是繞過防線,是<b>寫作段偷偷退回 CELL D</b>——模型一碰數值來源,就同時失去枚舉性和契約,整套拆解白做。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04 知識四象限 ================= -->
+<section id="quadrant">
+  <div class="eyebrow">04 · What Exploration Actually Buys</div>
+  <h2>四個象限,和被講錯的那一格</h2>
+  <p class="kaxes">縱軸:資料裡有沒有 · 橫軸:你知不知道要問</p>
+
+  <div class="kmap reveal">
+    <div class="kcell">
+      <div class="cn">資料有 × 知道問</div><h4>Known Known</h4>
+      <p>這個 alert 對應這個原因,查三張表確認。已經是 template,或者今晚就能變成 template。</p>
+      <div class="bn">瓶頸:沒有。這格是 CELL A 的地盤</div>
+    </div>
+    <div class="kcell">
+      <div class="cn">資料有 × 不知道問哪個</div><h4>Known Unknown</h4>
+      <p>假設空間可列舉——三十種故障模式,不知道是哪一種。候選生成 + 證據排序 + 人確認,Case 02 中段的形狀。</p>
+      <div class="bn">瓶頸:排序品質。契約與凍結在這格工作</div>
+    </div>
+    <div class="kcell uk">
+      <div class="cn">資料有 × 不知道要問 ★</div><h4>Unknown Known</h4>
+      <p>資料早就在了,但沒有任何一張儀表板顯示它——埋了點沒人看的 metric、線長腦裡沒寫下的手感、跨兩個系統才看得出的相關性。</p>
+      <div class="bn">瓶頸:查詢涵蓋率與表達力 → <b>迴圈深度真的有用</b></div>
+    </div>
+    <div class="kcell uu">
+      <div class="cn">資料沒有 × 不知道要問</div><h4>Unknown Unknown</h4>
+      <p>沒見過,而且可能連埋點都沒有。任何深度的推理迴圈都碰不到,因為要的資料不存在。</p>
+      <div class="bn">瓶頸:量測涵蓋率 → 解法是新埋點,那是資本支出,不是軟體</div>
+    </div>
+  </div>
+
+  <div class="pull">「agent 找出了未知的未知」——成功案例幾乎全部是 <span class="hl">unknown known 被誤標</span>的結果。模型沒有發現新現象,它把一個一直躺在那裡、只是沒人合起來看的相關性翻了出來。</div>
+
+  <p>這格之所以存在,是因為<b>資料面通常遠大於儀表板面</b>。落差就是 unknown known,而它正是有界探索那 8 次查詢預算真正在賺的錢。承認這件事有兩個實際後果:</p>
+  <p><b>一,天花板與逼近速度是兩個變數。</b>量測涵蓋率決定系統的能力上限;推理迴圈的深度只決定你多快逼近那個上限。上限太低時,加預算、換更大的模型、拉長 max turns,全部無效——那是在用軟體預算解一個感測器問題。</p>
+  <p><b>二,兩格的投資語言不同。</b>unknown known 的解是新查詢、新檢視,是週級的軟體變更;unknown unknown 的解是新埋點,是月季級的採購與工程。混在同一張需求清單裡,第二類永遠排不進去——因為它在軟體專案裡看起來像「做不到」,而不是「需要買感測器」。</p>
+</section>
+
+<!-- ================= 05 棘輪 ================= -->
+<section id="ratchet">
+  <div class="eyebrow">05 · The Ratchet</div>
+  <h2>needs_human 不是放棄出口,<br>是唯一的學習入口</h2>
+  <p>VOL.1 把 <span class="footref">needs_human</span> 設成正常出口,擋掉了「一定會有的根因」。但出口之後呢?人查明的結論如果只存在會議記錄裡,系統第一百次執行,跟第一次一樣笨——<b>agent loop 沒有跨執行的記憶結構,它每次都從同一個起點開始猜。</b></p>
+  <p>會隨時間變強的系統,靠的是一條刻意設計的回寫迴路,而且產物有兩種,必須分流:</p>
+
+  <div class="outflows reveal">
+    <div class="oflow">
+      <div class="on">OUTFLOW 1 · 軟體側</div>
+      <h4>「資料本來就有,只是沒人看」</h4>
+      <p>人查明後發現答案一直在資料面裡——unknown known。結論收斂成新查詢、新檢視、新規則,併進 template 庫,下一次同型 alert 直接落在 CELL A。</p>
+      <dl>
+        <dt>產物</dt><dd>新 template + 新查詢併入 rule engine</dd>
+        <dt>週期</dt><dd>天</dd>
+        <dt>決策</dt><dd>工程師自己就能定</dd>
+      </dl>
+    </div>
+    <div class="oflow cap">
+      <div class="on">OUTFLOW 2 · 資本側</div>
+      <h4>「這需要新的埋點」</h4>
+      <p>人查明後發現資料面根本沒有——unknown unknown。結論是一張 instrumentation 需求單:加感測器、開 log 等級、接新資料源。下一輪之後,它才進得了資料面。</p>
+      <dl>
+        <dt>產物</dt><dd>埋點需求 → 採購 / 工程立案</dd>
+        <dt>週期</dt><dd>月 ~ 季</dd>
+        <dt>決策</dt><dd>要上到預算層級</dd>
+      </dl>
+    </div>
+  </div>
+
+  <p>兩條分流的成本差三個數量級,決策層級差兩層。<b>不分流,第二條永遠不會被提出</b>——它會被當成一次「查不出來」而不是一次「量測缺口被定位」記錄下來,然後同一個缺口每季讓你再付一次人工排查的錢。</p>
+
+  <div class="ratchet reveal">
+    <h4>棘輪:同一套系統,第 1 次到第 N 次</h4>
+    <div class="sub">每一次 needs_human 被回寫,未知帶就被咬掉一塊,而且不會彈回來</div>
+    <div class="rrow"><div class="rl">RUN 001</div><div class="rbar"><div class="seg t" style="width:38%"></div><div class="seg m" style="width:34%"></div><div class="seg u" style="width:28%"></div></div></div>
+    <div class="rrow"><div class="rl">RUN 020</div><div class="rbar"><div class="seg t" style="width:52%"></div><div class="seg m" style="width:30%"></div><div class="seg u" style="width:18%"></div></div></div>
+    <div class="rrow"><div class="rl">RUN 060</div><div class="rbar"><div class="seg t" style="width:66%"></div><div class="seg m" style="width:24%"></div><div class="seg u" style="width:10%"></div></div></div>
+    <div class="rrow"><div class="rl">RUN 100</div><div class="rbar"><div class="seg t" style="width:76%"></div><div class="seg m" style="width:19%"></div><div class="seg u" style="width:5%"></div></div></div>
+    <div class="rleg">
+      <span><i class="t"></i>template 帶(CELL A · 決定性)</span>
+      <span><i class="m"></i>候選排序帶(CELL B · 契約)</span>
+      <span><i class="u"></i>needs_human(學習入口)</span>
+    </div>
+    <p class="caption">綠帶單調成長是<b>棘輪性質</b>:被 template 化的案型不會退回未知。對照組是純 agent loop——它的三帶比例永遠不變,因為沒有任何東西被寫回結構。<b>系統的價值不是看第 1 次跑多好,是看第 100 次和第 1 次差多少。</b></p>
+  </div>
+
+  <h3>先量比例,再決定投資順序</h3>
+  <p>三帶的初始比例決定該先蓋哪一段。如果九成 alert 落在 template 帶,那整套探索 + 凍結 + 契約其實只服務一成的流量——先把報告產製與回寫迴路做完,比先做探索划算。反過來,如果未知帶佔三成,探索段就是主戰場。<b>這個比例是一個要先量的數字,不是一個可以假設的數字</b>;而多數導入失敗的樣子完全相同:自動化做完了,回寫沒人做,系統停在第一天。</p>
+</section>
+
+<!-- ================= 06 anti-patterns 補遺 ================= -->
+<section id="ap2">
+  <div class="eyebrow">06 · Anti-Patterns, Continued</div>
+  <h2>四個會咬人的地方,補遺</h2>
+  <p>編號接續 VOL.1 的十一個。前兩個屬於新的一族——<b>Family E · 不會變強</b>:系統單次執行全對,卻在時間軸上原地踏步。後兩個分別回填 Family B 與 Harness。</p>
+
+  <div class="ap reveal">
+    <div class="ap-head"><span class="code">AP-12 · LOOP_DEPTH_FOR_COVERAGE</span><span class="scope">Family E · 天花板</span></div>
+    <h4>用迴圈深度補量測缺口</h4>
+    <div class="body"><p>探索查不出根因,直覺反應是加預算:8 次查詢變 16 次、換更大的模型、拉長 max turns。但如果根因在沒埋點的地方,任何深度都碰不到——你在付軟體的錢,解感測器的問題。更糟的是它會「成功」:預算加大後,模型更有餘裕組出一個漂亮的 unknown known 敘事,把真正的量測缺口蓋掉。</p></div>
+    <div class="fix"><b>防守</b>探索段結束時強制輸出「查過但資料不足以區分」的假設清單。這份清單連續出現同一項,就是埋點需求,不是預算需求。</div>
+  </div>
+
+  <div class="ap reveal">
+    <div class="ap-head"><span class="code">AP-13 · AUTOMATION_WITHOUT_WRITEBACK</span><span class="scope">Family E · 累積</span></div>
+    <h4>只做自動化,不做回寫</h4>
+    <div class="body"><p>needs_human 之後,人查明了,結論進了會議記錄,系統本身什麼都沒學到。下一次同型案例,同樣的探索、同樣的排序、同樣的 needs_human——你自動化了排查的前半段,卻讓後半段的知識持續蒸發。這是最常見的失敗,因為它不會報錯:系統每一次都「正常運作」。</p></div>
+    <div class="fix"><b>防守</b>把「回寫」設成 needs_human 工單的關閉條件:沒有產出新 template 或新埋點需求,案子不能結。回寫率是這類系統唯一值得放在儀表板上的北極星指標。</div>
+  </div>
+
+  <div class="ap reveal">
+    <div class="ap-head"><span class="code">AP-14 · CONFLATED_OUTFLOWS</span><span class="scope">Family E · 分流</span></div>
+    <h4>兩種學習產物混在一條流裡</h4>
+    <div class="body"><p>「加一條查詢」和「加一顆感測器」被寫進同一張 backlog。前者三天能上,後者要立案採購——混流的結果是後者被前者淹沒,永遠停在 backlog 深處,而同一個量測缺口每季讓你重付一次人工排查。</p></div>
+    <div class="fix"><b>防守</b>needs_human 的結案表單就分兩欄:軟體側(查詢/template)走工程 backlog,資本側(埋點)走另一條有預算主的清單,各自追蹤各自的週期。</div>
+  </div>
+
+  <div class="ap reveal">
+    <div class="ap-head"><span class="code">AP-15 · ORACLE_EXTRAPOLATION</span><span class="scope">Family B · 目標置換的宏觀版</span></div>
+    <h4>把有裁判領域的勝利,外推到沒裁判的領域</h4>
+    <div class="body"><p>「coding agent 都能自己修 bug 了,RCA 當然也行」——這句話 2026 年在每一間會議室出現過。它是 Family B 的宏觀版本:個體層次的目標置換是模型為了收斂偷換目標,組織層次的目標置換是團隊拿「demo 跑完了」代替「答案是對的」。CELL C 的勝利證明的是 oracle 的價值,不是模型的普遍能力。</p></div>
+    <div class="fix"><b>防守</b>立案前先回答一句話:這個領域的 oracle 是什麼、單價多少?答不出 oracle,就從 CELL D 的拆解做起,不從 agent loop 做起。</div>
+  </div>
+</section>
+
+<!-- ================= 07 收束 ================= -->
+<section id="close">
+  <div class="eyebrow">07 · The Fourth Field</div>
+  <h2>有界迴圈,第四個必填欄位</h2>
+  <p>VOL.1 說有界迴圈有三個必填欄位,少一個就只是還沒跑爆的無界迴圈。跨執行的視角補上第四個:</p>
+
+  <div class="fields reveal">
+    <div class="field"><div class="fn">01 · UPPER BOUND</div><h5>最多幾次?</h5><p>3 次重試、8 次查詢預算。</p></div>
+    <div class="field"><div class="fn">02 · EXIT CONDITION</div><h5>什麼算成功?</h5><p>有 oracle 用 oracle,沒有就用預算。不能用模型自評。</p></div>
+    <div class="field"><div class="fn">03 · FAILURE PATH</div><h5>用完往哪走?</h5><p>needs_human 是正常出口,不是「繼續試」。</p></div>
+    <div class="field new"><div class="fn">04 · LEARNING PATH</div><h5>出口之後,往哪學?</h5><p>人查明的結論回寫到哪個結構——template、埋點清單,還是只回寫到會議記錄?</p></div>
+  </div>
+
+  <p>第四欄空著,前三欄做得再好,你得到的也只是一個<b>永遠停在第一天</b>的安全系統。</p>
+
+  <div class="rules reveal">
+    <div class="rule-item"><div class="rn">RULE 01 · 控制流</div><p>畫得出流程圖的,就寫流程圖。需要 agent 的條件是「分支事先枚舉不完」。<span class="footref">(VOL.1)</span></p></div>
+    <div class="rule-item"><div class="rn">RULE 02 · 正確性</div><p>有 oracle 用 oracle 當退出條件;沒有,就限制模型能講什麼——凍結、契約、資料不足出口。<span class="footref">(VOL.1)</span></p></div>
+    <div class="rule-item"><div class="rn">RULE 03 · 天花板</div><p><b>量測涵蓋率決定上限,推理深度只決定逼近速度。</b>上限問題用埋點解,不用預算解。</p></div>
+    <div class="rule-item"><div class="rn">RULE 04 · 累積</div><p><b>系統的價值,看第 100 次與第 1 次的差。</b>差是零的系統,不管單次多正確,都只是一個很貴的一次性函式。</p></div>
+  </div>
+
+  <p class="mute" style="margin-top:26px">VOL.1 是防禦指南:單次執行,怎麼不產出一份漂亮的錯誤。這一篇是演進指南:跨執行,系統憑什麼一次比一次強。兩份合起來才是完整的選型——<b>先用兩軸決定架構,再用棘輪決定它值不值得存在。</b></p>
+</section>
+
+<div class="divider"></div>
+<footer>
+  <span>架構筆記 · VOL. 2 / 2 · AGENT vs WORKFLOW</span>
+  <span>RULE 01–04 · AP-01–15 · CELL A–D</span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')});
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+})();
+</script>
+</body>
+</html>
