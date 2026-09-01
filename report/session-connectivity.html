@@ -1,4 +1,5 @@
 <title>Claude Code 連線地圖</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <style>
@@ -110,6 +111,37 @@ ul.clean li::marker{color:var(--ink-3)}
   background:var(--surface-2);border-radius:6px;padding:10px 14px;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
 footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);font-size:13px;color:var(--ink-3);
   display:flex;flex-direction:column;gap:6px}
+.fig-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.fig-hint{display:none;margin-top:8px;font-size:12px;color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace;letter-spacing:.05em}
+
+@media (max-width:720px){
+  .wrap{padding:32px 16px 64px}
+  section{padding-top:32px;gap:16px}
+  section+section{margin-top:32px}
+  header.hd{padding-bottom:24px}
+  .lede{font-size:17px}
+  figure{padding:16px 12px 12px}
+  figure svg{min-width:640px}
+  .fig-hint{display:block}
+  .legend{flex-direction:column;gap:8px;padding:12px 14px}
+  .card{padding:16px}
+  .quote{font-size:11.5px;padding:10px 12px}
+  table{min-width:0}
+
+  /* 四欄的矩陣在 360px 寬橫捲很痛苦,改成一列一張卡 */
+  .scroll-stack{border:none;background:none;border-radius:0;overflow-x:visible}
+  .stack{width:100%}
+  .stack thead{display:none}
+  .stack tbody{display:flex;flex-direction:column;gap:12px}
+  .stack tr{display:block;background:var(--surface);border:1px solid var(--rule);
+    border-radius:10px;padding:6px 2px}
+  .stack td{display:grid;grid-template-columns:5.2em 1fr;gap:10px;align-items:baseline;
+    border:none;padding:6px 12px;font-size:14px}
+  .stack td::before{content:attr(data-label);color:var(--ink-3);font-size:11px;
+    font-family:"IBM Plex Mono",monospace;letter-spacing:.04em;line-height:1.5}
+  .stack td+td{border-top:1px solid var(--rule)}
+}
 @media (prefers-reduced-motion:no-preference){a{transition:opacity .15s}}
 </style>
 
@@ -183,6 +215,7 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);font-si
     <h2>連線與訊息的路徑</h2>
   </div>
   <figure>
+    <div class="fig-scroll">
     <svg viewBox="0 0 900 430" role="img" aria-label="連線拓撲圖:你的裝置經 Anthropic 伺服器連到本機 session 與雲端容器 session;本機 session 可單向送訊息給雲端 session,反向被拒;同機器的兩個 session 走本機 socket 不經伺服器。">
       <defs>
         <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -258,17 +291,19 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);font-si
         <text x="716" y="222" font-size="11.5" class="no-f">回不去</text>
       </g>
     </svg>
+    </div>
+    <p class="fig-hint">圖較寬,可左右捲動</p>
     <figcaption><strong>你的裝置永遠只連到 Anthropic 伺服器</strong>,再由伺服器接到兩種 session 之一。跨 session 訊息從本機 session 送得到雲端 session,反向被憑證擋下 —— 這條不對稱是實測結果,不是設定問題。</figcaption>
   </figure>
 
   <h3 style="margin-top:8px">訊息實際走哪條線 <span class="tag tag-doc">文件</span></h3>
-  <div class="scroll">
-    <table>
+  <div class="scroll scroll-stack">
+    <table class="stack">
       <thead><tr><th>對方在哪</th><th>怎麼傳</th><th>經過 Anthropic 伺服器?</th></tr></thead>
       <tbody>
-        <tr><td>同一台機器</td><td class="mono">每個 session 各自的 Unix socket(Windows 為 named pipe)</td><td><span class="pill p-no">否</span></td></tr>
-        <tr><td>你的另一台機器</td><td>經伺服器,走那台的 Remote Control 連線送達</td><td><span class="pill p-yes">是</span></td></tr>
-        <tr><td>Claude Code on the web</td><td>經伺服器,直接送到雲端 session</td><td><span class="pill p-yes">是</span></td></tr>
+        <tr><td data-label="對方在哪">同一台機器</td><td class="mono" data-label="怎麼傳">每個 session 各自的 Unix socket(Windows 為 named pipe)</td><td data-label="經伺服器"><span class="pill p-no">否</span></td></tr>
+        <tr><td data-label="對方在哪">你的另一台機器</td><td data-label="怎麼傳">經伺服器,走那台的 Remote Control 連線送達</td><td data-label="經伺服器"><span class="pill p-yes">是</span></td></tr>
+        <tr><td data-label="對方在哪">Claude Code on the web</td><td data-label="怎麼傳">經伺服器,直接送到雲端 session</td><td data-label="經伺服器"><span class="pill p-yes">是</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -280,34 +315,34 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);font-si
     <span class="eyebrow">核心問題</span>
     <h2>誰能訊息誰</h2>
   </div>
-  <div class="scroll">
-    <table>
+  <div class="scroll scroll-stack">
+    <table class="stack">
       <thead><tr><th>從 →</th><th>到 →</th><th>可以嗎</th><th>條件與實際錯誤</th></tr></thead>
       <tbody>
         <tr>
-          <td>本機 session</td><td>同機器的另一個 session</td>
-          <td><span class="pill p-yes">可以</span></td>
-          <td>兩者要看得到同一組檔案。<strong>容器與宿主機互相看不到</strong> <span class="tag tag-doc">文件</span></td>
+          <td data-label="從">本機 session</td><td data-label="到">同機器的另一個 session</td>
+          <td data-label="可以嗎"><span class="pill p-yes">可以</span></td>
+          <td data-label="條件">兩者要看得到同一組檔案。<strong>容器與宿主機互相看不到</strong> <span class="tag tag-doc">文件</span></td>
         </tr>
         <tr>
-          <td>本機 session<br><span style="color:var(--ink-3);font-size:13px">(連著 Remote Control)</span></td><td>另一台機器的 session</td>
-          <td><span class="pill p-yes">可以</span></td>
-          <td>雙方都要連著 Remote Control;對方要出現在列表裡 <span class="tag tag-doc">文件</span></td>
+          <td data-label="從">本機 session<br><span style="color:var(--ink-3);font-size:13px">(連著 Remote Control)</span></td><td data-label="到">另一台機器的 session</td>
+          <td data-label="可以嗎"><span class="pill p-yes">可以</span></td>
+          <td data-label="條件">雙方都要連著 Remote Control;對方要出現在列表裡 <span class="tag tag-doc">文件</span></td>
         </tr>
         <tr>
-          <td>本機 session<br><span style="color:var(--ink-3);font-size:13px">(連著 Remote Control)</span></td><td>雲端 web session</td>
-          <td><span class="pill p-yes">可以</span></td>
-          <td>本頁就是這樣收到 dev-vm 回報的 <span class="tag tag-test">實測</span></td>
+          <td data-label="從">本機 session<br><span style="color:var(--ink-3);font-size:13px">(連著 Remote Control)</span></td><td data-label="到">雲端 web session</td>
+          <td data-label="可以嗎"><span class="pill p-yes">可以</span></td>
+          <td data-label="條件">本頁就是這樣收到 dev-vm 回報的 <span class="tag tag-test">實測</span></td>
         </tr>
         <tr>
-          <td>雲端 web session</td><td>任何其他 session</td>
-          <td><span class="pill p-no">不行</span></td>
-          <td>憑證不允許對外投遞,連「回覆」都不行 <span class="tag tag-test">實測</span></td>
+          <td data-label="從">雲端 web session</td><td data-label="到">任何其他 session</td>
+          <td data-label="可以嗎"><span class="pill p-no">不行</span></td>
+          <td data-label="條件">憑證不允許對外投遞,連「回覆」都不行 <span class="tag tag-test">實測</span></td>
         </tr>
         <tr>
-          <td>沒連 Remote Control 的本機 session</td><td>機器以外的 session</td>
-          <td><span class="pill p-part">找不到</span></td>
-          <td>列不出來就沒有名字可以定址 <span class="tag tag-doc">文件</span></td>
+          <td data-label="從">沒連 Remote Control 的本機 session</td><td data-label="到">機器以外的 session</td>
+          <td data-label="可以嗎"><span class="pill p-part">找不到</span></td>
+          <td data-label="條件">列不出來就沒有名字可以定址 <span class="tag tag-doc">文件</span></td>
         </tr>
       </tbody>
     </table>
