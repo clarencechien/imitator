@@ -1,0 +1,471 @@
+<title>Claude Code 連線地圖</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ground:#F6F7FA; --surface:#FFFFFF; --surface-2:#EEF0F6;
+  --ink:#141821; --ink-2:#4A5162; --ink-3:#767E90;
+  --rule:#D9DDE7; --rule-strong:#B9C0CF;
+  --accent:#2E42C7; --accent-soft:#E4E7FA;
+  --yes:#166B45; --yes-soft:#DEF0E6;
+  --no:#A8341F; --no-soft:#FAE3DE;
+  --part:#7A5A0E; --part-soft:#F6EBD2;
+  --shadow:0 1px 2px rgba(20,24,33,.06),0 8px 24px -16px rgba(20,24,33,.28);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1117; --surface:#161A23; --surface-2:#1E2330;
+    --ink:#E7EAF2; --ink-2:#AAB2C4; --ink-3:#7B8397;
+    --rule:#2A3040; --rule-strong:#3C4459;
+    --accent:#93A2FF; --accent-soft:#1E2445;
+    --yes:#5FC08D; --yes-soft:#12301F;
+    --no:#F0876B; --no-soft:#37170F;
+    --part:#D9AE4E; --part-soft:#302408;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1117; --surface:#161A23; --surface-2:#1E2330;
+  --ink:#E7EAF2; --ink-2:#AAB2C4; --ink-3:#7B8397;
+  --rule:#2A3040; --rule-strong:#3C4459;
+  --accent:#93A2FF; --accent-soft:#1E2445;
+  --yes:#5FC08D; --yes-soft:#12301F;
+  --no:#F0876B; --no-soft:#37170F;
+  --part:#D9AE4E; --part-soft:#302408;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Noto Sans TC","Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.75; margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1040px;margin:0 auto;padding:56px 24px 96px}
+.prose{max-width:70ch}
+h1,h2,h3{font-family:"Archivo","Noto Sans TC",system-ui,sans-serif;text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:clamp(30px,5vw,46px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(21px,2.6vw,27px);font-weight:600;letter-spacing:-.01em}
+h3{font-size:17px;font-weight:600}
+p{margin:0}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em}
+code{background:var(--surface-2);border-radius:4px;padding:.1em .35em}
+a{color:var(--accent)}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.lede{font-size:19px;line-height:1.65;color:var(--ink-2)}
+header.hd{display:flex;flex-direction:column;gap:14px;padding-bottom:32px;border-bottom:2px solid var(--rule-strong)}
+
+section{padding-top:44px;display:flex;flex-direction:column;gap:20px}
+section+section{border-top:1px solid var(--rule);margin-top:44px}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;
+  padding:.15em .5em;border-radius:3px;vertical-align:.15em;white-space:nowrap}
+.tag-doc{background:var(--accent-soft);color:var(--accent)}
+.tag-test{background:var(--part-soft);color:var(--part)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13.5px;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 16px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:20px;
+  display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)}
+.card h3{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.card dt{color:var(--ink-3);font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.05em;
+  text-transform:uppercase;padding-top:.35em}
+.card dd{margin:0;color:var(--ink-2)}
+
+figure{margin:0;background:var(--surface);border:1px solid var(--rule);border-radius:10px;
+  padding:24px 20px 16px;box-shadow:var(--shadow)}
+figure svg{display:block;width:100%;max-width:100%;height:auto;color:var(--ink-2)}
+figure svg .dim{fill:var(--ink-3)}
+figure svg .panel{fill:var(--surface-2)}
+figure svg .acc-f{fill:var(--accent)}
+figure svg .acc-s{stroke:var(--accent)}
+figure svg .no-s{stroke:var(--no)}
+figure svg .no-f{fill:var(--no)}
+figure svg text{font-family:"IBM Plex Mono",ui-monospace,monospace}
+figcaption{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);
+  font-size:13.5px;line-height:1.6;color:var(--ink-2)}
+
+.scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:560px}
+th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{background:var(--surface-2);font-family:"Archivo","Noto Sans TC",sans-serif;font-weight:600;
+  font-size:13px;letter-spacing:.02em;white-space:nowrap;position:sticky;top:0}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:"IBM Plex Mono",monospace;font-size:13px}
+.pill{display:inline-block;font-size:12.5px;font-weight:500;padding:.15em .6em;border-radius:99px;white-space:nowrap}
+.p-yes{background:var(--yes-soft);color:var(--yes)}
+.p-no{background:var(--no-soft);color:var(--no)}
+.p-part{background:var(--part-soft);color:var(--part)}
+
+ul.clean{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+ul.clean li::marker{color:var(--ink-3)}
+.note{background:var(--surface);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+  padding:14px 18px;font-size:15px;color:var(--ink-2);display:flex;flex-direction:column;gap:8px}
+.quote{font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.6;color:var(--ink-2);
+  background:var(--surface-2);border-radius:6px;padding:10px 14px;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);font-size:13px;color:var(--ink-3);
+  display:flex;flex-direction:column;gap:6px}
+@media (prefers-reduced-motion:no-preference){a{transition:opacity .15s}}
+</style>
+
+<div class="wrap">
+
+<header class="hd">
+  <span class="eyebrow">Claude Code · 誰連得到誰</span>
+  <h1>Claude Code 連線地圖</h1>
+  <p class="lede">三個常被當成同一件事的東西 —— 本機 CLI、網頁版、Remote Control —— 各自在哪裡跑、怎麼串起來、彼此能做到什麼程度。</p>
+  <div class="legend">
+    <span><span class="tag tag-doc">文件</span> 官方文件明載</span>
+    <span><span class="tag tag-test">實測</span> 2026-09-01 在 dev-vm 與雲端 session 之間實際跑出來的結果</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">先修正一個常見誤解</span>
+    <h2>Remote Control 不是第三個地方,是一扇窗</h2>
+  </div>
+  <div class="prose" style="display:flex;flex-direction:column;gap:16px">
+    <p>Claude Code 和 Claude Code on the web 是<strong>兩個執行環境</strong>:一個在你的機器上,一個在 Anthropic 的雲端容器裡。Remote Control 不是第三個 —— 它是讓瀏覽器或手機去操作<strong>那個已經在你機器上跑著的 session</strong> 的通道。</p>
+    <div class="note">
+      <p style="margin:0">文件的原話:</p>
+      <div class="quote">Unlike Claude Code on the web, which runs on cloud infrastructure, Remote Control sessions run directly on your machine and interact with your local filesystem. The web and mobile interfaces are a window into that local session.</div>
+    </div>
+    <p>這決定了後面所有事情:程式在哪執行、檔案在哪、誰找得到誰,答案全都從「這個 session 的行程實際上跑在哪台機器」推導出來。</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">三者對照</span>
+    <h2>誰在哪裡跑</h2>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3>Claude Code<span class="tag tag-doc">文件</span></h3>
+      <p style="color:var(--ink-2);font-size:14.5px;margin:0">終端機裡的本機 CLI。</p>
+      <dl>
+        <dt>執行</dt><dd>你的機器</dd>
+        <dt>檔案</dt><dd>你的本機檔案系統</dd>
+        <dt>需要</dt><dd>裝好 CLI 即可</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h3>Remote Control<span class="tag tag-doc">文件</span></h3>
+      <p style="color:var(--ink-2);font-size:14.5px;margin:0">用 claude.ai/code 或手機 App 操作上面那個本機 session。</p>
+      <dl>
+        <dt>執行</dt><dd>仍然是你的機器</dd>
+        <dt>檔案</dt><dd>你的本機檔案系統</dd>
+        <dt>需要</dt><dd>Pro／Max／Team／Enterprise、claude.ai 登入、<code>api.anthropic.com</code> 端點</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h3>Claude Code on the web<span class="tag tag-doc">文件</span></h3>
+      <p style="color:var(--ink-2);font-size:14.5px;margin:0">從 claude.ai/code 開的雲端 session。</p>
+      <dl>
+        <dt>執行</dt><dd>Anthropic 的雲端容器</dd>
+        <dt>檔案</dt><dd>容器自己的檔案系統(repo 是另外 clone 進去的)</dd>
+        <dt>需要</dt><dd>瀏覽器</dd>
+      </dl>
+    </div>
+  </div>
+  <p class="prose" style="color:var(--ink-2);font-size:15px">同樣一個 <code>claude.ai/code</code> 網頁,可能是在操作你機器上的 session(Remote Control),也可能是在操作雲端容器裡的 session。<strong>介面一樣,底下不是同一台機器</strong> —— 這是最容易混淆的地方。</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">怎麼串透</span>
+    <h2>連線與訊息的路徑</h2>
+  </div>
+  <figure>
+    <svg viewBox="0 0 900 430" role="img" aria-label="連線拓撲圖:你的裝置經 Anthropic 伺服器連到本機 session 與雲端容器 session;本機 session 可單向送訊息給雲端 session,反向被拒;同機器的兩個 session 走本機 socket 不經伺服器。">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ah-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" class="acc-f"/>
+        </marker>
+        <marker id="ah-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" class="no-f"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+        <!-- 你的裝置 -->
+        <rect x="16" y="150" width="146" height="88" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="89" y="182" text-anchor="middle" font-size="13" font-weight="500">你的裝置</text>
+        <text x="89" y="201" text-anchor="middle" class="dim">Chromebook</text>
+        <text x="89" y="218" text-anchor="middle" class="dim">手機 App</text>
+
+        <!-- Anthropic 伺服器 -->
+        <rect x="276" y="40" width="128" height="350" rx="8" class="panel" stroke="currentColor" stroke-width="1.5"/>
+        <text x="340" y="205" text-anchor="middle" font-size="13" font-weight="500">Anthropic</text>
+        <text x="340" y="224" text-anchor="middle" font-size="13" font-weight="500">伺服器</text>
+
+        <!-- 你的機器 -->
+        <rect x="540" y="40" width="344" height="146" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="560" y="66" font-size="13" font-weight="500">你的機器(dev-vm)</text>
+        <rect x="560" y="80" width="150" height="88" rx="6" class="panel" stroke="currentColor" stroke-width="1"/>
+        <text x="635" y="106" text-anchor="middle" font-size="11.5">claude</text>
+        <text x="635" y="122" text-anchor="middle" font-size="11.5">--remote-control</text>
+        <text x="635" y="141" text-anchor="middle" font-size="11" class="dim">跑在 tmux 裡</text>
+        <text x="635" y="157" text-anchor="middle" font-size="11" class="dim">程式在這執行</text>
+        <rect x="726" y="80" width="140" height="88" rx="6" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="796" y="112" text-anchor="middle" font-size="11.5" class="dim">本機檔案系統</text>
+        <text x="796" y="131" text-anchor="middle" font-size="11.5" class="dim">MCP、工具</text>
+        <text x="796" y="150" text-anchor="middle" font-size="11.5" class="dim">/data</text>
+
+        <!-- 雲端容器 -->
+        <rect x="540" y="244" width="344" height="146" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="560" y="270" font-size="13" font-weight="500">Anthropic 雲端容器</text>
+        <rect x="560" y="284" width="150" height="88" rx="6" class="panel" stroke="currentColor" stroke-width="1"/>
+        <text x="635" y="316" text-anchor="middle" font-size="11.5">Claude Code</text>
+        <text x="635" y="332" text-anchor="middle" font-size="11.5">on the web</text>
+        <text x="635" y="352" text-anchor="middle" font-size="11" class="dim">程式在這執行</text>
+        <rect x="726" y="284" width="140" height="88" rx="6" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="796" y="320" text-anchor="middle" font-size="11.5" class="dim">容器自己的</text>
+        <text x="796" y="339" text-anchor="middle" font-size="11.5" class="dim">檔案系統</text>
+
+        <!-- 裝置 <-> 伺服器 -->
+        <line x1="162" y1="176" x2="276" y2="120" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)"/>
+        <line x1="162" y1="212" x2="276" y2="300" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)"/>
+        <text x="196" y="132" font-size="11" class="dim">操作／畫面</text>
+
+        <!-- 伺服器 <-> 本機 -->
+        <line x1="404" y1="113" x2="540" y2="113" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)"/>
+        <text x="472" y="103" text-anchor="middle" font-size="11" class="dim">Remote Control</text>
+
+        <!-- 伺服器 <-> 雲端 -->
+        <line x1="404" y1="317" x2="540" y2="317" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)"/>
+        <text x="472" y="307" text-anchor="middle" font-size="11" class="dim">web session</text>
+
+        <!-- 跨 session 訊息:本機 -> 雲端(單向) -->
+        <path d="M636 186 L636 210 L500 210 L500 240" fill="none" class="acc-s" stroke-width="2" marker-end="url(#ah-a)"/>
+        <text x="568" y="203" text-anchor="middle" font-size="11.5" class="acc-f" font-weight="500">跨 session 訊息</text>
+
+        <!-- 反向:被拒 -->
+        <line x1="700" y1="240" x2="700" y2="192" class="no-s" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah-n)"/>
+        <g class="no-s" stroke-width="2.5">
+          <line x1="692" y1="209" x2="708" y2="225"/>
+          <line x1="708" y1="209" x2="692" y2="225"/>
+        </g>
+        <text x="716" y="222" font-size="11.5" class="no-f">回不去</text>
+      </g>
+    </svg>
+    <figcaption><strong>你的裝置永遠只連到 Anthropic 伺服器</strong>,再由伺服器接到兩種 session 之一。跨 session 訊息從本機 session 送得到雲端 session,反向被憑證擋下 —— 這條不對稱是實測結果,不是設定問題。</figcaption>
+  </figure>
+
+  <h3 style="margin-top:8px">訊息實際走哪條線 <span class="tag tag-doc">文件</span></h3>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>對方在哪</th><th>怎麼傳</th><th>經過 Anthropic 伺服器?</th></tr></thead>
+      <tbody>
+        <tr><td>同一台機器</td><td class="mono">每個 session 各自的 Unix socket(Windows 為 named pipe)</td><td><span class="pill p-no">否</span></td></tr>
+        <tr><td>你的另一台機器</td><td>經伺服器,走那台的 Remote Control 連線送達</td><td><span class="pill p-yes">是</span></td></tr>
+        <tr><td>Claude Code on the web</td><td>經伺服器,直接送到雲端 session</td><td><span class="pill p-yes">是</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose" style="color:var(--ink-2);font-size:15px">同機器那條完全不出你的機器。跨機器與雲端那兩條,則是<strong>搭 Remote Control 既有的連線</strong>順便把訊息帶過去 —— 這也是為什麼「找得到別台機器的 session」這件事,前提是<strong>發送端自己連著 Remote Control</strong>。</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">核心問題</span>
+    <h2>誰能訊息誰</h2>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>從 →</th><th>到 →</th><th>可以嗎</th><th>條件與實際錯誤</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>本機 session</td><td>同機器的另一個 session</td>
+          <td><span class="pill p-yes">可以</span></td>
+          <td>兩者要看得到同一組檔案。<strong>容器與宿主機互相看不到</strong> <span class="tag tag-doc">文件</span></td>
+        </tr>
+        <tr>
+          <td>本機 session<br><span style="color:var(--ink-3);font-size:13px">(連著 Remote Control)</span></td><td>另一台機器的 session</td>
+          <td><span class="pill p-yes">可以</span></td>
+          <td>雙方都要連著 Remote Control;對方要出現在列表裡 <span class="tag tag-doc">文件</span></td>
+        </tr>
+        <tr>
+          <td>本機 session<br><span style="color:var(--ink-3);font-size:13px">(連著 Remote Control)</span></td><td>雲端 web session</td>
+          <td><span class="pill p-yes">可以</span></td>
+          <td>本頁就是這樣收到 dev-vm 回報的 <span class="tag tag-test">實測</span></td>
+        </tr>
+        <tr>
+          <td>雲端 web session</td><td>任何其他 session</td>
+          <td><span class="pill p-no">不行</span></td>
+          <td>憑證不允許對外投遞,連「回覆」都不行 <span class="tag tag-test">實測</span></td>
+        </tr>
+        <tr>
+          <td>沒連 Remote Control 的本機 session</td><td>機器以外的 session</td>
+          <td><span class="pill p-part">找不到</span></td>
+          <td>列不出來就沒有名字可以定址 <span class="tag tag-doc">文件</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p style="margin:0"><strong>雲端 session 送不出去的兩種失敗長得不一樣</strong>,原因也不同:</p>
+    <div class="quote">主動送給對方 →  No agent named 'azure-dev' is reachable.
+                  (列不到機器外的 session,沒有名字可用)
+
+用對方給的回覆地址 →  auth: this cloud session cannot message other sessions yet —
+                  its credential is accepted for its own work but not for
+                  delivering to another session</div>
+    <p style="margin:0">第二個才是真正的天花板:<strong>就算對方先開口、就算訊息帶著回覆地址,雲端 session 還是回不了話</strong>。所以雲端這一端是<strong>唯讀的收件匣</strong>。</p>
+  </div>
+
+  <h3>那雲端這端能不能設定開起來?</h3>
+  <div class="cards">
+    <div class="card">
+      <h3 style="color:var(--yes)">收 —— 已經能了</h3>
+      <p style="color:var(--ink-2);font-size:14.5px;margin:0">不用設定。雲端 session 現在就收得到,session 記錄裡是 <code>cross_session_inbound: available</code>。管收訊的 <code>crossSessionInbound</code> 預設就是通的。</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--no)">送 —— 沒有設定可以開</h3>
+      <p style="color:var(--ink-2);font-size:14.5px;margin:0">錯誤訊息寫的是 <code>cannot message other sessions <strong>yet</strong></code> —— 平台端還沒開放的能力,不是你少設了什麼。</p>
+    </div>
+  </div>
+  <ul class="clean" style="max-width:70ch">
+    <li>文件裡跟跨 session 訊息有關的設定只有 <code>crossSessionInbound</code>、<code>isolatePeerMachines</code>、<code>permissions.deny</code>、<code>disableRemoteControl</code> 四個。<strong>全部都只能「限制」,沒有一個能「授予」。</strong></li>
+    <li>也不能靠「讓雲端 session 連上 Remote Control」繞過 —— Remote Control 的定義是把<strong>本機行程</strong>開放給遠端操作,雲端 session 不是本機行程,這個前提本身不成立。</li>
+    <li><strong>收訊端(VM 那側)也沒有東西可以開。</strong>那則錯誤是發送端的憑證檢查,訊息根本沒離開雲端 session,VM 從頭到尾沒被問過。分辨方法:收訊端若設 <code>refuse</code> 或 <code>hold</code>,發送端會收到<em>不一樣的</em>通知(「對方不接受」或「被擋下等批准」)。都不是這些,就表示卡在更上游。</li>
+    <li>所以要把資訊送進雲端 session,只有兩條路:<strong>叫本機那端主動送</strong>,或你自己貼過去。</li>
+  </ul>
+
+  <h3>怎麼自己確認 <span class="tag tag-doc">文件</span></h3>
+  <ul class="clean" style="max-width:70ch">
+    <li>在任一 session 打 <code>/list-agents</code>(別名 <code>/peers</code>)—— 列得出誰就能訊息誰。第一行是這個 session 自己的名字,也就是別人要用的地址。</li>
+    <li><code>/status</code> 的 <code>Peer address</code> 那列顯示自己的收件位址。</li>
+    <li>指令不存在 = 版本太舊。需要 v2.1.224 以上(原生 Windows 需 v2.1.234)。</li>
+    <li><strong>名字會變。</strong>同一個雲端 session 在四次檢查裡分別叫 <code>azurevm-fb</code>、<code>-32</code>、<code>-a9</code>、<code>-7c</code>,所以要傳訊息前先查一次,別用記憶中的。<span class="tag tag-test">實測</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">只能傳訊息嗎</span>
+    <h2>能做到什麼程度</h2>
+  </div>
+  <div class="prose" style="display:flex;flex-direction:column;gap:16px">
+    <p>「只能傳訊息」這句話同時高估和低估了它。<strong>管道本身只送純文字</strong> —— 不帶對話歷史、不帶檔案。但收訊的那一端是個完整的 agent,它會用自己的工具去做事,所以一則訊息可以引發真正的工作。</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3 style="color:var(--yes)">訊息做得到</h3>
+      <ul class="clean" style="font-size:14.5px;color:var(--ink-2)">
+        <li>讓對方跑指令、讀寫檔案、改程式 —— 在<strong>它自己的權限範圍內</strong></li>
+        <li>把發現、狀態、決定傳過去,取代你手動複製貼上</li>
+        <li>對方可以回覆(雲端 session 除外)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--no)">訊息做不到</h3>
+      <ul class="clean" style="font-size:14.5px;color:var(--ink-2)">
+        <li><strong>不算你的同意</strong> —— 回答不了對方待批准的權限提示</li>
+        <li><strong>不能改設定</strong> —— 收訊端被明確指示不得因為別的 session 要求而改權限、<code>CLAUDE.md</code> 或設定</li>
+        <li><strong>斜線指令不會執行</strong>,只當純文字</li>
+        <li>不搬 context。要延續整段對話得用 <code>--resume</code>,不是訊息</li>
+      </ul>
+    </div>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>限制 <span class="tag tag-doc">文件</span></th><th>值</th></tr></thead>
+      <tbody>
+        <tr><td>內容型別</td><td>純文字。結構化的 agent team 協定訊息不跨 session</td></tr>
+        <tr><td>同機器訊息大小</td><td>序列化後約 100 萬字元,超過在<strong>發送端</strong>就被擋</td></tr>
+        <tr><td>連發</td><td>短時間大量送同一個 session 會在發送端被拒,要你合併成一則</td></tr>
+        <tr><td>迴圈防護</td><td>收訊端限流、丟棄短時間內的重複訊息、佇列上限 50 則 —— 兩個 session 互相回話會自己停下來</td></tr>
+        <tr><td>閒置通知 <code>notify_when_idle</code></td><td><strong>只限同一台機器</strong>,且只有主對話能訂閱。12 小時沒等到就放棄</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">另一條軸線</span>
+    <h2>Remote Control 本身能做什麼</h2>
+  </div>
+  <p class="prose" style="color:var(--ink-2)">跨 session 訊息是 session 之間互相講話;Remote Control 是<strong>你</strong>操作一個 session。後者能做的多得多 —— 它就是那個 session 的完整介面。</p>
+  <div class="cards">
+    <div class="card">
+      <h3 style="color:var(--yes)">可以 <span class="tag tag-doc">文件</span></h3>
+      <ul class="clean" style="font-size:14.5px;color:var(--ink-2)">
+        <li>用完整的本機環境:檔案系統、MCP、工具、專案設定,打 <code>@</code> 會自動補本機路徑</li>
+        <li>終端機、瀏覽器、手機同時開著,對話與 subagent／workflow 進度全部同步</li>
+        <li>從手機或瀏覽器傳圖片和檔案進去</li>
+        <li>網路斷掉會自動重連,期間的訊息與權限提示會排隊等連線回來</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--no)">不行 <span class="tag tag-doc">文件</span></h3>
+      <ul class="clean" style="font-size:14.5px;color:var(--ink-2)">
+        <li><strong><code>/resume</code> 與 <code>/plugin</code> 只能在本機終端機用</strong>,不管有沒有帶參數</li>
+        <li>本機行程必須活著。關掉終端機 session 就離線 —— 所以遠端機器上要跑在 <code>tmux</code> 或 <code>screen</code> 裡</li>
+        <li>不支援 API key、Bedrock／Vertex／Foundry,或指向非 <code>api.anthropic.com</code> 的 <code>ANTHROPIC_BASE_URL</code></li>
+        <li><code>DISABLE_TELEMETRY</code> 等環境變數會關掉它依賴的功能旗標評估</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note">
+    <p style="margin:0"><strong><code>/resume</code> 這條會反覆咬人。</strong>每次那台機器重開、或 session 行程結束,你都會得到一個全新的 session,接不回昨天的脈絡。對話記錄本身沒丟(在 <code>~/.claude/projects/</code> 底下),但只能從本機終端機 <code>claude --resume</code> 接回去,而那會是一般 session、不是 Remote Control。</p>
+    <p style="margin:0">結論很實際:<strong>要跨天延續的東西放檔案</strong> —— 專案的 <code>CLAUDE.md</code>、筆記、repo —— 不要指望 session 記得。</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">開關</span>
+    <h2>要收緊的話</h2>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="mono">設定</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">crossSessionInbound</td><td><code>accept</code> 全收／<code>hold</code> 先擋下等你批准／<code>refuse</code> 直接丟棄。也可在 <code>/config</code> 的「Messages from your other sessions」選</td></tr>
+        <tr><td class="mono">isolatePeerMachines</td><td><code>true</code> = 任何往機器外送的訊息都要你先批准,連 <code>bypassPermissions</code> 模式也擋</td></tr>
+        <tr><td class="mono">permissions.deny</td><td>列入 <code>SendMessage</code>、<code>ListAgents</code> 就完全關掉送訊息與列出對象</td></tr>
+        <tr><td class="mono">disableRemoteControl</td><td>整個關掉 Remote Control</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose" style="color:var(--ink-2);font-size:15px">沒設定的話,預設會依兩邊的權限模式決定:收訊端會跳權限提示的,就直接送達(除非發送端宣告自己是 bypass);收訊端本身是 bypass 的,則每則都先擋下來等你批准。</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">附錄</span>
+    <h2>這份地圖的實測來源</h2>
+  </div>
+  <p class="prose" style="color:var(--ink-2);font-size:15px">標 <span class="tag tag-test">實測</span> 的部分來自 2026-09-01 這組實際配置:一台 Azure 上的 dev VM(<code>dev-vm</code>,japaneast)跑 <code>claude --remote-control=azure-dev</code>,由 systemd user service 包在 tmux 裡開機自啟;另一端是 claude.ai/code 開的雲端 web session。</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>試了什麼</th><th>結果</th></tr></thead>
+      <tbody>
+        <tr><td>雲端 session 跑 <code>/list-agents</code></td><td>完全空的 —— 容器隔離所以沒有同機器的對象,又沒連 Remote Control 所以看不到機器外的</td></tr>
+        <tr><td>雲端 → VM,用名字</td><td><span class="pill p-no">失敗</span> 找不到該名稱</td></tr>
+        <tr><td>VM → 雲端</td><td><span class="pill p-yes">成功</span> 訊息直接出現在雲端 session 裡</td></tr>
+        <tr><td>雲端 → VM,用對方訊息附的回覆地址</td><td><span class="pill p-no">失敗</span> 憑證不允許對外投遞</td></tr>
+        <tr><td>VM 重開機後</td><td>Remote Control session 自己回來(開機 +14 秒),但是<strong>新的 session id</strong>,舊對話接不回去</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <p>文件來源:<a href="https://code.claude.com/docs/en/cross-session-messaging">Message your other Claude Code sessions</a> · <a href="https://code.claude.com/docs/en/remote-control">Continue local sessions from any device with Remote Control</a></p>
+  <p>實測日期 2026-09-01。標示為實測的行為可能隨版本改變,當時的 Claude Code 版本是 2.1.252。</p>
+</footer>
+
+</div>
