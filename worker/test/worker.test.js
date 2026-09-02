@@ -366,8 +366,10 @@ describe('列表與刪除', () => {
     });
 
     const res = await SELF.fetch(url('/v1/a'), { headers: auth() });
-    const slugs = (await res.json()).map((r) => r.slug).sort();
-    expect(slugs).toEqual(['mine', 'pub']);
+    const listed = await res.json();
+    expect(listed.map((r) => r.slug).sort()).toEqual(['mine', 'pub']);
+    // owner 要看得到，否則「backfill 補完了沒」沒有唯讀的驗證方法。
+    expect(listed.every((r) => r.owner === 'rd')).toBe(true);
   });
 
   it('DELETE 會把物件與索引一起清掉', async () => {

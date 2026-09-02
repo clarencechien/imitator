@@ -217,13 +217,23 @@ multipart。後果：
 覆寫就是永久消失。最可能觸發的不是惡意內鬼，是兩個自動發佈者撞到同一個 slug。
 
 `owner` 一旦確立就不轉手；沒有 `owner` 的是加這個欄位之前就存在的物件，沿用
-舊判準並在第一次更新時補上。**把舊物件補完的方法是重跑一次
-`node ../scripts/migrate.mjs --visibility=public --force`** —— 它會帶著正確的
-時間戳與 sandbox 判定重推，順便把 `owner` 蓋上去。補完之後 `canWrite()` 裡的
-舊分支就可以刪掉。
+舊判準並在第一次更新時補上。
 
-> 在加入第二個 group 之前務必先做完這件事。只有一個 group 的時候這兩種判準
-> 行為完全一樣，所以問題不會以任何方式顯現出來。
+**把舊物件補完的方法是重跑一次
+`node ../scripts/migrate.mjs --visibility=public --force`** —— 它會帶著正確的
+時間戳與 sandbox 判定重推，順便把 `owner` 蓋上去。
+
+> ⚠️ 那個指令是**整批 visibility 重寫**，不只是蓋 owner：`--visibility=public`
+> 會無條件套用到它掃到的每一個檔案。如果某個 slug 後來被改成 `group:rd`，
+> 跑下去會把它變回 public。
+
+> ⚠️ 它只涵蓋 `archive/report/` 裡有本機檔案的 slug。用 curl 從別的地方推上去、
+> repo 裡沒有副本的那些，`--force` 不會迭代到它們，也就補不到。
+
+補完之後用 `GET /v1/a` 確認（`owner` 會出現在回應裡），數到 `"owner": null`
+是 0 才算補完，然後 `canWrite()` 裡的舊分支就可以刪掉。**那個舊分支對
+`visibility: public` 的無主物件是對所有 group 放行的 —— 加入第二個 group 之後，
+它等於讓新 group 可以永久佔走任何一個沒補到的 public slug。**
 
 ### 幾個實作上的決定
 

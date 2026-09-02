@@ -39,7 +39,12 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
 ## 設定（只需要做一次）
 
 1. **repo secret**：Settings → Secrets and variables → Actions → New repository
-   secret，名稱 `IMITATOR_TOKEN`。可以直接用你 CLI 在用的那個 token。
+   secret，名稱 `IMITATOR_TOKEN`。
+
+   > 用 CLI 那個 token 可以動，但它能覆寫與刪除**所有** artifact，包含這條路
+   > 用不到的 `group:` 私有內容 —— 而 R2 沒有 versioning，刪掉就沒了。凡是有
+   > push 權限的人、以及 job 裡執行的任何東西（`actions/checkout` 被入侵也算）
+   > 都握有它。建議發一個專用的 group，見下面。
 2. **Build watch paths**：Cloudflare → Workers → imitator → Settings → Build →
    Build watch paths，includes 設成 `worker/*`。這支 Action 會 commit 回 main，
    不設的話每發佈一份報告就會多觸發一次 Worker 部署。
@@ -54,10 +59,27 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
    開啟且不能單獨關的），「收什麼吐什麼」在網路上才真的成立。
    擋掃描器的工作本來就是那條 WAF custom rule 在做，不是 BFM。
 
-日後如果要給這條路一個專用的 token（外洩時可以只撤銷它、不影響你的 CLI），
-在 `config/groups.json` 加一個 group 再把它的 token 換進 secret 即可 —— 但
-**加第二個 group 之前**要先把既有 artifact 的 `owner` 補完，見
-`worker/README.md`。
+### 專用的 group（建議，但先讀完這段）
+
+在 `config/groups.json` 加一個只有 `write` 區塊的 group，把它的 token 換進
+secret，外洩時就只需要撤銷它、不影響你的 CLI：
+
+```json
+"bot": { "name": "自動發佈", "epoch": 1, "write": { "secret": "ROTATE" } }
+```
+
+沒有 `read` 區塊代表沒有人 join 得進這個 group —— 它只能推、不會被讀。
+
+**代價要先知道**：擁有權是綁 group 的。換成 `bot` 之後，這條路就**只能發新的
+slug，不能更新既有那 272 份**（它們的 owner 是 `rd`），試了會拿到 403 並在
+summary 裡說明。要更新舊報告就從 CLI 用 `rd` 的 token 推。
+
+換 secret 之前也要先確認既有 artifact 的 `owner` 都補完了：
+
+```bash
+curl -s https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_TOKEN" \
+  | grep -c '"owner": null'      # 要是 0
+```
 
 ## 撤下來要手動
 
