@@ -10,7 +10,9 @@ import {
   groups,
   past,
   readConfig,
+  groupsWithSales,
   resetStorage,
+  salesToken,
   seed,
   token,
 } from './helpers.js';
@@ -229,6 +231,46 @@ describe('寫入（write token）', () => {
     });
     const res = await put('theirs', 'mine');
     expect(res.status).toBe(403);
+  });
+
+  it('寫入時記下 owner，之後的更新不會改掉它', async () => {
+    await put('owned', 'v1', { 'X-Visibility': 'public' });
+    expect((await env.R2_BUCKET.head('artifacts/owned.html')).customMetadata.owner).toBe('rd');
+    await put('owned', 'v2', { 'X-Visibility': 'public' });
+    expect((await env.R2_BUCKET.head('artifacts/owned.html')).customMetadata.owner).toBe('rd');
+  });
+
+  it('別組不能覆寫或刪掉我的 public artifact', async () => {
+    await seed(groupsWithSales());
+    await put('mine-public', '<p>原文</p>', { 'X-Visibility': 'public' });
+
+    // public 的 visibility 不帶身分，靠 owner 擋 —— 這是這個測試的重點。
+    const overwrite = await put('mine-public', '<p>被換掉</p>', {
+      'X-Visibility': 'public',
+      ...auth(salesToken()),
+    });
+    expect(overwrite.status).toBe(403);
+
+    const capture = await put('mine-public', '<p>佔走</p>', auth(salesToken()));
+    expect(capture.status).toBe(403);
+
+    const del = await SELF.fetch(url('/v1/a/mine-public'), {
+      method: 'DELETE',
+      headers: auth(salesToken()),
+    });
+    expect(del.status).toBe(404);
+
+    // 原文原封不動
+    expect(await (await SELF.fetch(url('/r/mine-public'))).text()).toBe('<p>原文</p>');
+  });
+
+  it('沒有 owner 的舊物件沿用舊判準，並在第一次更新時補上 owner', async () => {
+    await env.R2_BUCKET.put('artifacts/legacy.html', 'old', {
+      customMetadata: { visibility: 'public', title: 't', createdAt: 'x', updatedAt: 'x' },
+    });
+    const res = await put('legacy', 'new', { 'X-Visibility': 'public' });
+    expect(res.status).toBe(200);
+    expect((await env.R2_BUCKET.head('artifacts/legacy.html')).customMetadata.owner).toBe('rd');
   });
 });
 

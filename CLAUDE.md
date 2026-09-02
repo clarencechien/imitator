@@ -42,6 +42,10 @@ curl https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_TOKE
 
 token 洩漏等於有人能在這個網域掛任意 HTML。不要放進截圖、對話紀錄或 commit。
 
+不想用 curl 的時候：把 HTML 放進 `inbox/` commit 到 `main`，GitHub Action 會發佈成
+public 並把原始檔搬進 `archive/report/`。手機上用瀏覽器開 GitHub 上傳就行，見
+`inbox/README.md`。
+
 ---
 
 ## 開發這支 Worker 本身
