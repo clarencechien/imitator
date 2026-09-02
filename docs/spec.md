@@ -484,8 +484,8 @@ opaque origin 讓那些 fetch 變成跨源、`Origin: null`，而 Worker 不送 
    透過 `X-Updated-At` 送上去。逐份驗證：內容 byte-for-byte 一致 272/272、
    sandbox 判定 272/272、`updatedAt` 272/272。腳本見 `scripts/migrate.mjs`
    與 `scripts/verify.mjs`。
-2. 舊 GitHub Pages 網址 301 到新網址，或直接放生。
-3. 刪掉 `.github/workflows/` 與 `report_list.json`。這支 Action 自動 commit 回 repo 是現行 862 個 commit 裡的主要噪音來源。**尚未執行** —— `report_list.json` 是遷移時間戳的唯一來源（`git log` 不能用：這份 repo 的歷史被整批重傳過，272 個檔案的 committer date 全是同一天），刪掉之後那些真實時間就只剩 R2 的 customMetadata 一份。
+2. 舊 GitHub Pages 網址 301 到新網址，或直接放生。**選了放生** —— 站已關閉。
+3. ~~刪掉 `.github/workflows/` 與 `report_list.json`~~ **已完成（部分調整）**：Action 已移除；`report/`、`report_list.json`、`index.html` 沒有刪掉，而是搬進 `archive/` 凍結 —— `report_list.json` 是那 272 份報告真實時間的唯一副本，`git log` 重建不出來（這份 repo 的歷史被整批重傳過，所有 committer date 都是同一天）。GitHub Pages 本身是 repo 設定，不在 git 裡。
 4. Repo 保留，內容改為：Worker 原始碼、spec、prompt、部署設定。
 
 **source 留 git，artifact 去 R2。** 不是用 R2 取代 GitHub，是把兩種本來就不同的東西分開放。
