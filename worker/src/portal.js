@@ -1,0 +1,87 @@
+// Portal（spec §6.5）。inline 在 Worker 裡，不放 R2 也不用 Static Assets —
+// 這樣「打開網站」這個動作本身一定會叫起 Worker，哨兵值輪替才有觸發點（spec §7.1）。
+
+import { escapeHtml, html } from './http.js';
+import { listArtifacts } from './artifacts.js';
+
+/**
+ * @param {any} env
+ * @param {string|null} gid 通過驗證的 group，沒有則只列 public
+ * @param {string|null} groupName group 的顯示名稱，取自 groups.json
+ * @param {Record<string,string>} [extraHeaders]
+ */
+export async function renderPortal(env, gid, groupName, extraHeaders = {}) {
+  const items = await listArtifacts(env, gid);
+  const label = gid ? escapeHtml(groupName || gid) : null;
+
+  const rows = items
+    .map((item) => {
+      const isGroup = item.visibility !== 'public';
+      const when = item.updatedAt ? item.updatedAt.slice(0, 10) : '';
+      return `<li class="row" data-q="${escapeHtml((item.title + ' ' + item.slug).toLowerCase())}">
+  <a href="/r/${escapeHtml(item.slug)}">
+    <span class="title">${escapeHtml(item.title)}</span>
+    <span class="meta">${isGroup ? '<span class="tag">group</span>' : ''}<time>${escapeHtml(when)}</time></span>
+  </a>
+</li>`;
+    })
+    .join('\n');
+
+  const empty = items.length === 0 ? '<p class="empty">目前沒有任何報告。</p>' : '';
+  const badge = gid
+    ? `<span class="who">已加入 ${label}</span>`
+    : '<span class="who muted">僅顯示公開報告</span>';
+
+  const body = `<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>imitator</title>
+<style>
+  :root { color-scheme: light dark; --bg:#fbfbfa; --fg:#1a1a19; --muted:#6b6b68; --line:#e6e6e3; --card:#fff; --accent:#b0552b; --tag:#efe7df; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#191917; --fg:#eeeeec; --muted:#9a9a95; --line:#333331; --card:#222220; --accent:#e08a5c; --tag:#3a2f28; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Noto Sans TC",sans-serif; }
+  main { max-width: 52rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+  header { display:flex; align-items:baseline; gap:.75rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+  h1 { font-size:1.35rem; margin:0; letter-spacing:-.01em; }
+  .who { font-size:.8rem; color:var(--accent); }
+  .who.muted { color:var(--muted); }
+  input { width:100%; padding:.6rem .75rem; margin-bottom:1.25rem; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); font:inherit; }
+  input:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+  ul { list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card); }
+  li + li { border-top:1px solid var(--line); }
+  a { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:.7rem .9rem; color:inherit; text-decoration:none; }
+  a:hover { background:color-mix(in srgb, var(--accent) 8%, transparent); }
+  .title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .meta { display:flex; align-items:center; gap:.5rem; flex:none; font-size:.78rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .tag { background:var(--tag); color:var(--muted); padding:.1rem .4rem; border-radius:4px; font-size:.7rem; }
+  .empty, footer { color:var(--muted); font-size:.85rem; }
+  footer { margin-top:2rem; }
+  .hidden { display:none; }
+</style>
+<main>
+  <header><h1>imitator</h1>${badge}</header>
+  ${items.length > 8 ? '<input id="q" type="search" placeholder="搜尋報告…" autocomplete="off">' : ''}
+  ${empty}
+  <ul id="list">
+${rows}
+  </ul>
+  <footer>${items.length} 份報告</footer>
+</main>
+<script>
+  const q = document.getElementById('q');
+  if (q) {
+    const rows = [...document.querySelectorAll('#list .row')];
+    q.addEventListener('input', () => {
+      const term = q.value.trim().toLowerCase();
+      for (const row of rows) row.classList.toggle('hidden', term && !row.dataset.q.includes(term));
+    });
+  }
+</script>
+</html>`;
+
+  return html(body, { headers: { 'Cache-Control': 'private, no-store', ...extraHeaders } });
+}
