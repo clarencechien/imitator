@@ -70,9 +70,15 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
 
    > 這裡原本寫著「關掉 BFM 之後那段注入到每份報告的
    > `/cdn-cgi/challenge-platform` 腳本會跟著消失」。**實測不成立**：關掉之後
-   > runner 確實通得過（挑戰沒了），但那 938 bytes 的注入還在。所以 JavaScript
-   > Detections 是獨立於挑戰之外在運作的。要真的拿掉，得在 Security → Bots
-   > 底下把 JS Detections 本身關掉。
+   > runner 確實通得過（挑戰沒了），但那 938 bytes 的注入還在 —— JS Detections
+   > 是獨立於挑戰之外在運作的。
+   >
+   > 而這個 zone 的 Security Settings 裡，JS Detections 只顯示 `On`，**沒有
+   > 獨立的開關可以關**。也就是說注入拿不掉，就當它是這個平台的一部分：
+   > 每份 artifact 都會多這 938 bytes，**HTML 一定要有 `</body>`**（注入點在
+   > 它前面），`verify.mjs` 比對前會先剝掉它。2026-09-02 實測：
+   > 空 UA 的 curl 打首頁回 200、未帶 token 打 `/v1/a` 回我們自己的 401 JSON
+   > —— 挑戰確實是關的；同一時間抓下來的 artifact 仍帶著那段腳本。
 
 ### 專用的 group（建議，但先讀完這段）
 
