@@ -139,12 +139,11 @@ async function handlePortal(request, env, url) {
   // 沒有 cookie 的請求也要載入 config：打開網站就是哨兵值輪替的觸發點（spec §7.1）。
   const config = session.config ?? (await loadConfig(env, url.origin));
   const groupName = session.gid ? config.groups?.[session.gid]?.name : null;
-  return renderPortal(
-    env,
-    session.gid,
-    groupName,
-    session.stale ? { 'Set-Cookie': clearCookieHeader() } : {},
-  );
+  return renderPortal(env, session.gid, groupName, {
+    // ?all=1 才列全部；預設只列最近三個月，見 portal.js 的 RECENT_DAYS。
+    all: url.searchParams.get('all') === '1',
+    extraHeaders: session.stale ? { 'Set-Cookie': clearCookieHeader() } : {},
+  });
 }
 
 /** GET /join/{gid}/{secret}?next=/r/{slug} — 換 cookie（spec §6.1）。 */
