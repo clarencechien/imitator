@@ -229,25 +229,21 @@ multipart。後果：
 任何 group 的 token 都能覆寫或刪掉別組發佈的東西 —— 而 R2 沒有 versioning，
 覆寫就是永久消失。最可能觸發的不是惡意內鬼，是兩個自動發佈者撞到同一個 slug。
 
-`owner` 一旦確立就不轉手；沒有 `owner` 的是加這個欄位之前就存在的物件，沿用
-舊判準並在第一次更新時補上。
+`owner` 一旦確立就不轉手，正常的更新不會改動它。
 
-**把舊物件補完的方法是重跑一次
-`node ../scripts/migrate.mjs --visibility=public --force`** —— 它會帶著正確的
-時間戳與 sandbox 判定重推，順便把 `owner` 蓋上去。
+**沒有 `owner` 的物件是誰都寫不動、刪不掉的**（包含它原本的作者）。相容分支已經
+拿掉了 —— 那條對「無主的 public」是對所有 group 放行的，留著等於讓新加的 group
+可以永久佔走任何一個沒補到的 slug。鎖死可以從 R2 dashboard 手動刪，被佔走不行。
 
-> ⚠️ 那個指令是**整批 visibility 重寫**，不只是蓋 owner：`--visibility=public`
-> 會無條件套用到它掃到的每一個檔案。如果某個 slug 後來被改成 `group:rd`，
-> 跑下去會把它變回 public。
+查證的方法是 `GET /v1/a`，`owner` 會出現在每一筆裡：
 
-> ⚠️ 它只涵蓋 `archive/report/` 裡有本機檔案的 slug。用 curl 從別的地方推上去、
-> repo 裡沒有副本的那些，`--force` 不會迭代到它們，也就補不到 —— 那種孤兒要
-> 嘛重推一次讓它拿到 owner，要嘛刪掉。
+```bash
+curl -s https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_TOKEN" \
+  | grep -c '"owner": null'      # 要是 0
+```
 
-補完之後用 `GET /v1/a` 確認（`owner` 會出現在回應裡），數到 `"owner": null`
-是 0 才算補完，然後 `canWrite()` 裡的舊分支就可以刪掉。**那個舊分支對
-`visibility: public` 的無主物件是對所有 group 放行的 —— 加入第二個 group 之後，
-它等於讓新 group 可以永久佔走任何一個沒補到的 public slug。**
+用 curl 從別的地方推上去、`archive/report/` 裡沒有副本的 slug，`migrate.mjs
+--force` 迭代不到它們 —— 那種孤兒要嘛重推一次讓它拿到 owner，要嘛刪掉。
 
 ### 幾個實作上的決定
 
