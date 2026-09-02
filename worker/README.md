@@ -8,14 +8,15 @@ src/index.js      路由。順序就是 spec §8.3 的早退順序
 src/config.js     groups.json 的載入、快取與哨兵值輪替
 src/session.js    cookie 與 write token 的驗證
 src/artifacts.js  R2 讀寫與 KV 索引
-src/portal.js     首頁列表
+src/portal.js     首頁列表（預設只列最近三個月）
+src/policy.js     上傳前的內容檢查
 src/crypto.js     base64url、HMAC、定時比較
 src/http.js       共用回應與安全 header
 ```
 
 ```bash
 npm install
-npm test          # 56 個測試，跑在 workerd 上（vitest-pool-workers）
+npm test          # 68 個測試，跑在 workerd 上（vitest-pool-workers）
 npm run dev
 npm run deploy
 ```
