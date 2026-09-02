@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>技術備忘錄：Linux 筆電痛點、macOS 容器架構與面板治理選型</title>
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-card: #1f2937;
+      --bg-card-hover: #283548;
+      --border-color: #374151;
+      --border-subtle: #2d3748;
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --accent-cyan: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-indigo: #818cf8;
+      --accent-rose: #f43f5e;
+      --code-bg: #0d1117;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.5rem;
+    }
+
+    .meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-cyan { background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-emerald { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-indigo { background: rgba(129, 140, 248, 0.15); color: var(--accent-indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.025em;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    /* Section Cards */
+    section {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.6rem;
+    }
+
+    h2 .icon {
+      color: var(--accent-cyan);
+    }
+
+    /* Grid layout for highlights */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 1.2rem;
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--accent-cyan);
+      background-color: var(--bg-card-hover);
+    }
+
+    .card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card p, .card li {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      position: relative;
+      padding-left: 1.2rem;
+    }
+
+    li::before {
+      content: "•";
+      position: absolute;
+      left: 0.2rem;
+      color: var(--accent-cyan);
+      font-weight: bold;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+
+    th {
+      background-color: #1a2234;
+      color: var(--text-primary);
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .highlight-cell {
+      color: var(--accent-cyan);
+      font-weight: 500;
+    }
+
+    /* Code Blocks */
+    .code-block {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.825rem;
+      color: #e5e7eb;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+    }
+
+    .code-block span.cmd { color: var(--accent-cyan); font-weight: 600; }
+    .code-block span.flag { color: var(--accent-emerald); }
+    .code-block span.arg { color: var(--accent-amber); }
+
+    /* Key Callout */
+    .callout {
+      border-left: 3px solid var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.05);
+      padding: 0.75rem 1rem;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin: 1rem 0;
+    }
+
+    .callout strong {
+      color: var(--text-primary);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="meta-badges">
+      <span class="badge badge-cyan">Architecture Brief</span>
+      <span class="badge badge-emerald">DevSecOps</span>
+      <span class="badge badge-indigo">macOS & Linux</span>
+      <span class="badge badge-amber">Reference 2026</span>
+    </div>
+    <h1>容器架構、Linux 筆電痛點與面板治理選型備忘錄</h1>
+    <div class="subtitle">彙整 Framework 13 決策反思、macOS Headless 容器化實踐、Dockge vs Portainer 對比與 PAM 存取治理策略</div>
+  </header>
+
+  <!-- Section 1: Framework vs MacBook -->
+  <section>
+    <h2><span class="icon">01</span> 硬體與作業系統定位：Framework 13 vs MacBook</h2>
+    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">
+      影片核心結論並非 Framework 硬體缺陷，而是 <strong>Linux 桌面生態在行動工作站上的水土不服</strong>。
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="color: var(--accent-rose);">❌ Linux 筆電核心痛點</h3>
+        <ul>
+          <li><strong>待機休眠耗電 (S2Idle)：</strong>現代 x86 待機易背景喚醒，放入背包常發熱掉電；Framework 擴充卡特定插槽有暗電流耗損。</li>
+          <li><strong>非整數縮放 (Fractional Scaling)：</strong>3:2 螢幕在 125%/150% 縮放時，XWayland 與 Electron 軟體易模糊。</li>
+          <li><strong>除錯成本高昂：</strong>「修好一個驅動又冒出新 Bug」，日常辦公維護摩擦力過大。</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3 style="color: var(--accent-emerald);"> 最佳工程師工作流解法</h3>
+        <ul>
+          <li><strong>端點（Client）：</strong>MacBook (Apple Silicon) 提供 14-18h 極致續航、開蓋即用與免維護電源調校。</li>
+          <li><strong>伺服端（Server）：</strong>將 Linux 回歸 24h 插電的 Home Lab / 伺服器 / Headless 容器運行。</li>
+          <li><strong>無頭容器化：</strong>在 Mac 上僅運行無 GUI 的 Linux 核心，徹底消除桌面端顯示與驅動 Bug。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: macOS Container Engine -->
+  <section>
+    <h2><span class="icon">02</span> macOS 無頭容器架構與 Apple vz 調校</h2>
+    <div class="callout">
+      <strong>底層原理：</strong>容器依賴 Linux Kernel（cgroups / namespaces），macOS 是 XNU 核心，先天無法「原生」跑 Linux 容器。因此 Mac 本機必備一個微型 Linux VM，但<strong>完全無需安裝肥大的桌面 GUI</strong>。
+    </div>
+
+    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+      <strong>Colima 效能榨乾公式（Apple Virtualization.framework）：</strong>
+    </p>
+    <div class="code-block">
+      <span class="cmd">colima start</span> <span class="flag">--cpu</span> 4 <span class="flag">--memory</span> 8 <span class="flag">--vm-type</span> <span class="arg">vz</span> <span class="flag">--mount-type</span> <span class="arg">virtiofs</span> <span class="flag">--vz-rosetta</span>
+    </div>
+
+    <div class="grid-2" style="margin-top: 1rem;">
+      <div class="card">
+        <h3><span class="badge badge-cyan">vz</span> Apple 原生虛擬化</h3>
+        <p>替代舊型 QEMU，直接調用 Apple Silicon 硬體指令集，CPU 損耗近乎為零，待機極度省電。</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-emerald">virtiofs</span> 共享檔案系統</h3>
+        <p>解決 macOS 與 Linux 共享目錄 I/O 緩慢問題，大幅提升 Node/Python/DB 讀寫效能。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Tool Matrix -->
+  <section>
+    <h2><span class="icon">03</span> macOS 容器管理工具矩陣 (商業版 vs 開源版)</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>方案</th>
+            <th>類型 / 授權</th>
+            <th>系統資源 (RAM / CPU)</th>
+            <th>Rosetta 2 (x86)</th>
+            <th>核心優勢與適用場景</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="highlight-cell">OrbStack</td>
+            <td>商業版 (個人免費 / 商業 $8/mo)</td>
+            <td><strong>極低</strong>（動態回收釋放）</td>
+            <td>原生內建</td>
+            <td>原生 Swift 開發、速度最快、支援 Linux VM，體驗天花板。</td>
+          </tr>
+          <tr>
+            <td class="highlight-cell">Colima</td>
+            <td>100% 開源 (MIT)</td>
+            <td><strong>低</strong>（待機 CPU 趨近 0%）</td>
+            <td>需加 <code>--vz-rosetta</code></td>
+            <td>純 CLI 驅動、零合規風險，搭配 vz 效能極佳，企業推薦。</td>
+          </tr>
+          <tr>
+            <td class="highlight-cell">Podman Desktop</td>
+            <td>100% 開源 (Apache 2.0)</td>
+            <td>中等</td>
+            <td>支援</td>
+            <td>現代化 GUI，支援 Rootless 資安架構，可直接外掛連接 Colima Socket。</td>
+          </tr>
+          <tr>
+            <td class="highlight-cell">Docker Desktop</td>
+            <td>商業版 (大企業強制付費)</td>
+            <td>偏高（常駐輪詢吃電）</td>
+            <td>需設定啟用</td>
+            <td>官方生態與 Extension 最完整，但資源佔用與續航損耗較大。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 4: Dockge vs Portainer -->
+  <section>
+    <h2><span class="icon">04</span> 面板對決：Dockge vs Portainer BE</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>維度</th>
+            <th>Dockge (極簡 Compose 派)</th>
+            <th>Portainer BE (全功能總管)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>設計哲學</strong></td>
+            <td><strong>檔案即真理</strong>（直接讀寫本機 <code>compose.yaml</code>）</td>
+            <td><strong>資料庫優先</strong>（設定存於專用資料庫）</td>
+          </tr>
+          <tr>
+            <td><strong>資源佔用</strong></td>
+            <td><strong>極小</strong>（~30-50 MB RAM，反應飛快）</td>
+            <td>中等（~150-300 MB RAM）</td>
+          </tr>
+          <tr>
+            <td><strong>K8s / 叢集管理</strong></td>
+            <td>僅限單機 / 簡易 Agent 多主機</td>
+            <td><strong>完整支援</strong>（Workload、Helm、PVC、多叢集）</td>
+          </tr>
+          <tr>
+            <td><strong>2026 授權方案</strong></td>
+            <td>100% 開源免費 (MIT)</td>
+            <td><strong>Take 3 Free</strong>（≤3 節點免費，支援一般 Gmail 申請）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 5: Security & PAM -->
+  <section>
+    <h2><span class="icon">05</span> Dockge 企業級安全與 PAM 治理架構</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>門禁反向代理 (Authentik / SSO)</h3>
+        <ul>
+          <li><strong>能力：</strong>對接企業 AD/LDAP，提供 SSO 與 MFA 入口阻擋。</li>
+          <li><strong>限制：</strong>Dockge 缺乏內部權限矩陣，通過 Authentik 放行後，<strong>全員皆擁有 Root 最高修改/刪除權限</strong>。</li>
+          <li><strong>定位：</strong>適合「全員皆為 Admin/DevOps」的單純集中認證情境。</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>特權存取治理 (OSS PAM / 堡壘機)</h3>
+        <ul>
+          <li><strong>工具代表：</strong>JumpServer (GPLv3) 或 Teleport。</li>
+          <li><strong>解決邏輯：</strong>以「<strong>流程控制 + 全程錄影稽核</strong>」取代細部 RBAC。</li>
+          <li><strong>核心機制：</strong>臨時權限提單審批（JIT）、Web 畫面全程錄影、SSH 危險指令阻斷。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    技術備忘錄自動生成 • 採用現代化無頭容器架構與 DevSecOps 治理模型
+  </footer>
+</div>
+
+</body>
+</html>
