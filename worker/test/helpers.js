@@ -3,6 +3,7 @@ import { resetConfigCache } from '../src/config.js';
 
 export const READ_SECRET = 'read-secret-aaaaaaaaaaaaaaaaaaaa';
 export const WRITE_SECRET = 'write-secret-bbbbbbbbbbbbbbbbbbbb';
+export const SALES_SECRET = 'sales-secret-cccccccccccccccccccc';
 export const ORIGIN = 'https://r.test';
 
 export const future = (days) => new Date(Date.now() + days * 86_400_000).toISOString();
@@ -28,6 +29,21 @@ export async function resetStorage() {
   const keys = await env.KV_INDEX.list({ limit: 1000 });
   await Promise.all(keys.keys.map((k) => env.KV_INDEX.delete(k.name)));
 }
+
+/** 第二個 group。多數測試不需要它 —— 只有擁有權相關的才會用到。 */
+export function groupsWithSales() {
+  return {
+    ...groups(),
+    sales: {
+      name: '業務',
+      epoch: 1,
+      read: { secret: 'sales-read-dddddddddddddddddddd', expiresAt: future(7) },
+      write: { secret: SALES_SECRET, expiresAt: future(90) },
+    },
+  };
+}
+
+export const salesToken = () => token('sales', 1, SALES_SECRET);
 
 export async function seed(groupMap = groups()) {
   await env.R2_BUCKET.put('config/groups.json', JSON.stringify({ version: 1, groups: groupMap }));

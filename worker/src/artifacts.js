@@ -33,8 +33,24 @@ export function canRead(visibility, sessionGid) {
   return typeof sessionGid === 'string' && visibility === `group:${sessionGid}`;
 }
 
-function canWrite(visibility, gid) {
-  return visibility === 'public' || visibility === `group:${gid}`;
+/**
+ * 誰可以覆寫或刪除一份既有的 artifact。
+ *
+ * 判準是 owner，不是 visibility。`public` 這個 visibility 不帶任何身分 ——
+ * 拿它當授權依據等於「public artifact 無主」，任何 group 的 token 都能覆寫或
+ * 刪掉別組發佈的東西，而 R2 沒有 object versioning，覆寫就是永久消失。
+ * 現實中最可能觸發的不是惡意內鬼，是兩個自動發佈者撞到同一個 slug。
+ *
+ * 沒有 owner 的是加上這個欄位之前就存在的物件，沿用舊判準，並在第一次更新時
+ * 補上 owner。舊物件全部補完之後（重跑一次 migrate.mjs --force 即可），
+ * 這個分支就可以刪掉。
+ *
+ * @param {Record<string,string>|undefined} meta 既有物件的 customMetadata
+ */
+function canWrite(meta, gid) {
+  if (!meta) return true; // 全新的 slug
+  if (typeof meta.owner === 'string') return meta.owner === gid;
+  return meta.visibility === 'public' || meta.visibility === `group:${gid}`;
 }
 
 /**
@@ -158,8 +174,7 @@ export async function putArtifact(request, env, slug, gid) {
   // stamp 有值時它就是這份 artifact 的時間，否則用當下。
   const timestamp = stamp ?? new Date().toISOString();
   const existing = await env.R2_BUCKET.head(objectKey(slug));
-  // 只有自己組別（或 public）的 artifact 能被覆寫，避免別組拿 slug 佔位。
-  if (existing && !canWrite(existing.customMetadata?.visibility, gid)) {
+  if (!canWrite(existing?.customMetadata, gid)) {
     return apiError(403, 'slug belongs to another group');
   }
 
@@ -175,10 +190,12 @@ export async function putArtifact(request, env, slug, gid) {
     rawSandbox === null
       ? (existing?.customMetadata?.sandbox === 'off' ? 'off' : 'on')
       : rawSandbox.trim().toLowerCase();
+  // 擁有權一旦確立就不會轉手 —— 正常的更新不該把它改掉。
+  const owner = existing?.customMetadata?.owner ?? gid;
 
   await env.R2_BUCKET.put(objectKey(slug), body, {
     httpMetadata: { contentType: 'text/html; charset=utf-8' },
-    customMetadata: { visibility, title, createdAt, updatedAt: timestamp, sandbox },
+    customMetadata: { visibility, owner, title, createdAt, updatedAt: timestamp, sandbox },
   });
 
   const entry = { visibility, title, updatedAt: timestamp };
@@ -203,7 +220,7 @@ export async function deleteArtifact(request, env, slug, gid) {
     await env.KV_INDEX.delete(indexKey(slug));
     return notFound();
   }
-  if (!canWrite(existing.customMetadata?.visibility, gid)) return notFound();
+  if (!canWrite(existing.customMetadata, gid)) return notFound();
 
   await env.R2_BUCKET.delete(objectKey(slug));
   await env.KV_INDEX.delete(indexKey(slug));

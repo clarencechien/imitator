@@ -130,6 +130,12 @@ key：`artifacts/{slug}.html`
 
 `sandbox`：`"on"`（預設）或 `"off"`，見 §8.5。
 
+`owner`：**（v0.6 新增）** 寫入者的 gid。覆寫與刪除的授權判準是它，不是
+`visibility` —— `public` 這個值不帶任何身分，拿它當判準等於「public artifact
+無主」，任何 group 的 token 都能覆寫或刪掉別組發佈的東西，而 R2 沒有
+versioning，覆寫就是永久消失。現實中最可能觸發的不是惡意內鬼，是兩個自動
+發佈者撞到同一個 slug。擁有權一旦確立就不轉手，正常的更新不會改動它。
+
 ### 4.3 KV
 
 | key | 值 | 用途 |
@@ -464,6 +470,28 @@ opaque origin 讓那些 fetch 變成跨源、`Origin: null`，而 Worker 不送 
 `indexedDB`／`serviceWorker`／`document.domain`／`BroadcastChannel`／
 `geolocation` 都是 0 份。Chromium 實測：連結導覽仍然可以點，不需要
 `allow-top-navigation`。
+
+#### 例外的代價（這一段先前缺漏）
+
+上面只說了「為什麼需要例外」。例外本身的代價要一起寫清楚：
+
+1. **一份 sandbox-off 的頁面讀得到全部內容，包含那些有 sandbox 的。** CSP 管的
+   是「用這份回應建出來的 document」，不是「被 `fetch` 當資料讀走」—— 決定權在
+   讀的那一方，而那一方沒有 CSP。所以爆炸半徑是整個 corpus，不是那一頁。
+2. **sandbox 從來就不擋外送。** 就算被 sandbox，頁面照樣可以 `fetch` 到外部
+   網域。它買到的只有一件事：擋掉「讀取同源的已驗證回應」。
+3. **那 8 份例外裡有 5 份在 runtime 載入第三方 JS**，全部沒有 SRI：
+   `cdn.tailwindcss.com`（5 份）、`cdnjs.cloudflare.com`（2 份）、
+   `cdn.jsdelivr.net`（1 份）。tailwind 那個是 play CDN，設計上就是在 runtime
+   編譯並執行 —— 這組裡最糟的一個。
+
+也就是說：任何一個那三個來源被投毒（polyfill.io 那種劇本），一個已經 join 過的
+組員只要打開那 5 份裡的任何一份，整個 group corpus 就會被讀走且沒有紀錄
+（§8.6 明確放棄了存取紀錄）。這不需要任何憑證，也不需要內鬼。
+
+**最划算的處置是把那 5 份的 CDN 依賴內聯進 HTML** —— 沒有第三方腳本可以觸發，
+就沒有機制風險，而且 `localStorage` 照常運作、不用改 Worker。改程式的版本
+（給 opt-out 頁面一組 `connect-src 'none'` 的替代 CSP）會直接弄壞那 5 份。
 
 ### 8.6 這個設計明確放棄的東西
 

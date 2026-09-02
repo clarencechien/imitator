@@ -209,6 +209,22 @@ multipart。後果：
 - 或者同時輪替 `SESSION_SECRET`，簽章金鑰一換所有 cookie 一起失效，epoch 填
   什麼都無所謂。
 
+### 擁有權是 owner，不是 visibility
+
+覆寫與刪除的授權判準是 `customMetadata.owner`（寫入者的 gid），不是
+`visibility`。理由：`public` 不帶任何身分，拿它當判準等於 public artifact 無主，
+任何 group 的 token 都能覆寫或刪掉別組發佈的東西 —— 而 R2 沒有 versioning，
+覆寫就是永久消失。最可能觸發的不是惡意內鬼，是兩個自動發佈者撞到同一個 slug。
+
+`owner` 一旦確立就不轉手；沒有 `owner` 的是加這個欄位之前就存在的物件，沿用
+舊判準並在第一次更新時補上。**把舊物件補完的方法是重跑一次
+`node ../scripts/migrate.mjs --visibility=public --force`** —— 它會帶著正確的
+時間戳與 sandbox 判定重推，順便把 `owner` 蓋上去。補完之後 `canWrite()` 裡的
+舊分支就可以刪掉。
+
+> 在加入第二個 group 之前務必先做完這件事。只有一個 group 的時候這兩種判準
+> 行為完全一樣，所以問題不會以任何方式顯現出來。
+
 ### 幾個實作上的決定
 
 - **`expiresAt` 缺漏或無法解析一律當成過期。** 正常路徑（哨兵值輪替）一定會
