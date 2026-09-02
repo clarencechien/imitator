@@ -92,8 +92,18 @@ async function upload(slug, title, body, sandbox) {
       await sleep(2 ** attempt * 1000);
       continue;
     }
+    const text = await res.text();
+    // Cloudflare 的挑戰頁。GitHub 的 runner 走資料中心 IP、UA 是 node，會被
+    // Bot Fight Mode 判成自動化流量 —— 而 BFM 跑在 Ruleset Engine 之外，
+    // WAF custom rule 的 Skip 對它無效，只能整個關掉。見 inbox/README.md。
+    if (/Just a moment|cf-browser-verification|__cf_chl/.test(text)) {
+      throw new Error(
+        '被 Cloudflare 的挑戰頁擋下（多半是 Bot Fight Mode）。' +
+          'Security → Bots → Bot Fight Mode 關掉即可；它無法只對特定路徑放行。',
+      );
+    }
     // 錯誤內文可能回顯我們送出去的 header，但不會包含 Authorization。
-    throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
+    throw new Error(`${res.status} ${text.slice(0, 200)}`);
   }
   throw new Error('重試 4 次仍失敗');
 }
