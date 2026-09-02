@@ -4,6 +4,7 @@
 
 import { SECURITY_HEADERS, apiError, json, notFound } from './http.js';
 import { inspectBody } from './policy.js';
+import { extractFingerprint } from './fingerprint.js';
 
 export const SLUG_RE = /^[a-z0-9-]{1,64}$/;
 export const MAX_BYTES = 25 * 1024 * 1024; // spec §6.4
@@ -201,14 +202,23 @@ export async function putArtifact(request, env, slug, gid) {
   // 擁有權一旦確立就不會轉手 —— 正常的更新不該把它改掉。
   const owner = existing?.customMetadata?.owner ?? gid;
 
+  // 樣式指紋：有就存、沒有就沒有。重推一份沒帶指紋的內容會把舊指紋清掉 ——
+  // 指紋描述的是 body，body 換了它就不再成立。
+  const style = inspection.html ? extractFingerprint(inspection.html) : null;
+
   await env.R2_BUCKET.put(objectKey(slug), body, {
     httpMetadata: { contentType: 'text/html; charset=utf-8' },
-    customMetadata: { visibility, owner, title, createdAt, updatedAt: timestamp, sandbox },
+    customMetadata: {
+      visibility, owner, title, createdAt, updatedAt: timestamp, sandbox,
+      ...(style ? { style: JSON.stringify(style) } : {}),
+    },
   });
 
-  const entry = { visibility, owner, title, updatedAt: timestamp };
+  const entry = { visibility, owner, title, updatedAt: timestamp, ...(style ? { style } : {}) };
   // 同時寫進 value 與 metadata：portal 列表只需要一次 list()，不必逐筆 get()。
-  await env.KV_INDEX.put(indexKey(slug), JSON.stringify(entry), { metadata: entry });
+  // KV metadata 上限 1024 bytes，而 title 最長可以到 600 bytes —— 指紋放精簡版，
+  // 還是塞不下就整個拿掉（value 裡仍是完整的）。
+  await env.KV_INDEX.put(indexKey(slug), JSON.stringify(entry), { metadata: fitMetadata(entry) });
   await purge(request, slug);
 
   const url = new URL(request.url);
@@ -221,6 +231,7 @@ export async function putArtifact(request, env, slug, gid) {
     owner,
     sandbox,
     updatedAt: timestamp,
+    ...(style ? { style } : {}),
     ...(inspection.warnings.length ? { warnings: inspection.warnings } : {}),
   });
 }
@@ -259,6 +270,27 @@ export async function deleteArtifact(request, env, slug, gid) {
  * 列出 public ＋ 指定 group 的 artifact。
  * KV list 一次回 1000 筆並附帶 metadata，spec §4.3 的 500 筆門檻內只要一次呼叫。
  */
+/** 指紋的精簡版：列表用得到的欄位，長字串截短。 */
+function compactStyle(style) {
+  const cut = (v, n) => (typeof v === 'string' ? [...v].slice(0, n).join('') : undefined);
+  const out = { v: style.style };
+  if (style.paper) out.paper = style.paper;
+  if (style.accent) out.accent = style.accent;
+  if (style.register) out.register = cut(style.register, 24);
+  if (style.reference) out.reference = cut(style.reference, 24);
+  return out;
+}
+
+/** 把 KV metadata 壓進 1024 bytes：先縮指紋，還是超過就拿掉指紋。 */
+function fitMetadata(entry) {
+  const size = (o) => new TextEncoder().encode(JSON.stringify(o)).length;
+  if (!entry.style) return entry;
+  const compact = { ...entry, style: compactStyle(entry.style) };
+  if (size(compact) <= 1000) return compact;
+  const { style: _dropped, ...bare } = entry;
+  return bare;
+}
+
 export async function listArtifacts(env, gid) {
   const out = [];
   let cursor;
@@ -275,6 +307,8 @@ export async function listArtifacts(env, gid) {
         // owner 沒有就是還沒被 backfill 到 —— 這是唯一唯讀查得到的地方。
         owner: meta.owner ?? null,
         updatedAt: meta.updatedAt ?? null,
+        // 樣式指紋（版本、語域、參照物、紙色、重點色）。沒有就是沒套指引。
+        style: meta.style ?? null,
       });
     }
     cursor = res.list_complete ? undefined : res.cursor;

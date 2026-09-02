@@ -1,5 +1,7 @@
 # Writing a report for imitator
 
+**Guide version: v3.** The fingerprint you leave in the file must say `v3`.
+
 You are producing **one self-contained HTML file**. Read this before you write a line of it.
 
 Fetch the chassis and paste it in:
@@ -31,14 +33,45 @@ register in your own words, and derive the voice from it.**
 
 ```html
 <style>
-/* REGISTER: 驗屍 — 用 231 萬筆資料檢驗三個流行說法，讀者是準備進場的散戶。
-   PAPER:    解剖室的紀錄紙 — 奶油色，hsl(42 30% 96%)。
-   VOICE:    驗屍紅只給裁決用、宋體標題、等寬體的檔案欄。
-   NOT:      儀表板。沒有互動元件，數字是證據不是裝飾。 */
+/* REGISTER:  驗屍 — 用 231 萬筆資料檢驗三個流行說法，讀者是準備進場的散戶。
+   REFERENCE: 1990 年代法醫學教科書的病例頁 — 表格化的檔案欄、編號的所見、一枚結論章。
+   RECENT:    paper 352° 62° 76° 18° 44° · accent 218° 220° 250° 162° 223° — 避開這些。
+   PAPER:     解剖室的紀錄紙 — 奶油色，hsl(42 30% 96%)。
+   VOICE:     驗屍紅只給裁決用、宋體標題、等寬體的檔案欄。
+   NOT:       儀表板。沒有互動元件，數字是證據不是裝飾。 */
 ```
 
 If the register you wrote could describe half the reports in the archive, it is too
-generic — go again. The registers that actually occur, measured across the 275 reports
+generic — go again.
+
+### REFERENCE — a real printed object, named
+
+A model's taste is the mean of everything it has seen. Words like "warm" or "restrained"
+point at that mean. A **named object** points at one place in the distribution instead:
+*1978 年《科學月刊》的內頁* is a specific thing with a specific paper, face, column and
+signposting; "a science magazine" is not. So name one — publication or document type,
+era, and which page — and derive faces, paper, devices from it. It goes in the
+`imitator-reference` meta so the choice is on record. Not a website, not a brand, not
+another report on this host.
+
+### RECENT — look at what was published last, then go elsewhere
+
+Divergence is a property of the archive, not of one report. Before you choose, fetch the
+fingerprints of what is already there:
+
+```bash
+IMITATOR_TOKEN=$IMITATOR_TOKEN node scripts/style-census.mjs --recent 8
+# → RECENT: paper 352° 62° 76° 18° … · accent 218° 220° … — 避開這些。
+```
+
+(`scripts/style-census.mjs` is in the imitator repo, Node built-ins only; or call
+`GET /v1/a` with the token and read each row's `style.paper` / `style.accent`.)
+
+Then: **your paper hue stays at least 30° from each of the last 8 papers, and your accent
+hue at least 40° from each of the last 5 accents.** Write the hues you are avoiding in the
+`RECENT:` line. If the material genuinely forces a hue that collides, say so there and take
+it — the rule is that the collision is visible, not that it is impossible. No token or no
+network: write `RECENT: unavailable` and continue. The registers that actually occur, measured across the 275 reports
 already on the host, and a specimen for each:
 
 | Register | What it is | Where the voice tends to come from | Look at |
@@ -71,15 +104,25 @@ their exact palettes are on the reject list below.
 5. **Both colour schemes.** If you override the light tokens you override the dark ones
    too, with values chosen for a dark surface — never an inversion.
 6. **Nothing scrolls the page sideways**, at 375px or at 1440px.
-7. Open with:
+7. Open with the fingerprint — all five, inside the first 8 KB, before `<title>`:
    ```html
    <!doctype html>
    <html lang="zh-Hant">
    <meta charset="utf-8">
    <meta name="viewport" content="width=device-width, initial-scale=1">
-   <meta name="imitator-style" content="v2">
+   <meta name="imitator-style" content="v3">
+   <meta name="imitator-register" content="驗屍 — 用 231 萬筆資料檢驗三個流行說法">
+   <meta name="imitator-reference" content="1990 年代法醫學教科書的病例頁">
+   <meta name="imitator-paper" content="hsl(42 30% 96%)">
+   <meta name="imitator-accent" content="hsl(4 62% 41%)">
    <title>…</title>
    ```
+   The host stores these with the artifact and returns them in the `/v1/a` listing. That is
+   what makes the `RECENT:` step possible for the next report, what tells anyone reading the
+   file which version of this guide it followed, and what the archive's taste profile is
+   later built from. `paper` and `accent` must be `hsl()` (or a hex); the rest is free text,
+   register ≤ 120 characters, reference ≤ 160. A malformed field is dropped silently — the
+   host never rejects a report over its fingerprint.
 
 ## Setup
 
@@ -322,6 +365,9 @@ Look at your own output, at these four settings, and fix what breaks:
 2. **1440px wide.** The text column has not sprawled; figures use the width, prose does not.
 3. **Dark mode.** Every colour you chose, not an inversion. Nothing disappears.
 4. **Reduced motion / print.** Nothing is missing that was only visible after an animation.
+
+Check the five `imitator-*` metas are present and agree with the CSS: the paper in the
+meta is the paper in `:root`, the register in the meta is the register in the comment.
 
 Read your `--paper` back as `hsl()`. If its saturation is under 6%, or its hue is between
 190 and 230 without the comment saying why, you picked the default and called it a choice.

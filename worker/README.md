@@ -245,6 +245,11 @@ curl -s https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_T
   | grep -c '"owner": null'      # 要是 0
 ```
 
+每一筆還有 `style`：報告最前面那五個 `<meta name="imitator-*">` 抽出來的樣式指紋
+（版本、紙色、重點色、語域與參照物各截 24 字），沒帶就是 `null`。只存不驗 —— 它的用途
+是讓下一份報告避開最近用過的顏色、讓人看得出檔案照的是哪一版指引、以及累積偏好的材料，
+見 `style/README.md`。`node scripts/style-census.mjs` 會把整張表印出來。
+
 用 curl 從別的地方推上去、`archive/report/` 裡沒有副本的 slug，`migrate.mjs
 --force` 迭代不到它們 —— 那種孤兒要嘛重推一次讓它拿到 owner，要嘛刪掉。
 

@@ -196,6 +196,47 @@ describe('寫入（write token）', () => {
     expect((await put('b', 'x', { 'X-Updated-At': future })).status).toBe(400);
   });
 
+  it('樣式指紋會被存下來、列表看得到、重推沒帶就清掉', async () => {
+    const withFp = `<!doctype html><meta charset="utf-8">
+      <meta name="imitator-style" content="v3">
+      <meta name="imitator-register" content="工單 — 一張開了三週才結案的維修單">
+      <meta name="imitator-reference" content="1978 年科學月刊內頁">
+      <meta name="imitator-paper" content="hsl(352 26% 95%)">
+      <meta name="imitator-accent" content="hsl(218 66% 33%)">
+      <title>t</title><body><p>x</p></body>`;
+    const res = await put('fp', withFp, { 'X-Visibility': 'public' });
+    const body = await res.json();
+    expect(body.style).toMatchObject({ style: 'v3', paper: 'hsl(352 26% 95%)', accent: 'hsl(218 66% 33%)' });
+
+    // R2 上是完整的 JSON 字串
+    const meta = (await env.R2_BUCKET.head('artifacts/fp.html')).customMetadata;
+    expect(JSON.parse(meta.style).register).toBe('工單 — 一張開了三週才結案的維修單');
+
+    // 列表回的是精簡版：版本、顏色，長字串截短
+    let listed = await (await SELF.fetch(url('/v1/a'), { headers: auth() })).json();
+    expect(listed.find((r) => r.slug === 'fp').style).toEqual({
+      v: 'v3', paper: 'hsl(352 26% 95%)', accent: 'hsl(218 66% 33%)',
+      register: '工單 — 一張開了三週才結案的維修單', reference: '1978 年科學月刊內頁',
+    });
+
+    // 沒帶指紋的內容重推上去：指紋跟著 body 走，不會留下舊的
+    await put('fp', '<p>plain</p>', { 'X-Visibility': 'public' });
+    listed = await (await SELF.fetch(url('/v1/a'), { headers: auth() })).json();
+    expect(listed.find((r) => r.slug === 'fp').style).toBeNull();
+    expect((await env.R2_BUCKET.head('artifacts/fp.html')).customMetadata.style).toBeUndefined();
+  });
+
+  it('title 塞滿 200 字時指紋不會把 KV metadata 撐爆', async () => {
+    const withFp = `<meta name="imitator-style" content="v3"><meta name="imitator-register" content="${'語'.repeat(120)}"><meta name="imitator-reference" content="${'參'.repeat(160)}"><meta name="imitator-paper" content="hsl(1 2% 3%)"><meta name="imitator-accent" content="hsl(4 5% 6%)"><body></body>`;
+    const res = await put('big', withFp, { 'X-Visibility': 'public', 'X-Title': encodeURIComponent('題'.repeat(200)).replace(/%/g, '') .slice(0, 0) || '題'.repeat(200) });
+    expect(res.status).toBe(200);
+    const listed = await (await SELF.fetch(url('/v1/a'), { headers: auth() })).json();
+    const row = listed.find((r) => r.slug === 'big');
+    expect(row).toBeTruthy();
+    // 進得了列表就代表 metadata 沒有超過上限；指紋可能被縮短或拿掉，但 title 不能丟
+    expect(row.title.length).toBe(200);
+  });
+
   it('沒帶 X-Updated-At 就是上傳當下', async () => {
     const before = Date.now() - 1000;
     const res = await put('now-ish', '<p>x</p>');
