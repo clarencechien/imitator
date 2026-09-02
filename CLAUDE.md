@@ -9,7 +9,8 @@ curl -X PUT https://r.example.com/v1/a/<slug> \
   --data-binary @<file>.html
 ```
 
-- `slug`：`[a-z0-9-]`，最長 64 字元。同名視為更新（舊版由 R2 versioning 保留）。
+- `slug`：`[a-z0-9-]`，最長 64 字元。同名視為更新，**舊版不會保留** —— R2 沒有
+  object versioning，覆寫就是覆寫。要留舊版就換一個 slug。
 - `X-Visibility`：`public` 或 `group`，預設 `group`。`group` 就是 token 自己的組別。
 - `X-Title`：選填，UTF-8，最長 200 字元。省略則沿用既有標題，再不然用 slug。
 - `X-Sandbox`：選填，`on`（預設）或 `off`。artifact 預設被丟進 opaque origin，

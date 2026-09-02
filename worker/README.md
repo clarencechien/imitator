@@ -37,7 +37,7 @@ deploy 建好之後，後續 deploy 會沿用同一個 binding，不需要回填
 vitest-pool-workers 內建的 wrangler 比較舊，看到沒有 id 的 KV 設定會報錯。
 兩邊的內容要保持一致。）
 
-deploy 成功之後還有四件事要在 dashboard 上做，做完站台才真的能用：
+deploy 成功之後還有三件事要在 dashboard 上做，做完站台才真的能用：
 
 1. **設 SESSION_SECRET**（Workers → imitator → Settings → Variables and
    Secrets → Add，type 選 **Secret**）
@@ -50,10 +50,7 @@ deploy 成功之後還有四件事要在 dashboard 上做，做完站台才真�
    回 503 —— public 讀取不受影響，但沒有人進得了 group。
    輪替這一個 = 所有組別所有人一起登出（緊急剎車）。
 
-2. **開 R2 versioning**（R2 → imitator → Settings）。這是 artifact 的歷史
-   功能，也是 `config/` 寫壞時的還原手段。
-
-3. **放 `config/groups.json`**（R2 dashboard 上傳）。secret 直接寫哨兵值，
+2. **放 `config/groups.json`**（R2 dashboard 上傳）。secret 直接寫哨兵值，
    讓 Worker 自己產：
 
    ```json
@@ -73,26 +70,21 @@ deploy 成功之後還有四件事要在 dashboard 上做，做完站台才真�
    然後打開網站。第一個抵達的請求會完成輪替，把連結與 token 寫進
    `outbox/`，回 R2 dashboard 複製即可。
 
-4. **綁 custom domain**（Workers → Settings → Domains & Routes）。R2 bucket
+3. **綁 custom domain**（Workers → Settings → Domains & Routes）。R2 bucket
    本身**不要**對外公開、**不要**掛 domain — 所有讀取一律經過 Worker。
 
 ### 之後再補的（spec §10 的 P3）
 
-**Lifecycle rules**
-
-| 前綴 | 規則 | 為什麼 |
-|---|---|---|
-| `config/` | 非當前版本 30 天後刪除 | versioning 會永久保留每一版 groups.json，等於所有歷史 secret 都還在 |
-| `outbox/` | 7 天後刪除 | 對齊 magic link 的預設 TTL，不讓明碼在 bucket 裡累積 |
-
-`outbox/` 那條可以用 CLI：
+**Lifecycle rule：`outbox/` 7 天後刪除**，對齊 magic link 的預設 TTL，不讓
+明碼連結在 bucket 裡累積。
 
 ```bash
 npx wrangler r2 bucket lifecycle add imitator expire-outbox outbox/ --expire-days 7
 ```
 
-`config/` 那條是「非當前版本」的保留期限，wrangler 沒有對應的參數，要在
-R2 → imitator → Settings → Object lifecycle 上設。
+> **不要對 `config/` 設任何刪除規則。** R2 的 lifecycle 只會刪物件本身 ——
+> 設下去就是把 `groups.json` 刪掉，整站的 group 存取一起沒。spec §4.1 那條
+> 針對「非當前版本」的規則在 R2 上不存在，見下面。
 
 **全站限速規則**（Security → WAF → Rate limiting rules）。這是配額保護，
 不是安全機制 — 免費方案只有 1 條規則，別把它花在特定端點上：
@@ -163,6 +155,20 @@ artifact 之間依然同源。要真的隔離得走 per-artifact origin，超出
 dashboard 就能撤銷。
 
 `epoch` 不用哨兵值，手改數字即可。
+
+### R2 沒有 object versioning
+
+spec 有三個地方假設 R2 有 versioning（§4.2 拿它取代 git 的歷史功能、§4.1 拿
+lifecycle 限制歷史 secret 的留存、§8.2 拿它當 `config/` 寫壞時的還原手段）。
+實際上 R2 的 S3 API 把 `PutBucketVersioning`／`GetBucketVersioning` 標為未實作，
+lifecycle 也只有三個動作：刪除物件、轉 Infrequent Access、中止未完成的
+multipart。後果：
+
+- **覆寫一個 slug，舊的 HTML 就沒了。** 要留舊版就換 slug。CLAUDE.md 已更正。
+- §4.1 擔心的「所有歷史 secret 都還躺在 bucket 裡」不存在，那條補償措施也就
+  不需要 —— 對 secret 衛生反而是好事。
+- **`groups.json` 沒有還原手段。** 輪替邏輯要是寫壞它，只能手動重寫一份
+  （secret 填 `ROTATE`、epoch 往上跳一個數字），一兩分鐘的事，但要知道有這回事。
 
 ### 幾個實作上的決定
 
