@@ -47,6 +47,7 @@ curl -X PUT https://imitator.ai-apps.work/v1/a/<slug> \
   "slug": "...",
   "url": "https://imitator.ai-apps.work/r/...",
   "visibility": "group:rd",
+  "owner": "rd",
   "sandbox": "on",
   "updatedAt": "..."
 }
