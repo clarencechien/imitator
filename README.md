@@ -24,6 +24,7 @@ link／token，先前發出的一律失效。
 | `docs/claude-md-snippet.md` | 同上，但自足 —— 可以直接貼進別的專案的 `CLAUDE.md` |
 | `scripts/migrate.mjs` | 把 `archive/report/*.html` 一次推上去的遷移腳本 |
 | `scripts/verify.mjs` | 遷移後逐份比對內容、sandbox 與時間戳 |
+| `scripts/inline-cdn.mjs` | 把 runtime 抓的第三方 script 換成內聯快照（無相依套件）|
 | `inbox/` | 丟一個 HTML 進來 commit 到 main 就會自動發佈成 public，手機也能用。[怎麼用](inbox/README.md) |
 | `scripts/publish-inbox.mjs` | 上面那條路的實作，由 `.github/workflows/publish-inbox.yml` 觸發 |
 | `archive/` | v1 的 GitHub Pages 站，已凍結。[為什麼留著](archive/README.md) |

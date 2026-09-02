@@ -37,6 +37,23 @@ unversioned always-latest URL (`cdn.tailwindcss.com` is the common one).
 <script>/* Chart.js 4.5.1 */ ...library source... </script>
 ```
 
+There is a tool for this — `scripts/inline-cdn.mjs`, Node built-ins only, no
+dependencies, so an agent can fetch that one file and run it:
+
+```bash
+node scripts/inline-cdn.mjs --check report.html   # report only, exit 1 if work remains
+node scripts/inline-cdn.mjs report.html           # rewrite in place
+```
+
+It leaves alone what it cannot fix safely and says so: `type="module"` (inlining it
+would not stop its own `import`s from fetching at runtime), scripts injected by other
+scripts, and stylesheets. It warns when the original tag had `defer`/`async`, because
+an inline script ignores both and runs immediately — the ordering changes.
+
+Open the result in a browser before uploading. Inlining freezes a snapshot: you stop
+receiving upstream fixes, which is the right trade for a frozen report and the wrong
+one for something you actively maintain.
+
 ## 2. Storage APIs require `X-Sandbox: off`
 
 **Warned, not enforced.** A successful `PUT` may return a `warnings` array.
