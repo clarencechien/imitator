@@ -44,6 +44,16 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
    Build watch paths，includes 設成 `worker/*`。這支 Action 會 commit 回 main，
    不設的話每發佈一份報告就會多觸發一次 Worker 部署。
 
+3. **Bot Fight Mode 要關掉**：Cloudflare → Security → Bots → Bot Fight Mode。
+   GitHub 的 runner 走資料中心 IP、UA 是 `node`，開著的話會被判成自動化流量、
+   收到 `Just a moment...` 的挑戰頁而不是我們的 API。**它沒辦法只對特定路徑
+   放行** —— 官方文件明講它跑在 Ruleset Engine 之外，WAF custom rule 的
+   Skip／Bypass／Allow 對它都沒有作用，Page Rules 也一樣。
+   關掉的附帶好處：那段被注入到每份報告 `</body>` 前的
+   `/cdn-cgi/challenge-platform` 腳本會跟著消失（JS Detections 是 BFM 自動
+   開啟且不能單獨關的），「收什麼吐什麼」在網路上才真的成立。
+   擋掃描器的工作本來就是那條 WAF custom rule 在做，不是 BFM。
+
 日後如果要給這條路一個專用的 token（外洩時可以只撤銷它、不影響你的 CLI），
 在 `config/groups.json` 加一個 group 再把它的 token 換進 secret 即可 —— 但
 **加第二個 group 之前**要先把既有 artifact 的 `owner` 補完，見
