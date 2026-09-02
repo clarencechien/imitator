@@ -80,15 +80,24 @@ artifact 預設被丟進 opaque origin（`Content-Security-Policy: sandbox`）�
 也正常。省略這個 header 時沿用該 slug 既有的設定。
 
 
-## 產生報告的 prompt 要交代兩件事
+## 產生報告的 prompt 要交代一件事
 
-- **「不要在 runtime 從 CDN 載入任何 script 或 style，全部內聯進單一 HTML。」**
-  舊的 272 份裡有 234 份在 runtime 抓 `cdn.tailwindcss.com`、`cdn.jsdelivr.net`
-  或 `unpkg.com`。有 sandbox 的話問題不大，但那是對三個第三方的長期依賴，
+**把 <https://github.com/clarencechien/imitator/blob/main/style/STYLE.md> 給模型讀。**
+那份寫給任何模型（Claude、GPT、Gemini 都吃得到，它不是 Claude Code 的 skill 格式），
+裡面有底盤 CSS、可讀性與 RWD 的底線、分節與編輯手法的作法，以及下面這兩條硬規則：
+
+- **「不要在 runtime 載入任何第三方 script，要用就把原始碼貼進去。」**
+  舊的 275 份裡有 231 份在 runtime 抓 `cdn.tailwindcss.com`、`cdn.jsdelivr.net`
+  或 `unpkg.com`。有 sandbox 的話還撐得住，但那是對三個第三方的長期依賴，
   它們隨時可以改掉自己送出來的東西。
 - **「不要用 `localStorage` 或任何 storage API，狀態放在變數裡就好。」**
   用了就得 `X-Sandbox: off`，而那會拿掉 sandbox、讓那一頁的 JS 有完整的同源
-  權限 —— 於是它載入的任何第三方腳本都繼承了「讀走全站內容」的能力。
+  權限 —— 於是它載入的任何第三方東西都繼承了「讀走全站內容」的能力。
+
+**字型是例外，可以在 runtime 抓。** `fonts.googleapis.com` 的 `<link>` 沒問題：
+樣式表不會執行程式碼，而 sandbox 底下那一頁在 opaque origin 裡，也沒有東西給它讀。
+界線是「第三方的可執行程式碼」，不是「任何網路請求」。只有 `X-Sandbox: off` 的頁面
+要連字型一起內聯 —— 同源之下連 CSS 都能被做成外洩管道。
 
 已經寫好的報告要補救的話，`scripts/inline-cdn.mjs`（在 imitator 的 repo 裡） 會把 runtime 抓的第三方 script
 換成內聯快照（`--check` 只報告不動檔案）。它只用 Node 內建模組，沒有相依套件。
