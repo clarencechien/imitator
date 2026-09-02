@@ -436,6 +436,18 @@ describe('列表與刪除', () => {
 });
 
 describe('portal', () => {
+  it('HTML 結構完整（Cloudflare 的注入腳本會找 </body>）', async () => {
+    for (const [label, res] of [
+      ['portal', await SELF.fetch(url('/'))],
+      ['404', await SELF.fetch(url('/r/nope'))],
+    ]) {
+      const body = await res.text();
+      expect(body, label).toContain('<body>');
+      expect(body, label).toContain('</body>');
+      expect(body.indexOf('</body>'), label).toBeLessThan(body.indexOf('</html>'));
+    }
+  });
+
   it('沒有 cookie 只看得到 public', async () => {
     await put('pub', 'a', { 'X-Visibility': 'public', 'X-Title': '公開報告' });
     await put('hidden', 'b', { 'X-Title': '內部報告' });

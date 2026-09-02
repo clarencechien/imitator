@@ -82,9 +82,11 @@ export function page(title, bodyHtml) {
   a { color: var(--accent); }
   p { color: var(--muted); }
 </style>
+<body>
 <main>
   <h1>${escapeHtml(title)}</h1>
   ${bodyHtml}
 </main>
+</body>
 </html>`;
 }

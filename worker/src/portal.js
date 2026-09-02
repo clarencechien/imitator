@@ -87,6 +87,7 @@ export async function renderPortal(env, gid, groupName, opts = {}) {
   #hint { margin-top:1rem; }
   .hidden { display:none; }
 </style>
+<body>
 <main>
   <header><h1>imitator</h1>${badge}</header>
   ${shown.length > 8 ? '<input id="q" type="search" placeholder="搜尋報告…" autocomplete="off">' : ''}
@@ -116,6 +117,7 @@ ${rows}
     });
   }
 </script>
+</body>
 </html>`;
 
   return html(body, { headers: { 'Cache-Control': 'private, no-store', ...extraHeaders } });
