@@ -90,6 +90,9 @@ artifact 預設被丟進 opaque origin（`Content-Security-Policy: sandbox`）�
   用了就得 `X-Sandbox: off`，而那會拿掉 sandbox、讓那一頁的 JS 有完整的同源
   權限 —— 於是它載入的任何第三方腳本都繼承了「讀走全站內容」的能力。
 
+已經寫好的報告要補救的話，`scripts/inline-cdn.mjs`（在 imitator 的 repo 裡） 會把 runtime 抓的第三方 script
+換成內聯快照（`--check` 只報告不動檔案）。它只用 Node 內建模組，沒有相依套件。
+
 這兩件事會被 host 檢查：**`X-Sandbox: off` 又載入第三方 script 會直接回 400**，
 什麼都不會寫進去；用了 storage API 卻沒關 sandbox 則回 200 加一則 warning
 （那個組合會讓頁面在瀏覽器裡靜靜地壞掉）。完整規則見
