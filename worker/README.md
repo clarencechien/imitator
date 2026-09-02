@@ -15,7 +15,7 @@ src/http.js       共用回應與安全 header
 
 ```bash
 npm install
-npm test          # 49 個測試，跑在 workerd 上（vitest-pool-workers）
+npm test          # 53 個測試，跑在 workerd 上（vitest-pool-workers）
 npm run dev
 npm run deploy
 ```
@@ -110,6 +110,35 @@ per-isolate、會被回收，當它是減速帶不是門鎖。
 
 > 大量上傳（例如遷移舊報告）會撞到這兩層限速。先跑遷移再加規則，或者讓
 > `scripts/migrate.mjs` 的退避重試處理 — 它認得 429。
+
+**Artifact 的 origin 隔離**（已實作，不需要設定）
+
+artifact 是任意 HTML 且會執行 JS，跟 portal 同一個 origin。cookie 是
+HttpOnly 沒錯，但 HttpOnly 只擋 `document.cookie`，不擋瀏覽器自動附帶 ——
+所以沒有防護的話，artifact 裡的 JS 可以 `fetch('/r/{slug}')` 把整個 group
+的內容讀出來外送。真正的風險不是惡意上傳（能上傳的人本來就握有 token），
+而是供應鏈：272 份舊報告裡有 234 份在 runtime 載入外部 script。
+
+所以 artifact 的回應預設帶：
+
+```
+Content-Security-Policy: sandbox allow-scripts allow-forms allow-modals allow-popups allow-downloads
+```
+
+opaque origin 讓那些 fetch 變成跨源、`Origin: null`，而 Worker 不送 CORS
+header，於是讀不到 response body。刻意不給 `allow-same-origin`（等於沒
+sandbox），也不給 `allow-popups-to-escape-sandbox`（popup 會拿回正常 origin）。
+
+代價是 storage API 在 opaque origin 下會丟 SecurityError。`PUT` 時帶
+`X-Sandbox: off` 可以個別關掉，省略則沿用既有設定 —— 重推一份報告不會悄悄
+把先前明確設定的例外關掉。`scripts/migrate.mjs` 會自己偵測 `localStorage`／
+`sessionStorage`／`document.cookie` 並在那幾份帶上 `off`（舊報告裡是 8 份），
+結尾會列出來。
+
+spec §8.5 原本的方案是把 artifact 搬到子網域。實際上那只擋得住 portal 的
+列表：group artifact 要能驗證，cookie 就必須跨子網域（`__Host-` 得降成
+`__Secure-` 加 `Domain=`），而所有 artifact 又同在 `r.*` 這一個 origin，
+artifact 之間依然同源。要真的隔離得走 per-artifact origin，超出本專案規模。
 
 ---
 

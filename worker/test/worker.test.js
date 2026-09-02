@@ -94,6 +94,38 @@ describe('寫入（write token）', () => {
     expect((await SELF.fetch(url('/r/gone'))).status).toBe(404);
   });
 
+  it('artifact 預設帶 CSP sandbox', async () => {
+    const res = await put('sb', '<p>x</p>', { 'X-Visibility': 'public' });
+    expect((await res.json()).sandbox).toBe('on');
+    const get = await SELF.fetch(url('/r/sb'));
+    const csp = get.headers.get('Content-Security-Policy');
+    expect(csp).toContain('sandbox');
+    expect(csp).toContain('allow-scripts');
+    // 這兩個會讓 sandbox 形同虛設
+    expect(csp).not.toContain('allow-same-origin');
+    expect(csp).not.toContain('allow-popups-to-escape-sandbox');
+  });
+
+  it('X-Sandbox: off 可以個別關掉，group 內容也一樣', async () => {
+    await put('opt-out', '<p>x</p>', { 'X-Sandbox': 'off' });
+    const get = await SELF.fetch(url('/r/opt-out'), {
+      headers: { Cookie: (await join()).cookie },
+    });
+    expect(get.status).toBe(200);
+    expect(get.headers.get('Content-Security-Policy')).toBeNull();
+  });
+
+  it('重推不會悄悄把 X-Sandbox: off 關回去', async () => {
+    await put('sticky', 'v1', { 'X-Sandbox': 'off', 'X-Visibility': 'public' });
+    const res = await put('sticky', 'v2', { 'X-Visibility': 'public' });
+    expect((await res.json()).sandbox).toBe('off');
+    expect((await SELF.fetch(url('/r/sticky'))).headers.get('Content-Security-Policy')).toBeNull();
+  });
+
+  it('X-Sandbox 只接受 on / off', async () => {
+    expect((await put('x', 'y', { 'X-Sandbox': 'maybe' })).status).toBe(400);
+  });
+
   it('預設是 group 可見度', async () => {
     const res = await put('secret-report', '<p>internal</p>');
     expect((await res.json()).visibility).toBe('group:rd');

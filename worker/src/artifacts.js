@@ -10,6 +10,20 @@ const IDX_PREFIX = 'idx:';
 const TITLE_MAX = 200;
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
 
+/**
+ * artifact 是任意 HTML 且會執行 JS，而它跟 portal 同一個 origin（spec §8.5）。
+ * 沒有這一行的話，artifact 裡的 JS 可以 fetch('/') 或 fetch('/r/{slug}') —
+ * cookie 是 HttpOnly 沒錯，但 HttpOnly 只擋 document.cookie，不擋瀏覽器自動
+ * 附帶，所以它讀得到整個 group 的內容再送出去。
+ *
+ * sandbox 會把 artifact 丟進 opaque origin：同樣那些 fetch 變成跨源、
+ * Origin: null，而我們不送 CORS header，所以讀不到 response body。
+ *
+ * 刻意不給 allow-same-origin（那等於沒 sandbox），也不給
+ * allow-popups-to-escape-sandbox（popup 會拿回正常 origin，洞就回來了）。
+ */
+const SANDBOX_CSP = 'sandbox allow-scripts allow-forms allow-modals allow-popups allow-downloads';
+
 const objectKey = (slug) => `artifacts/${slug}.html`;
 const indexKey = (slug) => `${IDX_PREFIX}${slug}`;
 
@@ -99,6 +113,8 @@ export async function serveArtifact(request, env, slug, sessionGid) {
     'Cache-Control': isPublic ? 'public, max-age=300' : 'private, no-store',
   };
   if (!isPublic) headers.Vary = 'Cookie';
+  // 用到 localStorage 之類的報告可以在 PUT 時用 X-Sandbox: off 個別關掉。
+  if (obj.customMetadata?.sandbox !== 'off') headers['Content-Security-Policy'] = SANDBOX_CSP;
 
   if (isPublic) {
     const body = await obj.arrayBuffer();
@@ -117,6 +133,11 @@ export async function putArtifact(request, env, slug, gid) {
   }
   const visibility = rawVisibility === 'public' ? 'public' : `group:${gid}`;
 
+  const rawSandbox = request.headers.get('X-Sandbox');
+  if (rawSandbox !== null && !['on', 'off'].includes(rawSandbox.trim().toLowerCase())) {
+    return apiError(400, 'X-Sandbox must be "on" or "off"');
+  }
+
   const body = await request.arrayBuffer();
   if (body.byteLength > MAX_BYTES) return apiError(413, 'body exceeds 25 MB');
   if (body.byteLength === 0) return apiError(400, 'empty body');
@@ -131,10 +152,16 @@ export async function putArtifact(request, env, slug, gid) {
   const title =
     cleanTitle(request.headers.get('X-Title')) || existing?.customMetadata?.title || slug;
   const createdAt = existing?.customMetadata?.createdAt ?? now;
+  // 沒帶 header 就沿用舊值（跟 X-Title 一樣）。重推一份報告不該悄悄把它先前
+  // 明確設定的例外關掉 — 那會讓頁面壞掉而沒有人知道為什麼。
+  const sandbox =
+    rawSandbox === null
+      ? (existing?.customMetadata?.sandbox === 'off' ? 'off' : 'on')
+      : rawSandbox.trim().toLowerCase();
 
   await env.R2_BUCKET.put(objectKey(slug), body, {
     httpMetadata: { contentType: 'text/html; charset=utf-8' },
-    customMetadata: { visibility, title, createdAt, updatedAt: now },
+    customMetadata: { visibility, title, createdAt, updatedAt: now, sandbox },
   });
 
   const entry = { visibility, title, updatedAt: now };
@@ -143,7 +170,7 @@ export async function putArtifact(request, env, slug, gid) {
   await purge(request, slug);
 
   const url = new URL(request.url);
-  return json({ slug, url: `${url.origin}/r/${slug}`, visibility, updatedAt: now });
+  return json({ slug, url: `${url.origin}/r/${slug}`, visibility, sandbox, updatedAt: now });
 }
 
 /** DELETE /v1/a/{slug} */
