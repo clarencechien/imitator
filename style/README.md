@@ -78,6 +78,12 @@ Google Fonts 沒有壓縮體或展示用的中文字面。把**拉丁展示字�
 
 `mockup.html` 用的是另一種：中文標題直接上思源宋，跟內文的思源黑拉開質地差。
 
+拉丁半邊推薦 IBM Plex —— Sans、Serif、Sans Condensed、Mono 都在 Google Fonts 上，
+共用同一套骨架所以混排不打架，而且拉丁子集只要 13–30 KB。**`IBM Plex Sans TC` 不在
+Google Fonts 上**（實測回 400），所以中文那半只能配思源。`IBM Plex Sans JP` 倒是有，
+但**不要拿來排正體中文**：實測 26 個字裡它供應了 25 個，看起來像可以用，但字形是日文
+的（令 最明顯），而且缺的那一個會在句子中間掉回讀者系統上的任意字型。
+
 ## 已知還沒做的
 
 `STYLE.md` 要求報告帶 `<meta name="imitator-style" content="v2">`，但

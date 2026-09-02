@@ -101,9 +101,20 @@ Request only the weights you use, always `&display=swap`, at most three families
 
 | Job | What to pick |
 |---|---|
-| **Display** (`--disp`) | The face that carries the voice. `Noto Serif TC` for something historical or argued; `IBM Plex Sans Condensed`, `Space Grotesk`, `Archivo` for something technical. |
+| **Display** (`--disp`) | The face that carries the voice. `Noto Serif TC` for something historical or argued; `IBM Plex Sans Condensed`, `IBM Plex Serif`, `Space Grotesk`, `Archivo` for something technical. |
 | **Body** (`--sans`) | `Noto Sans TC` unless you have a reason. Readability outranks personality here. |
 | **Mono** (`--mono`) | `IBM Plex Mono`, `JetBrains Mono`, `Space Mono`. Carries signposts, labels and code — not paragraphs. |
+
+**IBM Plex is a good default for the Latin half.** `IBM Plex Sans`, `IBM Plex Serif`,
+`IBM Plex Sans Condensed` and `IBM Plex Mono` are all on Google Fonts, they share a
+skeleton so they mix without clashing, and a Latin-only subset costs 13–30 KB — next to
+nothing. **`IBM Plex Sans TC` is not on Google Fonts**, so there is no IBM face for the
+Chinese half; pair Plex with Noto.
+
+**Do not use `IBM Plex Sans JP` for Traditional Chinese.** It is on Google Fonts and it
+covers most of the characters, which makes it a tempting shortcut — but the glyph forms
+are Japanese (令 is the obvious one) and the coverage has holes that fall back mid-
+sentence to whatever the reader's system has.
 
 **The mixed-script trick.** Google Fonts has no condensed or display CJK face. Put a Latin
 display face *first* and a CJK face after it: Latin words take the display face, Chinese
