@@ -32,8 +32,9 @@ register in your own words, and derive the voice from it.**
 ```html
 <style>
 /* REGISTER: 驗屍 — 用 231 萬筆資料檢驗三個流行說法，讀者是準備進場的散戶。
-   VOICE: 解剖檯。奶油紙、驗屍紅只給裁決用、宋體標題、等寬體的檔案欄。
-   NOT: 儀表板。沒有互動元件，數字是證據不是裝飾。 */
+   PAPER:    解剖室的紀錄紙 — 奶油色，hsl(42 30% 96%)。
+   VOICE:    驗屍紅只給裁決用、宋體標題、等寬體的檔案欄。
+   NOT:      儀表板。沒有互動元件，數字是證據不是裝飾。 */
 ```
 
 If the register you wrote could describe half the reports in the archive, it is too
@@ -107,10 +108,37 @@ Pick **paper, ink and one accent**, and name them after what they are in this pi
 `--curtain` for the red of a theatre, `--slate` for a technical grey. The naming is not
 decoration: it forces you to decide what the colour is doing.
 
-- **Paper is rarely white, and its tint comes from the register.** A history wants warmth;
-  an argument wants something cooler and flatter; a night piece is dark-first and its
-  *light* mode is the second palette. Derive the tint — do not pick it from a list, and do
-  not reuse a specimen's. `#ffffff` reads as a default.
+### Paper: name the material, then write the hue
+
+Do not pick a paper colour. **Name what this document is physically printed on**, then
+derive the tint from that material and write it as `hsl()` with the hue stated:
+
+```css
+/* PAPER: 證物袋的牛皮 — 暖，因為這是一份會被歸檔的東西 */
+--paper: hsl(38 24% 95%);
+```
+
+`hsl()` is required here, and it is not a formatting preference. A hex is opaque: `#eef1f3`
+hides the fact that you chose hue 200 at 15% saturation. Written as `hsl(200 15% 95%)`, the
+choice is visible — to you while writing, and to anyone reading the file later.
+
+Rules that follow from it:
+
+- **State the hue, and mean it.** Kraft paper is ~35°, newsprint ~45°, a blueprint ~215°,
+  a laboratory notebook ~150°. The material picks the number.
+- **Saturation below 6% is a neutral grey, and neutral grey is a default, not a choice.**
+  If you land there, either the material is genuinely colourless — say so in the comment
+  and say why — or you have not chosen. Most documents are not printed on nothing.
+- **Do not converge.** Cold light grey around `hsl(200 12% 95%)` is where an unconstrained
+  model lands: it is the colour that breaks no rule and says nothing. It is on the reject
+  list for exactly that reason.
+- `#ffffff` reads as a default too. A tint reads as a decision.
+
+Dark mode is a second material, not an inversion: kraft paper in the dark is warm
+near-black (`hsl(38 14% 8%)`), never a desaturated grey.
+
+### The rest
+
 - **One accent, used three ways**: the coloured word in the headline, the section numbers,
   links. A second accent needs a reason — a second voice in the argument, not variety.
 - **Contrast is not negotiable.** Body ink on paper ≥ 7:1, secondary ≥ 4.5:1, the accent on
@@ -275,6 +303,10 @@ These are the tells of a generated page. None of them is a style choice.
   reason.
 - Filler symmetry — three cards because three fits the grid, when the argument has two
   points.
+- **Cold neutral grey paper** — anything near `hsl(200 12% 95%)` / `#eef1f3`. Four reports
+  written from four unrelated sources under an earlier draft of this guide all landed
+  within four units of that colour, because it is the tint that offends no rule. It is now
+  the most generic choice available, not the safest one.
 - **Any specimen's palette.** These are taken: bone paper with indigo and a Ming headline
   (the mockup); warm cream with curtain red (`epic`); grey-green with condensed type and
   red (`argument`); graph paper with green and orange (`digest`); cream with autopsy red
@@ -290,6 +322,9 @@ Look at your own output, at these four settings, and fix what breaks:
 2. **1440px wide.** The text column has not sprawled; figures use the width, prose does not.
 3. **Dark mode.** Every colour you chose, not an inversion. Nothing disappears.
 4. **Reduced motion / print.** Nothing is missing that was only visible after an animation.
+
+Read your `--paper` back as `hsl()`. If its saturation is under 6%, or its hue is between
+190 and 230 without the comment saying why, you picked the default and called it a choice.
 
 Then read the first screen as a stranger: does it say what this is and why it matters,
 before any decoration? And check the register comment is still true of what you built —
