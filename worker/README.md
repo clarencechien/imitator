@@ -15,37 +15,45 @@ src/http.js       共用回應與安全 header
 
 ```bash
 npm install
-npm test          # 48 個測試，跑在 workerd 上（vitest-pool-workers）
+npm test          # 49 個測試，跑在 workerd 上（vitest-pool-workers）
 npm run dev
 npm run deploy
 ```
 
 ---
 
-## 第一次部署
+## 部署
 
-1. **建 R2 bucket 與 KV namespace**
+repo 已經跟 Cloudflare Workers Builds 連動：push 到分支就會跑
+`npm clean-install` 加 `npx wrangler deploy`（build 的 root directory 指到
+`worker/`）。也可以在本機 `npm run deploy`，兩條路走的是同一份
+`wrangler.toml`。
+
+**R2 bucket 與 KV namespace 都由 wrangler 在 deploy 時自動 provision** —
+`wrangler.toml` 的 `[[kv_namespaces]]` 刻意不填 `id` 就是為了這個。第一次
+deploy 建好之後，後續 deploy 會沿用同一個 binding，不需要回填 id。
+
+（`vitest.config.js` 因此不讀 `wrangler.toml`，binding 在那裡自己宣告一份 —
+vitest-pool-workers 內建的 wrangler 比較舊，看到沒有 id 的 KV 設定會報錯。
+兩邊的內容要保持一致。）
+
+deploy 成功之後還有四件事要在 dashboard 上做，做完站台才真的能用：
+
+1. **設 SESSION_SECRET**（Workers → imitator → Settings → Variables and
+   Secrets → Add，type 選 **Secret**）
 
    ```bash
-   npx wrangler r2 bucket create imitator
-   npx wrangler kv namespace create KV_INDEX
+   openssl rand -base64 32     # 產一個，貼進去
    ```
 
-   把 KV 的 id 填回 `wrangler.toml` 的 `REPLACE_WITH_KV_NAMESPACE_ID`。
-   bucket **不要**對外公開，也**不要**掛 custom domain — 所有讀取一律經過 Worker。
-
-2. **開 versioning**（R2 dashboard → Settings）。這是 artifact 的歷史功能，
-   也是 `config/` 寫壞時的還原手段。
-
-3. **設 SESSION_SECRET**
-
-   ```bash
-   openssl rand -base64 32 | npx wrangler secret put SESSION_SECRET
-   ```
-
+   本機的話是 `npx wrangler secret put SESSION_SECRET`。沒有它 `/join` 一律
+   回 503 —— public 讀取不受影響，但沒有人進得了 group。
    輪替這一個 = 所有組別所有人一起登出（緊急剎車）。
 
-4. **放 `config/groups.json`**（R2 dashboard 上傳）。secret 直接寫哨兵值，
+2. **開 R2 versioning**（R2 → imitator → Settings）。這是 artifact 的歷史
+   功能，也是 `config/` 寫壞時的還原手段。
+
+3. **放 `config/groups.json`**（R2 dashboard 上傳）。secret 直接寫哨兵值，
    讓 Worker 自己產：
 
    ```json
@@ -62,29 +70,34 @@ npm run deploy
    }
    ```
 
-5. **`npm run deploy`**，然後打開網站。第一個抵達的請求會完成輪替，把連結與
-   token 寫進 `outbox/`，回 R2 dashboard 複製即可。
+   然後打開網站。第一個抵達的請求會完成輪替，把連結與 token 寫進
+   `outbox/`，回 R2 dashboard 複製即可。
 
-6. **設 lifecycle rules**（R2 dashboard → Settings → Object lifecycle）
+4. **綁 custom domain**（Workers → Settings → Domains & Routes）。R2 bucket
+   本身**不要**對外公開、**不要**掛 domain — 所有讀取一律經過 Worker。
 
-   | 前綴 | 規則 | 為什麼 |
-   |---|---|---|
-   | `config/` | 非當前版本 30 天後刪除 | versioning 會永久保留每一版 groups.json，等於所有歷史 secret 都還在 |
-   | `outbox/` | 7 天後刪除 | 對齊 magic link 的預設 TTL，不讓明碼在 bucket 裡累積 |
+### 之後再補的（spec §10 的 P3）
 
-7. **設全站限速規則**（Security → WAF → Rate limiting rules）。這是配額保護，
-   不是安全機制 — 免費方案只有 1 條規則，別把它花在特定端點上：
+**Lifecycle rules**（R2 → Settings → Object lifecycle）
 
-   ```
-   Expression:      (http.host eq "r.example.com")
-   Characteristics: IP
-   Requests:        50
-   Period:          10 秒
-   Action:          Managed Challenge（沒有的話用 Block + 1 分鐘）
-   ```
+| 前綴 | 規則 | 為什麼 |
+|---|---|---|
+| `config/` | 非當前版本 30 天後刪除 | versioning 會永久保留每一版 groups.json，等於所有歷史 secret 都還在 |
+| `outbox/` | 7 天後刪除 | 對齊 magic link 的預設 TTL，不讓明碼在 bucket 裡累積 |
 
-   Worker 裡另外有一個 isolate 內的減速帶（200 次／10 秒／IP）。per-colo、
-   per-isolate、會被回收，當它是減速帶不是門鎖。
+**全站限速規則**（Security → WAF → Rate limiting rules）。這是配額保護，
+不是安全機制 — 免費方案只有 1 條規則，別把它花在特定端點上：
+
+```
+Expression:      (http.host eq "r.example.com")
+Characteristics: IP
+Requests:        50
+Period:          10 秒
+Action:          Managed Challenge（沒有的話用 Block + 1 分鐘）
+```
+
+Worker 裡另外有一個 isolate 內的減速帶（200 次／10 秒／IP）。per-colo、
+per-isolate、會被回收，當它是減速帶不是門鎖。
 
 > 大量上傳（例如遷移舊報告）會撞到這兩層限速。先跑遷移再加規則，或者讓
 > `scripts/migrate.mjs` 的退避重試處理 — 它認得 429。

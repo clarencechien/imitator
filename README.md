@@ -26,8 +26,12 @@ artifact 本身不在 git 裡 — **source 留 git，artifact 去 R2**。
 
 ## 現況
 
-v2 的 Worker 已經寫好、測試過（`cd worker && npm test`），但還沒部署，所以
-下面這些 v1 的東西都還活著：
+v2 的 Worker 已經寫好、測試過（`cd worker && npm test`），並且跟 Cloudflare
+Workers Builds 連動 — push 就會 deploy。上線前還要在 dashboard 設
+`SESSION_SECRET` 與上傳 `config/groups.json`，清單見
+[`worker/README.md`](worker/README.md)。
+
+在遷移跑完之前，下面這些 v1 的東西都還活著：
 
 - `index.html`、`report/`、`report_list.json`：GitHub Pages 上的舊站
 - `.github/workflows/`：掃 `report/` 產 `report_list.json` 並自動 commit 回
