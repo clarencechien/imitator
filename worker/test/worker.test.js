@@ -454,6 +454,39 @@ describe('portal', () => {
     expect(body).toContain('內部報告');
   });
 
+  it('預設只列最近三個月，?all=1 才全部', async () => {
+    const old = new Date(Date.now() - 200 * 86_400_000).toISOString();
+    await put('fresh', 'a', { 'X-Visibility': 'public', 'X-Title': '新的報告' });
+    await put('stale', 'b', {
+      'X-Visibility': 'public',
+      'X-Title': '很久以前的報告',
+      'X-Updated-At': old,
+    });
+
+    const def = await (await SELF.fetch(url('/'))).text();
+    expect(def).toContain('新的報告');
+    expect(def).not.toContain('很久以前的報告');
+    expect(def).toContain('顯示全部 2 份');
+
+    const all = await (await SELF.fetch(url('/?all=1'))).text();
+    expect(all).toContain('新的報告');
+    expect(all).toContain('很久以前的報告');
+    expect(all).toContain('只看最近三個月');
+  });
+
+  it('最近三個月剛好沒東西時就全部列出來', async () => {
+    const old = new Date(Date.now() - 200 * 86_400_000).toISOString();
+    await put('stale', 'b', {
+      'X-Visibility': 'public',
+      'X-Title': '很久以前的報告',
+      'X-Updated-At': old,
+    });
+    const body = await (await SELF.fetch(url('/'))).text();
+    // 明明有東西卻說「沒有報告」是最差的那種正確
+    expect(body).toContain('很久以前的報告');
+    expect(body).not.toContain('顯示全部');
+  });
+
   it('epoch 過期的 cookie 會被清掉', async () => {
     const { cookie } = await join();
     await seed(groups({ epoch: 9 }));
