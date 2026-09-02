@@ -1,0 +1,61 @@
+# 把 inbox/ 裡的 HTML 自動發佈到 imitator（public），然後把原始檔搬進 archive/。
+#
+# 用途是「手機也能發報告」：在手機瀏覽器開 GitHub → inbox → Add file →
+# Upload files → commit 到 main，剩下的這支 workflow 做完。
+#
+# 安全性上要守住的兩件事：
+#
+# 1. trigger 只有 push 到 main。這個 repo 是公開的，任何人都能 fork 開 PR，
+#    但 GitHub 不會把 secret 給 fork 來的 workflow —— 前提是絕對不能用
+#    pull_request_target，那個會在 base repo 的權限下跑 PR 的程式碼。
+# 2. 只用 GitHub 官方的 actions/checkout。runner 本身就有 Node，不需要
+#    setup-node，少一個第三方 action 就少一條偷 secret 的路。
+name: Publish inbox
+
+on:
+  push:
+    branches: [main]
+    paths: ['inbox/**.html']
+
+# 兩次 push 靠太近時排隊，不要同時搶著 git push。
+concurrency:
+  group: publish-inbox
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish to imitator
+        env:
+          IMITATOR_BASE: https://imitator.ai-apps.work
+          IMITATOR_TOKEN: ${{ secrets.IMITATOR_TOKEN }}
+        run: node scripts/publish-inbox.mjs
+
+      - name: Move published files into archive
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "沒有檔案被搬動，不需要 commit"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A inbox archive
+          # 搬移會被記成 rename，所以不要用 --diff-filter=A 篩。
+          published=$(git diff --cached --name-only -- archive/report | sed 's|archive/report/|- |')
+          git commit -m "Publish from inbox" -m "$published"
+          # 這中間可能有人推了別的東西上來，rebase 一次再送。
+          for i in 1 2 3; do
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((i * 3))
+          done
+          echo "push 失敗；報告已經發佈出去了，但 repo 裡的搬移沒進去" >&2
+          exit 1
