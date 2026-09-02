@@ -24,10 +24,22 @@ npm run deploy
 
 ## 部署
 
-repo 已經跟 Cloudflare Workers Builds 連動：push 到分支就會跑
-`npm clean-install` 加 `npx wrangler deploy`（build 的 root directory 指到
-`worker/`）。也可以在本機 `npm run deploy`，兩條路走的是同一份
-`wrangler.toml`。
+repo 已經跟 Cloudflare Workers Builds 連動：push 到 `main` 就會跑
+`npm clean-install` 加 `npx wrangler deploy`。也可以在本機 `npm run deploy`，
+兩條路走的是同一份 `wrangler.toml`。
+
+Workers → imitator → Settings → Build 底下有**兩個長得很像、但意義完全不同**的
+欄位，設錯會很難發現：
+
+| 欄位 | 值 | 意義 |
+|---|---|---|
+| **Root directory** | `worker` | build 在哪個目錄裡跑。**不能有萬用字元** —— 填 `worker/*` 會找不到目錄，build 當場失敗 |
+| **Build watch paths → Include paths** | `worker/*` | 哪些路徑的改動要觸發 build。相對於 repo 根目錄，萬用字元就是用在這裡 |
+
+> ⚠️ 這兩個填反或填混的失敗方式很惡劣：**站台繼續用舊版本正常服務**，從外面
+> 完全看不出來，你只會覺得「改的東西怎麼沒生效」。真的懷疑的時候就打一個
+> 有版本特徵的端點來驗（例如 `PUT` 的回應有沒有 `owner` 欄位），不要只看
+> 站台活著就假設部署成功了。
 
 **R2 bucket 與 KV namespace 都由 wrangler 在 deploy 時自動 provision** —
 `wrangler.toml` 的 `[[kv_namespaces]]` 刻意不填 `id` 就是為了這個。第一次
