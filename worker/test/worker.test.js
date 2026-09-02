@@ -267,13 +267,17 @@ describe('寫入（write token）', () => {
     expect(await (await SELF.fetch(url('/r/mine-public'))).text()).toBe('<p>原文</p>');
   });
 
-  it('沒有 owner 的舊物件沿用舊判準，並在第一次更新時補上 owner', async () => {
+  it('沒有 owner 的物件誰都寫不動 —— 包含它原本的作者', async () => {
+    // 相容分支拿掉之後刻意選的失敗方向：鎖死可以從 R2 dashboard 手動處理，
+    // 被別組永久佔走不行。
     await env.R2_BUCKET.put('artifacts/legacy.html', 'old', {
       customMetadata: { visibility: 'public', title: 't', createdAt: 'x', updatedAt: 'x' },
     });
-    const res = await put('legacy', 'new', { 'X-Visibility': 'public' });
-    expect(res.status).toBe(200);
-    expect((await env.R2_BUCKET.head('artifacts/legacy.html')).customMetadata.owner).toBe('rd');
+    expect((await put('legacy', 'new', { 'X-Visibility': 'public' })).status).toBe(403);
+    const del = await SELF.fetch(url('/v1/a/legacy'), { method: 'DELETE', headers: auth() });
+    expect(del.status).toBe(404);
+    // 內容原封不動
+    expect(await (await env.R2_BUCKET.get('artifacts/legacy.html')).text()).toBe('old');
   });
 });
 

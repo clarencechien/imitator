@@ -41,16 +41,19 @@ export function canRead(visibility, sessionGid) {
  * 刪掉別組發佈的東西，而 R2 沒有 object versioning，覆寫就是永久消失。
  * 現實中最可能觸發的不是惡意內鬼，是兩個自動發佈者撞到同一個 slug。
  *
- * 沒有 owner 的是加上這個欄位之前就存在的物件，沿用舊判準，並在第一次更新時
- * 補上 owner。舊物件全部補完之後（重跑一次 migrate.mjs --force 即可），
- * 這個分支就可以刪掉。
+ * 曾經有一個相容分支，讓 owner 欄位出現之前的物件沿用舊判準。既有的 273 份
+ * 都補完 owner 之後（`GET /v1/a` 的 owner 欄位可以查證）就拿掉了 —— 那個分支
+ * 對「無主的 public」是**對所有 group 放行**的，留著等於讓新加的 group 可以
+ * 永久佔走任何一個沒補到的 slug。
+ *
+ * 現在沒有 owner 的物件是誰都寫不動、刪不掉的（包含它原本的作者）。那是刻意
+ * 選的失敗方向 —— 鎖死可以從 R2 dashboard 手動處理，被佔走不行。
  *
  * @param {Record<string,string>|undefined} meta 既有物件的 customMetadata
  */
 function canWrite(meta, gid) {
   if (!meta) return true; // 全新的 slug
-  if (typeof meta.owner === 'string') return meta.owner === gid;
-  return meta.visibility === 'public' || meta.visibility === `group:${gid}`;
+  return meta.owner === gid;
 }
 
 /**

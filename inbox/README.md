@@ -46,8 +46,19 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
    > push 權限的人、以及 job 裡執行的任何東西（`actions/checkout` 被入侵也算）
    > 都握有它。建議發一個專用的 group，見下面。
 2. **Build watch paths**：Cloudflare → Workers → imitator → Settings → Build →
-   Build watch paths，includes 設成 `worker/*`。這支 Action 會 commit 回 main，
-   不設的話每發佈一份報告就會多觸發一次 Worker 部署。
+   **Build watch paths → Include paths** 設成 `worker/*`。這支 Action 會 commit
+   回 main，不設的話每發佈一份報告就會多觸發一次 Worker 部署。
+
+   同一頁有三個欄位會互相混淆，正確的組合是：
+
+   | Root directory | Include paths | Exclude paths |
+   |---|---|---|
+   | `worker/` | `worker/*` | 留空 |
+
+   > ⚠️ **Root directory** 不能有萬用字元 —— 填 `worker/*` 會找不到目錄，build
+   > 當場失敗。**Exclude paths** 填 `worker/*` 則是相反的意思（Worker 的改動
+   > 不要 build）。這兩種錯法的症狀一樣：站台繼續用舊版本正常服務，從外面
+   > 完全看不出來。
 
 3. **Bot Fight Mode 要關掉**：Cloudflare → Security → Bots → Bot Fight Mode。
    GitHub 的 runner 走資料中心 IP、UA 是 `node`，開著的話會被判成自動化流量、
