@@ -4,9 +4,15 @@
 //   IMITATOR_BASE=https://imitator.ai-apps.work \
 //   IMITATOR_TOKEN=imi_rd_1_xxx \
 //   node scripts/migrate.mjs --visibility=public [--dry-run] [--dir report] [--force]
+//                            [--timestamps=report_list.json | none]
 //
-// slug 由檔名推導，衝突會在開始上傳前就報錯。updatedAt 會是上傳當下的時間，
-// 舊的 report_list.json 時間戳不會被保留 — 需要的話那份 JSON 還在 git 歷史裡。
+// slug 由檔名推導，衝突會在開始上傳前就報錯。
+//
+// updatedAt 預設取自 report_list.json（舊 Action 逐次累積下來的真實時間，
+// 視為 UTC），透過 X-Updated-At 送出。portal 依 updatedAt 由新到舊排序，
+// 少了這個，272 份會全部變成上傳當天、排序完全沒有意義。
+// 注意不要改用 git log — 這份 repo 的歷史被整批重傳過，每個檔案的 committer
+// date 都是同一天。
 //
 // 預設會先拉一次 /v1/a，已經在站上的 slug 直接跳過，所以中斷之後重跑只會補
 // 沒上去的那些。要強制全部重推就加 --force。
@@ -27,6 +33,9 @@ const visibility = args.get('visibility');
 const dir = typeof args.get('dir') === 'string' ? args.get('dir') : 'report';
 const dryRun = args.has('dry-run');
 const force = args.has('force');
+const timestampsArg = args.get('timestamps');
+const timestampsFile =
+  timestampsArg === undefined ? 'report_list.json' : timestampsArg === 'none' ? null : timestampsArg;
 
 if (!base || !token) fail('請設定 IMITATOR_BASE 與 IMITATOR_TOKEN');
 if (visibility !== 'public' && visibility !== 'group') {
@@ -66,6 +75,34 @@ function titleOf(html, fallback) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * report_list.json 的 `2025/06/06 17:28:45` → ISO 8601。
+ * 來源是 git committer date（%cI），GitHub 網頁介面的 commit 是 UTC。
+ */
+function toIso(stamp) {
+  const m = /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(String(stamp).trim());
+  if (!m) return null;
+  const [, y, mo, d, h, mi, sec] = m;
+  const t = Date.parse(`${y}-${mo}-${d}T${h}:${mi}:${sec}Z`);
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+}
+
+async function loadTimestamps() {
+  if (!timestampsFile) return null;
+  let raw;
+  try {
+    raw = JSON.parse(await readFile(timestampsFile, 'utf-8'));
+  } catch (err) {
+    fail(`讀不到 ${timestampsFile}（用 --timestamps=none 可以跳過）：${err.message}`);
+  }
+  const map = new Map();
+  for (const entry of raw) {
+    const iso = toIso(entry?.timestamp);
+    if (entry?.name && iso) map.set(entry.name, iso);
+  }
+  return map;
+}
+
 /** 站上已經有哪些 slug — 用來跳過已上傳的，以及跑完之後對總數。 */
 async function listExisting() {
   const res = await fetch(`${base}/v1/a`, { headers: { Authorization: `Bearer ${token}` } });
@@ -79,7 +116,7 @@ async function listExisting() {
 // （對 report/ 這 272 份實測過：命中 8 份，Chromium 下確實只有那 8 份會壞。）
 const NEEDS_ORIGIN = /\b(?:localStorage|sessionStorage|indexedDB|Notification|BroadcastChannel|SharedWorker)\b|document\.(?:cookie|domain)|serviceWorker/;
 
-async function upload(slug, title, body, sandbox) {
+async function upload(slug, title, body, sandbox, updatedAt) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await fetch(`${base}/v1/a/${slug}`, {
       method: 'PUT',
@@ -89,6 +126,7 @@ async function upload(slug, title, body, sandbox) {
         'X-Visibility': visibility,
         'X-Title': toHeaderValue(title),
         'X-Sandbox': sandbox,
+        ...(updatedAt ? { 'X-Updated-At': updatedAt } : {}),
       },
       body,
     });
@@ -106,19 +144,28 @@ async function upload(slug, title, body, sandbox) {
 const files = (await readdir(dir)).filter((f) => f.endsWith('.html')).sort();
 if (files.length === 0) fail(`${dir}/ 裡沒有 .html`);
 
+const stamps = await loadTimestamps();
 const seen = new Map();
 const plan = [];
+const missing = [];
 for (const file of files) {
   const slug = toSlug(file);
   if (!slug) fail(`${file} 推導不出合法的 slug`);
   if (seen.has(slug)) fail(`slug 衝突：${file} 與 ${seen.get(slug)} 都對應到 "${slug}"`);
   seen.set(slug, file);
-  plan.push({ file, slug });
+  const updatedAt = stamps?.get(file) ?? null;
+  if (stamps && !updatedAt) missing.push(file);
+  plan.push({ file, slug, updatedAt });
+}
+if (missing.length) {
+  fail(`${missing.length} 個檔在 ${timestampsFile} 裡沒有時間戳：${missing.slice(0, 5).join(', ')}…`);
 }
 
 console.log(`${plan.length} 個檔案 → ${base}（visibility: ${visibility}）`);
 if (dryRun) {
-  for (const { file, slug } of plan) console.log(`  ${file} → /r/${slug}`);
+  for (const { file, slug, updatedAt } of plan) {
+    console.log(`  ${file} → /r/${slug}${updatedAt ? `  (${updatedAt})` : ''}`);
+  }
   process.exit(0);
 }
 
@@ -131,11 +178,11 @@ if (existing.size) {
 let done = 0;
 let failed = 0;
 const noSandbox = [];
-for (const { file, slug } of todo) {
+for (const { file, slug, updatedAt } of todo) {
   const html = await readFile(path.join(dir, file), 'utf-8');
   const sandbox = NEEDS_ORIGIN.test(html) ? 'off' : 'on';
   try {
-    await upload(slug, titleOf(html, slug), html, sandbox);
+    await upload(slug, titleOf(html, slug), html, sandbox, updatedAt);
     done += 1;
     if (sandbox === 'off') noSandbox.push(slug);
     console.log(`  ✓ ${file} → /r/${slug}${sandbox === 'off' ? '  (sandbox off)' : ''}`);

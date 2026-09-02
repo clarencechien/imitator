@@ -47,6 +47,26 @@ for (const file of files) {
   await sleep(40);
 }
 
+// 有 token 的話順便對一次 updatedAt（遷移時是用 X-Updated-At 指定的）
+const token = process.env.IMITATOR_TOKEN;
+if (token) {
+  const listed = await fetch(`${base}/v1/a`, { headers: { Authorization: `Bearer ${token}` } });
+  if (listed.ok) {
+    const remote = new Map((await listed.json()).map((r) => [r.slug, r.updatedAt]));
+    const expected = JSON.parse(await readFile('report_list.json', 'utf-8'));
+    let okTime = 0;
+    for (const { name, timestamp } of expected) {
+      const m = /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(timestamp);
+      if (!m) continue;
+      const want = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`).toISOString();
+      const got = remote.get(toSlug(name));
+      if (got === want) okTime++;
+      else bad.push(`${toSlug(name)}: updatedAt ${got} != ${want}`);
+    }
+    console.log(`updatedAt 正確: ${okTime}/${expected.length}`);
+  }
+}
+
 console.log(`內容一致: ${okBytes}/${files.length}`);
 console.log(`sandbox 判定正確: ${okCsp}/${files.length}`);
 console.log(bad.length ? `\n問題 ${bad.length} 筆:\n` + bad.slice(0, 20).join('\n') : '\n沒有任何問題');
