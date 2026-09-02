@@ -67,6 +67,17 @@ public 並把原始檔搬進 `archive/report/`。手機上用瀏覽器開 GitHub
 
 ---
 
+## 營運現況（已經決定的事，不用再問一次）
+
+- **Workers Paid（$5/月）已經開了。** 請求配額是每月 1000 萬，不是免費方案的
+  每天 10 萬。「有人對合法 slug 跑迴圈就燒穿配額、整站掛到隔天」那條殘餘風險
+  已經關掉了 —— 不要再把它當成待辦事項提出來。
+- **Cloudflare 帳號有 2FA。** `config/groups.json` 裡的 group secret 在 R2 是
+  明文，帳號本身就是最後一道關卡，那道關卡已經上鎖。
+- 還開著的是**沒有備份**：R2 沒有 object versioning，覆寫與刪除都不可逆，而用
+  curl 直接推上去的報告只存在一個地方（`archive/report/` 只涵蓋遷移進來的 272
+  份和走 inbox 的那些）。這一條不需要攻擊者 —— slug 打錯就夠了。
+
 ## 開發這支 Worker 本身
 
 原始碼在 `worker/`，設計與取捨在 `docs/spec.md`，部署與輪替流程在 `worker/README.md`。
