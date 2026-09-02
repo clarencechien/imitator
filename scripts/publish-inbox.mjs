@@ -10,10 +10,11 @@
 // 掃的是 inbox/ 目前的內容，不是 git diff —— 上一輪失敗留下的檔案下次會自動重試，
 // 而重推同一個 slug 本來就是冪等的（同名視為更新）。
 
-import { readdir, readFile, rename, appendFile, access } from 'node:fs/promises';
+import { readdir, readFile, rename, appendFile, access, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 const INBOX = 'inbox';
+const REJECTED = 'inbox/rejected';
 const ARCHIVE = 'archive/report';
 const MAX_BYTES = 25 * 1024 * 1024;
 const VISIBILITY = 'public'; // inbox 就是「公開發佈」的意思，見 inbox/README.md
@@ -58,6 +59,19 @@ const toHeaderValue = (s) => String.fromCharCode(...new TextEncoder().encode(s))
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * 永久性失敗 —— 重試不會有幫助（403、檔名推不出 slug、超過大小上限）。
+ *
+ * 這種檔案不能留在 inbox/：它會在之後的每一次 push 重試、每一次失敗，
+ * workflow 就永遠紅著。移到 inbox/rejected/ 讓下一次能綠，本次仍然回非零
+ * 讓你看得到。
+ */
+function permanent(message) {
+  const err = new Error(message);
+  err.permanent = true;
+  return err;
+}
+
 async function summary(line) {
   console.log(line);
   if (process.env.GITHUB_STEP_SUMMARY) {
@@ -96,7 +110,7 @@ async function upload(slug, title, body, sandbox) {
     // 403 = 這個 slug 屬於別的 group（owner 擋下）。重試沒有用，訊息要能讓人
     // 直接知道發生什麼事：inbox 用的 token 跟當初發佈那個 slug 的不是同一個。
     if (res.status === 403) {
-      throw new Error(
+      throw permanent(
         `slug "${slug}" 屬於別的 group —— inbox 用的 token 不是當初發佈它的那個。` +
           '換檔名發成新的一份，或改用原本那個 token 從 CLI 更新。',
       );
@@ -132,19 +146,27 @@ await summary('| 檔案 | 網址 | sandbox |');
 await summary('|---|---|---|');
 
 let failed = 0;
+let rejected = 0;
+
+async function reject(file, src, reason) {
+  await mkdir(REJECTED, { recursive: true });
+  await rename(src, path.join(REJECTED, file));
+  await summary(`| \`${file}\` | ✗ ${reason} → 移到 \`inbox/rejected/\` | — |`);
+  failed += 1;
+  rejected += 1;
+}
+
 for (const file of files) {
   const src = path.join(INBOX, file);
   const raw = await readFile(src);
   const slug = toSlug(file);
 
   if (!slug) {
-    await summary(`| \`${file}\` | ✗ 推導不出合法的 slug（要有 a-z0-9-）| — |`);
-    failed += 1;
+    await reject(file, src, '推導不出合法的 slug（檔名要有 a-z0-9-）');
     continue;
   }
   if (raw.byteLength > MAX_BYTES) {
-    await summary(`| \`${file}\` | ✗ 超過 25 MB（${(raw.byteLength / 1048576).toFixed(1)} MB）| — |`);
-    failed += 1;
+    await reject(file, src, `超過 25 MB（${(raw.byteLength / 1048576).toFixed(1)} MB）`);
     continue;
   }
 
@@ -166,13 +188,26 @@ for (const file of files) {
       `| \`${file}\` | [${result.url}](${result.url}) | ${result.sandbox}${overwrote ? ' · 覆寫既有' : ''} |`,
     );
   } catch (err) {
-    await summary(`| \`${file}\` | ✗ ${err.message} | — |`);
-    failed += 1;
+    if (err.permanent) {
+      await reject(file, src, err.message);
+    } else {
+      await summary(`| \`${file}\` | ✗ ${err.message} | — |`);
+      failed += 1;
+    }
   }
   await sleep(80);
 }
 
 if (failed) {
-  await summary(`\n**${failed} 份失敗**，檔案留在 \`inbox/\`，修好再 push 一次即可。`);
+  const retryable = failed - rejected;
+  const parts = [`**${failed} 份失敗**。`];
+  if (retryable) parts.push(`${retryable} 份是暫時性的，留在 \`inbox/\`，下次 push 會重試。`);
+  if (rejected) {
+    parts.push(
+      `${rejected} 份重試也不會過，已移到 \`inbox/rejected/\` —— ` +
+        '處理完再放回 `inbox/` 即可，下一次執行不會再被它們卡住。',
+    );
+  }
+  await summary(`\n${parts.join(' ')}`);
   process.exit(1);
 }
