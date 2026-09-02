@@ -25,7 +25,7 @@ link／token，先前發出的一律失效。
 | `scripts/migrate.mjs` | 把 `archive/report/*.html` 一次推上去的遷移腳本 |
 | `scripts/verify.mjs` | 遷移後逐份比對內容、sandbox 與時間戳 |
 | `scripts/inline-cdn.mjs` | 把 runtime 抓的第三方 script 換成內聯快照（無相依套件）|
-| `style/` | 報告的樣式資產 —— 一份要原封不動內聯的 CSS，加上給模型看的指令與範例。[怎麼用](style/README.md) |
+| `style/` | 報告的底盤與風格指引 —— 固定可讀性與 RWD，其餘交給每一篇自己決定。[怎麼用](style/README.md) |
 | `inbox/` | 丟一個 HTML 進來 commit 到 main 就會自動發佈成 public，手機也能用。[怎麼用](inbox/README.md) |
 | `scripts/publish-inbox.mjs` | 上面那條路的實作，由 `.github/workflows/publish-inbox.yml` 觸發 |
 | `archive/` | v1 的 GitHub Pages 站，已凍結。[為什麼留著](archive/README.md) |
@@ -43,20 +43,23 @@ v2 上線在 <https://imitator.ai-apps.work>。272 份 v1 的舊報告遷移完�
 Portal 預設只列最近三個月，`?all=1` 看全部 —— 每一筆大約 271 bytes，全部塞進一個
 回應會隨份數線性長大。
 
-## 產生報告的時候套一份樣式
+## 產生報告的時候給模型一副底盤
 
-那 275 份出自四個不同的模型、橫跨十六個月，長得各不相同。舊的不回頭改（231 份把
-Tailwind 和自寫 CSS 混在一起，機械改寫會打架，LLM 重寫則是 275 次驗證成本），
-改成**產生的時候就套**。把這兩個網址交給要寫報告的模型：
+這些報告是要說服人的文章，不是產線上的產出 —— 每一篇本來就該長得像有人做過它。
+所以做的不是統一樣式，是一副**底盤**：固定可讀性、結構、RWD、深淺配色的契約、
+動態的衛生和圖表色序，其餘（紙色、墨色、重點色、字面、標題級距、分節與編輯手法）
+全部交給那一篇自己決定。
+
+把這兩個網址交給要寫報告的模型：
 
 ```
 https://raw.githubusercontent.com/clarencechien/imitator/main/style/STYLE.md
 https://raw.githubusercontent.com/clarencechien/imitator/main/style/report.css
 ```
 
-`report.css` 是要原封不動內聯進 `<style>` 的那份 —— 一致性來自「照抄一個檔案」，
-不是來自「照著一段文字詮釋」。範例見 [`style/mockup.html`](style/mockup.html)，
-背後的取捨見 [`style/README.md`](style/README.md)。
+範例見 [`style/mockup.html`](style/mockup.html)，背後的取捨見
+[`style/README.md`](style/README.md)。**字型可以在 runtime 抓**（`fonts.googleapis.com`
+的 `<link>`）—— 樣式表不會執行程式碼；不能抓的是第三方 script，那條由 host 擋。
 
 v1 已下線：`report/`、`report_list.json`、`index.html` 搬進 [`archive/`](archive/)
 凍結保存，掃 `report/` 自動 commit 回 repo 的 GitHub Action 已移除。GitHub Pages
