@@ -133,6 +133,19 @@ export async function putArtifact(request, env, slug, gid) {
   }
   const visibility = rawVisibility === 'public' ? 'public' : `group:${gid}`;
 
+  // 遷移舊內容時用得到：讓持有 token 的人指定真實時間，而不是上傳當下的時間。
+  // portal 依 updatedAt 排序，全部塞成同一天等於順序完全沒有意義。
+  const rawUpdatedAt = request.headers.get('X-Updated-At');
+  let stamp = null;
+  if (rawUpdatedAt !== null) {
+    const parsed = Date.parse(rawUpdatedAt.trim());
+    // 擋未來的日期：寫錯一次就會有一份報告永遠釘在列表最上面。
+    if (!Number.isFinite(parsed) || parsed > Date.now() + 86_400_000) {
+      return apiError(400, 'X-Updated-At must be a valid date and not in the future');
+    }
+    stamp = new Date(parsed).toISOString();
+  }
+
   const rawSandbox = request.headers.get('X-Sandbox');
   if (rawSandbox !== null && !['on', 'off'].includes(rawSandbox.trim().toLowerCase())) {
     return apiError(400, 'X-Sandbox must be "on" or "off"');
@@ -142,7 +155,8 @@ export async function putArtifact(request, env, slug, gid) {
   if (body.byteLength > MAX_BYTES) return apiError(413, 'body exceeds 25 MB');
   if (body.byteLength === 0) return apiError(400, 'empty body');
 
-  const now = new Date().toISOString();
+  // stamp 有值時它就是這份 artifact 的時間，否則用當下。
+  const timestamp = stamp ?? new Date().toISOString();
   const existing = await env.R2_BUCKET.head(objectKey(slug));
   // 只有自己組別（或 public）的 artifact 能被覆寫，避免別組拿 slug 佔位。
   if (existing && !canWrite(existing.customMetadata?.visibility, gid)) {
@@ -151,7 +165,10 @@ export async function putArtifact(request, env, slug, gid) {
 
   const title =
     cleanTitle(request.headers.get('X-Title')) || existing?.customMetadata?.title || slug;
-  const createdAt = existing?.customMetadata?.createdAt ?? now;
+  let createdAt = existing?.customMetadata?.createdAt ?? timestamp;
+  // 明確指定的時間比既有的 createdAt 還早，代表這份東西實際上更老（遷移就是
+  // 這種情況）。取早的那個，不要留下 updatedAt 早於 createdAt 的紀錄。
+  if (stamp && createdAt > timestamp) createdAt = timestamp;
   // 沒帶 header 就沿用舊值（跟 X-Title 一樣）。重推一份報告不該悄悄把它先前
   // 明確設定的例外關掉 — 那會讓頁面壞掉而沒有人知道為什麼。
   const sandbox =
@@ -161,16 +178,22 @@ export async function putArtifact(request, env, slug, gid) {
 
   await env.R2_BUCKET.put(objectKey(slug), body, {
     httpMetadata: { contentType: 'text/html; charset=utf-8' },
-    customMetadata: { visibility, title, createdAt, updatedAt: now, sandbox },
+    customMetadata: { visibility, title, createdAt, updatedAt: timestamp, sandbox },
   });
 
-  const entry = { visibility, title, updatedAt: now };
+  const entry = { visibility, title, updatedAt: timestamp };
   // 同時寫進 value 與 metadata：portal 列表只需要一次 list()，不必逐筆 get()。
   await env.KV_INDEX.put(indexKey(slug), JSON.stringify(entry), { metadata: entry });
   await purge(request, slug);
 
   const url = new URL(request.url);
-  return json({ slug, url: `${url.origin}/r/${slug}`, visibility, sandbox, updatedAt: now });
+  return json({
+    slug,
+    url: `${url.origin}/r/${slug}`,
+    visibility,
+    sandbox,
+    updatedAt: timestamp,
+  });
 }
 
 /** DELETE /v1/a/{slug} */

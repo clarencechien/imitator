@@ -15,7 +15,7 @@ src/http.js       共用回應與安全 header
 
 ```bash
 npm install
-npm test          # 53 個測試，跑在 workerd 上（vitest-pool-workers）
+npm test          # 56 個測試，跑在 workerd 上（vitest-pool-workers）
 npm run dev
 npm run deploy
 ```
@@ -187,5 +187,17 @@ node ../scripts/migrate.mjs --visibility=public --dry-run
 ```
 
 `--dry-run` 只印 `檔名 → slug` 的對照，slug 衝突會在上傳前就報錯。確認後拿掉
-`--dry-run` 即可。跑完之後才輪到刪 `.github/workflows/`、`report_list.json`
+`--dry-run` 即可。跑完用 `node ../scripts/verify.mjs` 逐份比對內容與 sandbox
+判定（不需要 token；帶 `IMITATOR_TOKEN` 的話順便對 updatedAt）。
+
+時間戳取自 `report_list.json` —— 那是舊 Action 逐次累積下來的真實時間，透過
+`X-Updated-At` 送上去。**不要改用 `git log`**：這份 repo 的歷史被整批重傳過，
+每個檔案的 committer date 都是同一天。
+
+> **Cloudflare 會在邊緣改寫 HTML。** Bot Management 的 JavaScript Detections
+> 會在每個 HTML 回應的 `</body>` 前塞一段 938 bytes 的
+> `/cdn-cgi/challenge-platform/...` 腳本。R2 裡存的內容沒被動到，但
+> 「收什麼吐什麼」在網路上就不完全成立了。要真的 byte-for-byte，把
+> Security → Bots → JavaScript Detections 關掉。`verify.mjs` 會先剝掉這段
+> 再比對。跑完之後才輪到刪 `.github/workflows/`、`report_list.json`
 與 `report/` — 在那之前舊的 GitHub Pages 還活著。

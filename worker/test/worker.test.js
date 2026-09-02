@@ -126,6 +126,41 @@ describe('寫入（write token）', () => {
     expect((await put('x', 'y', { 'X-Sandbox': 'maybe' })).status).toBe(400);
   });
 
+  it('X-Updated-At 可以指定真實時間，並決定列表順序', async () => {
+    const old = '2025-05-26T01:51:27.000Z';
+    const res = await put('vintage', '<p>x</p>', {
+      'X-Visibility': 'public',
+      'X-Updated-At': old,
+    });
+    expect((await res.json()).updatedAt).toBe(old);
+
+    const meta = (await env.R2_BUCKET.head('artifacts/vintage.html')).customMetadata;
+    expect(meta.updatedAt).toBe(old);
+    // 指定的時間比 createdAt 早時，createdAt 要跟著往前，不能留下矛盾的紀錄
+    expect(meta.createdAt).toBe(old);
+
+    await put('recent', '<p>x</p>', {
+      'X-Visibility': 'public',
+      'X-Updated-At': '2026-01-01T00:00:00.000Z',
+    });
+    const listed = await SELF.fetch(url('/v1/a'), { headers: auth() });
+    expect((await listed.json()).map((r) => r.slug)).toEqual(['recent', 'vintage']);
+  });
+
+  it('X-Updated-At 擋掉壞掉的與未來的日期', async () => {
+    expect((await put('a', 'x', { 'X-Updated-At': 'yesterday' })).status).toBe(400);
+    const future = new Date(Date.now() + 30 * 86_400_000).toISOString();
+    expect((await put('b', 'x', { 'X-Updated-At': future })).status).toBe(400);
+  });
+
+  it('沒帶 X-Updated-At 就是上傳當下', async () => {
+    const before = Date.now() - 1000;
+    const res = await put('now-ish', '<p>x</p>');
+    const t = Date.parse((await res.json()).updatedAt);
+    expect(t).toBeGreaterThanOrEqual(before);
+    expect(t).toBeLessThanOrEqual(Date.now() + 1000);
+  });
+
   it('預設是 group 可見度', async () => {
     const res = await put('secret-report', '<p>internal</p>');
     expect((await res.json()).visibility).toBe('group:rd');

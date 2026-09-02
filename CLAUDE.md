@@ -15,6 +15,8 @@ curl -X PUT https://r.example.com/v1/a/<slug> \
 - `X-Sandbox`：選填，`on`（預設）或 `off`。artifact 預設被丟進 opaque origin，
   它的 JS 因此讀不到站上其他頁面。用到 `localStorage`／`sessionStorage`／
   `document.cookie` 的報告要設 `off`，否則會丟 SecurityError。省略則沿用舊值。
+- `X-Updated-At`：選填，ISO 8601。指定這份 artifact 的時間（portal 依它由新到舊
+  排序），省略就是上傳當下。不接受未來的日期。搬舊內容時才會用到。
 - Body 上限 25 MB。單檔 HTML，收什麼就吐什麼 — 不會被 render 或套 template。
 
 回應：
