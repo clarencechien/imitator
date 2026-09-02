@@ -73,7 +73,13 @@ async function listExisting() {
   return new Set((await res.json()).map((r) => r.slug));
 }
 
-async function upload(slug, title, body) {
+// artifact 預設會被 Worker 加上 CSP sandbox（opaque origin）。在 opaque origin
+// 下會丟 SecurityError 或被拒絕的 API，偵測到就個別關掉 sandbox。
+// 寧可誤判成需要例外，也不要讓報告靜靜地壞掉 — 被關掉的會列在結尾。
+// （對 report/ 這 272 份實測過：命中 8 份，Chromium 下確實只有那 8 份會壞。）
+const NEEDS_ORIGIN = /\b(?:localStorage|sessionStorage|indexedDB|Notification|BroadcastChannel|SharedWorker)\b|document\.(?:cookie|domain)|serviceWorker/;
+
+async function upload(slug, title, body, sandbox) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await fetch(`${base}/v1/a/${slug}`, {
       method: 'PUT',
@@ -82,6 +88,7 @@ async function upload(slug, title, body) {
         'Content-Type': 'text/html',
         'X-Visibility': visibility,
         'X-Title': toHeaderValue(title),
+        'X-Sandbox': sandbox,
       },
       body,
     });
@@ -123,12 +130,15 @@ if (existing.size) {
 
 let done = 0;
 let failed = 0;
+const noSandbox = [];
 for (const { file, slug } of todo) {
   const html = await readFile(path.join(dir, file), 'utf-8');
+  const sandbox = NEEDS_ORIGIN.test(html) ? 'off' : 'on';
   try {
-    await upload(slug, titleOf(html, slug), html);
+    await upload(slug, titleOf(html, slug), html, sandbox);
     done += 1;
-    console.log(`  ✓ ${file} → /r/${slug}`);
+    if (sandbox === 'off') noSandbox.push(slug);
+    console.log(`  ✓ ${file} → /r/${slug}${sandbox === 'off' ? '  (sandbox off)' : ''}`);
   } catch (err) {
     failed += 1;
     console.error(`  ✗ ${file}: ${err.message}`);
@@ -138,4 +148,7 @@ for (const { file, slug } of todo) {
 
 const total = (await listExisting()).size;
 console.log(`\n完成 ${done}／${todo.length}${failed ? `，失敗 ${failed}` : ''}；站上現在共 ${total} 個 artifact`);
+if (noSandbox.length) {
+  console.log(`sandbox 關掉的 ${noSandbox.length} 份（opaque origin 下會壞）：${noSandbox.join(', ')}`);
+}
 process.exit(failed ? 1 : 0);
