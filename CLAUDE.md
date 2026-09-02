@@ -30,7 +30,7 @@ curl -X PUT https://imitator.ai-apps.work/v1/a/<slug> \
 回應：
 
 ```json
-{ "slug": "...", "url": "https://imitator.ai-apps.work/r/...", "visibility": "group:rd", "updatedAt": "..." }
+{ "slug": "...", "url": "https://imitator.ai-apps.work/r/...", "visibility": "group:rd", "owner": "rd", "updatedAt": "..." }
 ```
 
 其他兩個端點：

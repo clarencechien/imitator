@@ -233,10 +233,13 @@ describe('寫入（write token）', () => {
     expect(res.status).toBe(403);
   });
 
-  it('寫入時記下 owner，之後的更新不會改掉它', async () => {
-    await put('owned', 'v1', { 'X-Visibility': 'public' });
+  it('寫入時記下 owner，之後的更新不會改掉它，而且回應看得到', async () => {
+    const first = await put('owned', 'v1', { 'X-Visibility': 'public' });
+    expect((await first.json()).owner).toBe('rd');
     expect((await env.R2_BUCKET.head('artifacts/owned.html')).customMetadata.owner).toBe('rd');
-    await put('owned', 'v2', { 'X-Visibility': 'public' });
+
+    const second = await put('owned', 'v2', { 'X-Visibility': 'public' });
+    expect((await second.json()).owner).toBe('rd');
     expect((await env.R2_BUCKET.head('artifacts/owned.html')).customMetadata.owner).toBe('rd');
   });
 

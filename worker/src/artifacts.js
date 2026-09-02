@@ -204,10 +204,13 @@ export async function putArtifact(request, env, slug, gid) {
   await purge(request, slug);
 
   const url = new URL(request.url);
+  // owner 一併回傳：否則擁有權只存在於 R2 的 metadata 裡，從外面完全觀測不到，
+  // 出問題時無從查起。這不算洩漏 —— 能收到這個回應的人剛剛才寫入成功。
   return json({
     slug,
     url: `${url.origin}/r/${slug}`,
     visibility,
+    owner,
     sandbox,
     updatedAt: timestamp,
   });
