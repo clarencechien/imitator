@@ -1,7 +1,12 @@
 # imitator v2 — HTML Artifact Host
 
-**狀態**：草案 v0.5（哨兵值簡化為 `ROTATE`，TTL 走預設值）
+**狀態**：v0.6 —— 已實作並上線於 `imitator.ai-apps.work`，272 份舊報告已遷移完成
 **取代**：GitHub Pages + Action 掃 `report/` 產 `report_list.json` 的現行架構
+
+> v0.6 依照實作與實測結果修訂。改動最大的是三處：**R2 沒有 object versioning**
+> （§4.1／§4.2／§8.2 原本都建立在它之上）、**免費方案的限速規則格子已被占用**
+> （§8.3 改用 WAF custom rule）、**§8.5 的子網域隔離改用 CSP sandbox 實作**。
+> 逐條的實作決定見 `worker/README.md`。
 
 ---
 
@@ -93,9 +98,14 @@ key：`config/groups.json`
 
 Worker 端用**定時比較**比對字串。日後要改回雜湊是加一層，不是改架構。
 
-**必要的補償措施**：R2 versioning 會把每一版 groups.json 永久保留，等於所有歷史 secret 都還在。給 `config/` 前綴設 lifecycle rule，非當前版本 30 天刪除。
+~~**必要的補償措施**：R2 versioning 會把每一版 groups.json 永久保留…~~
+**（v0.6 更正）** R2 沒有 object versioning，所以「歷史版本永久保留」這個風險
+不存在，那條補償措施也就不需要 —— 對 secret 衛生反而是好事。**不要**對
+`config/` 設任何 lifecycle rule：R2 的刪除動作刪的是物件本身，設下去就是把
+groups.json 刪掉。
 
-secret 產生用 `openssl rand -base64 24`，不要手打。
+secret 由 Worker 產生（`crypto.getRandomValues(32)` → base64url），手動建立時
+用 `openssl rand -base64 32`，不要手打。
 
 **快取**：Worker global scope 快取，TTL 60 秒。否則每個請求都打一次 R2（慢，且是 class B 計費操作）。輪替後最多一分鐘生效，這個延遲在本情境無所謂。
 
@@ -114,7 +124,11 @@ key：`artifacts/{slug}.html`
 }
 ```
 
-開啟 versioning，取代 git 的歷史功能。
+**（v0.6 更正）** 原本打算開 versioning 取代 git 的歷史功能 —— R2 不支援
+（`PutBucketVersioning` 未實作）。**覆寫同一個 slug，舊的 HTML 就沒了**；要留
+舊版就換一個 slug。
+
+`sandbox`：`"on"`（預設）或 `"off"`，見 §8.5。
 
 ### 4.3 KV
 
@@ -155,7 +169,7 @@ magic link 會被貼進 Teams 或 LINE 群組，然後永遠留在對話紀錄�
 
 ### 5.3 write token 內含 epoch
 
-token 格式 `imi_{gid}_{epoch}_{random}`，驗證時同時比對雜湊與 epoch。這樣 `epoch++` 一個動作就同時殺掉 cookie 與 token，不需要另外輪替 writeSecret。
+token 格式 `imi_{gid}_{epoch}_{random}`，驗證時同時比對 secret（定時比較）與 epoch。這樣 `epoch++` 一個動作就同時殺掉 cookie 與 token，不需要另外輪替 writeSecret。
 
 副作用是 token 自帶 gid：上傳者只能推到自己組別，不需要額外的授權判斷。
 
@@ -174,7 +188,9 @@ GET /join/{gid}/{secret}?next=/r/{slug}
 ```
 
 1. 讀 groups.json，找 `gid`。
-2. 比對 `SHA-256(secret)` 與 `read.hash`（定時比較）。
+2. 比對 `secret` 與 `read.secret`（定時比較）。**（v0.6 更正）** 原文寫比對雜湊，
+   與 §4.1「存明碼」及 §11「groups.json 存雜湊 → 不採用」矛盾；實作依 §4.1，
+   用雙重 HMAC 的定時比較，連長度都不會從執行時間洩漏。
 3. 檢查 `read.expiresAt` 未過期。
 4. 發 cookie，302 到 `next`（未指定則到 `/`）。
 
@@ -217,9 +233,15 @@ Authorization: Bearer imi_rd_3_xxxxxxxx
 Content-Type: text/html
 X-Visibility: public | group        (預設 group)
 X-Title: 報告標題                    (選填)
+X-Sandbox: on | off                 (選填，預設 on，見 §8.5)
+X-Updated-At: 2025-06-06T17:28:45Z  (選填，見下)
 
 <body: HTML 全文>
 ```
+
+**（v0.6 新增）** `X-Updated-At`：指定這份 artifact 的時間，省略就是上傳當下。
+portal 依 `updatedAt` 由新到舊排序，遷移舊內容時少了它，所有東西會擠在同一天、
+排序完全失去意義。不接受未來的日期 —— 寫錯一次就會有一份報告永遠釘在最上面。
 
 `X-Visibility: group` 解析為 token 自帶的 gid。回應：
 
@@ -227,7 +249,7 @@ X-Title: 報告標題                    (選填)
 { "slug": "...", "url": "https://.../r/...", "visibility": "group:rd", "updatedAt": "..." }
 ```
 
-- 覆寫既有 slug 視為更新（versioning 保留舊版）。
+- 覆寫既有 slug 視為更新。**舊版不會保留**（R2 無 versioning，見 §4.2）。
 - Body 上限 25 MB，超過回 413。
 
 ```
@@ -263,7 +285,8 @@ Portal 用 Workers Static Assets 或直接 inline 在 Worker，不放 R2。
 
 哨兵值就是字串 `ROTATE`，不帶參數。TTL 走該欄位的預設值（`read` 7 天、`write` 90 天，定義於環境變數）。下一個抵達的請求會讓 Worker 載入 groups.json，發現哨兵值後：
 
-1. `crypto.getRandomValues(24 bytes)` → base64url 產生新 secret
+1. `crypto.getRandomValues(32 bytes)` → base64url 產生新 secret（§8.2 要求至少
+   32 bytes，取嚴格的那個）
 2. 寫回 groups.json：填入 secret 與 `expiresAt = now + 預設天數`
 3. 寫出 `outbox/{gid}-{ISO8601}.txt`，內容是組好的 link 與 token：
 
@@ -292,6 +315,10 @@ epoch 不用哨兵值，手改數字即可。
 ### 7.3 outbox 的 lifecycle
 
 `outbox/` 前綴設 lifecycle rule，**7 天後刪除**，對齊 link 的預設 TTL。過期的連結本來也沒用，不讓明碼在 bucket 裡累積。
+
+動作要選 **Delete uploaded objects after**。不要選 *Abort incomplete multipart
+uploads* —— 那條管的是沒傳完的分段上傳，outbox 的檔案是一次寫完的完整物件，
+勾了等於沒設。
 
 ### 7.4 各情境的動作
 
@@ -337,7 +364,7 @@ X-Visibility: public 或 group（預設 group）。
 - secret 至少 32 bytes 隨機（`crypto.getRandomValues`），base64url 編碼。
 - secret 比較用定時比較，避免 timing side channel。
 - **絕不記錄 secret 或完整 token**，包含錯誤處理路徑。groups.json 存明碼，因此任何把它整份 dump 進 log 的除錯程式碼都是洩漏。
-- 輪替路徑讓 Worker 具備寫入 `config/` 的能力。這不是新增的權限（它本來就能寫 `artifacts/`），但錯誤的輪替邏輯可能寫壞 groups.json——`config/` 的 versioning 是這裡的還原手段。
+- 輪替路徑讓 Worker 具備寫入 `config/` 的能力。這不是新增的權限（它本來就能寫 `artifacts/`），但錯誤的輪替邏輯可能寫壞 groups.json。**（v0.6 更正）** 原文說 `config/` 的 versioning 是還原手段 —— R2 沒有 versioning，沒有還原手段。但也不需要備份機制：重寫一份 groups.json 當成一次重新發放即可，artifact 完全不受影響。**唯一不能隨便填的是 `epoch`**：cookie 裡的 epoch 必須跟 groups.json 當下的值完全相等，填回一個用過的數字會讓當初被 `epoch++` 撤銷的 cookie 復活（cookie 是 90 天絕對效期）。填一個比以前都大的數字，或同時輪替 `SESSION_SECRET`。
 
 ### 8.3 限速：這是配額保護，不是安全機制
 
@@ -345,17 +372,35 @@ X-Visibility: public 或 group（預設 group）。
 
 真正的失敗模式是可用性：Workers 免費方案 100,000 requests/天，而 Worker route 攔在快取前面，**每個請求都會叫起 Worker，包括會被回 404 的**。有人跑迴圈就能在一天內燒穿配額，整站掛到隔天。
 
-**Cloudflare 免費方案只有 1 條限速規則、10 秒計數視窗、只能用 IP 辨識。** 因此不要把它花在特定端點上，設成全站洪水上限：
+**Cloudflare 免費方案只有 1 條限速規則、10 秒計數視窗、只能用 IP 辨識。**
+
+**（v0.6 更正）** 這個 zone 的那一條已經被別的服務（`/auth/`）用掉了，而保護登入
+端點比保護配額重要。改用 **WAF custom rule** —— 那是另一個額度（免費 5 條），
+phase 排在 rate limiting 之前。掃描器打的路徑是靜態可判定的，本來就不需要限速：
 
 ```
-Expression:      (http.host eq "<zone>")
-Characteristics: IP
-Requests:        50
-Period:          10 秒
-Action:          Managed Challenge（若方案不提供，改 Block + 1 分鐘 duration）
+(http.host eq "imitator.ai-apps.work"
+ and not (
+   http.request.uri.path eq "/"
+   or http.request.uri.path eq "/favicon.ico"
+   or starts_with(http.request.uri.path, "/r/")
+   or starts_with(http.request.uri.path, "/join/")
+   or starts_with(http.request.uri.path, "/v1/a")
+   or starts_with(http.request.uri.path, "/cdn-cgi/")
+ ))
+Action: Block
 ```
 
-正常使用者不會 10 秒點 50 次，偽陽性接近零。
+`/cdn-cgi/` 一定要留 —— Cloudflare 自己注入的腳本要去那裡拿東西。
+
+**實測確認它擋在 Worker 之前**：`curl /wp-admin` 回的是 Cloudflare 的 403 而不是
+Worker 的 404 頁，代表 invocation 真的省下來了。
+
+代價是**加新路由時要回來改這條規則**，否則新路由會被邊緣直接擋掉，而且 Worker
+的 log 裡什麼都看不到 —— 請求根本沒到。
+
+殘餘風險：對著**合法** slug 跑迴圈（`/r/0050` 打十萬次）擋不掉。對症的解法是
+§11 的結論：Workers Paid $5/月。
 
 #### 早退順序（比限速規則更有效）
 
@@ -375,15 +420,50 @@ Action:          Managed Challenge（若方案不提供，改 Block + 1 分鐘 d
 
 額外放一個 isolate 內的 `Map<ip, {count, ts}>` 當減速帶（上限 1000 筆）。per-colo、per-isolate、會被回收，統計上不可靠——擋笨迴圈夠用，成本為零。**當它是減速帶，不是門鎖。**
 
+**（v0.6 補充）** 這個減速帶跑在 Worker *裡面*，invocation 早就計費了 —— 它省的
+只有 R2 與 KV 的呼叫，**保護不了請求配額**。而且 Workers 跑在快取之前，所以
+public artifact 那 300 秒的邊緣快取也不省 invocation。要省 invocation 只能靠上面
+那條 WAF 規則。
+
 不要用 KV 做計數器：寫入有延遲、擋不住併發，卻要付 KV 寫入。
 
 ### 8.4 write token 的爆炸半徑
 
 洩漏後果是任何人能在你的網域掛任意 HTML，等於一台現成的釣魚頁主機，可能導致整個網域被停用、連公開報告一起陪葬。這條路徑不接受任何「好記」的憑證，也不該出現在任何截圖或對話紀錄裡。
 
-### 8.5 子網域隔離（P3）
+### 8.5 origin 隔離（已實作，方案與原文不同）
 
-artifact 是任意 HTML 且會執行 JS。考慮把 artifact 放在與 portal 不同的子網域（`r.example.com` vs `example.com`），讓 artifact 的 JS 讀不到 portal 的 origin。**若採用，cookie 需可跨子網域，`__Host-` 前綴要重新檢視。**
+artifact 是任意 HTML 且會執行 JS，而它跟 portal 同一個 origin。cookie 是
+`HttpOnly` 沒錯，但 HttpOnly 只擋 `document.cookie`，不擋瀏覽器自動附帶 ——
+artifact 裡的 JS 可以 `fetch('/')` 拿到 group 報告的清單、`fetch('/r/{slug}')`
+拿到內容，再送出去。`SameSite=Lax` 管的是跨站，這是同源，管不到。**實測確認：
+無 CSP 時 artifact 的 JS 真的讀得到同源內容。**
+
+真正的風險不是惡意上傳（能上傳的人本來就握有 token），而是供應鏈：272 份舊報告
+裡有 234 份在 runtime 載入外部 script（231 份 tailwind CDN、183 份 jsdelivr、
+34 份 unpkg）。
+
+**原文的子網域方案只擋得住一半。** group artifact 要能驗證，cookie 就必須跨子
+網域（`__Host-` 得降成 `__Secure-` 加 `Domain=`），而所有 artifact 又同在 `r.*`
+這一個 origin，artifact 之間依然同源。要真正隔離得走 per-artifact origin
+（`{slug}.r.example.com`），超出本專案規模。
+
+**改用 CSP sandbox。** artifact 的回應預設帶：
+
+```
+Content-Security-Policy: sandbox allow-scripts allow-forms allow-modals allow-popups allow-downloads
+```
+
+opaque origin 讓那些 fetch 變成跨源、`Origin: null`，而 Worker 不送 CORS header，
+於是讀不到 response body。刻意不給 `allow-same-origin`（等於沒 sandbox），也不給
+`allow-popups-to-escape-sandbox`（popup 會拿回正常 origin）。cookie 設計完全不動。
+
+代價是 storage API 在 opaque origin 下會丟 SecurityError。`PUT` 帶
+`X-Sandbox: off` 可個別關掉，省略則沿用既有設定 —— 重推一份報告不會悄悄把先前
+明確設定的例外關掉。舊報告裡命中的是 8/272 份（`localStorage` 那類）；掃過
+`indexedDB`／`serviceWorker`／`document.domain`／`BroadcastChannel`／
+`geolocation` 都是 0 份。Chromium 實測：連結導覽仍然可以點，不需要
+`allow-top-navigation`。
 
 ### 8.6 這個設計明確放棄的東西
 
@@ -399,9 +479,13 @@ artifact 是任意 HTML 且會執行 JS。考慮把 artifact 放在與 portal �
 
 ## 9. 從現行架構遷移
 
-1. 把 `report/*.html` 全部 `PUT` 上去（一支腳本跑一次），visibility 依內容判斷。
+1. ~~把 `report/*.html` 全部 `PUT` 上去~~ **已完成**：272 份，visibility 全部
+   `public`（本來就在公開的 GitHub Pages 上），時間戳取自 `report_list.json`
+   透過 `X-Updated-At` 送上去。逐份驗證：內容 byte-for-byte 一致 272/272、
+   sandbox 判定 272/272、`updatedAt` 272/272。腳本見 `scripts/migrate.mjs`
+   與 `scripts/verify.mjs`。
 2. 舊 GitHub Pages 網址 301 到新網址，或直接放生。
-3. 刪掉 `.github/workflows/main.yml` 與 `report_list.json`。這支 Action 自動 commit 回 repo 是現行 862 個 commit 裡的主要噪音來源。
+3. 刪掉 `.github/workflows/` 與 `report_list.json`。這支 Action 自動 commit 回 repo 是現行 862 個 commit 裡的主要噪音來源。**尚未執行** —— `report_list.json` 是遷移時間戳的唯一來源（`git log` 不能用：這份 repo 的歷史被整批重傳過，272 個檔案的 committer date 全是同一天），刪掉之後那些真實時間就只剩 R2 的 customMetadata 一份。
 4. Repo 保留，內容改為：Worker 原始碼、spec、prompt、部署設定。
 
 **source 留 git，artifact 去 R2。** 不是用 R2 取代 GitHub，是把兩種本來就不同的東西分開放。
@@ -415,7 +499,11 @@ artifact 是任意 HTML 且會執行 JS。考慮把 artifact 放在與 portal �
 | P0 | R2 + Worker + `PUT`/`GET` + write token，只有 public | Claude Code 能一行 curl 推上來並開得起來 |
 | P1 | groups.json + `/join` + cookie + epoch + group 可見度 + 哨兵值輪替 | 沒拿到 link 的人開不起來；epoch+1 後舊 cookie 立刻失效 |
 | P2 | Portal + KV index + `DELETE` + 列表 API | 舊 report 全部遷移完成 |
-| P3 | 全站限速規則、`config/` 與 `outbox/` lifecycle、子網域隔離 | — |
+| P3 | 配額保護、`outbox/` lifecycle、origin 隔離 | — |
+
+**現況**：P0–P2 完成並上線。P3 的 origin 隔離改用 CSP sandbox 完成（§8.5）、
+配額保護改用 WAF custom rule 完成（§8.3）；`outbox/` 的 lifecycle rule 待設，
+`config/` 的那條已確認不需要也不該設（§4.1）。
 
 P0 沒有任何存取控制，這期間不要放非公開內容。
 
@@ -434,7 +522,9 @@ P0 沒有任何存取控制，這期間不要放非公開內容。
 | per-artifact ACL | v2 明確不做。需要時的訊號是「這篇只想給 A 不想給 B」實際發生，屆時 index 換 D1 |
 | CLI / GitHub Action 管理工具 | 輪替由 Worker 惰性完成（§7.1），寫入介面是單一 `PUT`。兩者都沒有剩餘職責 |
 | Cloudflare Pro（$20–25/月） | 只換到 2 條限速規則與 1 分鐘視窗，對本專案幾乎無價值。**若要花錢，花 Workers Paid（$5/月）**——換到每月 1000 萬請求與 Durable Objects，解決的才是本專案的問題（配額）|
-| groups.json 存雜湊 | 與「在 dashboard 手動編輯」互斥，且保護的東西不比同 bucket 內的 artifacts 值錢。改以 `config/` lifecycle rule 限制歷史版本留存 |
+| groups.json 存雜湊 | 與「在 dashboard 手動編輯」互斥，且保護的東西不比同 bucket 內的 artifacts 值錢 |
+| `config/` 的備份機制 | R2 沒有 versioning，寫壞就沒了 —— 但重發一份當成一次重新發放即可（§8.2），不值得為它多一個會出錯的移動零件 |
+| artifact 搬到子網域 | 只擋得住 portal 列表，擋不住 artifact 之間，卻要降低 cookie 強度。改用 CSP sandbox（§8.5） |
 
 ---
 
