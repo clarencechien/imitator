@@ -32,7 +32,8 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
 |---|---|
 | 標題 | 取自 HTML 的 `<title>`，沒有就用 slug |
 | sandbox | 自動偵測。用到 `localStorage`、`indexedDB`、`Notification` 那類 API 的會自動帶 `X-Sandbox: off`，否則報告會在 opaque origin 下丟 SecurityError |
-| 失敗 | 檔案留在 `inbox/`，修好再 push 一次就重試；已成功的不會重複發 |
+| 暫時性失敗 | 檔案留在 `inbox/`，下次 push 自動重試；已成功的不會重複發 |
+| 永久性失敗 | 移到 `inbox/rejected/`。重試不會有幫助的那些（slug 屬於別的 group、檔名推不出 slug、超過 25 MB）—— 留在 `inbox/` 會讓之後每一次 push 都失敗，workflow 永遠紅著。處理完再放回 `inbox/` 即可 |
 
 上限 25 MB。
 
