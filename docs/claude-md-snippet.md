@@ -83,7 +83,7 @@ artifact 預設被丟進 opaque origin（`Content-Security-Policy: sandbox`）�
 ## 產生報告的 prompt 要交代兩件事
 
 - **「不要在 runtime 從 CDN 載入任何 script 或 style，全部內聯進單一 HTML。」**
-  舊的 273 份裡有 234 份在 runtime 抓 `cdn.tailwindcss.com`、`cdn.jsdelivr.net`
+  舊的 272 份裡有 234 份在 runtime 抓 `cdn.tailwindcss.com`、`cdn.jsdelivr.net`
   或 `unpkg.com`。有 sandbox 的話問題不大，但那是對三個第三方的長期依賴，
   它們隨時可以改掉自己送出來的東西。
 - **「不要用 `localStorage` 或任何 storage API，狀態放在變數裡就好。」**

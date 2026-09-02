@@ -262,6 +262,13 @@ portal 依 `updatedAt` 由新到舊排序，遷移舊內容時少了它，所有
 ```
 
 - 覆寫既有 slug 視為更新。**舊版不會保留**（R2 無 versioning，見 §4.2）。
+- 擁有權：先發佈那個 slug 的 group 擁有它，別組覆寫回 403、刪除回 404，且**不能
+  轉手**（見 §4.2 的 `owner`）。
+- **（v0.6 新增）寫入前的內容檢查**：`X-Sandbox: off` 又載入第三方 `<script src>`
+  回 400 且什麼都不寫；用了 storage API 卻沒關 sandbox 回 200 加 `warnings`。
+  回應是英文的 `error`／`reason`／`fix` 三段，指向 `docs/publishing-rules.md`
+  —— 推東西上來的多半是 agent，要能自己讀懂並修好。超過 2 MB 的 body 跳過檢查
+  並在 `warnings` 說明。
 - Body 上限 25 MB，超過回 413。
 
 ```
@@ -278,7 +285,17 @@ GET /
 - 無有效 cookie：只列 public。
 - 有有效 cookie：列 public + 該 group。
 
-Portal 用 Workers Static Assets 或直接 inline 在 Worker，不放 R2。
+Portal 直接 inline 在 Worker，不放 R2 也不用 Static Assets —— 這樣「打開網站」
+一定會叫起 Worker，§7.1 的哨兵值輪替才有觸發點。
+
+**（v0.6 新增）預設只列最近三個月，`GET /?all=1` 才列全部。** 這不是 UI 偏好：
+portal 是整個設計裡第一個會被份數壓垮的東西，每一筆大約 271 bytes 且全部塞在
+同一個回應裡 —— 275 筆是 75 KB，1000 筆就是 264 KB。實際數字上，最近三個月的
+41 份是 15.7 KB，比全部少 79%。
+
+在伺服器端切而不是用 CSS 藏，因為後者一個位元組都省不到。代價是前端的搜尋只
+涵蓋列出來的那些，所以截斷狀態下搜不到東西時會顯示「在全部 N 份裡找」的連結 ——
+不然使用者會以為那份報告不存在。最近三個月剛好沒有東西時就全部列出來。
 
 ---
 
@@ -306,7 +323,7 @@ Portal 用 Workers Static Assets 或直接 inline 在 Worker，不放 R2。
 group: rd (epoch 3)
 
 link  (expires 2026-09-08，給組員)
-https://r.example.com/join/rd/8fK2mQ...
+https://imitator.ai-apps.work/join/rd/8fK2mQ...
 
 token (expires 2026-11-30，給要 push 的人／agent)
 imi_rd_3_Qm7xVn...
@@ -352,7 +369,7 @@ uploads* —— 那條管的是沒傳完的分段上傳，outbox 的檔案是一
 
 ```md
 ## 發佈報告到 imitator
-curl -X PUT https://r.example.com/v1/a/<slug> \
+curl -X PUT https://imitator.ai-apps.work/v1/a/<slug> \
   -H "Authorization: Bearer $IMITATOR_TOKEN" \
   -H "Content-Type: text/html" \
   -H "X-Visibility: group" \

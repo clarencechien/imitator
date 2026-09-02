@@ -33,8 +33,14 @@ artifact 本身不在 git 裡 — **source 留 git，artifact 去 R2**。
 
 ## 現況
 
-v2 上線在 <https://imitator.ai-apps.work>，272 份舊報告遷移完成並逐份驗證過
-（內容 byte-for-byte、sandbox 判定、時間戳各 272/272）。
+v2 上線在 <https://imitator.ai-apps.work>。272 份 v1 的舊報告遷移完成並逐份驗證過
+（內容 byte-for-byte、sandbox 判定、時間戳各 272/272），之後陸續發佈的加起來目前
+共 275 份。
+
+兩條發佈路徑：`curl` 一行（見 [`CLAUDE.md`](CLAUDE.md)），或把 HTML 丟進
+[`inbox/`](inbox/) commit 到 `main`（GitHub Action 會發佈，手機用瀏覽器就能操作）。
+Portal 預設只列最近三個月，`?all=1` 看全部 —— 每一筆大約 271 bytes，全部塞進一個
+回應會隨份數線性長大。
 
 v1 已下線：`report/`、`report_list.json`、`index.html` 搬進 [`archive/`](archive/)
 凍結保存，掃 `report/` 自動 commit 回 repo 的 GitHub Action 已移除。GitHub Pages

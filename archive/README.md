@@ -7,7 +7,7 @@ byte-for-byte 一致。這份留著只是因為它是原始檔與**時間戳的�
 
 | | |
 |---|---|
-| `report/` | 272 份單檔 HTML 報告的原始檔 |
+| `report/` | 單檔 HTML 報告的原始檔。v1 遷移過來的 272 份，加上之後從 `inbox/` 發佈、由 Action 搬進來的 |
 | `report_list.json` | 每一份的真實時間，由舊 Action 逐次累積 |
 | `index.html` | 舊的 Materialize landing page，讀 `report_list.json` 產生清單 |
 

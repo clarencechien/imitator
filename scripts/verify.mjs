@@ -14,6 +14,14 @@ const toSlug = (f) => path.basename(f, '.html').toLowerCase().replace(/[^a-z0-9-
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`用法: IMITATOR_BASE=https://... node scripts/verify.mjs [--dir archive/report]
+
+逐份抓回線上的 artifact，比對內容 sha256 與 sandbox 判定。
+帶 IMITATOR_TOKEN 時另外對 updatedAt。不會修改任何東西。`);
+  process.exit(0);
+}
+
 const dir = process.argv.includes('--dir')
   ? process.argv[process.argv.indexOf('--dir') + 1]
   : 'archive/report';

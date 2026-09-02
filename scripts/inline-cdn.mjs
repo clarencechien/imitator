@@ -30,14 +30,16 @@ const args = process.argv.slice(2);
 const check = args.includes('--check');
 const files = args.filter((a) => !a.startsWith('--'));
 
-if (files.length === 0 || args.includes('--help') || args.includes('-h')) {
+const wantsHelp = args.includes('--help') || args.includes('-h');
+if (files.length === 0 || wantsHelp) {
   console.log(`用法: node scripts/inline-cdn.mjs [--check] <file.html...>
 
   --check   只報告要做什麼，不改檔案。有事情要做時回離開碼 1。
 
 把 <script src="https://..."></script> 換成內聯的快照。抓不動或無法安全處理的
 會報告出來但不動它 —— 詳見 docs/publishing-rules.md。`);
-  process.exit(files.length === 0 ? 1 : 0);
+  // 明確要 --help 是成功路徑；沒給檔案才是用法錯誤。
+  process.exit(wantsHelp ? 0 : 1);
 }
 
 /** @type {Map<string, string|Error>} */
