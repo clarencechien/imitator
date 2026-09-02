@@ -35,11 +35,14 @@ register in your own words, and derive the voice from it.**
 <style>
 /* REGISTER:  驗屍 — 用 231 萬筆資料檢驗三個流行說法，讀者是準備進場的散戶。
    REFERENCE: 1990 年代法醫學教科書的病例頁 — 表格化的檔案欄、編號的所見、一枚結論章。
-   RECENT:    paper 352° 62° 76° 18° 44° · accent 218° 220° 250° 162° 223° — 避開這些。
    PAPER:     解剖室的紀錄紙 — 奶油色，hsl(42 30% 96%)。
    VOICE:     驗屍紅只給裁決用、宋體標題、等寬體的檔案欄。
-   NOT:       儀表板。沒有互動元件，數字是證據不是裝飾。 */
+   NOT:       儀表板。沒有互動元件，數字是證據不是裝飾。
+   RECENT:    paper 352° 62° 76° · accent 218° 220° 250° — 42° 與 4° 都離得夠遠，不用改。 */
 ```
+
+The order of those lines is the order you work in. REFERENCE and PAPER come from the
+content. RECENT comes **last**, and it is a check, not a search.
 
 If the register you wrote could describe half the reports in the archive, it is too
 generic — go again.
@@ -54,41 +57,30 @@ era, and which page — and derive faces, paper, devices from it. It goes in the
 `imitator-reference` meta so the choice is on record. Not a website, not a brand, not
 another report on this host.
 
-### RECENT — look at what was published last, then go elsewhere
+### RECENT — check against what was published last
 
-Divergence is a property of the archive, not of one report. Before you choose, fetch the
-fingerprints of what is already there:
+Divergence is a property of the archive, not of one report, so the last few reports are
+worth a look. Fetch their fingerprints:
 
 ```bash
-IMITATOR_TOKEN=$IMITATOR_TOKEN node scripts/style-census.mjs --recent 8
-# → RECENT: paper 352° 62° 76° 18° … · accent 218° 220° … — 避開這些。
+IMITATOR_TOKEN=$IMITATOR_TOKEN node scripts/style-census.mjs --recent 3
+# → RECENT: paper 352° 62° 76° · accent 218° 220° 250°
 ```
 
 (`scripts/style-census.mjs` is in the imitator repo, Node built-ins only; or call
 `GET /v1/a` with the token and read each row's `style.paper` / `style.accent`.)
 
-Then: **your paper hue stays at least 30° from each of the last 8 papers, and your accent
-hue at least 40° from each of the last 5 accents.** Write the hues you are avoiding in the
-`RECENT:` line. If the material genuinely forces a hue that collides, say so there and take
-it — the rule is that the collision is visible, not that it is impossible. No token or no
-network: write `RECENT: unavailable` and continue. The registers that actually occur, measured across the 275 reports
-already on the host, and a specimen for each:
+**Do this after REFERENCE and PAPER, never before.** If your material-derived paper hue is
+within 15° of one of the last three papers, or your accent within 25° of one of the last
+three accents, go back and choose a **different material** — do not nudge the hue. Write
+the hues you checked against in the `RECENT:` line either way. No token or no network:
+`RECENT: unavailable`.
 
-| Register | What it is | Where the voice tends to come from | Look at |
-|---|---|---|---|
-| **史詩** epic | a history, a person, an interview, an idea traced through time | warm paper, a serif display face, acts as signposts, a pulled line per act | `voices/epic.html` · live: `/r/actor` `/r/uncle-bob` |
-| **論證** argument | an architecture, a method, a choice defended | cool paper, a condensed display face, numbered chapters, a glossary table, one word in red | `voices/argument.html` · `/r/agent-arch-2` `/r/loop-engineering` |
-| **綜述** digest | research gathered and weighed, myths tested | plain paper with a faint grid, a boxed core finding, a second accent *only* because the argument has two sides | `voices/digest.html` · `/r/ai-amp-or-mir` |
-| **驗屍** autopsy | a popular claim checked against data | cream paper, a dossier strip, a verdict stamp, an annotated curve | `voices/autopsy.html` · `/r/tw-stock-winner` `/r/cb_story` |
-| **深夜** night | one large number and what sits behind it | dark-first, a single warm accent, a waffle or a hero figure, page counters | `voices/night.html` · `/r/birthrate-vs-housing` |
-| **手帖** field guide | travel, a purchase, a checklist for a first time | bright paper, a colour bar, quick-fact tiles, numbered prep cards, a Latin display word | `voices/fieldguide.html` · `/r/busan_v2` `/r/forties` |
-| **手冊** manual | a tool or document explained for use | a contents rail, split panes, mono labels, no hero | `/r/session-connectivity` `/r/kasanemu` |
-| **壓力測試** stress test | one household or portfolio run through scenarios | parameter chips, a four-line TL;DR, numbered outcome cards | `/r/bysq_report_tw_case` `/r/four-percent-rule` |
-
-Two things about that table. The third column is a *direction*, not a value — it tells you
-what the register usually wants, so that your paper, accent and face are an answer to the
-content rather than a default. And the specimens are **six different answers, not a menu**:
-their exact palettes are on the reject list below.
+Why the order matters, measured: when this step ran *first* with eight recent hues to
+avoid, four reports from four unrelated sources all found the same unoccupied stretch of
+the wheel (128°–150°), then reverse-engineered a material to justify it — four kinds of
+green ledger paper. A hue chosen from the gaps is a shared optimum; a hue derived from the
+material is not. The check exists to catch a collision, not to steer.
 
 ## The floor — true in every report, whatever the voice
 

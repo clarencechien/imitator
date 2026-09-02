@@ -2,7 +2,7 @@
 // 把 /v1/a 裡的樣式指紋列出來 —— 每一份報告選了什麼語域、參照物、紙色、重點色。
 //
 //   IMITATOR_TOKEN=imi_... node scripts/style-census.mjs            # 全部
-//   IMITATOR_TOKEN=imi_... node scripts/style-census.mjs --recent 8 # 最近 8 份的色相，貼進 RECENT: 用
+//   IMITATOR_TOKEN=imi_... node scripts/style-census.mjs --recent 3 # 最近 3 份的色相，貼進 RECENT: 用
 //
 // 這是 style/STYLE.md 「RECENT」那一步的工具，也是日後整理個人偏好的材料。
 // 只用 Node 內建模組。
@@ -15,7 +15,7 @@ if (args.includes('--help') || args.includes('-h')) {
   console.log(`用法: IMITATOR_TOKEN=imi_... node scripts/style-census.mjs [--recent N] [--json]
 
 列出站上每一份報告的樣式指紋（版本、紙色、重點色、語域、參照物）。
-  --recent N   只看最近 N 份有指紋的，輸出成可以貼進 RECENT: 的一行
+  --recent N   只看最近 N 份有指紋的（預設 3），輸出成可以貼進 RECENT: 的一行
   --json       原始 JSON`);
   process.exit(0);
 }
@@ -43,11 +43,11 @@ if (args.includes('--json')) { console.log(JSON.stringify(withFp, null, 1)); pro
 
 const n = args.indexOf('--recent');
 if (n !== -1) {
-  const k = Number(args[n + 1]) || 8;
+  const k = Number(args[n + 1]) || 3;
   const recent = withFp.slice(0, k);
   const papers = recent.map((r) => hue(r.style.paper)).filter((x) => x !== null);
-  const accents = recent.slice(0, 5).map((r) => hue(r.style.accent)).filter((x) => x !== null);
-  console.log(`RECENT: paper ${papers.map((h) => h + '°').join(' ') || '—'} · accent ${accents.map((h) => h + '°').join(' ') || '—'} — 避開這些。`);
+  const accents = recent.map((r) => hue(r.style.accent)).filter((x) => x !== null);
+  console.log(`RECENT: paper ${papers.map((h) => h + '°').join(' ') || '—'} · accent ${accents.map((h) => h + '°').join(' ') || '—'}`);
   for (const r of recent) console.log(`  ${(r.updatedAt ?? '').slice(0, 10)}  ${r.slug.padEnd(28)} ${r.style.register ?? ''}`);
   process.exit(0);
 }
