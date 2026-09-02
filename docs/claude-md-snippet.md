@@ -79,6 +79,22 @@ artifact 預設被丟進 opaque origin（`Content-Security-Policy: sandbox`）�
 瀏覽器裡靜靜地壞掉。一般的圖表、Tailwind、外部 CDN script 都不受影響，連結導覽
 也正常。省略這個 header 時沿用該 slug 既有的設定。
 
+
+## 產生報告的 prompt 要交代兩件事
+
+- **「不要在 runtime 從 CDN 載入任何 script 或 style，全部內聯進單一 HTML。」**
+  舊的 273 份裡有 234 份在 runtime 抓 `cdn.tailwindcss.com`、`cdn.jsdelivr.net`
+  或 `unpkg.com`。有 sandbox 的話問題不大，但那是對三個第三方的長期依賴，
+  它們隨時可以改掉自己送出來的東西。
+- **「不要用 `localStorage` 或任何 storage API，狀態放在變數裡就好。」**
+  用了就得 `X-Sandbox: off`，而那會拿掉 sandbox、讓那一頁的 JS 有完整的同源
+  權限 —— 於是它載入的任何第三方腳本都繼承了「讀走全站內容」的能力。
+
+這兩件事會被 host 檢查：**`X-Sandbox: off` 又載入第三方 script 會直接回 400**，
+什麼都不會寫進去；用了 storage API 卻沒關 sandbox 則回 200 加一則 warning
+（那個組合會讓頁面在瀏覽器裡靜靜地壞掉）。完整規則見
+<https://github.com/clarencechien/imitator/blob/main/docs/publishing-rules.md>，錯誤訊息也會指向它。
+
 ### 其他兩個端點
 
 ```bash

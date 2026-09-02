@@ -245,6 +245,23 @@ curl -s https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_T
 用 curl 從別的地方推上去、`archive/report/` 裡沒有副本的 slug，`migrate.mjs
 --force` 迭代不到它們 —— 那種孤兒要嘛重推一次讓它拿到 owner，要嘛刪掉。
 
+### 上傳前的內容檢查（對「dumb host」的刻意偏離）
+
+`src/policy.js` 會在寫入前掃過 body：
+
+- **`X-Sandbox: off` ＋ 第三方 `<script src>` → 400，什麼都不寫。** 這個組合等於
+  把「讀走全站內容」的能力交給一個第三方 CDN。回應是英文的 `error`／`reason`／
+  `fix` 三段，指向 `docs/publishing-rules.md` —— 推東西上來的多半是 agent，它要
+  能自己讀懂並修好。
+- **storage API ＋ sandbox on → 200 加 warning。** 那個組合會讓頁面在瀏覽器裡
+  丟 SecurityError 而沒有任何錯誤回到上傳者手上，是靜靜地壞掉。不擋是因為誤判
+  有可能（例如報告內容本身在談 localStorage）。
+- Body 超過 2 MB 就跳過檢查（掃描要花 CPU），並在 warning 裡說明跳過了。
+
+這確實偏離了 spec 的「收什麼吐什麼」。偏離的範圍很窄：**body 一個 byte 都不會被
+改動**，只是拒絕一個已知危險的組合。理由是那個組合的失敗方式太糟 —— 它不會當場
+壞掉，而是安靜地把整站曝露在某個第三方之下，直到那個第三方哪天出事。
+
 ### 幾個實作上的決定
 
 - **`expiresAt` 缺漏或無法解析一律當成過期。** 正常路徑（哨兵值輪替）一定會

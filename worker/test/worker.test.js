@@ -124,6 +124,47 @@ describe('寫入（write token）', () => {
     expect((await SELF.fetch(url('/r/sticky'))).headers.get('Content-Security-Policy')).toBeNull();
   });
 
+  it('sandbox off + 第三方 script 會被擋下，而且什麼都不寫進去', async () => {
+    const html = '<script src="https://cdn.tailwindcss.com"></script><p>x</p>';
+    const res = await put('risky', html, { 'X-Sandbox': 'off', 'X-Visibility': 'public' });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('third-party scripts');
+    expect(body.reason).toContain('cdn.tailwindcss.com');
+    expect(body.fix).toContain('publishing-rules.md');
+    // 擋下來的東西不該留下痕跡
+    expect(await env.R2_BUCKET.head('artifacts/risky.html')).toBeNull();
+    expect(await env.KV_INDEX.get('idx:risky')).toBeNull();
+  });
+
+  it('內聯之後同一份就過得了', async () => {
+    const html = '<script>/* inlined */ window.x = 1;</script><p>localStorage</p>';
+    const res = await put('inlined', html, { 'X-Sandbox': 'off', 'X-Visibility': 'public' });
+    expect(res.status).toBe(200);
+    expect((await res.json()).sandbox).toBe('off');
+  });
+
+  it('sandbox on 但用到 storage API 會回警告，不擋', async () => {
+    const res = await put('warned', '<script>localStorage.setItem("a","b")</script>', {
+      'X-Visibility': 'public',
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.warnings).toHaveLength(1);
+    expect(body.warnings[0].code).toBe('storage-api-with-sandbox-on');
+    expect(body.warnings[0].fix).toContain('publishing-rules.md');
+  });
+
+  it('一般的報告不會有警告', async () => {
+    const res = await put('plain', '<p>就是一份報告</p>', { 'X-Visibility': 'public' });
+    expect((await res.json()).warnings).toBeUndefined();
+  });
+
+  it('sandbox on 時第三方 script 是允許的（268 份舊報告就是這樣）', async () => {
+    const html = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><p>x</p>';
+    expect((await put('charty', html, { 'X-Visibility': 'public' })).status).toBe(200);
+  });
+
   it('X-Sandbox 只接受 on / off', async () => {
     expect((await put('x', 'y', { 'X-Sandbox': 'maybe' })).status).toBe(400);
   });

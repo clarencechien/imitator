@@ -115,6 +115,17 @@ async function upload(slug, title, body, sandbox) {
           '換檔名發成新的一份，或改用原本那個 token 從 CLI 更新。',
       );
     }
+    // 400 = 內容政策擋下來的（例如 sandbox off 又載入第三方腳本）。重試不會過，
+    // 而 server 回的 reason／fix 是照著改的說明，直接帶出來。
+    if (res.status === 400) {
+      try {
+        const body = JSON.parse(text);
+        throw permanent([body.error, body.reason, body.fix].filter(Boolean).join(' — '));
+      } catch (err) {
+        if (err.permanent) throw err;
+        throw permanent(`400 ${text.slice(0, 200)}`);
+      }
+    }
     // Cloudflare 的挑戰頁。GitHub 的 runner 走資料中心 IP、UA 是 node，會被
     // Bot Fight Mode 判成自動化流量 —— 而 BFM 跑在 Ruleset Engine 之外，
     // WAF custom rule 的 Skip 對它無效，只能整個關掉。見 inbox/README.md。
@@ -147,6 +158,7 @@ await summary('|---|---|---|');
 
 let failed = 0;
 let rejected = 0;
+const warned = [];
 
 async function reject(file, src, reason) {
   await mkdir(REJECTED, { recursive: true });
@@ -187,6 +199,9 @@ for (const file of files) {
     await summary(
       `| \`${file}\` | [${result.url}](${result.url}) | ${result.sandbox}${overwrote ? ' · 覆寫既有' : ''} |`,
     );
+    for (const w of result.warnings ?? []) {
+      warned.push(`\`${file}\` — **${w.code}**: ${w.reason} ${w.fix}`);
+    }
   } catch (err) {
     if (err.permanent) {
       await reject(file, src, err.message);
@@ -196,6 +211,11 @@ for (const file of files) {
     }
   }
   await sleep(80);
+}
+
+if (warned.length) {
+  await summary(`\n### 警告\n`);
+  for (const w of warned) await summary(`- ${w}`);
 }
 
 if (failed) {
