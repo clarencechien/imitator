@@ -19,6 +19,15 @@ byte-for-byte 一致。這份留著只是因為它是原始檔與**時間戳的�
 
 刪掉它之後，那些時間就只剩 R2 的 `customMetadata` 一份。
 
+## 這個目錄不再是凍結的
+
+`report/` 會長大 —— `inbox/` 的 GitHub Action 發佈完會把原始檔搬進來。但
+`report_list.json` **是凍結的**：它是 v1 那支 Action 的產物，不會再長出新項目。
+
+所以 `report/` 裡會有 `report_list.json` 沒有的檔案，這是正常的。
+`scripts/migrate.mjs` 對這種情況只會警告，那些檔案的 `updatedAt` 會用上傳當下
+的時間（對新報告來說本來就是對的）。
+
 ## 一起移除的東西
 
 `.github/workflows/jekyll-gh-pages.yml`（名字叫 jekyll，實際上是 "Generate Report

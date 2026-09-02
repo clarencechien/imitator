@@ -157,8 +157,15 @@ for (const file of files) {
   if (stamps && !updatedAt) missing.push(file);
   plan.push({ file, slug, updatedAt });
 }
+// 這裡曾經是硬性中止 —— 一次性遷移的時候「每個檔都要有時間戳」是對的不變式。
+// 但 archive/report/ 現在是活的目錄（inbox 的 Action 會往裡面加檔案），而
+// report_list.json 是 v1 的凍結快照，不會再長出新的項目。所以改成警告：
+// 沒有時間戳的就不送 X-Updated-At，updatedAt 會變成上傳當下。
 if (missing.length) {
-  fail(`${missing.length} 個檔在 ${timestampsFile} 裡沒有時間戳：${missing.slice(0, 5).join(', ')}…`);
+  console.log(
+    `注意：${missing.length} 個檔在 ${timestampsFile} 裡沒有時間戳，` +
+      `updatedAt 會用上傳當下的時間 → ${missing.join(', ')}`,
+  );
 }
 
 console.log(`${plan.length} 個檔案 → ${base}（visibility: ${visibility}）`);
