@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// 把現行 report/*.html 一次推到 imitator v2（spec §9 步驟 1）。
+// 把舊站的 archive/report/*.html 一次推到 imitator v2（spec §9 步驟 1）。
 //
 //   IMITATOR_BASE=https://imitator.ai-apps.work \
 //   IMITATOR_TOKEN=imi_rd_1_xxx \
-//   node scripts/migrate.mjs --visibility=public [--dry-run] [--dir report] [--force]
-//                            [--timestamps=report_list.json | none]
+//   node scripts/migrate.mjs --visibility=public [--dry-run] [--dir archive/report] [--force]
+//                            [--timestamps=archive/report_list.json | none]
 //
 // slug 由檔名推導，衝突會在開始上傳前就報錯。
 //
@@ -30,12 +30,12 @@ const args = new Map(
 const base = (process.env.IMITATOR_BASE ?? '').replace(/\/$/, '');
 const token = process.env.IMITATOR_TOKEN ?? '';
 const visibility = args.get('visibility');
-const dir = typeof args.get('dir') === 'string' ? args.get('dir') : 'report';
+const dir = typeof args.get('dir') === 'string' ? args.get('dir') : 'archive/report';
 const dryRun = args.has('dry-run');
 const force = args.has('force');
 const timestampsArg = args.get('timestamps');
 const timestampsFile =
-  timestampsArg === undefined ? 'report_list.json' : timestampsArg === 'none' ? null : timestampsArg;
+  timestampsArg === undefined ? 'archive/report_list.json' : timestampsArg === 'none' ? null : timestampsArg;
 
 if (!base || !token) fail('請設定 IMITATOR_BASE 與 IMITATOR_TOKEN');
 if (visibility !== 'public' && visibility !== 'group') {

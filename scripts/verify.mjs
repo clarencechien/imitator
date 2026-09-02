@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 遷移之後逐份驗證：內容是否 byte-for-byte 一致、sandbox 判定是否正確。
 //
-//   IMITATOR_BASE=https://imitator.ai-apps.work node scripts/verify.mjs [--dir report]
+//   IMITATOR_BASE=https://imitator.ai-apps.work node scripts/verify.mjs [--dir archive/report]
 //
 // 不需要 token — 驗的是 public 內容，走跟一般讀者一樣的路徑。
 import { readdir, readFile } from 'node:fs/promises';
@@ -16,7 +16,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const dir = process.argv.includes('--dir')
   ? process.argv[process.argv.indexOf('--dir') + 1]
-  : 'report';
+  : 'archive/report';
 const files = (await readdir(dir)).filter((f) => f.endsWith('.html')).sort();
 const bad = [];
 let okBytes = 0, okCsp = 0;
@@ -53,7 +53,7 @@ if (token) {
   const listed = await fetch(`${base}/v1/a`, { headers: { Authorization: `Bearer ${token}` } });
   if (listed.ok) {
     const remote = new Map((await listed.json()).map((r) => [r.slug, r.updatedAt]));
-    const expected = JSON.parse(await readFile('report_list.json', 'utf-8'));
+    const expected = JSON.parse(await readFile('archive/report_list.json', 'utf-8'));
     let okTime = 0;
     for (const { name, timestamp } of expected) {
       const m = /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(timestamp);

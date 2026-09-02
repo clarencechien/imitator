@@ -2,6 +2,22 @@ name = "imitator"
 main = "src/index.js"
 compatibility_date = "2025-04-01"
 
+# workers_dev 預設是 true，preview_urls 預設跟著它 —— 不寫死的話每次 deploy 都
+# 會把 imitator.<subdomain>.workers.dev 與各版本的 preview URL 開起來。
+#
+# 那不只是多一個網址而已：workers.dev 不經過本 zone 的 WAF，§8.3 那條擋掉掃描器
+# 路徑的 custom rule（條件是 http.host eq "imitator.ai-apps.work"）在上面完全不
+# 生效，配額保護等於有一扇後門。cookie 是 __Host- 前綴、綁死在正式網域上，所以
+# group 內容不會從那裡外洩，但 public 內容與 Worker invocation 會。
+workers_dev = false
+preview_urls = false
+
+# 把正式網域寫進設定，讓它是唯一的入口，也免得 workers_dev = false 之後
+# 這支 Worker 只剩 dashboard 上那份設定在撐。
+[[routes]]
+pattern = "imitator.ai-apps.work"
+custom_domain = true
+
 # 憑證都在 groups.json 裡，不在這裡 — 輪替不需要重新部署（spec §12）。
 # SESSION_SECRET 是 secret，用 `npx wrangler secret put SESSION_SECRET` 設定。
 [vars]

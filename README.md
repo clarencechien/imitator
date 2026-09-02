@@ -21,20 +21,21 @@ link／token，先前發出的一律失效。
 | `docs/spec.md` | v2 的設計、取捨，以及明確不採用的方案 |
 | `CLAUDE.md` | 給 LLM／CLI 的一頁式使用說明 |
 | `docs/claude-md-snippet.md` | 同上，但自足 —— 可以直接貼進別的專案的 `CLAUDE.md` |
-| `scripts/migrate.mjs` | 把 `report/*.html` 一次推上去的遷移腳本 |
+| `scripts/migrate.mjs` | 把 `archive/report/*.html` 一次推上去的遷移腳本 |
 | `scripts/verify.mjs` | 遷移後逐份比對內容、sandbox 與時間戳 |
+| `archive/` | v1 的 GitHub Pages 站，已凍結。[為什麼留著](archive/README.md) |
 
 artifact 本身不在 git 裡 — **source 留 git，artifact 去 R2**。
 
 ## 現況
 
-v2 已經上線在 <https://imitator.ai-apps.work>，272 份舊報告遷移完成並逐份驗證過
+v2 上線在 <https://imitator.ai-apps.work>，272 份舊報告遷移完成並逐份驗證過
 （內容 byte-for-byte、sandbox 判定、時間戳各 272/272）。
 
-下面這些 v1 的東西還活著，等 spec §9 步驟 3 的清理：
+v1 已下線：`report/`、`report_list.json`、`index.html` 搬進 [`archive/`](archive/)
+凍結保存，掃 `report/` 自動 commit 回 repo 的 GitHub Action 已移除。GitHub Pages
+本身是 repo 設定（Settings → Pages → Source: None），不在 git 裡。
 
-- `index.html`、`report/`、`report_list.json`：GitHub Pages 上的舊站
-- `.github/workflows/`：掃 `report/` 產 `report_list.json` 並自動 commit 回
-  repo 的 Action
-
-按 `docs/spec.md` §9，部署並跑完遷移腳本之後才輪到刪它們。
+`archive/report_list.json` **不要刪** —— 那是那 272 份報告真實時間的唯一副本，
+`git log` 重建不出來（這份 repo 的歷史被整批重傳過，所有檔案的 committer date
+都是同一天）。
