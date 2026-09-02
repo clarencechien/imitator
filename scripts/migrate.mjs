@@ -44,6 +44,19 @@ const timestampsArg = args.get('timestamps');
 const timestampsFile =
   timestampsArg === undefined ? 'archive/report_list.json' : timestampsArg === 'none' ? null : timestampsArg;
 
+// --help 要在檢查環境變數之前 —— 想知道用法的人手上通常還沒有 token。
+if (args.has('help') || args.has('-h')) {
+  console.log(`用法: IMITATOR_BASE=https://... IMITATOR_TOKEN=imi_... \\
+       node scripts/migrate.mjs --visibility=public|group [選項]
+
+  --dir=archive/report      要上傳的目錄
+  --only=a,b,c              只推這幾個 slug
+  --force                   別的 group 已經擁有同名 slug 時照樣試（會拿到 403）
+  --timestamps=<檔案|none>  時間戳來源，預設 archive/report_list.json
+  --dry-run                 只印「檔名 → slug」的對照，不上傳`);
+  process.exit(0);
+}
+
 if (!base || !token) fail('請設定 IMITATOR_BASE 與 IMITATOR_TOKEN');
 if (visibility !== 'public' && visibility !== 'group') {
   fail('請明確指定 --visibility=public 或 --visibility=group');

@@ -33,6 +33,17 @@ function fail(msg) {
   process.exit(1);
 }
 
+// --help 要在檢查環境變數之前 —— 想知道用法的人手上通常還沒有 token。
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`用法: IMITATOR_BASE=https://... IMITATOR_TOKEN=imi_... \\
+       node scripts/publish-inbox.mjs [--dry-run]
+
+把 inbox/*.html 以 public 發佈，成功的搬進 archive/report/，
+被永久拒絕的（403、400、slug 不合法、超過 25 MB）搬進 inbox/rejected/。
+--dry-run 只印會做什麼，不發佈也不搬檔案。`);
+  process.exit(0);
+}
+
 // 絕不印 token。GitHub 會遮蔽登記過的 secret，但只比對完全相同的字串 ——
 // 不要依賴它，這個 repo 是公開的，workflow log 也是公開的。
 if (!base) fail('IMITATOR_BASE 沒設');
