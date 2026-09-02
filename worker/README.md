@@ -187,5 +187,13 @@ node ../scripts/migrate.mjs --visibility=public --dry-run
 ```
 
 `--dry-run` 只印 `檔名 → slug` 的對照，slug 衝突會在上傳前就報錯。確認後拿掉
-`--dry-run` 即可。跑完之後才輪到刪 `.github/workflows/`、`report_list.json`
+`--dry-run` 即可。跑完用 `node ../scripts/verify.mjs` 逐份比對內容與 sandbox
+判定（不需要 token）。
+
+> **Cloudflare 會在邊緣改寫 HTML。** Bot Management 的 JavaScript Detections
+> 會在每個 HTML 回應的 `</body>` 前塞一段 938 bytes 的
+> `/cdn-cgi/challenge-platform/...` 腳本。R2 裡存的內容沒被動到，但
+> 「收什麼吐什麼」在網路上就不完全成立了。要真的 byte-for-byte，把
+> Security → Bots → JavaScript Detections 關掉。`verify.mjs` 會先剝掉這段
+> 再比對。跑完之後才輪到刪 `.github/workflows/`、`report_list.json`
 與 `report/` — 在那之前舊的 GitHub Pages 還活著。
