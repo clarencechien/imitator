@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 // 把現行 report/*.html 一次推到 imitator v2（spec §9 步驟 1）。
 //
-//   IMITATOR_BASE=https://r.example.com \
-//   IMITATOR_TOKEN=imi_rd_3_xxx \
-//   node scripts/migrate.mjs --visibility=public [--dry-run] [--dir report]
+//   IMITATOR_BASE=https://imitator.ai-apps.work \
+//   IMITATOR_TOKEN=imi_rd_1_xxx \
+//   node scripts/migrate.mjs --visibility=public [--dry-run] [--dir report] [--force]
 //
 // slug 由檔名推導，衝突會在開始上傳前就報錯。updatedAt 會是上傳當下的時間，
 // 舊的 report_list.json 時間戳不會被保留 — 需要的話那份 JSON 還在 git 歷史裡。
+//
+// 預設會先拉一次 /v1/a，已經在站上的 slug 直接跳過，所以中斷之後重跑只會補
+// 沒上去的那些。要強制全部重推就加 --force。
 
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -23,6 +26,7 @@ const token = process.env.IMITATOR_TOKEN ?? '';
 const visibility = args.get('visibility');
 const dir = typeof args.get('dir') === 'string' ? args.get('dir') : 'report';
 const dryRun = args.has('dry-run');
+const force = args.has('force');
 
 if (!base || !token) fail('請設定 IMITATOR_BASE 與 IMITATOR_TOKEN');
 if (visibility !== 'public' && visibility !== 'group') {
@@ -46,6 +50,14 @@ export function toSlug(filename) {
     .replace(/-$/, '');
 }
 
+/**
+ * Node 的 fetch 不收非 ASCII 的 header 值（ByteString），所以先把 UTF-8
+ * 位元組攤成 latin-1 字元 — 這正是 curl 送出去的位元組，Worker 那邊會還原。
+ */
+function toHeaderValue(s) {
+  return String.fromCharCode(...new TextEncoder().encode(s));
+}
+
 function titleOf(html, fallback) {
   const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
   const raw = m ? m[1].replace(/\s+/g, ' ').trim() : '';
@@ -53,6 +65,13 @@ function titleOf(html, fallback) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 站上已經有哪些 slug — 用來跳過已上傳的，以及跑完之後對總數。 */
+async function listExisting() {
+  const res = await fetch(`${base}/v1/a`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) fail(`列不出既有的 artifact：${res.status} ${(await res.text()).slice(0, 200)}`);
+  return new Set((await res.json()).map((r) => r.slug));
+}
 
 async function upload(slug, title, body) {
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -62,7 +81,7 @@ async function upload(slug, title, body) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'text/html',
         'X-Visibility': visibility,
-        'X-Title': title,
+        'X-Title': toHeaderValue(title),
       },
       body,
     });
@@ -96,9 +115,15 @@ if (dryRun) {
   process.exit(0);
 }
 
+const existing = force ? new Set() : await listExisting();
+const todo = plan.filter((p) => !existing.has(p.slug));
+if (existing.size) {
+  console.log(`站上已有 ${existing.size} 個，這次要推 ${todo.length} 個（--force 可強制重推）`);
+}
+
 let done = 0;
 let failed = 0;
-for (const { file, slug } of plan) {
+for (const { file, slug } of todo) {
   const html = await readFile(path.join(dir, file), 'utf-8');
   try {
     await upload(slug, titleOf(html, slug), html);
@@ -111,5 +136,6 @@ for (const { file, slug } of plan) {
   await sleep(60); // 別把自己的減速帶踩爆
 }
 
-console.log(`\n完成 ${done}／${plan.length}${failed ? `，失敗 ${failed}` : ''}`);
+const total = (await listExisting()).size;
+console.log(`\n完成 ${done}／${todo.length}${failed ? `，失敗 ${failed}` : ''}；站上現在共 ${total} 個 artifact`);
 process.exit(failed ? 1 : 0);

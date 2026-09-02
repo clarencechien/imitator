@@ -78,12 +78,21 @@ deploy 成功之後還有四件事要在 dashboard 上做，做完站台才真�
 
 ### 之後再補的（spec §10 的 P3）
 
-**Lifecycle rules**（R2 → Settings → Object lifecycle）
+**Lifecycle rules**
 
 | 前綴 | 規則 | 為什麼 |
 |---|---|---|
 | `config/` | 非當前版本 30 天後刪除 | versioning 會永久保留每一版 groups.json，等於所有歷史 secret 都還在 |
 | `outbox/` | 7 天後刪除 | 對齊 magic link 的預設 TTL，不讓明碼在 bucket 裡累積 |
+
+`outbox/` 那條可以用 CLI：
+
+```bash
+npx wrangler r2 bucket lifecycle add imitator expire-outbox outbox/ --expire-days 7
+```
+
+`config/` 那條是「非當前版本」的保留期限，wrangler 沒有對應的參數，要在
+R2 → imitator → Settings → Object lifecycle 上設。
 
 **全站限速規則**（Security → WAF → Rate limiting rules）。這是配額保護，
 不是安全機制 — 免費方案只有 1 條規則，別把它花在特定端點上：

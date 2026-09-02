@@ -100,9 +100,16 @@ describe('寫入（write token）', () => {
   });
 
   it('X-Title 的 UTF-8 會被還原', async () => {
-    await put('cjk', '<p>x</p>', { 'X-Title': '報告標題' });
-    const head = await env.R2_BUCKET.head('artifacts/cjk.html');
-    expect(head.customMetadata.title).toBe('報告標題');
+    // curl 與 scripts/migrate.mjs 送的是原始 UTF-8 位元組，到 Worker 這邊會被
+    // 當成 latin-1 解碼。這裡就用那個形狀測，才測得到真正會發生的事。
+    const asBytes = String.fromCharCode(...new TextEncoder().encode('報告標題'));
+    await put('cjk', '<p>x</p>', { 'X-Title': asBytes });
+    expect((await env.R2_BUCKET.head('artifacts/cjk.html')).customMetadata.title).toBe('報告標題');
+
+    await put('ascii', '<p>x</p>', { 'X-Title': 'Quarterly Report' });
+    expect((await env.R2_BUCKET.head('artifacts/ascii.html')).customMetadata.title).toBe(
+      'Quarterly Report',
+    );
   });
 
   it('沒有 token 就 401，而且不建立任何物件', async () => {
