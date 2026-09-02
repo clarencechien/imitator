@@ -296,6 +296,9 @@ node ../scripts/migrate.mjs --visibility=public --dry-run
 > **Cloudflare 會在邊緣改寫 HTML。** Bot Management 的 JavaScript Detections
 > 會在每個 HTML 回應的 `</body>` 前塞一段 938 bytes 的
 > `/cdn-cgi/challenge-platform/...` 腳本。R2 裡存的內容沒被動到，但
-> 「收什麼吐什麼」在網路上就不完全成立了。要真的 byte-for-byte，把
-> Security → Bots → JavaScript Detections 關掉。`verify.mjs` 會先剝掉這段
-> 再比對。舊站已經搬進 `archive/` 凍結，Action 也移除了 —— 見 `archive/README.md`。
+> 「收什麼吐什麼」在網路上就不完全成立了 —— 而且**這個 zone 關不掉**：
+> Bot Fight Mode 已經是關的（空 UA 的 curl 拿得到 200，未授權的 `/v1/a` 回
+> 我們自己的 401 JSON，都沒有挑戰頁），JS Detections 仍顯示 `On` 且沒有獨立
+> 開關。所以那 938 bytes 是常態，不是設定錯誤：**artifact 的 HTML 一定要有
+> `</body>`**（注入點在它前面，缺了會插到別的地方），`verify.mjs` 比對前會先
+> 剝掉它。舊站已經搬進 `archive/` 凍結，Action 也移除了 —— 見 `archive/README.md`。

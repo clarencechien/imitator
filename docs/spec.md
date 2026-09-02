@@ -27,6 +27,11 @@
   `<script src>` 會被回 400（見 §8.5 —— 那個組合等於把整站的讀取權交給一個第三方
   CDN）。**body 一個 byte 都不會被改動**，只是拒絕一個已知危險的組合並回一段
   能照著修的英文說明。規則寫在 `docs/publishing-rules.md`。
+  **（v0.6 補充二）** 我們自己不改 body，但**線路上不是 byte-for-byte**：
+  Cloudflare 的 JS Detections 會在每個 HTML 回應的 `</body>` 前注入 938 bytes 的
+  `/cdn-cgi/challenge-platform/...` 腳本，而這個 zone 沒有獨立開關可以關掉它
+  （Bot Fight Mode 已經是關的，挑戰頁沒有出現，注入照樣在）。因此 artifact 的
+  HTML **必須有 `</body>`**，`scripts/verify.mjs` 比對前也會先剝掉這段。
 - 不做編輯器。
 - **不做個人身分**。不知道誰在看，也不打算知道。
 - 不做 email 白名單、不寄任何信、不串任何 IdP。
