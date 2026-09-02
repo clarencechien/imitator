@@ -167,8 +167,22 @@ multipart。後果：
 - **覆寫一個 slug，舊的 HTML 就沒了。** 要留舊版就換 slug。CLAUDE.md 已更正。
 - §4.1 擔心的「所有歷史 secret 都還躺在 bucket 裡」不存在，那條補償措施也就
   不需要 —— 對 secret 衛生反而是好事。
-- **`groups.json` 沒有還原手段。** 輪替邏輯要是寫壞它，只能手動重寫一份
-  （secret 填 `ROTATE`、epoch 往上跳一個數字），一兩分鐘的事，但要知道有這回事。
+- **`groups.json` 沒有還原手段** —— 但也不需要，重發一份就是了，見下。
+
+### groups.json 壞掉或不見了
+
+不用備份，重寫一份當成一次重新發放就好：上傳新的 `groups.json`，兩個 secret
+都填 `"ROTATE"`，打開網站，去 `outbox/` 拿新的連結與 token。artifact 是獨立的
+物件，完全不受影響。
+
+**唯一不能隨便填的是 `epoch`。** cookie 裡帶的 epoch 必須跟 groups.json 當下的
+值完全相等，所以填回一個以前用過的數字，會讓當初被 `epoch++` 撤銷掉的 cookie
+復活 —— cookie 是 90 天絕對效期，最長可以再活這麼久。兩個做法擇一：
+
+- `epoch` 填一個比以前都大的數字（懶得回想就給 `100`）。單調遞增是唯一要維持
+  的性質。
+- 或者同時輪替 `SESSION_SECRET`，簽章金鑰一換所有 cookie 一起失效，epoch 填
+  什麼都無所謂。
 
 ### 幾個實作上的決定
 
