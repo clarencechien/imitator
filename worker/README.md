@@ -86,21 +86,46 @@ npx wrangler r2 bucket lifecycle add imitator expire-outbox outbox/ --expire-day
 > 設下去就是把 `groups.json` 刪掉，整站的 group 存取一起沒。spec §4.1 那條
 > 針對「非當前版本」的規則在 R2 上不存在，見下面。
 
-**全站限速規則**（Security → WAF → Rate limiting rules）。這是配額保護，
-不是安全機制 — 免費方案只有 1 條規則，別把它花在特定端點上：
+**配額保護：一條 WAF custom rule**（Security → WAF → Custom rules）
+
+先講清楚要防的是什麼：免費方案 100,000 requests/天，而 **Worker 跑在快取之
+前**，所以每個請求都會叫起 Worker，包括會被回 404 的、以及 public artifact 那
+些本來會命中邊緣快取的。Worker 裡那個 isolate 減速帶（200 次／10 秒／IP）跑在
+Worker *裡面*，invocation 早就計費了 —— 它省的只有 R2 與 KV 的呼叫，**保護不了
+請求配額**。要省 invocation，只能擋在 Worker 前面。
+
+spec §8.3 的方案是全站限速規則，但**免費方案整個 zone 只有 1 條**，而這個 zone
+的那條已經給別的服務用掉了。改用 WAF custom rule —— 那是另一個額度（免費 5
+條），phase 也排在 rate limiting 之前。掃描器打的路徑是靜態可判定的，本來就不
+需要限速：
 
 ```
-Expression:      (http.host eq "r.example.com")
-Characteristics: IP
-Requests:        50
-Period:          10 秒
-Action:          Managed Challenge（沒有的話用 Block + 1 分鐘）
+(http.host eq "imitator.ai-apps.work"
+ and not (
+   http.request.uri.path eq "/"
+   or http.request.uri.path eq "/favicon.ico"
+   or starts_with(http.request.uri.path, "/r/")
+   or starts_with(http.request.uri.path, "/join/")
+   or starts_with(http.request.uri.path, "/v1/a")
+   or starts_with(http.request.uri.path, "/cdn-cgi/")
+ ))
 ```
 
-Worker 裡另外有一個 isolate 內的減速帶（200 次／10 秒／IP）。per-colo、
-per-isolate、會被回收，當它是減速帶不是門鎖。
+Action 用 **Block**：這些路徑本來就全是 404，沒有真人需要被放行。`/cdn-cgi/`
+一定要留，Cloudflare 自己注入的腳本要去那裡拿東西。
 
-> 大量上傳（例如遷移舊報告）會撞到這兩層限速。先跑遷移再加規則，或者讓
+**實測確認它擋在 Worker 前面**：`curl /wp-admin` 回的是 Cloudflare 的 403 而不
+是 Worker 那個中文的「找不到頁面」，代表 invocation 真的省下來了。之後改動這條
+規則都值得再測一次。
+
+> ⚠️ **Worker 加新路由時要回來改這條規則。** 否則新路由會被邊緣直接擋掉，而且
+> Worker 的 log 裡什麼都看不到 —— 請求根本沒到。
+
+剩下的殘餘風險是對著**合法** slug 跑迴圈（`/r/0050` 打十萬次），custom rule 擋
+不掉，限速的格子又沒了。對症的解法是 spec §11 自己的結論：Workers Paid $5/月，
+換到每月 1000 萬請求。
+
+> 大量上傳（例如遷移舊報告）會撞到 Worker 的減速帶。先跑遷移再加規則，或者讓
 > `scripts/migrate.mjs` 的退避重試處理 — 它認得 429。
 
 **Artifact 的 origin 隔離**（已實作，不需要設定）
