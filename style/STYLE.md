@@ -95,7 +95,17 @@ material is not. The check exists to catch a collision, not to steer.
    and do not set long passages in a display or mono face.
 5. **Both colour schemes.** If you override the light tokens you override the dark ones
    too, with values chosen for a dark surface — never an inversion.
-6. **Nothing scrolls the page sideways**, at 375px or at 1440px.
+6. **Nothing scrolls the page sideways**, at 375px or at 1440px. Two things break this
+   in practice, and both are yours to avoid:
+   - **Tables** go inside `<div class="table-scroll">`, always.
+   - **Any grid you write yourself** uses `minmax(0, 1fr)`, never a bare `1fr`, and gives
+     its children `min-width: 0`. A grid track's default minimum is min-content, so one
+     unbreakable string — a URL, an OAuth scope, a long identifier — inside a cell widens
+     the track past the viewport and takes the whole page with it. This has already shipped
+     once: `grid-template-columns: 1fr`, one `<code>` holding
+     `https://www.googleapis.com/auth/…`, and the page measured 534px on a 375px screen.
+     Prefer `.cols` / `.tiles`, which already do both.
+   Check it by actually loading the page at 375px, not by reading the CSS.
 7. Open with the fingerprint — all five, inside the first 8 KB, before `<title>`:
    ```html
    <!doctype html>

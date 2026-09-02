@@ -166,6 +166,9 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 /* Figures, tables and full-width devices opt out of the prose measure. */
 .report > figure, .report > .table-scroll, .report > .wide, .report > hr,
 .report > .tiles, .report > .cols, .report > .banner { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
 .cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
 .tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
 .card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
@@ -247,7 +250,15 @@ blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 
 .note.critical { border-left-color: var(--critical); }
 
 code, kbd, samp { font-family: var(--mono); font-size: .88em; }
-:not(pre) > code { background: var(--accent-soft); padding: .12em .4em; border-radius: 4px; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
 pre {
   background: var(--card); border: 1px solid var(--rule);
   border-top: 3px solid var(--accent); border-radius: var(--radius);
