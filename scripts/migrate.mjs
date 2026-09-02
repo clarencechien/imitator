@@ -5,6 +5,7 @@
 //   IMITATOR_TOKEN=imi_rd_1_xxx \
 //   node scripts/migrate.mjs --visibility=public [--dry-run] [--dir archive/report] [--force]
 //                            [--timestamps=archive/report_list.json | none]
+//                            [--only=slug1,slug2]
 //
 // slug 由檔名推導，衝突會在開始上傳前就報錯。
 //
@@ -33,6 +34,12 @@ const visibility = args.get('visibility');
 const dir = typeof args.get('dir') === 'string' ? args.get('dir') : 'archive/report';
 const dryRun = args.has('dry-run');
 const force = args.has('force');
+// 只重推指定的 slug（逗號分隔）。改過個別報告之後用得到 —— 不必為了幾份
+// 就把 273 份全部重推一遍。
+const only =
+  typeof args.get('only') === 'string'
+    ? new Set(args.get('only').split(',').map((x) => x.trim()).filter(Boolean))
+    : null;
 const timestampsArg = args.get('timestamps');
 const timestampsFile =
   timestampsArg === undefined ? 'archive/report_list.json' : timestampsArg === 'none' ? null : timestampsArg;
@@ -155,7 +162,12 @@ for (const file of files) {
   seen.set(slug, file);
   const updatedAt = stamps?.get(file) ?? null;
   if (stamps && !updatedAt) missing.push(file);
+  if (only && !only.has(slug)) continue;
   plan.push({ file, slug, updatedAt });
+}
+if (only) {
+  const missing = [...only].filter((slug) => !plan.some((p) => p.slug === slug));
+  if (missing.length) fail(`--only 指定了不存在的 slug：${missing.join(', ')}`);
 }
 // 這裡曾經是硬性中止 —— 一次性遷移的時候「每個檔都要有時間戳」是對的不變式。
 // 但 archive/report/ 現在是活的目錄（inbox 的 Action 會往裡面加檔案），而

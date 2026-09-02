@@ -3,6 +3,7 @@
 // dumb host：收什麼 HTML 就吐什麼 HTML，不 render、不轉檔、不套 template。
 
 import { SECURITY_HEADERS, apiError, json, notFound } from './http.js';
+import { inspectBody } from './policy.js';
 
 export const SLUG_RE = /^[a-z0-9-]{1,64}$/;
 export const MAX_BYTES = 25 * 1024 * 1024; // spec §6.4
@@ -193,6 +194,10 @@ export async function putArtifact(request, env, slug, gid) {
     rawSandbox === null
       ? (existing?.customMetadata?.sandbox === 'off' ? 'off' : 'on')
       : rawSandbox.trim().toLowerCase();
+  // 內容檢查在寫入之前 —— 擋下來的東西不該留下任何痕跡。
+  const inspection = inspectBody(body, sandbox);
+  if (inspection.error) return json(inspection.error, { status: 400 });
+
   // 擁有權一旦確立就不會轉手 —— 正常的更新不該把它改掉。
   const owner = existing?.customMetadata?.owner ?? gid;
 
@@ -216,6 +221,7 @@ export async function putArtifact(request, env, slug, gid) {
     owner,
     sandbox,
     updatedAt: timestamp,
+    ...(inspection.warnings.length ? { warnings: inspection.warnings } : {}),
   });
 }
 
