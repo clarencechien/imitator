@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Memo: Container Runtime & Governance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --surface-1: #0a0a0a;
+      --surface-2: #121212;
+      --border: #222222;
+      --border-hover: #383838;
+      --border-subtle: #1a1a1a;
+      --text-1: #ededed;
+      --text-2: #888888;
+      --text-3: #525252;
+      --accent: #ffffff;
+      --accent-blue: #0070f3;
+      --status-green: #00e599;
+      --status-amber: #f5a623;
+      --status-red: #ff0055;
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-1);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 56px 20px 96px;
+    }
+
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+
+    /* Top Navigation / Breadcrumb */
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 16px;
+      margin-bottom: 40px;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    .breadcrumbs span.separator {
+      color: var(--text-3);
+    }
+
+    .breadcrumbs span.current {
+      color: var(--text-1);
+      font-weight: 500;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background-color: var(--surface-1);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--status-green);
+      box-shadow: 0 0 8px rgba(0, 229, 153, 0.4);
+    }
+
+    /* Title Section */
+    .header-section {
+      margin-bottom: 48px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      color: var(--text-1);
+      margin-bottom: 10px;
+    }
+
+    .lead {
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Section Component */
+    section {
+      margin-bottom: 48px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--text-1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-3);
+    }
+
+    /* Cards & Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .item-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+      transition: border-color 0.15s ease;
+    }
+
+    .item-card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-1);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-text {
+      color: var(--text-2);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .card-list {
+      list-style: none;
+      margin-top: 10px;
+    }
+
+    .card-list li {
+      color: var(--text-2);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .card-list li::before {
+      content: "—";
+      color: var(--text-3);
+      font-family: var(--font-mono);
+    }
+
+    /* Code Terminal Display */
+    .code-wrapper {
+      background-color: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+
+    .code-header {
+      background-color: var(--surface-2);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    pre {
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-1);
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+
+    pre span.token-cmd { color: #ededed; font-weight: 500; }
+    pre span.token-flag { color: #888888; }
+    pre span.token-arg { color: #00e599; }
+
+    /* Minimal Vercel-style Tables */
+    .table-wrapper {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow-x: auto;
+      background: var(--surface-1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-3);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background-color: var(--surface-2);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.015);
+    }
+
+    td.primary-cell {
+      color: var(--text-1);
+      font-weight: 500;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* Inline Mono Badges */
+    .mono-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-1);
+      display: inline-block;
+    }
+
+    /* Callout Note */
+    .callout {
+      border-left: 2px solid var(--accent);
+      padding: 12px 16px;
+      background: var(--surface-1);
+      margin: 16px 0;
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    .callout strong {
+      color: var(--text-1);
+      font-weight: 500;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 32px 16px; }
+      h1 { font-size: 22px; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Navigation Header -->
+  <header class="nav-bar">
+    <div class="breadcrumbs">
+      <span>workspace</span>
+      <span class="separator">/</span>
+      <span>runtime-specs</span>
+      <span class="separator">/</span>
+      <span class="current">container-governance</span>
+    </div>
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      <span>Active Spec</span>
+    </div>
+  </header>
+
+  <!-- Title Section -->
+  <div class="header-section">
+    <h1>架構備忘錄：容器執行階段與面版治理</h1>
+    <p class="lead">彙整 Framework 13 行動端痛點分析、macOS 原生虛擬化（vz）設定指標、開源容器工具矩陣與特權存取治理策略。</p>
+  </div>
+
+  <!-- 01: Client vs Server Split -->
+  <section>
+    <div class="section-header">
+      <h2>01 / 端點與伺服架構解構</h2>
+      <span class="section-tag">Topology</span>
+    </div>
+    <div class="grid-2">
+      <div class="item-card">
+        <div class="card-title" style="color: var(--status-red);">Linux 行動筆電痛點 (Framework 13)</div>
+        <ul class="card-list">
+          <li><strong>休眠待機漏電 (S2Idle)：</strong>現代 x86 核心休眠喚醒不可控，背包常態發熱耗電；擴充卡插槽存在暗電流。</li>
+          <li><strong>非整數縮放 (Fractional Scaling)：</strong>3:2 高解析螢幕在 125%/150% 縮放時，XWayland 與 Electron 模糊。</li>
+          <li><strong>系統維護摩擦力：</strong>日常遭遇觸控手勢、驅動衝突與 UI Bug，修復成本侵佔實際生產力。</li>
+        </ul>
+      </div>
+
+      <div class="item-card">
+        <div class="card-title" style="color: var(--status-green);">標準化工程架構分配</div>
+        <ul class="card-list">
+          <li><strong>Client 端 (MacBook)：</strong>接管視訊、顯示渲染、電源睡眠調控，實現 14–18 小時長效續航。</li>
+          <li><strong>Headless 容器端：</strong>macOS 底層僅運行無 GUI 的 Linux 核心，隔絕一切桌面端驅動與縮放缺陷。</li>
+          <li><strong>Server 端 (Home Lab)：</strong>Linux 回歸 24 小時通電伺服器與多節點叢集，回歸極致效能與專注運算。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02: macOS Native Engine & vz Tuning -->
+  <section>
+    <div class="section-header">
+      <h2>02 / macOS 虛擬化與 Colima 核心最佳化</h2>
+      <span class="section-tag">Hypervisor</span>
+    </div>
+    <div class="callout">
+      <strong>虛擬化本質：</strong>容器依賴 Linux Kernel（cgroups / namespaces），macOS 是 XNU 核心，先天不支援原生 Linux 容器。透過 Apple 原生虛擬化框架可大幅降低損耗，<strong>無需安裝任何肥大的桌面 GUI</strong>。
+    </div>
+
+    <div class="code-wrapper">
+      <div class="code-header">
+        <span>terminal — colima optimize script</span>
+        <span>bash</span>
+      </div>
+      <pre><code><span class="token-cmd">colima start</span> <span class="token-flag">--cpu</span> 4 <span class="token-flag">--memory</span> 8 <span class="token-flag">--vm-type</span> <span class="token-arg">vz</span> <span class="token-flag">--mount-type</span> <span class="token-arg">virtiofs</span> <span class="token-flag">--vz-rosetta</span></code></pre>
+    </div>
+
+    <div class="grid-2">
+      <div class="item-card">
+        <div class="card-title"><span class="mono-badge">--vm-type vz</span> Apple Virtualization</div>
+        <p class="card-text">直接呼叫 macOS 原生虛擬化 API 替代傳統 QEMU，CPU 指令耗損極低，待機 CPU 佔用趨近於 0%。</p>
+      </div>
+      <div class="item-card">
+        <div class="card-title"><span class="mono-badge">--mount-type virtiofs</span> 共享記憶體檔案系統</div>
+        <p class="card-text">消弭 macOS 與 Linux 虛擬機目錄映射的 I/O 延遲瓶頸，大幅加速原始碼掛載與專案編譯效能。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03: Container Tools Matrix -->
+  <section>
+    <div class="section-header">
+      <h2>03 / 本地容器執行階段與工具矩陣</h2>
+      <span class="section-tag">Matrix</span>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>方案</th>
+            <th>授權性質</th>
+            <th>資源佔用 (RAM / CPU)</th>
+            <th>Rosetta 2 (x86)</th>
+            <th>架構特性與定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="primary-cell">OrbStack</td>
+            <td>商業授權 (個人免費)</td>
+            <td>極低 (動態釋放回收)</td>
+            <td>原生支援</td>
+            <td>原生 Swift 開發、介面極度流暢、支援 Linux VM，Mac 開發首選體驗。</td>
+          </tr>
+          <tr>
+            <td class="primary-cell">Colima</td>
+            <td>100% 開源 (MIT)</td>
+            <td>低 (待機開銷極小)</td>
+            <td>支援 (--vz-rosetta)</td>
+            <td>純 CLI 驅動、零合規風險，結合 Apple vz 框架可達到頂級效能與長續航。</td>
+          </tr>
+          <tr>
+            <td class="primary-cell">Podman Desktop</td>
+            <td>100% 開源 (Apache 2.0)</td>
+            <td>中等</td>
+            <td>支援</td>
+            <td>無 Daemon / Rootless 資安架構，可直接連接外掛 Colima Docker Socket。</td>
+          </tr>
+          <tr>
+            <td class="primary-cell">Docker Desktop</td>
+            <td>商業授權 (大企業需訂閱)</td>
+            <td>偏高 (常駐輪詢耗電)</td>
+            <td>需手動啟用</td>
+            <td>官方生態與 Extension 市集最完整，但虛擬機資源開銷較大。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 04: Dockge vs Portainer -->
+  <section>
+    <div class="section-header">
+      <h2>04 / 管理控制台：Dockge vs Portainer BE</h2>
+      <span class="section-tag">Orchestration</span>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>評估指標</th>
+            <th>Dockge (Compose-Centric)</th>
+            <th>Portainer BE (Take 3 Free)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="primary-cell">資料架構</td>
+            <td>檔案即真理（直接讀寫硬碟 <code>compose.yaml</code>）</td>
+            <td>資料庫優先（Stack 狀態存於專用資料庫）</td>
+          </tr>
+          <tr>
+            <td class="primary-cell">運行記憶體</td>
+            <td>極小 (~30–50 MB RAM，無負擔)</td>
+            <td>中等 (~150–300 MB RAM)</td>
+          </tr>
+          <tr>
+            <td class="primary-cell">K8s / 叢集治理</td>
+            <td>不支援（僅提供單機與輕量 Agent）</td>
+            <td>完整支援（Workloads、Helm、PVC、多叢集納管）</td>
+          </tr>
+          <tr>
+            <td class="primary-cell">免費授權規範</td>
+            <td>100% 開源無限制 (MIT)</td>
+            <td>≤3 節點免費商業授權，支援一般 Gmail 登記</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 05: Identity, RBAC & PAM -->
+  <section>
+    <div class="section-header">
+      <h2>05 / Dockge 企業級安全與 PAM 治理策略</h2>
+      <span class="section-tag">Security</span>
+    </div>
+    <div class="grid-2">
+      <div class="item-card">
+        <div class="card-title">邊界反向代理 (Authentik / SSO)</div>
+        <p class="card-text" style="margin-bottom: 8px;">對接企業內部 AD/LDAP，強制 SSO 與 MFA 認證。</p>
+        <ul class="card-list">
+          <li><strong>架構限制：</strong>Dockge 內部缺少多租戶權限矩陣，放行進入後全員皆擁有最高 Root 權限。</li>
+          <li><strong>適用場景：</strong>內部成員皆為核心 DevOps/Admin，僅需統一企業帳號與入口閘道防護。</li>
+        </ul>
+      </div>
+
+      <div class="item-card">
+        <div class="card-title">開源特權存取管理 (OSS PAM / 堡壘機)</div>
+        <p class="card-text" style="margin-bottom: 8px;">採用 JumpServer (GPLv3) 或 Teleport 實施零信任管控。</p>
+        <ul class="card-list">
+          <li><strong>核心理念：</strong>以「<strong>審批流程 (JIT) + 全程畫面錄影審計</strong>」彌補面板內部細部權限缺失。</li>
+          <li><strong>防護能力：</strong>工程師提單核准後開通臨時連線，Web 點擊與終端操作全程側錄稽核。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <span>DESIGNED WITH GHOST / VERCEL MINIMALIST STANDARD</span>
+    <span>DEPLOYED AS STANDALONE SPEC</span>
+  </footer>
+</div>
+
+</body>
+</html>
