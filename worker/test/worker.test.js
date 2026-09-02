@@ -452,6 +452,37 @@ describe('哨兵值輪替', () => {
     expect(stale.status).toBe(403);
   });
 
+  it('只有 write 區塊的 group：outbox 只有 token，而且沒有人 join 得進去', async () => {
+    await seed({
+      rd: { name: '研發', epoch: 1, read: { secret: 'ROTATE' }, write: { secret: 'ROTATE' } },
+      bot: { name: '自動發佈', epoch: 1, write: { secret: 'ROTATE' } },
+    });
+    await SELF.fetch(url('/'));
+
+    const listed = await env.R2_BUCKET.list({ prefix: 'outbox/' });
+    const files = Object.fromEntries(
+      await Promise.all(
+        listed.objects.map(async (o) => [
+          o.key.split('/')[1].split('-')[0],
+          await (await env.R2_BUCKET.get(o.key)).text(),
+        ]),
+      ),
+    );
+
+    // 每個 group 各自一份檔案 —— link 只會出現在有 read 區塊的那一份。
+    expect(files.bot).toContain('imi_bot_1_');
+    expect(files.bot).not.toContain('/join/');
+    expect(files.rd).toContain('/join/rd/');
+    expect(files.rd).toContain('imi_rd_1_');
+
+    // 沒有 read secret 就沒有人 join 得進去，連別組的 secret 也不行。
+    const config = await readConfig();
+    const join = await SELF.fetch(url(`/join/bot/${config.groups.rd.read.secret}`), {
+      redirect: 'manual',
+    });
+    expect(join.status).toBe(403);
+  });
+
   it('只輪替被標記的那一個欄位', async () => {
     await seed(groups({ write: { secret: 'ROTATE' } }));
     await SELF.fetch(url('/'));
