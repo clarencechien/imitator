@@ -226,7 +226,7 @@ multipart。後果：
 ## 遷移舊站（spec §9）
 
 ```bash
-IMITATOR_BASE=https://r.example.com \
+IMITATOR_BASE=https://imitator.ai-apps.work \
 IMITATOR_TOKEN=imi_rd_1_xxx \
 node ../scripts/migrate.mjs --visibility=public --dry-run
 ```
