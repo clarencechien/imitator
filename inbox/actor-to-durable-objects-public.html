@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>演員登台:從 Actor 模型到 Durable Objects 的五十年</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF7F0;
+    --ink:#26211B;
+    --mist:#6E6457;
+    --curtain:#8C2332;
+    --amber:#C97F1E;
+    --dark:#16130F;
+    --dark-paper:#E9E1D2;
+    --dark-mist:#9C9182;
+    --dark-panel:#221E18;
+    --serif:'Noto Serif TC', 'PMingLiU', serif;
+    --sans:'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:17px;
+    line-height:1.9;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:0 24px;}
+
+  /* ---------- 序幕(海報) ---------- */
+  header{
+    padding:96px 0 72px;
+    border-bottom:3px double var(--curtain);
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.35em;
+    color:var(--curtain);
+    text-transform:uppercase;
+    margin-bottom:28px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:900;
+    font-size:clamp(38px,7vw,64px);
+    line-height:1.25;
+    letter-spacing:.02em;
+  }
+  h1 .accent{color:var(--curtain);}
+  .subtitle{
+    margin-top:24px;
+    font-size:18px;
+    color:var(--mist);
+    max-width:34em;
+  }
+  .byline{
+    margin-top:40px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--mist);
+    display:flex;gap:1.5em;flex-wrap:wrap;
+  }
+
+  /* ---------- 章節骨架 ---------- */
+  section{padding:72px 0 24px;}
+  .act-label{
+    font-family:var(--mono);
+    font-size:12.5px;
+    letter-spacing:.3em;
+    color:var(--curtain);
+    margin-bottom:14px;
+  }
+  h2{
+    font-family:var(--serif);
+    font-weight:900;
+    font-size:clamp(26px,4.5vw,36px);
+    line-height:1.4;
+    margin-bottom:34px;
+  }
+  h3{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:21px;
+    margin:44px 0 16px;
+  }
+  p{margin-bottom:22px;}
+  p.lead{font-size:19px;}
+  strong{font-weight:700;}
+  em{font-style:normal;background:linear-gradient(transparent 62%, rgba(201,127,30,.32) 62%);}
+  a{color:var(--curtain);text-decoration-thickness:1px;text-underline-offset:3px;}
+  ul,ol{margin:0 0 22px 1.4em;}
+  li{margin-bottom:10px;}
+
+  blockquote{
+    margin:36px 0;
+    padding:4px 0 4px 26px;
+    border-left:3px solid var(--amber);
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:19px;
+    line-height:1.85;
+  }
+  blockquote .who{
+    display:block;margin-top:12px;
+    font-family:var(--mono);font-size:12px;font-weight:400;color:var(--mist);
+  }
+
+  /* 三公理卡 */
+  .axioms{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:32px 0;}
+  .axiom{
+    border:1.5px solid var(--ink);
+    padding:20px 18px;
+    background:#fff;
+  }
+  .axiom .n{
+    font-family:var(--mono);font-size:12px;color:var(--curtain);
+    display:block;margin-bottom:10px;letter-spacing:.15em;
+  }
+  .axiom .t{font-weight:700;display:block;margin-bottom:8px;line-height:1.6;}
+  .axiom .d{font-size:14.5px;color:var(--mist);line-height:1.75;}
+  @media(max-width:640px){.axioms{grid-template-columns:1fr;}}
+
+  /* 時間軸 */
+  .timeline{margin:36px 0;padding-left:26px;border-left:2px solid var(--ink);}
+  .tl{position:relative;padding:0 0 34px 22px;}
+  .tl::before{
+    content:'';position:absolute;left:-33px;top:9px;
+    width:12px;height:12px;background:var(--paper);
+    border:2.5px solid var(--curtain);border-radius:50%;
+  }
+  .tl.gold::before{background:var(--amber);border-color:var(--amber);}
+  .tl .yr{
+    font-family:var(--mono);font-size:13px;font-weight:500;
+    color:var(--curtain);letter-spacing:.1em;display:block;margin-bottom:6px;
+  }
+  .tl .ti{font-weight:700;font-size:17.5px;display:block;margin-bottom:6px;}
+  .tl .tx{font-size:15.5px;color:var(--mist);line-height:1.85;}
+
+  /* 表格 */
+  table{width:100%;border-collapse:collapse;margin:32px 0;font-size:15px;}
+  th{
+    font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+    text-align:left;padding:10px 12px;border-bottom:2px solid var(--ink);
+    color:var(--mist);font-weight:500;
+  }
+  td{padding:12px;border-bottom:1px solid rgba(38,33,27,.15);vertical-align:top;line-height:1.7;}
+  td:first-child{font-weight:700;white-space:nowrap;}
+  @media(max-width:640px){td:first-child{white-space:normal;}}
+
+  /* 程式碼 */
+  pre{
+    background:var(--dark);color:#E8E0D0;
+    font-family:var(--mono);font-size:13.5px;line-height:1.8;
+    padding:22px 24px;margin:30px 0;overflow-x:auto;
+    border-top:3px solid var(--amber);
+  }
+  pre .c{color:#8A8070;}
+  pre .k{color:#E0A458;}
+  pre .s{color:#B8C99D;}
+  code{
+    font-family:var(--mono);font-size:.88em;
+    background:rgba(140,35,50,.08);padding:2px 6px;border-radius:3px;
+  }
+
+  /* 提示卡 */
+  .note{
+    background:#fff;border:1.5px solid var(--ink);
+    padding:24px 26px;margin:32px 0;font-size:15.5px;
+  }
+  .note .tag{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.25em;
+    color:var(--curtain);display:block;margin-bottom:12px;
+  }
+  .note p:last-child{margin-bottom:0;}
+
+  /* ---------- 暗場(第三幕起) ---------- */
+  .backstage{
+    background:var(--dark);color:var(--dark-paper);
+    margin-top:72px;padding-bottom:48px;
+  }
+  .scene-change{
+    text-align:center;padding:56px 24px 8px;
+    font-family:var(--mono);font-size:12px;letter-spacing:.4em;color:var(--dark-mist);
+  }
+  .backstage section{padding-top:56px;}
+  .backstage .act-label{color:var(--amber);}
+  .backstage h2,.backstage h3{color:#F4EDDD;}
+  .backstage a{color:#E0A458;}
+  .backstage .tl{border:none;}
+  .backstage .timeline{border-left-color:var(--dark-mist);}
+  .backstage .tl::before{background:var(--dark);border-color:var(--amber);}
+  .backstage .tl .yr{color:var(--amber);}
+  .backstage .tl .tx{color:var(--dark-mist);}
+  .backstage em{background:linear-gradient(transparent 62%, rgba(224,164,88,.28) 62%);}
+  .backstage blockquote{border-left-color:var(--amber);}
+  .backstage blockquote .who{color:var(--dark-mist);}
+  .backstage code{background:rgba(224,164,88,.14);color:#EFD9B4;}
+  .backstage pre{background:var(--dark-panel);border-top-color:var(--curtain);}
+  .backstage table th{border-bottom-color:var(--dark-paper);color:var(--dark-mist);}
+  .backstage table td{border-bottom-color:rgba(233,225,210,.18);}
+  .backstage .note{background:var(--dark-panel);border-color:var(--dark-mist);}
+  .backstage .note .tag{color:var(--amber);}
+  .backstage .axiom{background:var(--dark-panel);border-color:var(--dark-mist);}
+  .backstage .axiom .d{color:var(--dark-mist);}
+  .backstage .subtle{color:var(--dark-mist);}
+
+  /* 文選 */
+  .reading{margin:36px 0;}
+  .read{
+    border:1.5px solid var(--dark-mist);
+    padding:22px 24px;margin-bottom:16px;background:var(--dark-panel);
+  }
+  .read .meta{
+    font-family:var(--mono);font-size:12px;color:var(--amber);
+    display:flex;gap:1.2em;margin-bottom:10px;flex-wrap:wrap;
+  }
+  .read .rt{font-weight:700;font-size:17px;display:block;margin-bottom:8px;}
+  .read .rd{font-size:14.5px;color:var(--dark-mist);line-height:1.8;}
+  .read .rd:last-child{margin:0;}
+
+  /* 謝幕 */
+  footer{
+    background:var(--dark);color:var(--dark-mist);
+    padding:56px 0 72px;
+    border-top:1px solid rgba(233,225,210,.2);
+    font-family:var(--mono);font-size:12.5px;line-height:2.1;
+  }
+  footer .curtain-line{
+    font-family:var(--serif);font-weight:900;font-size:24px;color:#F4EDDD;
+    margin-bottom:20px;letter-spacing:.05em;
+  }
+
+  /* 進場動畫 */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .7s ease,transform .7s ease;}
+  .reveal.on{opacity:1;transform:none;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    .reveal{opacity:1;transform:none;transition:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="kicker">1973 → 2026 · 一部分散式系統史</div>
+  <h1>演員登台:<br>從 <span class="accent">Actor 模型</span>到<br>Durable Objects 的五十年</h1>
+  <p class="subtitle">一個 1973 年的學術構想,如何在電話交換機裡熬過三十年,最後變成你 wrangler.jsonc 裡的三行設定。</p>
+  <div class="byline">
+    <span>幕數 · 五幕一謝幕</span>
+    <span>閱讀時間 · 約 20 分鐘</span>
+  </div>
+</header>
+
+<!-- ═══════════ 序幕 ═══════════ -->
+<section class="wrap reveal">
+  <div class="act-label">序幕 · PROLOGUE</div>
+  <h2>兩個請求,同一個計數器</h2>
+  <p class="lead">先從一個你八成寫過的 bug 開始。</p>
+  <p>你做了一個服務,每個使用者每天有 600 秒的免費額度。程式很直覺:讀出今日用量,加上這次的秒數,寫回去。</p>
+<pre><span class="c">// 看起來人畜無害</span>
+<span class="k">const</span> used = <span class="k">await</span> db.get(<span class="s">`usage:${user}`</span>);
+<span class="k">if</span> (used + seconds &gt; QUOTA) <span class="k">return</span> reject();
+<span class="k">await</span> db.put(<span class="s">`usage:${user}`</span>, used + seconds);</pre>
+  <p>然後某天,同一個使用者在手機和平板上同時開了兩個 session。兩個請求同時讀到 <code>used = 590</code>,各自判斷「還有 10 秒,放行」,各自寫回。你的 600 秒上限,就這樣被兩個誠實的請求聯手繞過了。</p>
+  <p>這叫 <strong>race condition</strong>。五十年來,工程師發明了鎖、交易、樂觀併發、CAS 指令來對付它——每一種都有效,每一種都讓程式碼更難寫、更難讀、更難證明是對的。</p>
+  <p>但在 1973 年,有一個人提出了完全不同的解法:<em>與其學會安全地共享,不如從一開始就不要共享。</em></p>
+</section>
+
+<!-- ═══════════ 第一幕 ═══════════ -->
+<section class="wrap reveal">
+  <div class="act-label">第一幕 · 1973</div>
+  <h2>Hewitt 的三條公理</h2>
+  <p>MIT 的 Carl Hewitt 當時在做人工智慧研究。他問的不是「怎麼寫並行程式」,而是一個更根本的問題:<strong>運算的最小單位,到底應該是什麼?</strong></p>
+  <p>當時檯面上有兩個答案:函式(λ 演算)和物件(Simula)。Hewitt 給了第三個:<strong>actor</strong>——一個只會「收到訊息、做出反應」的東西。名字取得很白話:它就像舞台上的演員,收到台詞(cue),然後演出。</p>
+  <p>一個 actor 收到一則訊息時,只被允許做三件事:</p>
+
+  <div class="axioms">
+    <div class="axiom">
+      <span class="n">公理 一</span>
+      <span class="t">送訊息</span>
+      <span class="d">送出有限則訊息,給它「認識位址」的其他 actor。不認識就送不到。</span>
+    </div>
+    <div class="axiom">
+      <span class="n">公理 二</span>
+      <span class="t">生小孩</span>
+      <span class="d">建立有限個新的 actor。系統的規模是長出來的,不是配置出來的。</span>
+    </div>
+    <div class="axiom">
+      <span class="n">公理 三</span>
+      <span class="t">決定下一步</span>
+      <span class="d">指定「下一則訊息要用什麼行為處理」。這就是它改變狀態的唯一方式。</span>
+    </div>
+  </div>
+
+  <p>第三條是整個模型的靈魂,也最容易被略過。Actor 沒有「變數」——所謂改變狀態,是換一個行為去面對下一則訊息。狀態被定義成<em>「未來的行為」,而不是「現在記憶體裡的值」</em>。</p>
+
+  <h3>三條紀律</h3>
+  <ul>
+    <li><strong>不共享記憶體。</strong>要溝通,只能送訊息。沒有東西被共享,就沒有東西需要上鎖。</li>
+    <li><strong>一個 mailbox,一次一則。</strong>訊息排隊進來,逐則處理。actor 內部永遠是循序的——你在裡面寫程式,可以完全當作單執行緒在寫。</li>
+    <li><strong>位置透明。</strong>對方在同一顆 CPU 或地球另一端,寫法一樣。這讓「分散」變成部署細節,而不是程式碼的形狀。</li>
+  </ul>
+
+  <div class="note">
+    <span class="tag">白話翻譯</span>
+    <p>傳統併發的所有痛苦——死結、race condition、heisenbug——都來自同一個前提:「兩個人可以同時碰同一塊記憶體」。Actor 模型不是更聰明地管理這個前提,而是把前提整個砍掉。<strong>併發存在於 actor 之間,不存在於 actor 裡面。</strong>序幕那個配額 bug,在這個世界裡寫不出來:同一個使用者的兩個請求,會排進同一個 mailbox,一個接一個。</p>
+  </div>
+
+  <p>代價當然有:所有跨 actor 的操作都變成非同步訊息。你再也不能假設「呼叫完就做完了」。1973 年的硬體跑不動這個模型,學界看完點點頭,然後它沉寂了十三年。</p>
+</section>
+
+<!-- ═══════════ 第二幕 ═══════════ -->
+<section class="wrap reveal">
+  <div class="act-label">第二幕 · 1986 – 2011</div>
+  <h2>電話交換機裡的三十年</h2>
+  <p>讓 actor 復活的不是學術界,是<strong>電話公司</strong>。</p>
+
+  <div class="timeline">
+    <div class="tl">
+      <span class="yr">1986 · 瑞典</span>
+      <span class="ti">Erlang——為了不能斷線的東西而生</span>
+      <span class="tx">Ericsson 要造電話交換機:幾十萬通電話同時進行、彼此完全獨立、一通掛掉不能影響其他任何一通、而且系統永遠不能停機維護。這根本就是 actor 模型的規格書。Joe Armstrong 團隊造出 Erlang,每通電話一個 process(就是 actor),輕量到可以同時跑百萬個。</span>
+    </div>
+    <div class="tl">
+      <span class="yr">1998 · AXD301</span>
+      <span class="ti">九個 9 的傳說</span>
+      <span class="tx">Erlang 寫的 AXD301 交換機,締造了廣為流傳的 99.9999999% 可用度——一年停機時間以毫秒計。Erlang 還加了原始論文沒有的兩樣東西:「let it crash」(不寫防禦性錯誤處理,出事就讓 process 死)和 supervision tree(上層監看下層,死了就重啟)。錯誤處理從行內的 try-catch,升格成架構的一層。</span>
+    </div>
+    <div class="tl">
+      <span class="yr">2009 · JVM</span>
+      <span class="ti">Akka——主流世界的第一次接觸</span>
+      <span class="tx">Akka 把 actor 帶進 Java/Scala 生態,也暴露了主流開發者的不適應:mailbox 預設無界(沒有 back-pressure,塞爆就 OOM)、訊息沒有型別安全、除錯要追分散式因果而不是看 stack trace。更根本的:<strong>原始 actor 模型沒有「持久化」這個概念</strong>——actor 死了,狀態就沒了。Akka 後來得補一整套 Persistence(event sourcing)來救。</span>
+    </div>
+    <div class="tl gold">
+      <span class="yr">2011 · Microsoft Research</span>
+      <span class="ti">Orleans 與 virtual actor——關鍵的一步</span>
+      <span class="tx">Orleans(後來撐起 Halo 的後端)提出 virtual actor:actor「永遠存在」(概念上),你不必建立它、不必銷毀它。拿名字去呼叫,runtime 負責在某台機器上把它啟動;閒置就自動休眠,狀態寫回儲存。古典 actor 最麻煩的營運問題——誰建立、放哪台、死了誰重建、位址怎麼發現——全部變成 runtime 的事。</span>
+    </div>
+  </div>
+
+  <p>記住 virtual actor 這個概念。九年後,它會換一個名字重新登場。</p>
+
+  <h3>幕間:這個模型的天生代價</h3>
+  <p>在進入下半場之前,先把醜話說完。以下四條不是任何實作的瑕疵,是 actor 模型<em>本身</em>的稅,用 Erlang、Akka、Orleans 的人都在繳:</p>
+  <ul>
+    <li><strong>跨 actor 的交易做不到。</strong>兩顆 actor 之間沒有 ACID。要轉帳?只能 saga,自己補償。</li>
+    <li><strong>跨 actor 的查詢做不到。</strong>「所有使用者裡誰超額了?」——你得一顆一顆問(fan-out),或另外維護一份索引。</li>
+    <li><strong>單顆是瓶頸。</strong>一次一則訊息的另一面,就是單顆有吞吐上限。熱點只能靠切分成更多顆。</li>
+    <li><strong>除錯變成因果追蹤。</strong>沒有跨 actor 的 stack trace,只有訊息的先後。</li>
+  </ul>
+</section>
+
+<!-- ═══════════ 暗場轉換 ═══════════ -->
+<div class="backstage">
+  <div class="scene-change">— 燈暗 · 場景轉入機房 —</div>
+
+  <!-- ═══════════ 第三幕 ═══════════ -->
+  <section class="wrap reveal">
+    <div class="act-label">第三幕 · 2017 – 2020</div>
+    <h2>邊緣運算的狀態難題</h2>
+    <p>2017 年,Cloudflare 推出 Workers,主導設計的是 Kenton Varda——寫過 Google 的 Protocol Buffers v2、做過 Cap'n Proto、還做過 Sandstorm.io(一個「每個使用者的每個 app 都是獨立沙箱實例」的個人伺服器平台,現在回頭看,根本是 DO 的世界觀預告)。</p>
+    <p>Workers 的口號是「你的程式碼不跑在 us-west-4,它跑在每個地方」。V8 isolate 比容器輕三個數量級,冷啟動以毫秒計,程式碼被推到全球三百多個節點。</p>
+    <p>然後所有人撞上同一面牆:<strong>運算去了邊緣,狀態沒有。</strong></p>
+    <p>你的 Worker 在東京執行,資料庫在維吉尼亞。每次讀寫都是一趟 150ms 的太平洋來回——邊緣運算省下的延遲,全數還給了資料庫。更糟的是,三百個節點上的無狀態 isolate 同時讀寫同一個資料庫,序幕那個 race condition 被放大了三百倍。</p>
+    <p>傳統解法是把資料<em>複製</em>到程式旁邊(快取、read replica),然後你就得面對快取失效與一致性——電腦科學公認的兩大難題之一。Kenton 的答案反過來:</p>
+    <blockquote>
+      傳統雲端儲存天生就慢:它得跨網路存取,還得同步許多客戶端。那如果反過來,把你的程式碼放進儲存層的深處呢?
+      <span class="who">— Kenton Varda,改寫自〈Zero-latency SQLite storage〉開場</span>
+    </blockquote>
+    <p><strong>不是把資料搬到程式旁邊,是把程式搬到資料旁邊。</strong>資料不複製、只有一份,由一個「有名字的東西」獨佔;所有想動這份資料的人,把請求送去給它。</p>
+    <p>聽起來很熟?這就是 actor。更精確地說——這就是 Orleans 的 virtual actor,只是這次它跑在全球網路上,而且有了新名字。</p>
+
+    <div class="timeline">
+      <div class="tl gold">
+        <span class="yr">2020-09 · BETA</span>
+        <span class="ti">Durable Objects 登場</span>
+        <span class="tx">發表文的副標把主張講完了:一致、低延遲、分散式,卻又免維護——而且讓 client 之間能夠「協調」。示範程式是一個幾十行的聊天室:一個房間一顆 DO,WebSocket 全部掛上去,廣播就是一個 for 迴圈。在無狀態 serverless 的世界,這件事之前根本做不到。</span>
+      </div>
+    </div>
+
+    <h3>名字取壞了</h3>
+    <p>多年後 Kenton 自己承認,「Durable Objects」這名字讓它聽起來比實際複雜。他的說法大意是:改名叫 <em>Stateful Worker</em> 大概能解決九成的誤解——它就是一個有狀態的 Worker;因為有狀態,所以必須有名字,這樣你才能路由到握著那份狀態的那一顆。</p>
+    <p>一句話版本:<strong>DO = virtual actor + 內建資料庫 + 全球路由,包裝成一個 JavaScript class。</strong></p>
+  </section>
+
+  <!-- ═══════════ 第四幕 ═══════════ -->
+  <section class="wrap reveal">
+    <div class="act-label">第四幕 · 2021 – 2026</div>
+    <h2>補完 actor 模型的六年</h2>
+    <p>接下來的每一次演進,幾乎都在回應第二幕結尾列的那些「天生代價」,或是前人(Erlang、Akka、Orleans)踩過的坑。</p>
+
+    <div class="timeline">
+      <div class="tl">
+        <span class="yr">2021-08</span>
+        <span class="ti">Input/Output Gates——〈Easy, Fast, Correct — Choose three〉</span>
+        <span class="tx">整個系列技術含量最高的一篇。問題:就算單執行緒,await 儲存操作的空檔,別的事件還是可能插進來,race condition 借屍還魂。解法:儲存操作進行中,其他事件一律擋在門外(input gate);寫入尚未確認落盤前,對外回應先不放行(output gate)。結果是你可以放心寫「讀、改、寫」,不加任何鎖——而且因為寫入可以背景進行,程式反而更快。「更安全」與「更快」通常互斥,這篇解釋為什麼在這裡不是。</span>
+      </div>
+      <div class="tl">
+        <span class="yr">2022-09</span>
+        <span class="ti">workerd 開源</span>
+        <span class="tx">跑 Workers 與 DO 的 runtime 以 Apache 2.0 釋出。平台鎖定的疑慮至少有了退路:同一套程式,理論上可以搬回自己的機器跑。</span>
+      </div>
+      <div class="tl">
+        <span class="yr">2024-04</span>
+        <span class="ti">JavaScript-native RPC——刻意背離古典 actor</span>
+        <span class="tx">古典 actor 堅持單向非同步訊息;Kenton 選了 RPC,而且是帶著他 Cap'n Proto 的看家本領 promise pipelining 來的:對尚未回來的結果繼續鏈式呼叫,多次往返合併成一趟。他的判斷很務實——非同步訊息在理論上乾淨,在工程上讓人寫不出東西。保留 actor 的隔離性,丟掉它的訊息語意。</span>
+      </div>
+      <div class="tl gold">
+        <span class="yr">2024-09</span>
+        <span class="ti">每顆 DO 一個 SQLite——「程式碼住進儲存層」兌現</span>
+        <span class="tx">SQL 查詢是同步 API——因為資料庫就在同一台機器的記憶體裡,沒有網路可等。持久化機制受 Litestream 啟發:WAL 持續串流到物件儲存(每 16MB 或每 10 秒一批),因此有 30 天的 point-in-time recovery;為了保住那 10 秒空窗,每次提交同時送往鄰近五個資料中心,三個確認才算數。Akka 當年要另外補一套 Persistence 才有的東西,這裡是內建的。他舉的例子:訂位系統,一個航班一顆 DO 配一個 SQLite——每家航空公司每天開出幾千個全新的資料庫,而你不覺得有什麼。</span>
+      </div>
+      <div class="tl">
+        <span class="yr">2025</span>
+        <span class="ti">WebSocket Hibernation 與計費現實</span>
+        <span class="tx">DO 的計費比 Workers 多一個維度:duration——物件醒著的每一秒都在計時,而且一律按 128MB 記憶體計價。長連線若直接 accept() 掛著,連線多久就付多久;Hibernation API 讓連線保持、物件休眠,事件來了再醒。官方定價頁的對照範例:同樣一百顆 DO,不休眠的寫法月費約 $419,休眠的寫法約 $21。這是 virtual actor「去啟動」機制第一次直接反映在帳單上。</span>
+      </div>
+      <div class="tl">
+        <span class="yr">2026</span>
+        <span class="ti">Dynamic Workers + Facets:AI 時代的一人一 app</span>
+        <span class="tx">三月:Dynamic Workers,讓 AI 生成的程式碼跑在毫秒級啟動的 isolate 裡,比容器沙箱快百倍。四月:DO Facets,讓每個動態生成的 app 各自帶獨立的 SQLite。八月,Kenton 的 Gadgets 演講把論點說白:個人 AI codegen 會打爆傳統雲端架構——當每個使用者的 app 都不一樣,你不可能 per-tenant 佈建容器和資料庫;但一台機器可以跑幾千個 isolate + 幾千顆 DO。1973 年「運算的最小單位是什麼」這個問題,在 AI 生成程式碼的時代,又被問了一次。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 第五幕 ═══════════ -->
+  <section class="wrap reveal">
+    <div class="act-label">第五幕 · 實戰</div>
+    <h2>回到那個配額計數器</h2>
+    <p>序幕的 bug,在 DO 的世界長這樣:</p>
+<pre><span class="c">// Worker:用名字路由——同一個 email 永遠到同一顆</span>
+<span class="k">const</span> stub = env.QUOTA.getByName(<span class="s">`user:${email}`</span>);
+<span class="k">const</span> ok = <span class="k">await</span> stub.tryConsume(seconds);
+
+<span class="c">// DO 內部:單執行緒 + input gate,插隊在物理上不存在</span>
+<span class="k">async</span> tryConsume(seconds) {
+  <span class="k">const</span> used = <span class="k">this</span>.sql.exec(
+    <span class="s">"SELECT used FROM quota WHERE day = ?"</span>, today()
+  ).one()?.used ?? 0;
+  <span class="k">if</span> (used + seconds &gt; QUOTA) <span class="k">return</span> <span class="k">false</span>;
+  <span class="k">this</span>.sql.exec(<span class="s">"UPDATE quota SET used = used + ?"</span>, seconds);
+  <span class="k">return</span> <span class="k">true</span>;
+}</pre>
+    <p>手機和平板同時打進來?兩個請求排進同一顆物件的隊伍,一個接一個。第一個把 590 變成 600,第二個讀到 600,被拒絕。<em>沒有鎖、沒有交易、沒有 retry loop</em>——不是因為你處理得好,是因為問題不存在。</p>
+
+    <h3>什麼題目適合它</h3>
+    <p>判斷句只有一條:<strong>需要有人在中間主持秩序,才用 DO。</strong>展開來:</p>
+    <table>
+      <thead><tr><th>題目</th><th>為什麼是 DO</th></tr></thead>
+      <tbody>
+        <tr><td>即時房間</td><td>聊天室、協作編輯、直播字幕。一個房間一顆,WebSocket 全掛上去,廣播是 for 迴圈。記得用 Hibernation。</td></tr>
+        <tr><td>計數與配額</td><td>rate limit、庫存、抽號、每日額度。read-modify-write 的天堂。</td></tr>
+        <tr><td>每人一份的狀態</td><td>使用者的同步端點、購物車、AI agent 的工作階段。Cloudflare 的 Agents SDK 整個蓋在 DO 上。</td></tr>
+        <tr><td>每個實體的排程</td><td>Alarm API:每顆物件自己排未來的工作,等於「一人一個 cron」,不需要中央排程器。</td></tr>
+      </tbody>
+    </table>
+
+    <h3>什麼題目不適合它</h3>
+    <p>第二幕結尾那些「天生代價」,一條都沒有消失:</p>
+    <ul>
+      <li><strong>純儲存</strong> → R2 / KV。倉庫不需要腦。</li>
+      <li><strong>跨使用者查詢、報表</strong> → 傳統資料庫。「這個月誰超額了?」在一萬顆 DO 上是災難:要嘛 fan-out 叫醒一萬顆(付一萬次錢),要嘛自己維護一份索引。順帶一提,D1 本質上就是「Cloudflare 幫你做好的一顆 DO」——所以它有單庫 10GB 的上限。</li>
+      <li><strong>一次性 batch 工作</strong> → Worker + Queues。沒有狀態要顧,就不要租一個會醒著的行程。</li>
+      <li><strong>全域單例當總管</strong> → 反模式。所有流量塞進一顆單執行緒物件排隊,而且那顆物件固定在某一個地區。設計原則是圍繞你的「協調原子」切分:一個房間、一個使用者、一個航班——而不是一個系統。</li>
+    </ul>
+
+    <div class="note">
+      <span class="tag">帳單的形狀</span>
+      <p>最後一個心態校正:Workers 和 R2 是「用多少算多少、閒置零成本」;DO 是「<strong>你租的是一個會醒著的行程</strong>」,成本模型比較接近 VPS。它便宜的前提是物件大部分時間在睡覺——這正是 virtual actor 的原始設計意圖。讓它睡,是工程,也是財務。</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ 文選 ═══════════ -->
+  <section class="wrap reveal">
+    <div class="act-label">節目冊 · KENTON 文選</div>
+    <h2>按閱讀順序,不按時間</h2>
+    <p class="subtle" style="margin-bottom:28px;">建議讀序:② → ④ → ① → ⑥。技術 → 實作 → 動機,最後一篇會改變你用 MCP 的方式。</p>
+
+    <div class="reading">
+      <div class="read">
+        <div class="meta"><span>①</span><span>2020-09</span><span>發表文</span></div>
+        <span class="rt"><a href="https://blog.cloudflare.com/introducing-workers-durable-objects/">Workers Durable Objects Beta: A New Approach to Stateful Serverless</a></span>
+        <p class="rd">「為什麼發明」看這篇。幾十行的聊天室示範,以及「協調」為什麼是無狀態 serverless 缺的那一塊。</p>
+      </div>
+      <div class="read">
+        <div class="meta"><span>②</span><span>2021-08</span><span>技術含量最高</span></div>
+        <span class="rt"><a href="https://blog.cloudflare.com/durable-objects-easy-fast-correct-choose-three/">Durable Objects: Easy, Fast, Correct — Choose three</a></span>
+        <p class="rd">Input/output gates 的完整推導。只讀一篇的話,讀這篇——讀完你會理解為什麼「不用鎖」不是行銷話術。</p>
+      </div>
+      <div class="read">
+        <div class="meta"><span>③</span><span>2024-04</span><span>設計哲學</span></div>
+        <span class="rt"><a href="https://blog.cloudflare.com/javascript-native-rpc/">We've added JavaScript-native RPC to Cloudflare Workers</a></span>
+        <p class="rd">為什麼背離古典 actor 的訊息語意、選擇 RPC;promise pipelining 怎麼把多次往返合併成一趟。</p>
+      </div>
+      <div class="read">
+        <div class="meta"><span>④</span><span>2024-09</span><span>實作深度</span></div>
+        <span class="rt"><a href="https://blog.cloudflare.com/sqlite-in-durable-objects/">Zero-latency SQLite storage in every Durable Object</a></span>
+        <p class="rd">WAL 串流、五複本三確認、30 天 PITR。「把程式碼放進儲存層」這句話的工程兌現。</p>
+      </div>
+      <div class="read">
+        <div class="meta"><span>⑤</span><span>2024-04</span><span>短而深</span></div>
+        <span class="rt"><a href="https://blog.cloudflare.com/workers-environment-live-object-bindings/">Why Workers environment variables contain live objects</a></span>
+        <p class="rd">你天天在寫的 <code>env.XXX</code> 為什麼長那樣:binding 如何同時改善開發體驗與安全——兩個通常互斥的目標。</p>
+      </div>
+      <div class="read">
+        <div class="meta"><span>⑥</span><span>2025-09</span><span>對 AI 工作流最有用</span></div>
+        <span class="rt"><a href="https://blog.cloudflare.com/code-mode/">Code Mode: the better way to use MCP</a></span>
+        <p class="rd">主張我們都把 MCP 用錯了:與其把 tools 逐一暴露給 LLM,不如讓 LLM 寫程式去呼叫。跟 DO 無關,但值得。</p>
+      </div>
+      <div class="read">
+        <div class="meta"><span>⑦</span><span>2026-03 / 04 / 08</span><span>最新三部曲</span></div>
+        <span class="rt"><a href="https://blog.cloudflare.com/dynamic-workers/">Dynamic Workers</a> · <a href="https://blog.cloudflare.com/durable-object-facets-dynamic-workers/">DO Facets</a> · Gadgets 演講</span>
+        <p class="rd">同一個論證的三段:AI 生成的個人 app,需要「一台機器跑幾千個 isolate + 幾千顆資料庫」的架構。五十年前的問題,新的時代又問了一次。</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ 謝幕 ═══════════ -->
+<footer>
+  <div class="wrap">
+    <div class="curtain-line">— 幕落 —</div>
+    <p>1973 年,Hewitt 說運算的最小單位是一個「收到訊息就做出反應」的東西。<br>
+    2026 年,你用一行 <code style="background:none;color:#E0A458;">getByName()</code> 呼叫它。<br>
+    中間隔著電話交換機、九個 9、Halo 的後端,和一位堅持把程式碼塞進儲存層的工程師。</p>
+    <p style="margin-top:28px;">資料來源:Cloudflare Blog(Kenton Varda 各篇)、Cloudflare DO 文件、Hewitt (1973)、Agha (1986)、Simon Willison 的引文存檔。<br>本文為研究筆記整理,非 Cloudflare 官方文件;數字與 API 以官方文件為準。</p>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('.reveal').forEach(el => el.classList.add('on'));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  })();
+</script>
+</body>
+</html>
