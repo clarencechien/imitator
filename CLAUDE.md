@@ -74,9 +74,13 @@ public 並把原始檔搬進 `archive/report/`。手機上用瀏覽器開 GitHub
   已經關掉了 —— 不要再把它當成待辦事項提出來。
 - **Cloudflare 帳號有 2FA。** `config/groups.json` 裡的 group secret 在 R2 是
   明文，帳號本身就是最後一道關卡，那道關卡已經上鎖。
-- 還開著的是**沒有備份**：R2 沒有 object versioning，覆寫與刪除都不可逆，而用
-  curl 直接推上去的報告只存在一個地方（`archive/report/` 只涵蓋遷移進來的 272
-  份和走 inbox 的那些）。這一條不需要攻擊者 —— slug 打錯就夠了。
+- **不做 artifact 備份，這是決定過的。** R2 沒有 object versioning，覆寫與刪除
+  都不可逆，用 curl 直接推的報告只存在一個地方；接受這件事，不要再提議加
+  `backup/` 前綴或任何版本保留機制。
+  - 兩件事不要混為一談：`config/groups.json` 弄壞了確實不痛（重跑一次哨兵值
+    輪替、全組 rotate 就好，內容本來就是可再生的），但**報告被覆寫或刪掉是
+    真的沒了**，rotate 救不回來。已知且接受的取捨。
+  - 實務上的意思：推之前確認 slug 沒打錯，重要的報告在本機留一份。
 
 ## 開發這支 Worker 本身
 
