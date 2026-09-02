@@ -198,6 +198,7 @@ describe('寫入（write token）', () => {
 
   it('樣式指紋會被存下來、列表看得到、重推沒帶就清掉', async () => {
     const withFp = `<!doctype html><meta charset="utf-8">
+      <style>/* imitator report chassis */ @media (prefers-color-scheme: dark){:root{--x:1}}</style>
       <meta name="imitator-style" content="v3">
       <meta name="imitator-register" content="工單 — 一張開了三週才結案的維修單">
       <meta name="imitator-reference" content="1978 年科學月刊內頁">

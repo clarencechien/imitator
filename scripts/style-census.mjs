@@ -4,7 +4,10 @@
 //   IMITATOR_TOKEN=imi_... node scripts/style-census.mjs            # 全部
 //   IMITATOR_TOKEN=imi_... node scripts/style-census.mjs --recent 3 # 最近 3 份的色相，貼進 RECENT: 用
 //
-// 這是 style/STYLE.md 「RECENT」那一步的工具，也是日後整理個人偏好的材料。
+//   IMITATOR_TOKEN=imi_... node scripts/style-census.mjs --audit          # 哪一條最常被漏掉
+//
+// 這是 style/STYLE.md 「RECENT」那一步的工具、稽核結果的統計，也是日後整理個人
+// 偏好的材料。
 // 只用 Node 內建模組。
 
 const base = (process.env.IMITATOR_BASE ?? 'https://imitator.ai-apps.work').replace(/\/$/, '');
@@ -16,6 +19,7 @@ if (args.includes('--help') || args.includes('-h')) {
 
 列出站上每一份報告的樣式指紋（版本、紙色、重點色、語域、參照物）。
   --recent N   只看最近 N 份有指紋的（預設 3），輸出成可以貼進 RECENT: 的一行
+  --audit      統計稽核結果：哪一條最常被漏掉、各版本各幾份
   --json       原始 JSON`);
   process.exit(0);
 }
@@ -49,6 +53,24 @@ if (n !== -1) {
   const accents = recent.map((r) => hue(r.style.accent)).filter((x) => x !== null);
   console.log(`RECENT: paper ${papers.map((h) => h + '°').join(' ') || '—'} · accent ${accents.map((h) => h + '°').join(' ') || '—'}`);
   for (const r of recent) console.log(`  ${(r.updatedAt ?? '').slice(0, 10)}  ${r.slug.padEnd(28)} ${r.style.register ?? ''}`);
+  process.exit(0);
+}
+
+if (args.includes('--audit')) {
+  const tally = new Map();
+  for (const r of withFp) for (const c of r.style.checks ?? []) tally.set(c, (tally.get(c) ?? 0) + 1);
+  const clean = withFp.filter((r) => !(r.style.checks ?? []).length).length;
+  console.log(`${rows.length} 份，${withFp.length} 份有指紋，其中 ${clean} 份完全乾淨\n`);
+  if (!tally.size) console.log('  沒有任何一條被觸發。');
+  for (const [code, n] of [...tally].sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${String(n).padStart(3)} 份  ${code}`);
+    for (const r of withFp.filter((x) => (x.style.checks ?? []).includes(code)).slice(0, 5)) {
+      console.log(`         ${r.slug}`);
+    }
+  }
+  const byVersion = new Map();
+  for (const r of withFp) byVersion.set(r.style.v, (byVersion.get(r.style.v) ?? 0) + 1);
+  console.log('\n  版本分布:', [...byVersion].map(([v, n]) => `${v}×${n}`).join(' ') || '—');
   process.exit(0);
 }
 

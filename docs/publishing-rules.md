@@ -127,7 +127,22 @@ in the `PUT` response as `style`, and returns a compact copy (`v`, `paper`, `acc
 `style: null` in a row means the report carried no fingerprint.
 
 A field that fails its format is dropped and the rest kept; without `imitator-style`
-there is no fingerprint at all. Re-uploading a body without the tags clears the stored
+there is no fingerprint at all.
+
+**A report that carries a fingerprint is also audited** — statically, cheaply, and never
+fatally. Four things are checked, each one a defect seen in a real report:
+
+| code | what it means |
+|---|---|
+| `no-chassis` | claims a version but `report.css` is not in the page |
+| `single-colour-scheme` | no dark-mode values declared |
+| `bare-fr-grid-track` | a `grid-template-columns` with a bare `fr`; min-content can widen it past the viewport |
+| `heavy-inline-image` | an inlined `data:` image over 400 KB |
+
+Failures come back as `warnings` on the `PUT` **and are stored** in the fingerprint as
+`checks`, so `scripts/style-census.mjs --audit` can answer "which rule is missed most
+often" across the whole archive. A report with **no** fingerprint is not audited at all —
+it never claimed to follow the guide, and adoption is already countable from `style: null`. Re-uploading a body without the tags clears the stored
 fingerprint — it describes the body, and the body changed.
 
 Why it exists: so the next report can see what was published last and choose a paper and

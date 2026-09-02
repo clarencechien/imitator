@@ -4,7 +4,7 @@
 
 import { SECURITY_HEADERS, apiError, json, notFound } from './http.js';
 import { inspectBody } from './policy.js';
-import { extractFingerprint } from './fingerprint.js';
+import { auditStyle, extractFingerprint } from './fingerprint.js';
 
 export const SLUG_RE = /^[a-z0-9-]{1,64}$/;
 export const MAX_BYTES = 25 * 1024 * 1024; // spec §6.4
@@ -205,16 +205,23 @@ export async function putArtifact(request, env, slug, gid) {
   // 樣式指紋：有就存、沒有就沒有。重推一份沒帶指紋的內容會把舊指紋清掉 ——
   // 指紋描述的是 body，body 換了它就不再成立。
   const style = inspection.html ? extractFingerprint(inspection.html) : null;
+  // 稽核只在有掃到內文時做（超過 2 MB 的 body 連內容檢查都跳過了）。
+  const audit = inspection.html ? auditStyle(inspection.html, style) : { codes: [], warnings: [] };
+  // 稽核結果跟指紋存在一起 —— 要回答「哪一條最常被漏掉」，資料得留在站上，
+  // 不能只回給那個讀完就消失的 agent。
+  const styleRecord = style
+    ? { ...style, ...(audit.codes.length ? { checks: audit.codes } : {}) }
+    : null;
 
   await env.R2_BUCKET.put(objectKey(slug), body, {
     httpMetadata: { contentType: 'text/html; charset=utf-8' },
     customMetadata: {
       visibility, owner, title, createdAt, updatedAt: timestamp, sandbox,
-      ...(style ? { style: JSON.stringify(style) } : {}),
+      ...(styleRecord ? { style: JSON.stringify(styleRecord) } : {}),
     },
   });
 
-  const entry = { visibility, owner, title, updatedAt: timestamp, ...(style ? { style } : {}) };
+  const entry = { visibility, owner, title, updatedAt: timestamp, ...(styleRecord ? { style: styleRecord } : {}) };
   // 同時寫進 value 與 metadata：portal 列表只需要一次 list()，不必逐筆 get()。
   // KV metadata 上限 1024 bytes，而 title 最長可以到 600 bytes —— 指紋放精簡版，
   // 還是塞不下就整個拿掉（value 裡仍是完整的）。
@@ -231,8 +238,10 @@ export async function putArtifact(request, env, slug, gid) {
     owner,
     sandbox,
     updatedAt: timestamp,
-    ...(style ? { style } : {}),
-    ...(inspection.warnings.length ? { warnings: inspection.warnings } : {}),
+    ...(styleRecord ? { style: styleRecord } : {}),
+    ...(inspection.warnings.length || audit.warnings.length
+      ? { warnings: [...inspection.warnings, ...audit.warnings] }
+      : {}),
   });
 }
 
@@ -278,6 +287,7 @@ function compactStyle(style) {
   if (style.accent) out.accent = style.accent;
   if (style.register) out.register = cut(style.register, 24);
   if (style.reference) out.reference = cut(style.reference, 24);
+  if (style.checks?.length) out.checks = style.checks;
   return out;
 }
 

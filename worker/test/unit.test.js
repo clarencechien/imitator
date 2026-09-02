@@ -146,3 +146,55 @@ describe('樣式指紋', () => {
     expect(fp).toEqual({ style: 'v3' });
   });
 });
+
+import { auditStyle } from '../src/fingerprint.js';
+
+describe('樣式稽核', () => {
+  const fp = { style: 'v3' };
+  const good = `<style>/* imitator report chassis */
+    @media (prefers-color-scheme: dark){:root{--paper:#111}}
+    .cols{grid-template-columns:repeat(auto-fit,minmax(min(100%,19rem),1fr))}</style>`;
+
+  it('照做的報告沒有任何 warning', () => {
+    expect(auditStyle(good, fp)).toEqual({ codes: [], warnings: [] });
+  });
+
+  it('沒有指紋就完全不稽核 —— 舊報告與隨手推的東西不該被念', () => {
+    expect(auditStyle('<p>plain</p>', null)).toEqual({ codes: [], warnings: [] });
+  });
+
+  it('宣稱 v3 卻沒貼底盤、沒有深色', () => {
+    const { codes } = auditStyle('<style>:root{--paper:#fff}</style>', fp);
+    expect(codes).toEqual(['no-chassis', 'single-colour-scheme']);
+  });
+
+  it('[data-theme="dark"] 也算有深色', () => {
+    expect(auditStyle(`<style>/* imitator report chassis */ :root[data-theme="dark"]{--x:1}</style>`, fp).codes).toEqual([]);
+  });
+
+  it('裸的 fr track 會被抓到，minmax 包起來的不會', () => {
+    const bare = `${good}<style>.lane{grid-template-columns:1fr 1fr}</style>`;
+    expect(auditStyle(bare, fp).codes).toContain('bare-fr-grid-track');
+    const nested = `${good}<style>.a{grid-template-columns:repeat(2,minmax(min(100%,10rem),1fr))}</style>`;
+    expect(auditStyle(nested, fp).codes).not.toContain('bare-fr-grid-track');
+    const zero = `${good}<style>.b{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}</style>`;
+    expect(auditStyle(zero, fp).codes).not.toContain('bare-fr-grid-track');
+  });
+
+  it('大的內聯圖回報一次，小的不管', () => {
+    const heavy = `${good}<img src="data:image/png;base64,${'A'.repeat(600 * 1024)}">`;
+    const w = auditStyle(heavy, fp);
+    expect(w.codes).toEqual(['heavy-inline-image']);
+    expect(w.warnings[0].reason).toMatch(/about \d+ KB/);
+    const light = `${good}<img src="data:image/png;base64,${'A'.repeat(1024)}">`;
+    expect(auditStyle(light, fp).codes).toEqual([]);
+  });
+
+  it('每一條 warning 都有 code、原因與修法', () => {
+    for (const w of auditStyle('<p>x</p>', fp).warnings) {
+      expect(w.code).toBeTruthy();
+      expect(w.reason.length).toBeGreaterThan(20);
+      expect(w.fix.length).toBeGreaterThan(20);
+    }
+  });
+});
