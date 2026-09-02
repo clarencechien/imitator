@@ -33,8 +33,9 @@ Workers → imitator → Settings → Build 底下有**兩個長得很像、但�
 
 | 欄位 | 值 | 意義 |
 |---|---|---|
-| **Root directory** | `worker` | build 在哪個目錄裡跑。**不能有萬用字元** —— 填 `worker/*` 會找不到目錄，build 當場失敗 |
-| **Build watch paths → Include paths** | `worker/*` | 哪些路徑的改動要觸發 build。相對於 repo 根目錄，萬用字元就是用在這裡 |
+| **Root directory** | `worker/` | build 在哪個目錄裡跑。**不能有萬用字元** —— 填 `worker/*` 會找不到目錄，build 當場失敗 |
+| **Build watch paths → Include paths** | `worker/*` | 只有這些路徑的改動要觸發 build。相對於 repo 根目錄 |
+| **Build watch paths → Exclude paths** | **留空** | 放 `worker/*` 進來的意思是「Worker 的改動不要 build」，正好相反 |
 
 > ⚠️ 這兩個填反或填混的失敗方式很惡劣：**站台繼續用舊版本正常服務**，從外面
 > 完全看不出來，你只會覺得「改的東西怎麼沒生效」。真的懷疑的時候就打一個
