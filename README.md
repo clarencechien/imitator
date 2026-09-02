@@ -25,6 +25,7 @@ link／token，先前發出的一律失效。
 | `scripts/migrate.mjs` | 把 `archive/report/*.html` 一次推上去的遷移腳本 |
 | `scripts/verify.mjs` | 遷移後逐份比對內容、sandbox 與時間戳 |
 | `scripts/inline-cdn.mjs` | 把 runtime 抓的第三方 script 換成內聯快照（無相依套件）|
+| `scripts/style-census.mjs` | 列出每份報告的樣式指紋；`--recent 8` 給下一份報告避開最近用過的顏色 |
 | `style/` | 報告的底盤與風格指引 —— 固定可讀性與 RWD，其餘交給每一篇自己決定。[怎麼用](style/README.md) |
 | `inbox/` | 丟一個 HTML 進來 commit 到 main 就會自動發佈成 public，手機也能用。[怎麼用](inbox/README.md) |
 | `scripts/publish-inbox.mjs` | 上面那條路的實作，由 `.github/workflows/publish-inbox.yml` 觸發 |

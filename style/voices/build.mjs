@@ -14,11 +14,15 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const chassis = await readFile(path.join(here, '..', 'report.css'), 'utf8');
 
-const head = (title, fonts) => `<!doctype html>
+const head = (title, fonts, fp) => `<!doctype html>
 <html lang="zh-Hant">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="imitator-style" content="v2">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="${fp.register}">
+<meta name="imitator-reference" content="${fp.reference}">
+<meta name="imitator-paper" content="${fp.paper}">
+<meta name="imitator-accent" content="${fp.accent}">
 <title>${title}</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">`;
@@ -42,6 +46,7 @@ const voices = [];
 /* ══ 1. 史詩 · 敘事 ═══════════════════════════════════════════════════════ */
 voices.push({
   file: 'epic.html',
+  fp: { register: '史詩 — 一個 1973 年的構想如何在五十年後變成三行設定', reference: '1970 年代劇場節目單（playbill）— 幕數、演員表、酒紅的幕布', paper: 'hsl(42 50% 96%)', accent: 'hsl(351 60% 34%)' },
   title: '演員登台 — 聲音樣張：史詩',
   fonts: 'family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;500',
   css: `
@@ -99,6 +104,7 @@ await db.put(\`usage:\${user}\`, used + seconds);</code></pre>
 /* ══ 2. 論證 · 架構筆記 ══════════════════════════════════════════════════ */
 voices.push({
   file: 'argument.html',
+  fp: { register: '論證 — 五層詞彙裡的一個常見誤讀，以及一條可以直接抄的規則', reference: 'IBM 1980 年代技術手冊的內頁 — 壓縮體標題、編號章節、灰綠的紙', paper: 'hsl(70 12% 91%)', accent: 'hsl(6 59% 41%)' },
   title: '第一百次，要比第一次聰明 — 聲音樣張：論證',
   fonts: 'family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500',
   css: `
@@ -158,6 +164,7 @@ ${themeBtnCss}`,
 /* ══ 3. 綜述 · 研究 ══════════════════════════════════════════════════════ */
 voices.push({
   file: 'digest.html',
+  fp: { register: '綜述 — 把流傳的說法對照實證研究，收攏成一個自洽的圖像', reference: '實驗室的方格記錄本 — 一頁一個發現、綠是量到的、橘是以為的', paper: 'hsl(60 20% 98%)', accent: 'hsl(154 55% 27%)' },
   title: '同一個工具，為什麼結果差這麼多 — 聲音樣張：綜述',
   fonts: 'family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&family=IBM+Plex+Mono:wght@400;500',
   css: `
@@ -226,6 +233,7 @@ ${themeBtnCss}`,
 /* ══ 4. 驗屍 · 實證 ══════════════════════════════════════════════════════ */
 voices.push({
   file: 'autopsy.html',
+  fp: { register: '驗屍 — 拿 231 萬筆資料檢驗三個最流行的散戶戰法', reference: '法醫報告的表單 — 檔案欄、編號所見、一枚結論章', paper: 'hsl(42 62% 96%)', accent: 'hsl(3 71% 41%)' },
   title: '你聽過的台股必勝法，為什麼都經不起檢驗 — 聲音樣張：驗屍',
   fonts: 'family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&family=IBM+Plex+Mono:wght@400;500',
   css: `
@@ -288,6 +296,7 @@ ${themeBtnCss}`,
 /* ══ 5. 深夜 · 數據敘事 ══════════════════════════════════════════════════ */
 voices.push({
   file: 'night.html',
+  fp: { register: '深夜 — 一個大數字，和它背後的三個故事', reference: '天文台觀測日誌 — 深藍的夜、一盞燈的黃、頁碼', paper: 'hsl(219 51% 12%)', accent: 'hsl(39 73% 55%)' },
   title: '房價，真的是那盞熄掉的燈嗎 — 聲音樣張：深夜',
   fonts: 'family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@700&family=IBM+Plex+Mono:wght@400;500',
   css: `
@@ -344,6 +353,7 @@ ${themeBtnCss}`,
 /* ══ 6. 手帖 · 指南 ══════════════════════════════════════════════════════ */
 voices.push({
   file: 'fieldguide.html',
+  fp: { register: '手帖 — 給第一次去釜山的台灣人的一頁指南', reference: '1960 年代旅遊海報與 JTB 手帖 — 色條、粗重的拉丁大字、速查表', paper: 'hsl(40 100% 97%)', accent: 'hsl(4 56% 51%)' },
   title: '釜山旅遊書 — 聲音樣張：手帖',
   fonts: 'family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500',
   css: `
@@ -411,7 +421,7 @@ ${themeBtnCss}`,
 });
 
 for (const v of voices) {
-  const html = `${head(v.title, v.fonts)}
+  const html = `${head(v.title, v.fonts, v.fp)}
 <style>
 ${chassis}
 ${v.css}

@@ -1,5 +1,7 @@
 # Writing a report for imitator
 
+**Guide version: v3.** The fingerprint you leave in the file must say `v3`.
+
 You are producing **one self-contained HTML file**. Read this before you write a line of it.
 
 Fetch the chassis and paste it in:
@@ -31,31 +33,54 @@ register in your own words, and derive the voice from it.**
 
 ```html
 <style>
-/* REGISTER: 驗屍 — 用 231 萬筆資料檢驗三個流行說法，讀者是準備進場的散戶。
-   PAPER:    解剖室的紀錄紙 — 奶油色，hsl(42 30% 96%)。
-   VOICE:    驗屍紅只給裁決用、宋體標題、等寬體的檔案欄。
-   NOT:      儀表板。沒有互動元件，數字是證據不是裝飾。 */
+/* REGISTER:  驗屍 — 用 231 萬筆資料檢驗三個流行說法，讀者是準備進場的散戶。
+   REFERENCE: 1990 年代法醫學教科書的病例頁 — 表格化的檔案欄、編號的所見、一枚結論章。
+   PAPER:     解剖室的紀錄紙 — 奶油色，hsl(42 30% 96%)。
+   VOICE:     驗屍紅只給裁決用、宋體標題、等寬體的檔案欄。
+   NOT:       儀表板。沒有互動元件，數字是證據不是裝飾。
+   RECENT:    paper 352° 62° 76° · accent 218° 220° 250° — 42° 與 4° 都離得夠遠，不用改。 */
 ```
 
+The order of those lines is the order you work in. REFERENCE and PAPER come from the
+content. RECENT comes **last**, and it is a check, not a search.
+
 If the register you wrote could describe half the reports in the archive, it is too
-generic — go again. The registers that actually occur, measured across the 275 reports
-already on the host, and a specimen for each:
+generic — go again.
 
-| Register | What it is | Where the voice tends to come from | Look at |
-|---|---|---|---|
-| **史詩** epic | a history, a person, an interview, an idea traced through time | warm paper, a serif display face, acts as signposts, a pulled line per act | `voices/epic.html` · live: `/r/actor` `/r/uncle-bob` |
-| **論證** argument | an architecture, a method, a choice defended | cool paper, a condensed display face, numbered chapters, a glossary table, one word in red | `voices/argument.html` · `/r/agent-arch-2` `/r/loop-engineering` |
-| **綜述** digest | research gathered and weighed, myths tested | plain paper with a faint grid, a boxed core finding, a second accent *only* because the argument has two sides | `voices/digest.html` · `/r/ai-amp-or-mir` |
-| **驗屍** autopsy | a popular claim checked against data | cream paper, a dossier strip, a verdict stamp, an annotated curve | `voices/autopsy.html` · `/r/tw-stock-winner` `/r/cb_story` |
-| **深夜** night | one large number and what sits behind it | dark-first, a single warm accent, a waffle or a hero figure, page counters | `voices/night.html` · `/r/birthrate-vs-housing` |
-| **手帖** field guide | travel, a purchase, a checklist for a first time | bright paper, a colour bar, quick-fact tiles, numbered prep cards, a Latin display word | `voices/fieldguide.html` · `/r/busan_v2` `/r/forties` |
-| **手冊** manual | a tool or document explained for use | a contents rail, split panes, mono labels, no hero | `/r/session-connectivity` `/r/kasanemu` |
-| **壓力測試** stress test | one household or portfolio run through scenarios | parameter chips, a four-line TL;DR, numbered outcome cards | `/r/bysq_report_tw_case` `/r/four-percent-rule` |
+### REFERENCE — a real printed object, named
 
-Two things about that table. The third column is a *direction*, not a value — it tells you
-what the register usually wants, so that your paper, accent and face are an answer to the
-content rather than a default. And the specimens are **six different answers, not a menu**:
-their exact palettes are on the reject list below.
+A model's taste is the mean of everything it has seen. Words like "warm" or "restrained"
+point at that mean. A **named object** points at one place in the distribution instead:
+*1978 年《科學月刊》的內頁* is a specific thing with a specific paper, face, column and
+signposting; "a science magazine" is not. So name one — publication or document type,
+era, and which page — and derive faces, paper, devices from it. It goes in the
+`imitator-reference` meta so the choice is on record. Not a website, not a brand, not
+another report on this host.
+
+### RECENT — check against what was published last
+
+Divergence is a property of the archive, not of one report, so the last few reports are
+worth a look. Fetch their fingerprints:
+
+```bash
+IMITATOR_TOKEN=$IMITATOR_TOKEN node scripts/style-census.mjs --recent 3
+# → RECENT: paper 352° 62° 76° · accent 218° 220° 250°
+```
+
+(`scripts/style-census.mjs` is in the imitator repo, Node built-ins only; or call
+`GET /v1/a` with the token and read each row's `style.paper` / `style.accent`.)
+
+**Do this after REFERENCE and PAPER, never before.** If your material-derived paper hue is
+within 15° of one of the last three papers, or your accent within 25° of one of the last
+three accents, go back and choose a **different material** — do not nudge the hue. Write
+the hues you checked against in the `RECENT:` line either way. No token or no network:
+`RECENT: unavailable`.
+
+Why the order matters, measured: when this step ran *first* with eight recent hues to
+avoid, four reports from four unrelated sources all found the same unoccupied stretch of
+the wheel (128°–150°), then reverse-engineered a material to justify it — four kinds of
+green ledger paper. A hue chosen from the gaps is a shared optimum; a hue derived from the
+material is not. The check exists to catch a collision, not to steer.
 
 ## The floor — true in every report, whatever the voice
 
@@ -71,15 +96,25 @@ their exact palettes are on the reject list below.
 5. **Both colour schemes.** If you override the light tokens you override the dark ones
    too, with values chosen for a dark surface — never an inversion.
 6. **Nothing scrolls the page sideways**, at 375px or at 1440px.
-7. Open with:
+7. Open with the fingerprint — all five, inside the first 8 KB, before `<title>`:
    ```html
    <!doctype html>
    <html lang="zh-Hant">
    <meta charset="utf-8">
    <meta name="viewport" content="width=device-width, initial-scale=1">
-   <meta name="imitator-style" content="v2">
+   <meta name="imitator-style" content="v3">
+   <meta name="imitator-register" content="驗屍 — 用 231 萬筆資料檢驗三個流行說法">
+   <meta name="imitator-reference" content="1990 年代法醫學教科書的病例頁">
+   <meta name="imitator-paper" content="hsl(42 30% 96%)">
+   <meta name="imitator-accent" content="hsl(4 62% 41%)">
    <title>…</title>
    ```
+   The host stores these with the artifact and returns them in the `/v1/a` listing. That is
+   what makes the `RECENT:` step possible for the next report, what tells anyone reading the
+   file which version of this guide it followed, and what the archive's taste profile is
+   later built from. `paper` and `accent` must be `hsl()` (or a hex); the rest is free text,
+   register ≤ 120 characters, reference ≤ 160. A malformed field is dropped silently — the
+   host never rejects a report over its fingerprint.
 
 ## Setup
 
@@ -322,6 +357,9 @@ Look at your own output, at these four settings, and fix what breaks:
 2. **1440px wide.** The text column has not sprawled; figures use the width, prose does not.
 3. **Dark mode.** Every colour you chose, not an inversion. Nothing disappears.
 4. **Reduced motion / print.** Nothing is missing that was only visible after an animation.
+
+Check the five `imitator-*` metas are present and agree with the CSS: the paper in the
+meta is the paper in `:root`, the register in the meta is the register in the comment.
 
 Read your `--paper` back as `hsl()`. If its saturation is under 6%, or its hue is between
 190 and 230 without the comment saying why, you picked the default and called it a choice.

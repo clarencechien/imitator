@@ -31,8 +31,9 @@ function thirdPartyHosts(html) {
  *
  * @param {ArrayBuffer} body
  * @param {'on'|'off'} sandbox 這次寫入生效的 sandbox 設定
- * @returns {{error?: object, warnings: object[]}}
+ * @returns {{error?: object, warnings: object[], html?: string}}
  *   error 有值代表要擋下來（400）；warnings 會附在 200 的回應裡。
+ *   html 是解碼後的內文（超過掃描上限時沒有）—— 給後面抽指紋用，省一次解碼。
  */
 export function inspectBody(body, sandbox) {
   const warnings = [];
@@ -63,7 +64,7 @@ export function inspectBody(body, sandbox) {
         },
       };
     }
-    return { warnings };
+    return { warnings, html };
   }
 
   if (STORAGE_API.test(html)) {
@@ -75,5 +76,5 @@ export function inspectBody(body, sandbox) {
     });
   }
 
-  return { warnings };
+  return { warnings, html };
 }

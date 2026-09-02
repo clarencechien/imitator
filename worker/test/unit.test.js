@@ -99,3 +99,50 @@ describe('header 的 UTF-8 還原', () => {
     expect(decodeHeaderValue('Quarterly Report')).toBe('Quarterly Report');
   });
 });
+
+import { extractFingerprint } from '../src/fingerprint.js';
+
+describe('樣式指紋', () => {
+  const head = (metas) => `<!doctype html><html><meta charset="utf-8">${metas}<title>t</title><body></body></html>`;
+
+  it('抽出全部欄位', () => {
+    const fp = extractFingerprint(head(`
+      <meta name="imitator-style" content="v3">
+      <meta name="imitator-register" content="工單 — 三名共犯、沒有主嫌">
+      <meta name="imitator-reference" content="1978 年科學月刊內頁">
+      <meta name="imitator-paper" content="hsl(352 26% 95%)">
+      <meta name="imitator-accent" content="#0a6265">
+      <meta name="imitator-generator" content="claude-opus-5">`));
+    expect(fp).toEqual({
+      style: 'v3', register: '工單 — 三名共犯、沒有主嫌', reference: '1978 年科學月刊內頁',
+      paper: 'hsl(352 26% 95%)', accent: '#0a6265', generator: 'claude-opus-5',
+    });
+  });
+
+  it('沒有版本號就當作沒有指紋', () => {
+    expect(extractFingerprint(head(`<meta name="imitator-paper" content="hsl(1 2% 3%)">`))).toBeNull();
+  });
+
+  it('顏色格式不對的欄位被丟掉，其他保留', () => {
+    const fp = extractFingerprint(head(`<meta name="imitator-style" content="v3"><meta name="imitator-paper" content="warm cream">`));
+    expect(fp).toEqual({ style: 'v3' });
+  });
+
+  it('屬性順序顛倒、單引號、entity 都認得；重複以第一個為準', () => {
+    const fp = extractFingerprint(head(`
+      <meta content='v3' name='imitator-style'>
+      <meta name="imitator-register" content="A &amp; B">
+      <meta name="imitator-register" content="second">`));
+    expect(fp).toEqual({ style: 'v3', register: 'A & B' });
+  });
+
+  it('只掃前 8 KB —— 指紋規定要在最前面', () => {
+    const pad = '<!-- ' + 'x'.repeat(9000) + ' -->';
+    expect(extractFingerprint(head(pad + `<meta name="imitator-style" content="v3">`))).toBeNull();
+  });
+
+  it('太長的值被丟掉', () => {
+    const fp = extractFingerprint(head(`<meta name="imitator-style" content="v3"><meta name="imitator-register" content="${'長'.repeat(121)}">`));
+    expect(fp).toEqual({ style: 'v3' });
+  });
+});

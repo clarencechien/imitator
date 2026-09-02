@@ -107,7 +107,35 @@ prompt:
   of what a report here should be:
   <https://github.com/clarencechien/imitator/blob/main/style/STYLE.md>
 
-## 4. Everything else
+## 4. The style fingerprint
+
+**Optional. Never rejected.** A report written to
+[`style/STYLE.md`](../style/STYLE.md) carries five `<meta name="imitator-*">` tags in
+its first 8 KB:
+
+| meta | content |
+|---|---|
+| `imitator-style` | guide version, `v3` |
+| `imitator-register` | what kind of piece this is, ≤ 120 chars |
+| `imitator-reference` | the real printed object it was modelled on, ≤ 160 chars |
+| `imitator-paper` | `hsl(h s% l%)` or `#rrggbb` |
+| `imitator-accent` | `hsl(h s% l%)` or `#rrggbb` |
+
+The host extracts them on `PUT`, keeps the full set in the object's metadata, echoes it
+in the `PUT` response as `style`, and returns a compact copy (`v`, `paper`, `accent`,
+`register` and `reference` cut to 24 characters) in every row of the `/v1/a` listing.
+`style: null` in a row means the report carried no fingerprint.
+
+A field that fails its format is dropped and the rest kept; without `imitator-style`
+there is no fingerprint at all. Re-uploading a body without the tags clears the stored
+fingerprint — it describes the body, and the body changed.
+
+Why it exists: so the next report can see what was published last and choose a paper and
+accent away from it (`STYLE.md`, the `RECENT:` step); so anyone reading a file later knows
+which version of the guide it followed; and so the archive accumulates, per report, what
+was chosen — the raw material for a taste profile that is not the model's average.
+
+## 5. Everything else
 
 | | |
 |---|---|
