@@ -36,6 +36,19 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
 
 上限 25 MB。
 
+## 設定（只需要做一次）
+
+1. **repo secret**：Settings → Secrets and variables → Actions → New repository
+   secret，名稱 `IMITATOR_TOKEN`。可以直接用你 CLI 在用的那個 token。
+2. **Build watch paths**：Cloudflare → Workers → imitator → Settings → Build →
+   Build watch paths，includes 設成 `worker/*`。這支 Action 會 commit 回 main，
+   不設的話每發佈一份報告就會多觸發一次 Worker 部署。
+
+日後如果要給這條路一個專用的 token（外洩時可以只撤銷它、不影響你的 CLI），
+在 `config/groups.json` 加一個 group 再把它的 token 換進 secret 即可 —— 但
+**加第二個 group 之前**要先把既有 artifact 的 `owner` 補完，見
+`worker/README.md`。
+
 ## 撤下來要手動
 
 這條路只負責發佈。要刪掉一份報告：
