@@ -93,6 +93,14 @@ async function upload(slug, title, body, sandbox) {
       continue;
     }
     const text = await res.text();
+    // 403 = 這個 slug 屬於別的 group（owner 擋下）。重試沒有用，訊息要能讓人
+    // 直接知道發生什麼事：inbox 用的 token 跟當初發佈那個 slug 的不是同一個。
+    if (res.status === 403) {
+      throw new Error(
+        `slug "${slug}" 屬於別的 group —— inbox 用的 token 不是當初發佈它的那個。` +
+          '換檔名發成新的一份，或改用原本那個 token 從 CLI 更新。',
+      );
+    }
     // Cloudflare 的挑戰頁。GitHub 的 runner 走資料中心 IP、UA 是 node，會被
     // Bot Fight Mode 判成自動化流量 —— 而 BFM 跑在 Ruleset Engine 之外，
     // WAF custom rule 的 Skip 對它無效，只能整個關掉。見 inbox/README.md。

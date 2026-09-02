@@ -29,6 +29,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # @v4 是可變的 tag —— 這個 action 被入侵的話，每一次執行都會把 secret 送出去。
+      # 要更嚴的話把它釘在 commit SHA：
+      #   gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha
+      # 然後寫成 actions/checkout@<sha>  # v4.x.x
       - uses: actions/checkout@v4
 
       - name: Publish to imitator
@@ -37,7 +41,11 @@ jobs:
           IMITATOR_TOKEN: ${{ secrets.IMITATOR_TOKEN }}
         run: node scripts/publish-inbox.mjs
 
+      # 就算上一步有檔案失敗也要跑：成功的那些已經在 runner 上被搬走了，
+      # 這一步被跳過的話它們會隨著 workspace 一起消失，然後在 inbox/ 裡復活、
+      # 每一次執行都重推一遍，而 workflow 會一直紅著。
       - name: Move published files into archive
+        if: ${{ !cancelled() }}
         run: |
           set -euo pipefail
           if [ -z "$(git status --porcelain)" ]; then

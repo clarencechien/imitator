@@ -198,7 +198,7 @@ export async function putArtifact(request, env, slug, gid) {
     customMetadata: { visibility, owner, title, createdAt, updatedAt: timestamp, sandbox },
   });
 
-  const entry = { visibility, title, updatedAt: timestamp };
+  const entry = { visibility, owner, title, updatedAt: timestamp };
   // 同時寫進 value 與 metadata：portal 列表只需要一次 list()，不必逐筆 get()。
   await env.KV_INDEX.put(indexKey(slug), JSON.stringify(entry), { metadata: entry });
   await purge(request, slug);
@@ -220,7 +220,22 @@ export async function putArtifact(request, env, slug, gid) {
 export async function deleteArtifact(request, env, slug, gid) {
   const existing = await env.R2_BUCKET.head(objectKey(slug));
   if (!existing) {
+    // 物件不在，順手清掉殘留的索引 —— 但這是這裡唯一一個不需要授權就能碰到
+    // 別人 slug 的寫入動作。跟 putArtifact 的 R2 put 與 KV put 之間那一小段
+    // 空隙賽跑，就能把剛建好的東西從 portal 與列表裡抹掉。清完再看一次，
+    // 東西回來了就把索引補回去。
     await env.KV_INDEX.delete(indexKey(slug));
+    const reappeared = await env.R2_BUCKET.head(objectKey(slug));
+    if (reappeared) {
+      const m = reappeared.customMetadata ?? {};
+      const entry = {
+        visibility: m.visibility,
+        owner: m.owner,
+        title: m.title,
+        updatedAt: m.updatedAt,
+      };
+      await env.KV_INDEX.put(indexKey(slug), JSON.stringify(entry), { metadata: entry });
+    }
     return notFound();
   }
   if (!canWrite(existing.customMetadata, gid)) return notFound();
@@ -248,6 +263,8 @@ export async function listArtifacts(env, gid) {
         slug,
         title: meta.title || slug,
         visibility: meta.visibility,
+        // owner 沒有就是還沒被 backfill 到 —— 這是唯一唯讀查得到的地方。
+        owner: meta.owner ?? null,
         updatedAt: meta.updatedAt ?? null,
       });
     }
