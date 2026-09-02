@@ -5,6 +5,7 @@ You are producing **one self-contained HTML file**. Read this before you write a
 Fetch the chassis and paste it in:
 `https://raw.githubusercontent.com/clarencechien/imitator/main/style/report.css`
 Worked example: `https://raw.githubusercontent.com/clarencechien/imitator/main/style/mockup.html`
+Six registers, six specimens: `https://github.com/clarencechien/imitator/tree/main/style/voices`
 
 ## What these reports are
 
@@ -21,6 +22,39 @@ generic AI output with different words in it.
 So: the chassis fixes readability, structure, responsiveness and motion hygiene. **Colour,
 typeface, scale, signposting and editorial devices are yours to choose for this piece.**
 Choose them deliberately, from the content — then commit.
+
+## Step 0 — name the register before you write a single rule
+
+Left to itself, a model given freedom converges on the same page every time. The way out
+is a forced intermediate step: **before any CSS, write a comment that names this piece's
+register in your own words, and derive the voice from it.**
+
+```html
+<style>
+/* REGISTER: 驗屍 — 用 231 萬筆資料檢驗三個流行說法，讀者是準備進場的散戶。
+   VOICE: 解剖檯。奶油紙、驗屍紅只給裁決用、宋體標題、等寬體的檔案欄。
+   NOT: 儀表板。沒有互動元件，數字是證據不是裝飾。 */
+```
+
+If the register you wrote could describe half the reports in the archive, it is too
+generic — go again. The registers that actually occur, measured across the 275 reports
+already on the host, and a specimen for each:
+
+| Register | What it is | Where the voice tends to come from | Look at |
+|---|---|---|---|
+| **史詩** epic | a history, a person, an interview, an idea traced through time | warm paper, a serif display face, acts as signposts, a pulled line per act | `voices/epic.html` · live: `/r/actor` `/r/uncle-bob` |
+| **論證** argument | an architecture, a method, a choice defended | cool paper, a condensed display face, numbered chapters, a glossary table, one word in red | `voices/argument.html` · `/r/agent-arch-2` `/r/loop-engineering` |
+| **綜述** digest | research gathered and weighed, myths tested | plain paper with a faint grid, a boxed core finding, a second accent *only* because the argument has two sides | `voices/digest.html` · `/r/ai-amp-or-mir` |
+| **驗屍** autopsy | a popular claim checked against data | cream paper, a dossier strip, a verdict stamp, an annotated curve | `voices/autopsy.html` · `/r/tw-stock-winner` `/r/cb_story` |
+| **深夜** night | one large number and what sits behind it | dark-first, a single warm accent, a waffle or a hero figure, page counters | `voices/night.html` · `/r/birthrate-vs-housing` |
+| **手帖** field guide | travel, a purchase, a checklist for a first time | bright paper, a colour bar, quick-fact tiles, numbered prep cards, a Latin display word | `voices/fieldguide.html` · `/r/busan_v2` `/r/forties` |
+| **手冊** manual | a tool or document explained for use | a contents rail, split panes, mono labels, no hero | `/r/session-connectivity` `/r/kasanemu` |
+| **壓力測試** stress test | one household or portfolio run through scenarios | parameter chips, a four-line TL;DR, numbered outcome cards | `/r/bysq_report_tw_case` `/r/four-percent-rule` |
+
+Two things about that table. The third column is a *direction*, not a value — it tells you
+what the register usually wants, so that your paper, accent and face are an answer to the
+content rather than a default. And the specimens are **six different answers, not a menu**:
+their exact palettes are on the reject list below.
 
 ## The floor — true in every report, whatever the voice
 
@@ -73,8 +107,10 @@ Pick **paper, ink and one accent**, and name them after what they are in this pi
 `--curtain` for the red of a theatre, `--slate` for a technical grey. The naming is not
 decoration: it forces you to decide what the colour is doing.
 
-- **Paper is rarely white.** `#faf7f0` warm, `#e9eae4` cool grey-green, `#f4f1ea` bone.
-  A tint reads as a choice; `#ffffff` reads as a default.
+- **Paper is rarely white, and its tint comes from the register.** A history wants warmth;
+  an argument wants something cooler and flatter; a night piece is dark-first and its
+  *light* mode is the second palette. Derive the tint — do not pick it from a list, and do
+  not reuse a specimen's. `#ffffff` reads as a default.
 - **One accent, used three ways**: the coloured word in the headline, the section numbers,
   links. A second accent needs a reason — a second voice in the argument, not variety.
 - **Contrast is not negotiable.** Body ink on paper ≥ 7:1, secondary ≥ 4.5:1, the accent on
@@ -139,6 +175,12 @@ moment there are two.
 ```
 
 Choose the coloured word for meaning, not rhythm: the word the argument turns on.
+
+**Write the line breaks yourself.** At the top display size the text column holds about
+eight CJK characters per line. A headline left to wrap will break inside a word — 台|股,
+燈|嗎 — and a `<br>` fixes that where `text-wrap: balance` cannot. Keep the coloured word
+on one line. A long headline takes three lines, or a smaller `--fs-display`; it never takes
+a mid-word wrap.
 
 ## A spine the reader can feel
 
@@ -233,6 +275,12 @@ These are the tells of a generated page. None of them is a style choice.
   reason.
 - Filler symmetry — three cards because three fits the grid, when the argument has two
   points.
+- **Any specimen's palette.** These are taken: bone paper with indigo and a Ming headline
+  (the mockup); warm cream with curtain red (`epic`); grey-green with condensed type and
+  red (`argument`); graph paper with green and orange (`digest`); cream with autopsy red
+  and a stamp (`autopsy`); navy with a gold lamp (`night`); a four-colour bar over ivory
+  with a heavy Latin word (`fieldguide`). Each was one report's answer. Yours is a
+  different report.
 
 ## Before you call it done
 
@@ -244,7 +292,8 @@ Look at your own output, at these four settings, and fix what breaks:
 4. **Reduced motion / print.** Nothing is missing that was only visible after an animation.
 
 Then read the first screen as a stranger: does it say what this is and why it matters,
-before any decoration?
+before any decoration? And check the register comment is still true of what you built —
+if the page drifted toward a dashboard while the comment says 史詩, one of them is wrong.
 
 ## Publishing
 

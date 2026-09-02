@@ -23,6 +23,7 @@
 | `STYLE.md` | 產生報告的模型 | 怎麼找到這一篇的聲音、硬規則、negative list。英文、與工具無關 |
 | `mockup.html` | 人 | 範例。由 `build.mjs` 產生，不要手改 |
 | `build.mjs` | — | 內聯 CSS、算圖表座標 |
+| `voices/` | 產生報告的模型 | 六個語域、六份樣張，從 275 份舊報告量出來的分類。[說明](voices/README.md) |
 
 丟給模型的網址：
 
@@ -38,8 +39,11 @@ https://raw.githubusercontent.com/clarencechien/imitator/main/style/report.css
 ## 改東西的流程
 
 ```bash
-node style/build.mjs      # 改完 report.css 一定要重跑，否則 mockup 會漂
+node style/build.mjs          # mockup
+node style/voices/build.mjs   # 六份樣張
 ```
+
+改完 `report.css` 兩個都要重跑，否則範例會漂。
 
 然後在瀏覽器開 `style/mockup.html`，**375px、1440px、深色、列印各看一次**。
 

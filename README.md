@@ -57,7 +57,8 @@ https://raw.githubusercontent.com/clarencechien/imitator/main/style/STYLE.md
 https://raw.githubusercontent.com/clarencechien/imitator/main/style/report.css
 ```
 
-範例見 [`style/mockup.html`](style/mockup.html)，背後的取捨見
+範例見 [`style/mockup.html`](style/mockup.html) 和 [`style/voices/`](style/voices/)
+（六個語域、六份樣張，分類是從那 275 份量出來的），背後的取捨見
 [`style/README.md`](style/README.md)。**字型可以在 runtime 抓**（`fonts.googleapis.com`
 的 `<link>`）—— 樣式表不會執行程式碼；不能抓的是第三方 script，那條由 host 擋。
 
