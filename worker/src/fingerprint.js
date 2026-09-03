@@ -94,6 +94,12 @@ const GRID_DECL_RE = /grid-template-columns\s*:([^;}]*)/gi;
 const HEAVY_IMAGE = 400 * 1024;
 const DATA_URI_RE = /data:image\/[a-z.+-]+;base64,([A-Za-z0-9+/=]+)/gi;
 
+/* 每一條 CSS 規則：選擇器 + 宣告區塊。用來找「th/td 一律 nowrap」—— 那是
+   v3 之前的底盤預設，它讓表格的 min-content 寬度等於每個儲存格最長那一行的
+   總和，於是桌機上也一定會左右滑。 */
+const CSS_RULE_RE = /(?:^|[{};])\s*([^{};]*?\b(?:th|td)\b[^{};]*?)\{([^{}]*)\}/gi;
+const NOWRAP_DECL = /white-space\s*:\s*nowrap/i;
+
 /**
  * 把 minmax(...) 整段拿掉之後還剩裸的 fr，才算踩到。
  *
@@ -134,6 +140,16 @@ function hasBareFrTrack(css) {
  * @returns {{codes: string[], warnings: object[]}}
  *   codes 存進 metadata 供統計；warnings 回給上傳者，每一條都寫得出怎麼修。
  */
+/** 有沒有「選擇器含 th/td 且不是 .nowrap，卻宣告 white-space: nowrap」的規則。 */
+function hasNowrapCells(html) {
+  for (const m of html.matchAll(CSS_RULE_RE)) {
+    const [, selector, block] = m;
+    if (selector.includes('.nowrap')) continue;
+    if (NOWRAP_DECL.test(block)) return true;
+  }
+  return false;
+}
+
 export function auditStyle(html, fingerprint) {
   const codes = [];
   const warnings = [];
@@ -168,6 +184,14 @@ export function auditStyle(html, fingerprint) {
       'bare-fr-grid-track',
       'A grid-template-columns declaration uses a bare fr track. A grid track\'s default minimum is min-content, so one unbreakable string in a cell — a URL, an OAuth scope, a long identifier — can widen the track past the viewport and scroll the whole page sideways. The page may look fine today and break when its content changes.',
       'Use minmax(0, 1fr) instead of 1fr and give the grid children min-width: 0, or use the chassis .cols / .tiles which already do both.',
+    );
+  }
+
+  if (hasNowrapCells(html)) {
+    add(
+      'nowrap-table-cells',
+      "Table cells are set to white-space: nowrap for every cell. That makes the table's minimum width the sum of each column's longest unbroken line, so the table scrolls sideways even on a desktop — where there was room to simply wrap.",
+      'Let cells wrap by default and mark only the ones that must not break — a model number, a date, a figure — with class="nowrap". The v3 chassis does this; an older copy of report.css does not.',
     );
   }
 

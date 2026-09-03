@@ -59,6 +59,18 @@ node style/voices/build.mjs   # 六份樣張
 375px 螢幕上標籤只剩 6px。CSS 把渲染寬度夾在 34–44rem，比下限窄就在自己的框裡橫捲。
 改 viewBox 寬度就要重算那兩個界線。
 
+**表格預設換行，而且會自己撐開。** v2 的底盤在 `th, td` 上放了 `white-space: nowrap`，
+`.wrap` 才是 opt-in。那個預設讓表格的 min-content 寬度等於每一欄最長那一行的總和 ——
+於是桌機上也一定會左右滑，而旁邊明明還有一大片留白。實測 1920px 下那張表只有 656px、
+四個寬度全部橫滑。v3 反過來：預設換行，`.nowrap` 給不能斷的東西（型號、日期、數字），
+`.table-scroll` 跟 `.wide` 一樣往留白外擴到 `--page-wide`（66rem）。同一張表變成 976px、
+375px 到 1920px 都不滑。內文欄沒有動，還是 34em —— 窄的文字欄配寬的圖表本來就是編輯上的
+常規，不是妥協。
+
+> 順帶修掉的：原本的 opt-out 是 `.report > .table-scroll` 這種直接子選擇器，表格包在
+> `<section>` 裡就吃不到，會被上層的 `--measure` 夾住。現在改成後代選擇器，並讓
+> `<section>` / `<article>` 當 pass-through、對它的子元素重新套 measure。
+
 **`.wide` 只用實際存在的留白來加寬。** 它刻意不用 `width` ＋ `50%` margin 那種常見的
 breakout —— 那個百分比會對到錯的框，在 1440px 下把頁面推出去 80px。而且 `.wide` 一定
 要宣告在其他元件之後：任何用 `margin` 簡寫的元件都會把它依賴的 inline margin 歸零。
@@ -175,7 +187,7 @@ KV metadata 有 1024 bytes 的上限，title 最長會佔掉 600，所以列表�
 
 ## 稽核：哪一條最常被漏掉
 
-有指紋的報告會被靜態稽核四條，結果**存下來**（`style.checks`），不只回給上傳者 ——
+有指紋的報告會被靜態稽核五條，結果**存下來**（`style.checks`），不只回給上傳者 ——
 上傳的多半是 agent，讀完就消失了，資料要留在站上才回答得了「這份指引哪裡沒被照做」。
 
 | code | 意思 | 來自 |
@@ -184,6 +196,7 @@ KV metadata 有 1024 bytes 的上限，title 最長會佔掉 600，所以列表�
 | `single-colour-scheme` | 沒有定義深色 | 275 份舊報告裡有 260 份 |
 | `bare-fr-grid-track` | `grid-template-columns` 有裸的 `fr` | Grok 那份實際橫捲 |
 | `heavy-inline-image` | 內聯的 `data:` 圖超過 400 KB | GPT 那份 475 KB |
+| `nowrap-table-cells` | `th`/`td` 一律 `nowrap`（v2 底盤的預設） | 桌機上表格照樣橫滑 |
 
 ```bash
 node scripts/style-census.mjs --audit

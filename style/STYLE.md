@@ -103,7 +103,11 @@ material is not. The check exists to catch a collision, not to steer.
    too, with values chosen for a dark surface — never an inversion.
 6. **Nothing scrolls the page sideways**, at 375px or at 1440px. Two things break this
    in practice, and both are yours to avoid:
-   - **Tables** go inside `<div class="table-scroll">`, always.
+   - **Tables** go inside `<div class="table-scroll">`, always. Cells wrap by default
+     and the wrapper widens into the gutter on a wide screen, so a table should not need
+     to scroll at all on a desktop — if one still does, the columns are carrying too much.
+     Mark the cells that must not break (a model number, a date, a figure) with `.nowrap`,
+     never the whole table.
    - **Any grid you write yourself** uses `minmax(0, 1fr)`, never a bare `1fr`, and gives
      its children `min-width: 0`. A grid track's default minimum is min-content, so one
      unbreakable string — a URL, an OAuth scope, a long identifier — inside a cell widens
