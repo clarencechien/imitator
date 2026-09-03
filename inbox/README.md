@@ -68,6 +68,11 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
    Skip／Bypass／Allow 對它都沒有作用，Page Rules 也一樣。
    擋掃描器的工作本來就是那條 WAF custom rule 在做，不是 BFM。
 
+   **要 bot 防護的話走 Super Bot Fight Mode**（Pro 以上）。它跟 BFM 相反 ——
+   可以被 custom rule 的 Skip 跳過，所以能對 `/v1/a`、`/join/`、`/r/` 放行而
+   其他路徑照擋。這個 zone 現在就是這個組合：SBFM 開、BFM 關、一條 Skip 規則。
+   設定與驗證方式見 `worker/README.md` 的「Bot 防護：SBFM 開、BFM 關」。
+
    > **實測到它真的擋下 Action。** 2026-09-02 的防火牆事件裡有這一筆：
    > `managed_challenge · botFight · PUT /v1/a/… · UA="node" · ASN=Microsoft Corporation`
    > —— Azure 的 IP 就是 GitHub runner，UA `node` 就是這支腳本。四天的 log 裡打
