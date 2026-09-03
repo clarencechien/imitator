@@ -202,16 +202,27 @@ Cache、connection reuse、health check、Argo）。這個 zone 是 `custom_doma
 一份它打不到的副本，而 R2 沒有 versioning，「推了新版但舊版還在某層快取裡」是最難查的
 那種故障。
 
-**Cloudflare Fonts 不要開**（2026-09-03 實測過，結論是關掉）
+**Cloudflare Fonts：這個站不要開**（2026-09-03 實測，已關閉）
 
-它會把 `<link href="fonts.googleapis.com...">` 換成指向 `/cf-fonts/` 的內聯
-`@font-face`，字型檔改從本網域出。對 Worker 產生的回應**確實有效** —— 這點原本
-沒把握，測過了，會生效。但三個量測結果全是負的：
+它把 `<link href="fonts.googleapis.com...">` 換成指向 `/cf-fonts/` 的內聯
+`@font-face`，字型檔改從本網域出，並順手刪掉 Google 的 `preconnect`。
 
-**一、sandbox 底下字型根本載不到。** `@font-face` 的抓取一律是 CORS 模式，而
-artifact 帶著 `Content-Security-Policy: sandbox`（沒有 `allow-same-origin`），
-所以它在 opaque origin 裡、送出的是 `Origin: null`。`/cf-fonts/` 的回應**沒有**
-`Access-Control-Allow-Origin`，於是被擋掉。本機用同樣的 CSP 重現：
+先講它為什麼存在，因為那不是效能。2022 年 1 月慕尼黑地方法院判過（3 O 17493/20）：
+網站直接嵌入 Google Fonts、把訪客的動態 IP 送給 Google 而未取得同意，違反 GDPR
+第 82 條，判賠 €100，判決書明講「自行代管字型就可以避免」。之後德國出現大量索賠信。
+**Cloudflare Fonts 就是「自行代管」的一鍵版本** —— 不用下載 woff2、不用寫
+`@font-face`、不用管版本。對歐洲的一般商業網站，這個開關便宜又對症。
+
+順帶確認了一件原本沒把握的事：**它對 Worker 產生的回應有效**，不需要 origin。
+
+### 為什麼這個站還是不能開
+
+三條，每一條都對應這個站特有的性質，不是功能本身的缺陷：
+
+**一、sandbox 底下字型載不到。** `@font-face` 的抓取一律是 CORS 模式。artifact 帶著
+`Content-Security-Policy: sandbox`（沒有 `allow-same-origin`），所以它在 opaque origin
+裡、送出的是 `Origin: null`；而 `/cf-fonts/` 的回應**沒有** `Access-Control-Allow-Origin`。
+本機用同樣的 CSP 開兩組對照重現：
 
 ```
 無 ACAO（＝現在的 cf-fonts）  @font-face status = error
@@ -219,12 +230,26 @@ artifact 帶著 `Content-Security-Policy: sandbox`（沒有 `allow-same-origin`�
 有 ACAO: *（＝gstatic）        @font-face status = loaded
 ```
 
-Google 的 `fonts.gstatic.com` 回 `access-control-allow-origin: *`，這就是它在
-sandbox 底下一直能用的原因。而且失敗是**安靜的**：字照樣顯示，只是掉到
-`font-family` 清單的下一個（PingFang／微軟正黑），不會有任何錯誤浮上來。
+`fonts.gstatic.com` 回 `access-control-allow-origin: *`，這就是它在 sandbox 底下一直
+能用的原因。而且失敗是**安靜的**：字照樣顯示，只是掉到 `font-family` 的下一個
+（PingFang／微軟正黑），沒有任何錯誤浮上來。
 
-**二、傳輸量變 15 倍。** 它為字型家族的**每一個 unicode 子集**內聯一段
-`@font-face`，Noto Sans TC 有上百個。同樣用 gzip 比：
+一般網站沒有這個問題 —— 同源網頁請求同源的 `/cf-fonts/`，CORS 根本不適用。
+
+**二、傳輸量 15 倍，而這是中文的問題不是它的問題。** 它做的事是把 Google 那份 CSS
+內聯進 HTML。直接量 Google 送出來的內容：
+
+| 家族 | `@font-face` 段數 | CSS 大小 |
+|---|---|---|
+| **Noto Sans TC** | **315** | **362,129** |
+| Inter | 21 | 7,520 |
+| Roboto | 18 | 11,275 |
+
+CJK 為了漸進載入被切成三百多個 unicode 子集。**拉丁字型內聯 7–11KB，省掉一次
+round trip，是淨賺；中文內聯 362KB，而且原本那個共用的 stylesheet URL 可以跨頁快取，
+內聯之後每一頁重送一次。** 同一個功能，拉丁是優點，中文是災難。
+
+實際影響（同樣用 gzip 比，三份報告都要了 Noto Sans TC）：
 
 | slug | 本機 | 站上 |
 |---|---|---|
@@ -232,21 +257,44 @@ sandbox 底下一直能用的原因。而且失敗是**安靜的**：字照樣�
 | `7-fruits` | 6,231 | 105,245（16.9×）|
 | `12-factor-agents` | 14,926 | 113,738（7.6×）|
 
-**三、`verify.mjs` 全部掛掉。** 它改寫的是 body，而 verify 的用途就是證明「站上
-那份跟本機那份一模一樣」。既有的 `__CF$cv$params` 注入是**附加**，剝掉就好；字型
-改寫是**取代**，normalise 不回來。這也直接撞到 CLAUDE.md 寫死的「單檔 HTML，收
-什麼就吐什麼」。
+**三、`verify.mjs` 全部掛掉。** 它改寫的是 body，而 verify 的用途就是證明「站上那份
+跟本機那份一模一樣」。既有的 `__CF$cv$params` 注入是**附加**，`verify.mjs` 剝掉就好；
+字型改寫是**取代**，normalise 不回來。這也直接撞到 CLAUDE.md 的「單檔 HTML，收什麼
+就吐什麼」。
 
-理論上可以用 Response Header Transform Rule 給 `/cf-fonts/*` 補一個
-`Access-Control-Allow-Origin: *` 把第一項修掉 —— 但第二、三項還在，而好處只有
-「讀者不再連 Google」。CLAUDE.md 對字型的立場本來就是想清楚才留的例外（樣式表
-不執行程式碼、opaque origin 裡沒東西給它讀），不是需要補起來的傷口。
+### 判斷表（給下一個專案用）
 
-> 開了的話，WAF custom rule 的允許清單要補
-> `or starts_with(http.request.uri.path, "/cf-fonts/")`，否則 Cloudflare 已經把
-> `<link>` 改寫掉、字型檔卻被自己的規則回 403，整站掉回系統字型而且沒有任何提示。
-> 驗證方式跟 `/wp-admin` 同一招：那個路徑回 403 是被 Cloudflare 擋、回 404 是
-> 穿過去由 Worker 回的。目前已經把這一行拿掉了，因為功能沒在用。
+| 失效 | 根因（imitator 特有） | 一般網站 |
+|---|---|---|
+| 字型 CORS 被擋 | artifact 在 opaque origin，送 `Origin: null` | 同源，CORS 不適用 |
+| 傳輸量 15× | 用 CJK 字型（315 段 `@font-face`） | 拉丁 18–21 段，內聯反而少一次往返 |
+| `verify.mjs` 全掛 | 有「收什麼吐什麼」的契約與逐份比對 | 沒人在乎 HTML 被改寫 |
+
+四條都不中才適合開：歐洲或在意 GDPR、用拉丁字型、同源沒有 CSP sandbox、沒有把 HTML
+當成不可變成品。imitator 是四條全不中。
+
+第一項理論上可以用 Response Header Transform Rule 給 `/cf-fonts/*` 補一個
+`Access-Control-Allow-Origin: *` 修掉，但第二、三項還在，而剩下的好處只有「讀者不再
+連 Google」。CLAUDE.md 對字型的立場本來就是想清楚才留的例外（樣式表不執行程式碼、
+opaque origin 裡沒東西給它讀），不是需要補起來的傷口。
+
+### WAF 那一行
+
+`/cf-fonts/` **已經留在**擋掃描器那條 custom rule 的允許清單裡，即使功能關著：
+
+```
+or starts_with(http.request.uri.path, "/cf-fonts/")
+```
+
+留著沒有副作用（沒開就不會有人請求那個路徑，真有人亂打由 Worker 回自己的 404），
+而少了它就是這個功能最惡劣的失敗模式：Cloudflare 已經把 `<link>` 改寫掉，字型檔卻被
+自己的規則回 403，全站掉回系統字型且沒有任何提示。驗證方式跟 `/wp-admin` 同一招 ——
+**403 是被 Cloudflare 擋，404 是穿過去由 Worker 回的**：
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://imitator.ai-apps.work/cf-fonts/v1/x.woff2  # 404
+curl -s -o /dev/null -w "%{http_code}\n" https://imitator.ai-apps.work/wp-admin             # 403
+```
 
 **Artifact 的 origin 隔離**（已實作，不需要設定）
 
