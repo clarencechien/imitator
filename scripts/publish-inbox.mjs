@@ -118,8 +118,34 @@ async function upload(slug, title, body, sandbox) {
       continue;
     }
     const text = await res.text();
-    // 403 = 這個 slug 屬於別的 group（owner 擋下）。重試沒有用，訊息要能讓人
-    // 直接知道發生什麼事：inbox 用的 token 跟當初發佈那個 slug 的不是同一個。
+
+    // Cloudflare 攔在 Worker 前面時也會回 403（挑戰頁、WAF、受管規則），而且
+    // 回的是 HTML 不是我們的 JSON。**這一段必須排在 403 之前** —— 先前排在
+    // 後面，於是每一次 Bot Fight Mode 的挑戰都被誤報成「slug 屬於別的 group」，
+    // 檔案被丟進 rejected/，而真正的原因（runner 走 Azure IP、UA 是 node）
+    // 完全沒有出現在訊息裡。
+    const fromWorker = (() => {
+      try {
+        return typeof JSON.parse(text)?.error === 'string';
+      } catch {
+        return false;
+      }
+    })();
+    if (!fromWorker) {
+      const challenge = /Just a moment|cf-browser-verification|__cf_chl|challenge-platform/.test(text);
+      throw new Error(
+        challenge
+          ? '被 Cloudflare 的挑戰頁擋下（多半是 Bot Fight Mode）。GitHub 的 runner 走 ' +
+            'Azure 的資料中心 IP、UA 是 node，會被判成自動化流量。BFM 跑在 Ruleset ' +
+            'Engine 之外，WAF custom rule 的 Skip 對它無效，只能整個關掉；' +
+            'Super Bot Fight Mode 則可以用 Skip 對 /v1/a 放行。見 inbox/README.md。'
+          : `Cloudflare 在 Worker 之前擋下（HTTP ${res.status}），回的不是 API 的 JSON。` +
+            `檢查 WAF custom rule 有沒有把 /v1/a 放行。內文開頭：${text.replace(/\s+/g, ' ').slice(0, 160)}`,
+      );
+    }
+
+    // 到這裡才確定 403 是 Worker 自己回的：這個 slug 屬於別的 group（owner 擋下）。
+    // 重試沒有用，訊息要能讓人直接知道 inbox 用的 token 跟當初發佈那個 slug 的不是同一個。
     if (res.status === 403) {
       throw permanent(
         `slug "${slug}" 屬於別的 group —— inbox 用的 token 不是當初發佈它的那個。` +
@@ -136,15 +162,6 @@ async function upload(slug, title, body, sandbox) {
         if (err.permanent) throw err;
         throw permanent(`400 ${text.slice(0, 200)}`);
       }
-    }
-    // Cloudflare 的挑戰頁。GitHub 的 runner 走資料中心 IP、UA 是 node，會被
-    // Bot Fight Mode 判成自動化流量 —— 而 BFM 跑在 Ruleset Engine 之外，
-    // WAF custom rule 的 Skip 對它無效，只能整個關掉。見 inbox/README.md。
-    if (/Just a moment|cf-browser-verification|__cf_chl/.test(text)) {
-      throw new Error(
-        '被 Cloudflare 的挑戰頁擋下（多半是 Bot Fight Mode）。' +
-          'Security → Bots → Bot Fight Mode 關掉即可；它無法只對特定路徑放行。',
-      );
     }
     // 錯誤內文可能回顯我們送出去的 header，但不會包含 Authorization。
     throw new Error(`${res.status} ${text.slice(0, 200)}`);
