@@ -144,6 +144,64 @@ custom rule 仍然留著：它省下來的 invocation 現在是省錢而不是�
 > 大量上傳（例如遷移舊報告）會撞到 Worker 的減速帶。先跑遷移再加規則，或者讓
 > `scripts/migrate.mjs` 的退避重試處理 — 它認得 429。
 
+**Bot 防護：SBFM 開、BFM 關**（需要 Pro）
+
+這兩個東西名字很像，行為的差別卻是決定性的：
+
+| | Bot Fight Mode | Super Bot Fight Mode |
+|---|---|---|
+| 方案 | 免費 | Pro 以上 |
+| 能不能被 custom rule 的 Skip 跳過 | **不能** | 能（Skip → All Super Bot Fight Mode rules） |
+| 粒度 | 全站一律挑戰 | 分「已驗證的 bot／可能自動化／確定自動化」三檔 |
+
+**BFM 必須關掉。** 它沒有任何例外機制，所以它會挑戰 GitHub Action 的發佈請求。
+日誌裡長這樣：
+
+```
+01:40:11  botFight  managed_challenge  PUT /v1/a/<slug>  UA="node"  Microsoft Corporation
+```
+
+`UA="node"` ＋ Microsoft ASN 就是 Actions runner。被挑戰的請求拿到的是
+Cloudflare 的 HTML 挑戰頁而不是 Worker 的 JSON，所以 `scripts/publish-inbox.mjs`
+會看到一個沒有 `error` 欄位的 403 —— 那支腳本現在會據此判定「不是 Worker 回的」
+並留在 `inbox/` 等重試，而不是誤判成 slug 屬於別組。同一條規則也會打到聊天軟體的
+連結預覽（`SkypeUriPreview`、空 UA 的 HEAD）。
+
+**SBFM ＋ 一條 Skip custom rule** 才是可用的組合。規則放在 WAF custom rules，
+action 選 **Skip → All Super Bot Fight Mode rules**：
+
+```
+http.host eq "imitator.ai-apps.work"
+and (
+  starts_with(http.request.uri.path, "/v1/a")
+  or starts_with(http.request.uri.path, "/join/")
+  or starts_with(http.request.uri.path, "/r/")
+)
+```
+
+`http_request_firewall_custom` 這個 phase 排在 `http_request_sbfm` 之前，所以
+Skip 來得及生效。驗證方式是看 Firewall Events 有沒有這一列：
+
+```
+firewallCustom  skip  imitator — skip SBFM for API and join  PUT /v1/a/<slug>
+```
+
+**多條 custom rule 可以並存**，按順序求值。目前這個 zone 上有三條：擋掃描器路徑的
+Block、上面這條 Skip、以及一條針對 `http.user_agent contains "bot"/"crawl" and not
+cf.client.bot` 的 Managed Challenge。
+
+> `cf.client.bot`（Known Bots）認的是 **Web Bot Auth 簽章、公布的 IP 段＋穩定 UA、
+> 或反解 DNS**，不是 UA 字串。所以從無關的 IP 送一個假造的 `Slackbot` UA 會被擋 ——
+> 那是正確行為，測試時很容易誤判成規則寫壞了。同理，從資料中心 IP 測首頁會拿到
+> 過場動畫，一般使用者不會。**測 bot 規則不要從雲端主機測。**
+
+**Smart Shield 不用開。** 名字有 Shield 但它是 origin 防護與加速套組（Smart Tiered
+Cache、connection reuse、health check、Argo）。這個 zone 是 `custom_domain = true`
+的 Worker，沒有 origin，那些項目沒有作用對象。唯一會生效的 Cache Reserve 是負面的:
+`artifacts.js` 覆寫時會自己 `caches.default.delete()` 那一筆，多一層 reserve 等於多
+一份它打不到的副本，而 R2 沒有 versioning，「推了新版但舊版還在某層快取裡」是最難查的
+那種故障。
+
 **Artifact 的 origin 隔離**（已實作，不需要設定）
 
 artifact 是任意 HTML 且會執行 JS，跟 portal 同一個 origin。cookie 是
@@ -196,6 +254,31 @@ artifact 之間依然同源。要真的隔離得走 per-artifact origin，超出
 dashboard 就能撤銷。
 
 `epoch` 不用哨兵值，手改數字即可。
+
+### read secret 會進日誌，這是設計上如此
+
+magic link 把 secret 放在路徑裡（`config.js` 組出 `/join/{gid}/{secret}`），
+所以只要請求發生，secret 就會被記下來，有三個地方：
+
+1. **Cloudflare Firewall Events** 的 `clientRequestPath`（規則觸發時才記，但
+   BFM 開著的時候它會觸發）。
+2. **Workers Logs** —— `wrangler.toml` 的 `[observability]` 開著，請求 URL 是
+   平台自動記的，Worker 的程式碼管不到。
+3. **會展開連結預覽的聊天軟體** —— 貼進 Slack／Teams／Skype／LINE，對方的爬蟲
+   就跟著去抓了。日誌裡那些 `SkypeUriPreview` 與空 UA 的 HEAD 就是這樣來的。
+
+第三項是實務上最大的管道。程式碼守住了它能守的部分：spec §400「絕不記錄 secret」
+在 Worker 內部成立，`handleJoin` 也帶了 `Referrer-Policy: no-referrer`，secret
+不會經由 Referer 流到下一頁。缺口在平台層。
+
+**所以 join 連結要當成口頭傳遞的東西**：給出去、對方點一次拿到 cookie，就不要
+留在任何聊天視窗的歷史裡。cookie 本身是乾淨的（`__Host-` 前綴、綁死網域、
+HttpOnly），漏的只有那把可以重複使用到下次輪替為止的 read secret。
+
+輪替不是修好它，只是把已經漏掉的那把作廢；下一把貼到同樣的地方，同樣的事會再
+發生一次。要從結構上拿掉，最便宜的做法是改放 URL fragment（`/join/rd#<secret>`）
+—— `#` 後面瀏覽器不會送給伺服器，日誌與爬蟲都拿不到。代價是要一段 JS 把它換成
+POST，`/join` 就不再是純 HTML。目前沒做。
 
 ### R2 沒有 object versioning
 
