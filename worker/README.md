@@ -202,6 +202,52 @@ Cache、connection reuse、health check、Argo）。這個 zone 是 `custom_doma
 一份它打不到的副本，而 R2 沒有 versioning，「推了新版但舊版還在某層快取裡」是最難查的
 那種故障。
 
+**Cloudflare Fonts 不要開**（2026-09-03 實測過，結論是關掉）
+
+它會把 `<link href="fonts.googleapis.com...">` 換成指向 `/cf-fonts/` 的內聯
+`@font-face`，字型檔改從本網域出。對 Worker 產生的回應**確實有效** —— 這點原本
+沒把握，測過了，會生效。但三個量測結果全是負的：
+
+**一、sandbox 底下字型根本載不到。** `@font-face` 的抓取一律是 CORS 模式，而
+artifact 帶著 `Content-Security-Policy: sandbox`（沒有 `allow-same-origin`），
+所以它在 opaque origin 裡、送出的是 `Origin: null`。`/cf-fonts/` 的回應**沒有**
+`Access-Control-Allow-Origin`，於是被擋掉。本機用同樣的 CSP 重現：
+
+```
+無 ACAO（＝現在的 cf-fonts）  @font-face status = error
+  console: Access to font ... from origin 'null' has been blocked by CORS policy
+有 ACAO: *（＝gstatic）        @font-face status = loaded
+```
+
+Google 的 `fonts.gstatic.com` 回 `access-control-allow-origin: *`，這就是它在
+sandbox 底下一直能用的原因。而且失敗是**安靜的**：字照樣顯示，只是掉到
+`font-family` 清單的下一個（PingFang／微軟正黑），不會有任何錯誤浮上來。
+
+**二、傳輸量變 15 倍。** 它為字型家族的**每一個 unicode 子集**內聯一段
+`@font-face`，Noto Sans TC 有上百個。同樣用 gzip 比：
+
+| slug | 本機 | 站上 |
+|---|---|---|
+| `0050` | 7,058 | 105,850（15.0×）|
+| `7-fruits` | 6,231 | 105,245（16.9×）|
+| `12-factor-agents` | 14,926 | 113,738（7.6×）|
+
+**三、`verify.mjs` 全部掛掉。** 它改寫的是 body，而 verify 的用途就是證明「站上
+那份跟本機那份一模一樣」。既有的 `__CF$cv$params` 注入是**附加**，剝掉就好；字型
+改寫是**取代**，normalise 不回來。這也直接撞到 CLAUDE.md 寫死的「單檔 HTML，收
+什麼就吐什麼」。
+
+理論上可以用 Response Header Transform Rule 給 `/cf-fonts/*` 補一個
+`Access-Control-Allow-Origin: *` 把第一項修掉 —— 但第二、三項還在，而好處只有
+「讀者不再連 Google」。CLAUDE.md 對字型的立場本來就是想清楚才留的例外（樣式表
+不執行程式碼、opaque origin 裡沒東西給它讀），不是需要補起來的傷口。
+
+> 開了的話，WAF custom rule 的允許清單要補
+> `or starts_with(http.request.uri.path, "/cf-fonts/")`，否則 Cloudflare 已經把
+> `<link>` 改寫掉、字型檔卻被自己的規則回 403，整站掉回系統字型而且沒有任何提示。
+> 驗證方式跟 `/wp-admin` 同一招：那個路徑回 403 是被 Cloudflare 擋、回 404 是
+> 穿過去由 Worker 回的。目前已經把這一行拿掉了，因為功能沒在用。
+
 **Artifact 的 origin 隔離**（已實作，不需要設定）
 
 artifact 是任意 HTML 且會執行 JS，跟 portal 同一個 origin。cookie 是
