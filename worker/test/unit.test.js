@@ -198,3 +198,31 @@ describe('樣式稽核', () => {
     }
   });
 });
+
+import { inspectBody } from '../src/policy.js';
+
+describe('第三方樣式表', () => {
+  const enc = (s) => new TextEncoder().encode(s).buffer;
+  const codes = (html, sandbox = 'on') => inspectBody(enc(html), sandbox).warnings.map((w) => w.code);
+
+  it('字型的樣式表不算', () => {
+    expect(codes('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC">')).toEqual([]);
+    expect(codes('<link href="https://fonts.gstatic.com/x.css" rel="stylesheet">')).toEqual([]);
+  });
+
+  it('其他第三方樣式表回一則 warning，不擋', () => {
+    const r = inspectBody(enc('<link rel="stylesheet" href="https://cdn.example.com/a.css">'), 'on');
+    expect(r.error).toBeUndefined();
+    expect(r.warnings.map((w) => w.code)).toEqual(['third-party-stylesheet']);
+    expect(r.warnings[0].reason).toContain('cdn.example.com');
+  });
+
+  it('link 到 raw.githubusercontent 的 report.css 會特別說明它保證失效', () => {
+    const r = inspectBody(enc('<link rel="stylesheet" href="https://raw.githubusercontent.com/x/y/main/style/report.css">'), 'on');
+    expect(r.warnings[0].reason).toMatch(/text\/plain.*nosniff|nosniff/);
+  });
+
+  it('本地的樣式表不算第三方', () => {
+    expect(codes('<link rel="stylesheet" href="/style.css">')).toEqual([]);
+  });
+});

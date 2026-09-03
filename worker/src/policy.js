@@ -14,6 +14,17 @@ const SCAN_LIMIT = 2 * 1024 * 1024;
 /** `<script src="https://...">` 或 protocol-relative 的 `//host/...`。 */
 const THIRD_PARTY_SCRIPT = /<script\b[^>]*\bsrc\s*=\s*["']?(?:https?:)?\/\/([^"'\s/>]+)/gi;
 
+/**
+ * `<link rel=stylesheet href="//host/…">`。字型的樣式表是允許的（見
+ * docs/publishing-rules.md 規則 1），其他第三方樣式表則值得講一聲：報告要單檔
+ * 自足，而外部樣式表是一個看不見的相依。
+ */
+const THIRD_PARTY_STYLESHEET =
+  /<link\b(?=[^>]*\brel\s*=\s*["']?[^"'>]*stylesheet)[^>]*\bhref\s*=\s*["']?(?:https?:)?\/\/([^"'\s/>]+)/gi;
+
+/** 字型服務 —— 樣式表不會執行程式碼，sandbox 下也沒有東西給它讀。 */
+const FONT_HOSTS = /(?:^|\.)(?:fonts\.googleapis\.com|fonts\.gstatic\.com|fonts\.bunny\.net|use\.typekit\.net)$/i;
+
 /** 在 opaque origin（CSP sandbox）底下會丟 SecurityError 或被拒絕的 API。 */
 const STORAGE_API =
   /\b(?:localStorage|sessionStorage|indexedDB|BroadcastChannel|SharedWorker)\b|document\.(?:cookie|domain)|serviceWorker|\bNotification\s*[.(]/;
@@ -65,6 +76,30 @@ export function inspectBody(body, sandbox) {
       };
     }
     return { warnings, html };
+  }
+
+  // 非字型的第三方樣式表。不擋 —— 它不會執行程式碼，但它會讓報告不再自足，
+  // 而且最常見的那一種（直接 link 這個 repo 的 report.css）是**保證失效**的：
+  // raw.githubusercontent.com 用 text/plain 加 nosniff 送檔案，瀏覽器一定拒絕
+  // 把它當樣式表套用。頁面於是安靜地少了整副底盤。
+  const sheetHosts = new Set();
+  for (const m of html.matchAll(THIRD_PARTY_STYLESHEET)) {
+    const host = m[1].toLowerCase();
+    if (!FONT_HOSTS.test(host)) sheetHosts.add(host);
+  }
+  if (sheetHosts.size > 0) {
+    const raw = [...sheetHosts].some((h) => h === 'raw.githubusercontent.com');
+    warnings.push({
+      code: 'third-party-stylesheet',
+      reason:
+        'This HTML loads a stylesheet from ' +
+        [...sheetHosts].join(', ') +
+        '. A report here is meant to be one self-contained file, and an external stylesheet is a dependency nobody can see.' +
+        (raw
+          ? ' raw.githubusercontent.com serves files as text/plain with X-Content-Type-Options: nosniff, so browsers refuse to apply it as CSS at all — linking report.css that way silently drops the entire chassis.'
+          : ''),
+      fix: `Paste the stylesheet's contents into a <style> block instead of linking it. Webfont stylesheets are the one exception. See ${DOC}`,
+    });
   }
 
   if (STORAGE_API.test(html)) {
