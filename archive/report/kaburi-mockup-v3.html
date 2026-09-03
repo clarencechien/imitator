@@ -36,6 +36,7 @@
   --tint-bg:.10;
   --tint-line:.30;
   --shadow:0 1px 0 rgba(0,0,0,.4);
+  --backdrop:#05080A;
 }
 [data-theme="light"]{
   --status:#E5E3DA;
@@ -55,11 +56,15 @@
   --tint-bg:.24;
   --tint-line:.48;
   --shadow:0 1px 2px rgba(24,33,38,.08);
+  --backdrop:#D9D7CE;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overscroll-behavior:none}
+html,body{height:100%;overscroll-behavior:none;overflow:hidden}
+html{background:var(--backdrop)}
 body{
-  margin:0;background:var(--content);color:var(--tx);
+  max-width:var(--app-w,560px);margin:0 auto;
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--line) 70%,transparent);
+  background:var(--content);color:var(--tx);
   font-family:var(--sans);font-size:15px;line-height:1.55;
   -webkit-text-size-adjust:100%;display:flex;flex-direction:column;
   transition:background .28s,color .28s;
@@ -116,7 +121,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 /* ══ 層 3：content ══ */
 .shell{flex:1;min-height:0;display:flex;flex-direction:column}
-main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;position:relative}
+main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden}
 .view{position:absolute;inset:0;display:none;flex-direction:column}
 .view.on{display:flex}
 .filecol{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
@@ -307,36 +312,44 @@ input.fname{
 .read a{color:var(--accent)}
 .read strong{color:var(--tx);font-weight:600}
 
-/* ══ desktop ══ */
-@media (min-width:760px){
-  .shell{flex-direction:row}
-  main{flex-direction:row;flex:1;min-width:0}
-  .view{position:relative;inset:auto}
-  .view.on{flex:1;min-width:0}
-  .tabs{order:-1;height:auto;width:78px;flex:none;flex-direction:column;border-top:0;
-    border-right:1px solid var(--chrome-line);padding:10px 0;padding-bottom:0}
-  .tabs button{flex:none;height:62px}
-  .dot{top:11px;left:calc(50% + 10px)}
-  .stage{position:relative;transform:none;transition:none;flex:1;border-left:1px solid var(--line)}
-  .stage:not(.open) .sbar,.stage:not(.open) .sbody{display:none}
-  .stage:not(.open)::after{
-    content:attr(data-empty);display:grid;place-items:center;height:100%;
-    color:var(--tx-3);font-family:var(--mono);font-size:12.5px;letter-spacing:.05em}
-  #v-files.on{flex-direction:row}
-  #v-files .filecol{flex:none;width:312px;display:flex;flex-direction:column;border-right:1px solid var(--line)}
-  .ico.back{display:none}
-  .notes{columns:2;column-gap:12px;padding:12px 17px 96px}
-  .note{break-inside:avoid;display:inline-block;width:100%}
-  .add{bottom:26px}
-}
+/* ══ tablet mode：全螢幕才攤開 ══ */
+[data-layout="tablet"] body{max-width:none;box-shadow:none}
+[data-layout="tablet"] .shell{flex-direction:row}
+[data-layout="tablet"] main{flex-direction:row;flex:1;min-width:0}
+[data-layout="tablet"] .view{position:relative;inset:auto}
+[data-layout="tablet"] .view.on{flex:1;min-width:0}
+[data-layout="tablet"] .tabs{order:-1;height:auto;width:78px;flex:none;flex-direction:column;
+  border-top:0;border-right:1px solid var(--chrome-line);padding:10px 0;padding-bottom:0}
+[data-layout="tablet"] .tabs button{flex:none;height:62px}
+[data-layout="tablet"] .dot{top:11px;left:calc(50% + 10px)}
+[data-layout="tablet"] .stage{position:relative;transform:none;transition:none;flex:1;
+  border-left:1px solid var(--line)}
+[data-layout="tablet"] .stage:not(.open) .sbar,
+[data-layout="tablet"] .stage:not(.open) .sbody{display:none}
+[data-layout="tablet"] .stage:not(.open)::after{
+  content:attr(data-empty);display:grid;place-items:center;height:100%;
+  color:var(--tx-3);font-family:var(--mono);font-size:12.5px;letter-spacing:.05em}
+[data-layout="tablet"] #v-files.on{flex-direction:row}
+[data-layout="tablet"] #v-files .filecol{flex:none;width:312px;display:flex;flex-direction:column;
+  border-right:1px solid var(--line)}
+[data-layout="tablet"] .ico.back{display:none}
+[data-layout="tablet"] .notes{columns:2;column-gap:12px;padding:12px 17px 96px}
+[data-layout="tablet"] .note{break-inside:avoid;display:inline-block;width:100%}
+[data-layout="tablet"] .add{bottom:26px}
+
 @media (min-width:1180px){
-  #v-files .filecol{width:344px}
-  .notes{columns:3}
+  [data-layout="tablet"] #v-files .filecol{width:344px}
+  [data-layout="tablet"] .notes{columns:3}
 }
 @media (min-width:1600px){
-  .notes{columns:4}
-  .read{max-width:74ch}
+  [data-layout="tablet"] .notes{columns:4}
+  [data-layout="tablet"] .read{max-width:74ch}
 }
+/* app mode 在窄視窗就是滿版，不要留邊 */
+@media (max-width:600px){
+  body{max-width:none;box-shadow:none}
+}
+
 </style>
 </head>
 <body>
@@ -461,6 +474,17 @@ function applyLang(){
  if(cur>=0)render()}
 
 $("langBtn").addEventListener("click",function(){lang=lang==="en"?"zh":"en";PREF.set("lang",lang);applyLang()});
+
+/* ══ layout：app（預設）/ tablet（全螢幕）══ */
+var fsQuery=window.matchMedia("(display-mode: fullscreen)");
+function inFullscreen(){
+ return !!document.fullscreenElement || fsQuery.matches ||
+        window.matchMedia("(display-mode: fullscreen)").matches}
+function applyLayout(){
+ root.setAttribute("data-layout", inFullscreen()?"tablet":"app")}
+document.addEventListener("fullscreenchange",applyLayout);
+if(fsQuery.addEventListener)fsQuery.addEventListener("change",applyLayout);
+window.addEventListener("resize",applyLayout);
 
 /* ══ theme ══ */
 var SUN='<path d="M12 4V2M12 22v-2M4 12H2M22 12h-2M6.3 6.3L4.9 4.9M19.1 19.1l-1.4-1.4M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/><circle cx="12" cy="12" r="4"/>';
@@ -801,6 +825,7 @@ function flash(m){
  setTimeout(function(){if(toast){toast.remove();toast=null}},1700)}
 
 /* ══ boot ══ */
+applyLayout();
 setTheme(PREF.get("theme","dark"),false);
 bindRename();
 addNote("EAP demo\nhttps://10.20.3.44:8443\nadmin / 週五前改掉");
