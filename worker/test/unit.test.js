@@ -181,6 +181,15 @@ describe('樣式稽核', () => {
     expect(auditStyle(zero, fp).codes).not.toContain('bare-fr-grid-track');
   });
 
+  it('th/td 一律 nowrap 會被抓到，.nowrap 這個 opt-in 不會', () => {
+    const all = `${good}<style>th,td{padding:.7rem;white-space:nowrap}</style>`;
+    expect(auditStyle(all, fp).codes).toContain('nowrap-table-cells');
+    const optIn = `${good}<style>th,td{padding:.7rem}.nowrap,td.nowrap{white-space:nowrap}</style>`;
+    expect(auditStyle(optIn, fp).codes).not.toContain('nowrap-table-cells');
+    const wrapOnly = `${good}<style>th,td{padding:.7rem;vertical-align:top}</style>`;
+    expect(auditStyle(wrapOnly, fp).codes).not.toContain('nowrap-table-cells');
+  });
+
   it('大的內聯圖回報一次，小的不管', () => {
     const heavy = `${good}<img src="data:image/png;base64,${'A'.repeat(600 * 1024)}">`;
     const w = auditStyle(heavy, fp);

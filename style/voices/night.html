@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* imitator report chassis — v2
+/* imitator report chassis — v3
  *
  * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
  * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
@@ -79,7 +79,11 @@
   --radius: 10px;
   --measure: 34em;         /* prose column ≈ 34 CJK characters */
   --page: 46rem;           /* text column */
-  --page-wide: 66rem;      /* figures may use this */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
 
   /* --- motion ---
      Strong curves only. The built-in CSS easings are too weak to read as
@@ -163,9 +167,14 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
 }
 .report > * { max-width: var(--measure); }
-/* Figures, tables and full-width devices opt out of the prose measure. */
-.report > figure, .report > .table-scroll, .report > .wide, .report > hr,
-.report > .tiles, .report > .cols, .report > .banner { max-width: none; }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
 /* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
    Any grid you write yourself needs the same — see STYLE.md. */
 .cols > *, .tiles > * { min-width: 0; }
@@ -173,13 +182,17 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
 .card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
 
-/* .wide lets a table or a tile row spill past the prose column on a big
-   screen. It widens by whatever gutter actually exists and no more, so it can
-   never push the page sideways — which the obvious `width + 50% margin`
-   breakout does the moment its percentage resolves against the wrong box.
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
    Declared last on purpose: any component using the `margin` shorthand would
    otherwise zero out the inline margins this depends on. */
-.wide { margin-inline: calc(-1 * min(8rem, max(0px, (100vw - var(--page)) / 2))); }
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
 
 /* ── §4 Structure & editorial devices ────────────────────────────────────── */
 
@@ -315,11 +328,16 @@ figure > figcaption { margin-top: var(--sp-3); }
    the page. */
 .table-scroll { overflow-x: auto; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
 table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
-th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; vertical-align: top; }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
 th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
 tbody tr:last-child td { border-bottom: 0; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-td.wrap { white-space: normal; min-width: 14rem; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
 /* A mono sub-label under a term, the way a glossary sets it. */
 td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
 
