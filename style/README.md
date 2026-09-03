@@ -244,6 +244,32 @@ Grok 與 GPT 各用 `STYLE.md` v3 產了一份，這是**第一批不是我測�
 另外記一筆：GPT 那份 666 KB，其中 633 KB 是一張內聯的 base64 PNG 截圖。沒有違反任何規則
 （上限 25 MB），但值得知道 —— 指引目前對圖片重量沒有任何說法。
 
+### 第三份：Gemini 的 `macbook`
+
+第三份跟前兩份完全不同 —— **它沒有套用底盤，而且它自己不知道**。
+
+它寫的是 `<link rel="stylesheet" href="https://raw.githubusercontent.com/…/report.css">`。
+問題是 raw.githubusercontent.com 用 `text/plain` 加 `X-Content-Type-Options: nosniff`
+送檔案，瀏覽器**一定**拒絕把它當 CSS 套用。所以底盤在每一個讀者的瀏覽器裡都沒生效，
+不是只有我的測試環境。實測：`--paper` 讀不到、內文 16px/1.70（低於 17px/1.8 的底線）、
+375px 螢幕上頁面寬 522px（一個沒有包 `.table-scroll` 的表格）。
+
+它也沒帶任何 `imitator-*` meta，所以指紋是 `null`、稽核完全沒跑 —— 這正是
+「沒有指紋就不稽核」的設計會漏掉的那一種：**它試著照做了，卻沒有留下任何說它照做了的痕跡**。
+但 `style: null` 仍然如實地把它算成「沒有採用」，這個判定是對的。
+
+漏掉的那一條補在 `policy.js`，因為它跟指紋無關、對任何一份上傳都成立：
+
+- `third-party-stylesheet` —— 非字型的第三方樣式表回一則 warning（不擋）。link 到
+  raw.githubusercontent 時額外說明它保證失效。
+
+`STYLE.md` 開頭也改了：那個網址現在明說「是拿來讀的原始碼，不是拿來 link 的樣式表」，
+並解釋為什麼 link 會安靜地失敗；Setup 區塊加了一句自我檢查 —— 檔案裡沒有
+`imitator report chassis` 這串字，就代表沒貼進去。
+
+三份真實報告，三個不同的教訓：Grok 給了 grid 的陷阱，GPT 給了內聯圖的重量，
+Gemini 給了「指引的第一句話會被當成引用網址」。**合成實驗四輪找不出這三個。**
+
 ## 這一輪停在哪裡（2026-09-02）
 
 四輪實驗做完，`STYLE.md` 停在 **v3**。下一輪接手的人先讀上面那張四輪的表，再看這節。

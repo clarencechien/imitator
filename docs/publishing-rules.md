@@ -46,6 +46,13 @@ page sits in an opaque origin where there is nothing for it to read. The line is
 Ask for only the weights you use, and always `&display=swap` so text renders while
 the font is still in flight.
 
+**Any other third-party stylesheet gets a warning** (`third-party-stylesheet`) — not a
+rejection. It cannot execute code, so it is not the risk this rule is about; it just makes
+the report stop being one self-contained file. One case is worth calling out because it
+fails silently: linking `report.css` straight from `raw.githubusercontent.com`. That host
+serves `text/plain` with `nosniff`, so the browser will not apply it as CSS, and the page
+loses the whole chassis with nothing reported anywhere.
+
 ```html
 <!-- rejected -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

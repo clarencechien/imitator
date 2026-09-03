@@ -4,8 +4,14 @@
 
 You are producing **one self-contained HTML file**. Read this before you write a line of it.
 
-Fetch the chassis and paste it in:
+**Fetch the chassis and paste its contents into a `<style>` block. Never `<link>` it.**
 `https://raw.githubusercontent.com/clarencechien/imitator/main/style/report.css`
+
+That URL is a source to read, not a stylesheet to reference. `raw.githubusercontent.com`
+serves files as `text/plain` with `X-Content-Type-Options: nosniff`, so a browser refuses
+to apply it as CSS — `<link rel="stylesheet" href="…/report.css">` silently drops the
+entire chassis and every reader gets an unstyled page with no error anywhere. This has
+already happened once. Read the file, paste the bytes.
 Worked example: `https://raw.githubusercontent.com/clarencechien/imitator/main/style/mockup.html`
 Six registers, six specimens: `https://github.com/clarencechien/imitator/tree/main/style/voices`
 
@@ -130,7 +136,9 @@ material is not. The check exists to catch a collision, not to steer.
 
 ```html
 <style>
-  /* 1. the chassis, pasted verbatim */
+  /* 1. the chassis, pasted verbatim — the actual bytes of report.css, not a @import
+        and not a <link>. It starts with a comment saying "imitator report chassis";
+        if that string is not in your file, you have not pasted it. */
   …
   /* 2. this report's voice — override the tokens, add what it needs */
   :root {
