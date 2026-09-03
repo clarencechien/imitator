@@ -68,6 +68,16 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
    Skip／Bypass／Allow 對它都沒有作用，Page Rules 也一樣。
    擋掃描器的工作本來就是那條 WAF custom rule 在做，不是 BFM。
 
+   > **實測到它真的擋下 Action。** 2026-09-02 的防火牆事件裡有這一筆：
+   > `managed_challenge · botFight · PUT /v1/a/… · UA="node" · ASN=Microsoft Corporation`
+   > —— Azure 的 IP 就是 GitHub runner，UA `node` 就是這支腳本。四天的 log 裡打
+   > `/v1/a` 被攔的總共兩筆，兩筆都是 BFM、都來自 Azure。
+   >
+   > 挑戰頁回的是 **HTTP 403**，跟「slug 屬於別的 group」同一個狀態碼。
+   > `publish-inbox.mjs` 早期版本把所有 403 都當成擁有權衝突，於是每一次 BFM 攔截
+   > 都被誤報成「換個檔名吧」，檔案被丟進 `rejected/`，真正的原因一個字都沒出現。
+   > 現在會先看回應是不是我們的 JSON 才分類。
+   >
    > 這裡原本寫著「關掉 BFM 之後那段注入到每份報告的
    > `/cdn-cgi/challenge-platform` 腳本會跟著消失」。**實測不成立**：關掉之後
    > runner 確實通得過（挑戰沒了），但那 938 bytes 的注入還在 —— JS Detections
