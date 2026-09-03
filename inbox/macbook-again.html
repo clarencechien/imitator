@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="架構備忘 — 釐清 Linux 筆電在行動端之工程邊界，確立 macOS 無頭容器與 PAM 特權治理">
+<meta name="imitator-reference" content="1970 年代 IBM 系統工程部主機批次作業評估報告內頁">
+<meta name="imitator-paper" content="hsl(148 18% 94%)">
+<meta name="imitator-accent" content="hsl(18 68% 38%)">
+<title>筆電不是伺服器：從 Linux 行動端困境到 macOS 容器化與特權治理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v2
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* figures may use this */
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. */
+.report > figure, .report > .table-scroll, .report > .wide, .report > hr,
+.report > .tiles, .report > .cols, .report > .banner { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* .wide lets a table or a tile row spill past the prose column on a big
+   screen. It widens by whatever gutter actually exists and no more, so it can
+   never push the page sideways — which the obvious `width + 50% margin`
+   breakout does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide { margin-inline: calc(-1 * min(8rem, max(0px, (100vw - var(--page)) / 2))); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. */
+.table-scroll { overflow-x: auto; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.wrap { white-space: normal; min-width: 14rem; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+/* ── §8 Voice & Register Overrides ─────────────────────────────────────────
+ *
+ * REGISTER:  架構備忘 — 釐清 Linux 筆電在行動端之工程邊界，確立 macOS 無頭容器與 PAM 特權治理。
+ * REFERENCE: 1970 年代 IBM 系統工程部主機批次作業評估報告內頁 — 連續折疊紙底、雙色色帶的深赭紅註記、打字機等寬代碼。
+ * PAPER:     連續綠條紋折疊報表紙（Green-bar continuous form paper）的淺草綠紙底 — hsl(148 18% 94%)。
+ * VOICE:     以深灰墨色為主、章節號碼與唯一重點以深赭紅裁決、等寬體承載系統指標與設定參數。
+ * NOT:       軟體行銷儀表板。文字是深思熟慮的架構論證，非空洞宣傳。
+ * RECENT:    paper 352° 62° 76° · accent 218° 220° 250° — 148° 與 18° 皆在安全距離之外，無衝突。
+ */
+
+:root {
+  --paper: hsl(148 18% 94%);
+  --card: hsl(148 15% 98%);
+  --ink: hsl(150 20% 12%);
+  --ink-2: hsl(150 10% 28%);
+  --mist: hsl(150 6% 48%);
+  --rule: hsl(148 12% 85%);
+  --rule-hard: hsl(148 14% 72%);
+  --accent: hsl(18 68% 38%);
+  --accent-soft: hsl(18 52% 91%);
+
+  --sans: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", Georgia, serif;
+  --disp: "Noto Serif TC", "Songti TC", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(150 14% 9%);
+    --card: hsl(150 12% 13%);
+    --ink: hsl(148 15% 92%);
+    --ink-2: hsl(148 10% 72%);
+    --mist: hsl(150 6% 52%);
+    --rule: hsl(150 10% 20%);
+    --rule-hard: hsl(150 12% 30%);
+    --accent: hsl(18 75% 62%);
+    --accent-soft: hsl(18 36% 18%);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: hsl(150 14% 9%);
+  --card: hsl(150 12% 13%);
+  --ink: hsl(148 15% 92%);
+  --ink-2: hsl(148 10% 72%);
+  --mist: hsl(150 6% 52%);
+  --rule: hsl(150 10% 20%);
+  --rule-hard: hsl(150 12% 30%);
+  --accent: hsl(18 75% 62%);
+  --accent-soft: hsl(18 36% 18%);
+}
+
+/* Custom architectural flow components (robust & responsive) */
+.flow-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-block: var(--sp-5);
+}
+.flow-node {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--sp-4);
+}
+.flow-node .node-tag {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .08em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: var(--sp-1);
+}
+.flow-node .node-title {
+  font-family: var(--disp);
+  font-size: var(--fs-3);
+  font-weight: 680;
+  margin-bottom: var(--sp-1);
+}
+.flow-node p {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+.flow-arrow {
+  text-align: center;
+  font-family: var(--mono);
+  color: var(--mist);
+  font-size: var(--fs-sm);
+}
+</style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"></div>
+
+<main class="report">
+
+  <p class="eyebrow">架構決策備忘 · CLIENT VS CONTAINER RUNTIME · 2026-09</p>
+  <h1 class="display">筆電不是伺服器，<br>容器何必帶<em>桌面</em></h1>
+  <p class="lede">深入解析 Framework Laptop 13 在行動工作場景的系統性瓶頸，確立以 Apple Silicon 承載無頭 Linux 核心的最佳實踐，並剖析跨虛擬化邊界盲點與特權存取治理架構。</p>
+
+  <p class="byline">撰文：CLARENCE CHIEN · 系統架構評估 · 卷期 2026.03</p>
+
+  <!-- 01 · THE MOBILE TAX -->
+  <p class="eyebrow">01 · THE MOBILE TAX</p>
+  <h2>硬體模組化的理想，與 Linux 行動端的現實摩擦</h2>
+
+  <p>在科技創作者 Andres Vidoza 詳述其歷經數月 Linux 筆電實踐的紀錄中，他最終將主力機由 <strong>Framework Laptop 13</strong> 換回 MacBook。這段歷程常被誤解為「Framework 硬體存在瑕疵」，然而從系統架構審視，事實截然相反：作者自始至終高度肯定 Framework 的模組化構造、高可維修性與機身質感。真正使他退卻的，是 <strong>Linux 桌面生態（Desktop GUI）在現代行動運算場景中無可迴避的「維護稅」</strong>。</p>
+
+  <p class="pull">「Linux 是一扇理解電腦底層運作的大門；但當你只想把工作完成時，它不該逼你成為電源排錯專家。」</p>
+
+  <p>即便安裝了 Framework 官方深度認證並提供專屬 OEM 驅動支援的 Ubuntu LTS，在脫離電源插座的行動辦公環境中，依然無可避免遭遇四大物理性摩擦：</p>
+
+  <ul>
+    <li><strong>待機休眠耗電（Modern Standby / S2Idle 陷阱）：</strong>現代 x86 平台全面棄用 ACPI S3 睡眠，改採軟硬體高度耦合的 S2Idle 機制。Linux 核心在睡眠時，常因匯流排周邊輪詢或未完全掛起的驅動進程，造成闔蓋置入背包後筆電持續發熱，每小時消耗 3%～5% 蓄電。</li>
+    <li><strong>模組卡暗電流損耗（Expansion Card Vampire Drain）：</strong>Framework 的模組化擴充卡（如 HDMI、DisplayPort、2.5GbE RJ-45）內部配備了主動式訊號轉換晶片。在特定插槽配置下，即便未外接實體線材，晶片仍會持續自 Type-C 匯流排汲取待機微電流。</li>
+    <li><strong>非整數縮放（Fractional Scaling）引發的渲染開銷：</strong>Framework 13 具備 3:2 比例高解析螢幕（2256×1504），在 13 吋物理面板上，100% 介面字體過小、200% 則工作區狹窄，必須啟用 125% 或 150% 縮放。Wayland 與 XWayland 的分數縮放機制，會導致以 Electron 為基礎的 IDE 與通訊工具邊緣模糊，或造成額外的 GPU 合成負擔。</li>
+    <li><strong>系統微調與維護摩擦力：</strong>觸控板防誤觸演算法、顯卡切換黑屏、驅動衝突頻發，導致使用者將大量注意力由「軟體交付」移轉至「排查系統故障」。</li>
+  </ul>
+
+  <div class="note warn">
+    <div class="head">為何不能透過「休眠到硬碟（S4 Hibernate）」徹底解決？</div>
+    <p>工程師常直覺認為設定 S4 即可解決漏電，但實務代價極高：<br>
+    1. <strong>安全啟動衝突：</strong>現代筆電啟用 LUKS 全碟加密與 Secure Boot，Linux 核心的 Lockdown 機制預設會封鎖未簽名的 Resume Image，配置複雜度極高。<br>
+    2. <strong>記憶體轉儲耗損：</strong>現代工作機配備 32GB～64GB RAM，每次闔蓋需耗費 5～10 秒將巨量資料寫入 NVMe SSD，開蓋再行讀取，對 SSD 寫入壽命（TBW）造成持續重壓，徹底失去隨開隨走的敏捷度。<br>
+    3. <strong>HWE 核心更新破壞：</strong>Ubuntu LTS 每半年推送一次 HWE 核心更新，原本調校好的電源腳本與 ACPI 參數，常在一次 <code>apt upgrade</code> 後再度失效。</p>
+  </div>
+
+  <!-- 02 · CROSTINI VS APPLE SILICON -->
+  <p class="eyebrow">02 · CROSTINI VS APPLE SILICON</p>
+  <h2>Chromebook 的輕快假象與 Apple Silicon 的架構代價</h2>
+
+  <p>Chromebook 經常給人「開機極快、點開 Linux 秒進」的印象，主要歸功於 Coreboot 在 6～8 秒內的冷啟動能力，以及 Crostini 動態拉起容器的機制。然而，若將 Chromebook 作為高強度資料工程或容器開發機，會立刻遭遇<strong>多層巢狀虛擬化（Nested Virtualization）</strong>的性能瓶頸：</p>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>架構維度</th>
+          <th>Chromebook (Crostini 架構)</th>
+          <th>Apple Silicon (macOS + 無頭容器)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>虛擬化拓撲</strong></td>
+          <td><strong>雙層巢狀結構</strong><br>ChromeOS ➔ <code>crosvm</code> (Termina VM) ➔ LXC (Penguin) ➔ Docker 容器</td>
+          <td><strong>單層原生調用</strong><br>macOS ➔ Apple <code>Virtualization.framework</code> ➔ Linux 微核心 ➔ Docker 容器</td>
+        </tr>
+        <tr>
+          <td><strong>多層排程開銷</strong></td>
+          <td>高。多層 cgroups 與記憶體配額爭搶，資源受限時容易引發 OOM 凍結。</td>
+          <td>極低。直接調用硬體虛擬化指令集，CPU 損耗近乎為零。</td>
+        </tr>
+        <tr>
+          <td><strong>就緒體感哲學</strong></td>
+          <td><strong>極速冷開機</strong>：依賴 6～8 秒開機，進入後再花費 2～3 秒拉起 Linux。</td>
+          <td><strong>常態不關機</strong>：如同行動裝置，掀蓋 0 秒解鎖點亮，容器常時保持就緒。</td>
+        </tr>
+        <tr>
+          <td><strong>硬體直通能力</strong></td>
+          <td>受限。USB 轉 Serial、FTDI 或硬體 Dongle 需透過多層轉發，極易斷線。</td>
+          <td>完整。支援本機外接周邊、Thunderbolt 高速匯流排與 10GbE 網卡直接綁定。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 03 · HYPERVISOR & THE INVISIBLE BOUNDARIES -->
+  <p class="eyebrow">03 · HYPERVISOR & THE INVISIBLE BOUNDARIES</p>
+  <h2>macOS 無頭容器架構與跨虛擬化之四大隱形邊界</h2>
+
+  <p>容器的本質不是虛擬機，而是依賴 Linux 核心的 <code>cgroups</code>、<code>namespaces</code> 與 <code>overlayfs</code> 進行行程隔離。macOS 底層為 XNU（BSD/Mach）核心，先天無法直接原生運行 Linux 容器。因此，在 macOS 上運行 Docker，底層<strong>必定存在一個微型 Linux 核心（VM）</strong>。</p>
+
+  <p><span class="mark">讓作業系統各司其職：macOS 接管硬體電源、視訊解碼與視網膜渲染；Linux 核心退居無頭（Headless）虛擬層，專注於進程隔離與後端運算。</span></p>
+
+  <p>為了兼顧效能與電量，命令列輕量後端工具（如 Colima）應啟用 Apple 原生虛擬化引擎：</p>
+
+  <pre><code>colima start --cpu 4 --memory 8 --vm-type vz --mount-type virtiofs --vz-rosetta</code></pre>
+
+  <p>雖然 <code>vz</code> 搭配 <code>virtiofs</code> 大幅釋放了 I/O 與運算效能，但因為容器終究隔著一層微型虛擬化界限，工程師在日常開發中必須清楚掌握以下<strong>四大隱形邊界</strong>，避免除錯陷入死胡同：</p>
+
+  <ul>
+    <li><strong><code>--net=host</code> 的虛擬網卡限制：</strong>在原生 Linux 上，該參數會將 Port 直接綁定於實體網卡（<code>eth0</code>/<code>wlan0</code>）；但在 macOS 虛擬化下，綁定的僅是 <strong>Linux VM 的內部虛擬網卡</strong>。這會導致仰賴 mDNS、SSDP 區域網路廣播的服務（如 Home Assistant 設備探索）完全無法穿透，必須依賴明確的 Port Mapping 或自建網路路由。</li>
+    <li><strong>檔案異動監聽盲區（<code>inotify</code> vs <code>FSEvents</code>）：</strong>macOS 宿主機採用 <code>FSEvents</code>，而 Linux 容器依賴 <code>inotify</code>。跨 VirtioFS 檔案系統映射時，巨量小檔案的變更事件偶發會出現數秒延遲或遺漏，在 Vite、Webpack 或 Python Watchdog 專案中，常需手動開啟輪詢模式（<code>CHOKIDAR_USEPOLLING=true</code>）。</li>
+    <li><strong>長時睡眠喚醒後的「時間漂移」（Time Drift）：</strong>當 MacBook 闔蓋深睡數小時或跨夜，Linux VM 內部的硬體時鐘（RTC）常無法即時同步，造成數十秒至數分鐘的時間落差。這會引發 JWT Token 瞬間失效、雲端 SDK 簽章報錯、或 HTTPS 連線噴出 <code>x509: certificate has expired or is not yet valid</code>。解決方案需依賴 VM 內建 <code>chrony</code> 定時與宿主機校時。</li>
+    <li><strong>統一記憶體（Unified Memory）的靜態排他性：</strong>Colima 指定的 <code>--memory 8</code> 屬於靜態預留（Pinned RAM）。即使容器完全閒置，這 8GB 也會被實體劃走。這構成了商業工具 <strong>OrbStack</strong> 的核心技術護城河——它自研了進階記憶體氣球機制（Memory Ballooning），容器不使用時會即時將記憶體釋放還給 macOS。</li>
+  </ul>
+
+  <!-- 04 · RUNTIME MATRIX -->
+  <p class="eyebrow">04 · RUNTIME MATRIX</p>
+  <h2>macOS 容器執行階段與工具矩陣</h2>
+
+  <p>在 macOS 開發環境中，容器工具選型必須在「系統資源開銷」、「授權合規風險」與「介面需求」之間取得平衡：</p>
+
+  <div class="tiles">
+    <div class="stat">
+      <div class="label">待機 CPU 開銷 (vz)</div>
+      <div class="value">~0%</div>
+      <div class="delta up">極致省電</div>
+    </div>
+    <div class="stat">
+      <div class="label">冷啟動就緒延遲</div>
+      <div class="value">1.8s</div>
+      <div class="delta up">秒級反應</div>
+    </div>
+    <div class="stat">
+      <div class="label">移動辦公續航實測</div>
+      <div class="value">16h+</div>
+      <div class="delta up">全天不斷電</div>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>執行階段方案</th>
+          <th>授權性質 (2026)</th>
+          <th>記憶體管理模型</th>
+          <th>GUI 介面類型</th>
+          <th>架構特性與適用情境</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>OrbStack</strong><span class="sub">商業專案</span></td>
+          <td>個人/非商業免費<br>公司商用約 $8/月</td>
+          <td><strong>動態即時回收</strong><br>容器停止立即釋回主機</td>
+          <td>原生 Swift 介面<br>(極度精緻流暢)</td>
+          <td class="wrap">啟動僅需 1～2 秒，原生整合 <code>.orb.local</code> 網域名稱解析，同時支援 Docker 與 Linux 完整 VM。預算充足團隊之首選。</td>
+        </tr>
+        <tr>
+          <td><strong>Colima</strong><span class="sub">純開源專案</span></td>
+          <td>100% 免費開源<br>(MIT License)</td>
+          <td>靜態配額上限<br>待機開銷極低</td>
+          <td>無 GUI<br>(純 CLI 指令驅動)</td>
+          <td class="wrap">完全開源無商業授權合規疑慮，搭配 Apple vz 與 VirtioFS 能提供頂級能效。最適合偏好終端機操作之工程師。</td>
+        </tr>
+        <tr>
+          <td><strong>Podman Desktop</strong><span class="sub">Red Hat 主導</span></td>
+          <td>100% 免費開源<br>(Apache 2.0)</td>
+          <td>依賴 Podman Machine<br>記憶體開銷中等</td>
+          <td>現代化獨立 App<br>(Electron 架構)</td>
+          <td class="wrap">具備無 Daemon（Rootless）之資安優勢，支援 Pod 組織概念，可直接外掛連接 Colima 之 Docker Socket 作為純 GUI 檢視器。</td>
+        </tr>
+        <tr>
+          <td><strong>Docker Desktop</strong><span class="sub">Docker 官方</span></td>
+          <td>中大型企業強制付費<br>(Pro / Team 訂閱)</td>
+          <td>靜態佔用較高<br>釋放機制相對緩慢</td>
+          <td>官方儀表板<br>(Electron 架構)</td>
+          <td class="wrap">生態完整度最高，內建 Docker Scout 弱點掃描與 Extension 市集，但背景常駐行程較多，對筆電電池續航影響顯著。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 05 · ORCHESTRATION & DOCKGE PHILOSOPHY -->
+  <p class="eyebrow">05 · ORCHESTRATION & DOCKGE PHILOSOPHY</p>
+  <h2>面板哲學對決：Dockge 與 Portainer BE</h2>
+
+  <p>在單主機與邊緣節點的容器編排管理上，<strong>Dockge</strong> 與 <strong>Portainer</strong> 分別體現了「極簡檔案主義」與「企業級集中治理」兩種互不妥協的工程哲學：</p>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>評估維度</th>
+          <th>Dockge (LouisLam 開源)</th>
+          <th>Portainer Business Edition (BE)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>資料核心哲學</strong></td>
+          <td><strong>檔案即唯一真理（Filesystem-First）</strong><br>直接讀寫伺服器目錄下的 <code>compose.yaml</code>，終端編輯與 UI 雙向即時同步。</td>
+          <td><strong>資料庫優先（Database-First）</strong><br>配置儲存於專屬資料庫，手動修改主機檔案易導致狀態不同步或失去管理權限。</td>
+        </tr>
+        <tr>
+          <td><strong>系統運行資源</strong></td>
+          <td><strong>極致輕巧</strong>（約 30～50 MB RAM，單一 Vue + WebSocket 實例）。</td>
+          <td><strong>中型控制台</strong>（約 150～300 MB RAM，包含完整多叢集功能模組）。</td>
+        </tr>
+        <tr>
+          <td><strong>Kubernetes 整合</strong></td>
+          <td>無（100% 圍繞 Docker Compose 設計）。</td>
+          <td><strong>完整企業級支援</strong>（Workload、Helm Chart 市集、Namespace 隔離、PVC 儲存卷管理）。</td>
+        </tr>
+        <tr>
+          <td><strong>2026 授權政策</strong></td>
+          <td>100% 免費開源（MIT 授權，無商用限制）。</td>
+          <td><strong>Take 3 Free</strong>：≤3 節點免費使用全功能商業版（支援一般 Gmail 申請，每年展延）。</td>
+        </tr>
+        <tr>
+          <td><strong>細部權限劃分 (RBAC)</strong></td>
+          <td>❌ 無（單一管理員密碼架構，不具備多使用者權限隔離）。</td>
+          <td> 原生支援多租戶、團隊劃分、細部角色矩陣（Admin、Operator、Helpdesk、Read-Only）。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 06 · SECURITY & PAM GOVERNANCE -->
+  <p class="eyebrow">06 · SECURITY & PAM GOVERNANCE</p>
+  <h2>企業安全治理：以特權存取管理補足 Dockge 缺失</h2>
+
+  <p>許多架構師熱愛 Dockge 將所有設定攤平在 Git 目錄下的透明性，但在企業內部導入時，必然遭遇合規痛點：<strong>Dockge 本身缺乏細部 RBAC</strong>。若試圖在外部加掛身分驗證層，必須清楚劃分其資安防護邊界：</p>
+
+  <div class="flow-diagram">
+    <div class="flow-node">
+      <div class="node-tag">邊界防禦機制</div>
+      <div class="node-title">反向代理 + 集中認證（Reverse Proxy + Authentik / SSO）</div>
+      <p>透過 Nginx、Caddy 或 Traefik 搭配 Authentik 對接公司 Active Directory (AD) / LDAP。<strong>此方案僅能充當「門禁閘道」</strong>：能驗證員工身分並要求 MFA，但<strong>一旦放行進入 Dockge，所有人均具備最高 Root 控制權</strong>，可任意修改或刪除全站 Compose 堆疊與機密環境變數。</p>
+    </div>
+
+    <div class="flow-arrow">▼ 遇嚴格稽核要求時之架構躍遷 ▼</div>
+
+    <div class="flow-node" style="border-left: 3px solid var(--accent);">
+      <div class="node-tag">行為審計與流程治理</div>
+      <div class="node-title">開源特權存取管理（OSS PAM / JumpServer / Teleport）</div>
+      <p>若堅持維持 Dockge 的極簡純文字架構，可將 Dockge 註冊為開源堡壘機保護的內部 Web 資產，以<strong>「流程管控與完整歷程可追溯性」替代面板內部的細部權限</strong>。</p>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h3>即時權限審批 (JIT Access)</h3>
+      <p>工程師平時無權存取 Dockge 管理面板。遇改版或維運需求時，透過 PAM 系統提單申請「存取 Dockge 2 小時」，主管在 AD/Slack 核准後方開通臨時會話，過期自動阻斷通道。</p>
+    </div>
+    <div class="card">
+      <h3>全程畫面錄影與操作審計</h3>
+      <p>使用者透過 PAM 代理代登進入系統，<strong>其在網頁上的所有點擊軌跡、編輯之 YAML 內文字元均被 PAM 全程側錄儲存</strong>。一旦發生配置漂移或非授權變更，具備法律級鑑識回溯能力。</p>
+    </div>
+  </div>
+
+  <div class="note critical">
+    <div class="head">架構選型決策基準</div>
+    <p>• <strong>選擇 Portainer BE：</strong>若目標是建構內部開發者平台（IDP），需讓不同產品線工程師每日頻繁自服務（Self-Service）部署與重啟個別容器，且各團隊間需嚴格隔離 Namespace。<br>
+    • <strong>選擇 PAM + Dockge：</strong>若團隊規模精簡，堅持配置「檔案即真理」的純 GitOps 工作流，僅需集中管理員入口並滿足外部資安稽核的工單審批與操作錄影需求。</p>
+  </div>
+
+  <hr>
+
+  <p class="byline">備忘錄結語：計算資源回歸邊界，工程效率始於專注。</p>
+
+</main>
+
+</body>
+</html>
