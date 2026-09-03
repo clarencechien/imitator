@@ -103,11 +103,19 @@ material is not. The check exists to catch a collision, not to steer.
    too, with values chosen for a dark surface — never an inversion.
 6. **Nothing scrolls the page sideways**, at 375px or at 1440px. Two things break this
    in practice, and both are yours to avoid:
-   - **Tables** go inside `<div class="table-scroll">`, always. Cells wrap by default
-     and the wrapper widens into the gutter on a wide screen, so a table should not need
-     to scroll at all on a desktop — if one still does, the columns are carrying too much.
+   - **Tables** go inside `<div class="table-scroll">`, always. The chassis already gives
+     them two behaviours, and you do not have to write either:
+     **desktop** — cells wrap, the wrapper widens into the gutter, the table does not
+     scroll. If one still does, the columns are carrying too much.
+     **phone** — the table scrolls inside its box and the first column pins, so the row's
+     label stays on screen. Add `.plain` to the wrapper to opt out of the pin.
      Mark the cells that must not break (a model number, a date, a figure) with `.nowrap`,
-     never the whole table.
+     never the whole table. **A phone that has to scroll a spec table is the correct
+     outcome** — a model number broken across three lines destroys the data the table
+     exists to carry. Do not fix a scrolling table by widening `--page`, by setting
+     `--measure` past 34em, or by setting `overflow-x: visible`: the first two widen the
+     prose you did not want widened, and the third removes the only thing standing between
+     one long cell and a page that scrolls sideways.
    - **Any grid you write yourself** uses `minmax(0, 1fr)`, never a bare `1fr`, and gives
      its children `min-width: 0`. A grid track's default minimum is min-content, so one
      unbreakable string — a URL, an OAuth scope, a long identifier — inside a cell widens
