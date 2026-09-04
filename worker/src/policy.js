@@ -75,6 +75,17 @@ export function inspectBody(body, sandbox) {
         },
       };
     }
+    // off 是一個要付代價的例外：這一頁從此有完整的同源權限，讀得到這個來源上
+    // 每一份使用者看得到的 artifact。唯一值得付的理由是它真的需要真實來源。
+    // 掃不到任何 storage API 就代表沒有那個理由 —— 這是純粹的損失，講一聲。
+    if (!STORAGE_API.test(html)) {
+      warnings.push({
+        code: 'sandbox-off-not-needed',
+        reason:
+          'This upload asked for X-Sandbox: off, but the HTML does not use any API that needs a real origin (no localStorage, sessionStorage, indexedDB, document.cookie, Notification or serviceWorker). Dropping the sandbox buys nothing here and costs a lot: the page gets full same-origin access and can read every artifact the viewer is allowed to see, including group-only ones.',
+        fix: `Upload it again without the X-Sandbox header, or with X-Sandbox: on. See ${DOC}`,
+      });
+    }
     return { warnings, html };
   }
 
@@ -107,7 +118,9 @@ export function inspectBody(body, sandbox) {
       code: 'storage-api-with-sandbox-on',
       reason:
         'This HTML uses a storage API (localStorage, sessionStorage, indexedDB, document.cookie, Notification, serviceWorker or similar), but it was uploaded with X-Sandbox on. It will be served in an opaque origin, where those calls throw SecurityError — the page may break in the browser without any error reaching you.',
-      fix: `Remove every third-party <script src>, then re-upload with X-Sandbox: off. See ${DOC}`,
+      fix:
+        'Preferred: drop the storage calls. Per-view state (a theme, a language, a collapsed section) can live in a variable — default it from prefers-color-scheme or navigator.language instead. State the reader should keep belongs in an explicit export/import (a download plus a file picker), not in the browser. ' +
+        `Only if the page genuinely needs a real origin, re-upload it with X-Sandbox: off — and note that off is refused outright while the page loads any third-party <script src>. See ${DOC}`,
     });
   }
 

@@ -235,3 +235,29 @@ describe('第三方樣式表', () => {
     expect(codes('<link rel="stylesheet" href="/style.css">')).toEqual([]);
   });
 });
+
+describe('X-Sandbox: off 要有理由', () => {
+  const enc = (s) => new TextEncoder().encode(s).buffer;
+  const codes = (html, sandbox) => inspectBody(enc(html), sandbox).warnings.map((w) => w.code);
+
+  it('off 但完全沒用到需要真實來源的 API → 警告', () => {
+    expect(codes('<p>就是一份報告</p>', 'off')).toEqual(['sandbox-off-not-needed']);
+  });
+
+  it('off 而且真的用得到 → 不警告，那是它存在的理由', () => {
+    for (const api of [
+      'localStorage.setItem("a","b")',
+      'sessionStorage.getItem("a")',
+      'indexedDB.open("d")',
+      'document.cookie = "a=b"',
+      'Notification.requestPermission()',
+      'navigator.serviceWorker.register("/sw.js")',
+    ]) {
+      expect(codes(`<script>${api}</script>`, 'off')).toEqual([]);
+    }
+  });
+
+  it('sandbox on 的時候不會誤發這一則', () => {
+    expect(codes('<p>就是一份報告</p>', 'on')).toEqual([]);
+  });
+});

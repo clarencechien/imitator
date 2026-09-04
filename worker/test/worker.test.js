@@ -155,6 +155,29 @@ describe('寫入（write token）', () => {
     expect(body.warnings[0].fix).toContain('publishing-rules.md');
   });
 
+  it('sandbox off 但根本用不到，回警告不擋', async () => {
+    const res = await put('pointless', '<p>就是一份報告</p>', {
+      'X-Sandbox': 'off',
+      'X-Visibility': 'public',
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.sandbox).toBe('off');
+    expect(body.warnings.map((w) => w.code)).toEqual(['sandbox-off-not-needed']);
+  });
+
+  it('sandbox 出現在 GET /v1/a —— 「站上還有幾份 off」要查得到', async () => {
+    await put('boxed', '<p>x</p>', { 'X-Visibility': 'public' });
+    await put('unboxed', '<script>localStorage.getItem("a")</script>', {
+      'X-Sandbox': 'off',
+      'X-Visibility': 'public',
+    });
+    const listed = await (await SELF.fetch(url('/v1/a'), { headers: auth() })).json();
+    expect(listed.find((r) => r.slug === 'boxed').sandbox).toBe('on');
+    expect(listed.find((r) => r.slug === 'unboxed').sandbox).toBe('off');
+    expect(listed.filter((r) => r.sandbox === 'off').map((r) => r.slug)).toEqual(['unboxed']);
+  });
+
   it('一般的報告不會有警告', async () => {
     const res = await put('plain', '<p>就是一份報告</p>', { 'X-Visibility': 'public' });
     expect((await res.json()).warnings).toBeUndefined();
