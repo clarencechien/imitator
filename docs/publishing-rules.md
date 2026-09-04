@@ -113,6 +113,26 @@ sandbox buys nothing here and costs a lot: the page gets full same-origin access
 can read every artifact the viewer is allowed to see, including group-only ones.
 Upload it again without the header.
 
+### Automated publishing never guesses
+
+`scripts/publish-inbox.mjs` (the GitHub Action behind `inbox/`) and
+`scripts/migrate.mjs` both send `X-Sandbox: on` unless the HTML opts out **for
+itself**, in its first 8 KB:
+
+```html
+<meta name="imitator-sandbox" content="off">
+```
+
+They used to decide by scanning the body for `localStorage` and friends. That was
+wrong in both directions: an article that merely *discusses* `localStorage` was
+published with full same-origin access, and a report already tightened to `on` on the
+site went back to `off` the moment anyone re-ran `migrate --force` or dropped the old
+file into `inbox/` again. The rule now lives in `scripts/sandbox.mjs`, shared by
+`publish-inbox`, `migrate` and `verify`, so all three score against the same judgment.
+
+If you add that meta tag, rule 1 applies to the page from then on: no third-party
+`<script src>`, or the upload is refused outright.
+
 ### Counting the exceptions
 
 `GET /v1/a` returns `sandbox` on every entry, so the exceptions are countable at any

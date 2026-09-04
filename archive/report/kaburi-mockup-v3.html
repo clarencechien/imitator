@@ -452,9 +452,13 @@ var STR={
   saved:"已存回",renamed:"改名 → %s",copied:"已複製",copiedToss:"已複製，便條丟了",
   today:"今天",yday:"昨天",other:"EN"}
 };
+/* 這一頁在 imitator 上跑在 CSP sandbox 的 opaque origin 裡，storage API 在那裡
+   會丟 SecurityError。所以偏好只活在記憶體：預設維持 dark + en，切換照常運作，
+   只是不會被記到下一次瀏覽。介面行為與原本完全一致。 */
+var PREF_MEM={};
 var PREF={
- get:function(k,d){try{var v=localStorage.getItem("kaburi."+k);return v===null?d:v}catch(e){return d}},
- set:function(k,v){try{localStorage.setItem("kaburi."+k,v)}catch(e){}}
+ get:function(k,d){return k in PREF_MEM?PREF_MEM[k]:d},
+ set:function(k,v){PREF_MEM[k]=v}
 };
 var lang=PREF.get("lang","en");
 function t(k,v){var s=STR[lang][k]||k;
@@ -520,8 +524,9 @@ var FILES=[
 ];
 var RECENT=5,expanded=false;
 var archived={};
-try{archived=JSON.parse(localStorage.getItem("kaburi.stowed")||"{}")}catch(e){}
-function saveStowed(){try{localStorage.setItem("kaburi.stowed",JSON.stringify(archived))}catch(e){}}
+/* 收起來的項目只活在這一次瀏覽裡。要跨次保留就需要真實來源，而那等於放棄整頁
+   的 sandbox —— 那個代價不值得為一個 mockup 付。 */
+function saveStowed(){}
 /* 自癒：下檯後檔案又被改動過，就自己回到檯面 */
 function isStowed(f){
  var at=archived[f.name];

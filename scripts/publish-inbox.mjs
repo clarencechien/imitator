@@ -12,17 +12,13 @@
 
 import { readdir, readFile, rename, appendFile, access, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { sandboxFor, SANDBOX_META_TAG } from './sandbox.mjs';
 
 const INBOX = 'inbox';
 const REJECTED = 'inbox/rejected';
 const ARCHIVE = 'archive/report';
 const MAX_BYTES = 25 * 1024 * 1024;
 const VISIBILITY = 'public'; // inbox 就是「公開發佈」的意思，見 inbox/README.md
-
-// 在 opaque origin（CSP sandbox）下會丟 SecurityError 或被拒絕的 API。
-// 跟 scripts/migrate.mjs 用同一組判準 —— 改一邊要記得改另一邊。
-const NEEDS_ORIGIN =
-  /\b(?:localStorage|sessionStorage|indexedDB|Notification|BroadcastChannel|SharedWorker)\b|document\.(?:cookie|domain)|serviceWorker/;
 
 const base = (process.env.IMITATOR_BASE ?? '').replace(/\/$/, '');
 const token = process.env.IMITATOR_TOKEN ?? '';
@@ -211,7 +207,9 @@ for (const file of files) {
   }
 
   const html = raw.toString('utf-8');
-  const sandbox = NEEDS_ORIGIN.test(html) ? 'off' : 'on';
+  // 一律 on，除非檔案自己寫了 SANDBOX_META_TAG。判準在 scripts/sandbox.mjs，
+  // 那裡也寫了為什麼不再用「內文有沒有出現 localStorage」來猜。
+  const sandbox = sandboxFor(html);
 
   if (dryRun) {
     await summary(`| \`${file}\` | ${base}/r/${slug}（dry-run）| ${sandbox} |`);
@@ -228,7 +226,7 @@ for (const file of files) {
       `| \`${file}\` | [${result.url}](${result.url}) | ${result.sandbox}${overwrote ? ' · 覆寫既有' : ''} |`,
     );
     for (const w of result.warnings ?? []) {
-      warned.push(`\`${file}\` — **${w.code}**: ${w.reason} ${w.fix}`);
+      warned.push({ file, ...w });
     }
   } catch (err) {
     if (err.permanent) {
@@ -242,8 +240,29 @@ for (const file of files) {
 }
 
 if (warned.length) {
-  await summary(`\n### 警告\n`);
-  for (const w of warned) await summary(`- ${w}`);
+  // storage-api-with-sandbox-on 要單獨拉出來:它代表那一頁在 opaque origin 下
+  // 會丟 SecurityError 而靜靜地壞掉 —— 沒有任何錯誤會傳回發佈的人手上。
+  // 混在一長串警告裡沒有人會看到,所以放最前面並寫清楚後果。
+  const broken = warned.filter((w) => w.code === 'storage-api-with-sandbox-on');
+  if (broken.length) {
+    await summary(`\n### ⚠️ ${broken.length} 份會在瀏覽器裡靜靜壞掉\n`);
+    await summary(
+      '這些頁面用了 storage API,但跑在 CSP sandbox 的 opaque origin 裡,' +
+        '那些呼叫會丟 `SecurityError`。頁面壞掉不會有任何訊息傳回這裡。\n',
+    );
+    await summary('修法:把 storage 呼叫拿掉(偏好放記憶體、狀態改成明確的匯出/匯入)。');
+    await summary(
+      '真的需要真實來源才在 HTML 開頭加 `' +
+        SANDBOX_META_TAG +
+        '` —— 那等於放棄整頁的 sandbox,它的 JS 就讀得到這個來源上每一份讀者看得到的 artifact。\n',
+    );
+    for (const w of broken) await summary(`- \`${w.file}\``);
+  }
+  const rest = warned.filter((w) => w.code !== 'storage-api-with-sandbox-on');
+  if (rest.length) {
+    await summary(`\n### 警告\n`);
+    for (const w of rest) await summary(`- \`${w.file}\` — **${w.code}**: ${w.reason} ${w.fix}`);
+  }
 }
 
 if (failed) {
