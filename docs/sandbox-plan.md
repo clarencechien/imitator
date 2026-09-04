@@ -289,15 +289,41 @@ sandbox 判定正確 277/277、`updatedAt` 正確 272/272。
 `DELETE /v1/a/{twqrcode,mb-timer,mb-timer-v2}` → 三份都 `deleted: true`，`/r/` 回 404。
 
 **全站掃描 279 份** —— 只剩 `kaburi-mockup-v3` 沒有 CSP。它 `owner=bot`，而
-`canWrite` 要求 `meta.owner === gid`，所以 `rd` 的 token 改不動它。見下。
+`canWrite` 要求 `meta.owner === gid`，所以 `rd` 的 token 改不動它。
+
+**`kaburi-mockup-v3`（用 bot 的 token 收掉）。** 它的四處 `localStorage` 存三樣東西：
+`kaburi.lang`（語言）、`kaburi.theme`（深淺色）、`kaburi.stowed`（收起來的項目 →
+時間戳，項目更新時會自動放回來）。四處**全部包在 `try/catch` 裡**，所以只改 header、
+內容一個 byte 都不動就夠了。
+
+在本機用同一份 sandbox CSP 起一個 server 實測過，確認不是「假設它會優雅降級」：
+
+```
+document.origin = http://127.0.0.1:8803
+localStorage    = SecurityError（＝真的在 opaque origin）
+頁面渲染        = 123 個元素 / 296 字內文
+JS 錯誤         = 0 個
+```
+
+代價是那三樣東西不再跨次保留 —— 語言回到預設 `en`、深淺色回到 `dark`、收起來的項目
+每次重開全部回來。前兩項跟 `uncle-bob`／`sin` 完全同一類，要補的話用
+`navigator.language` 與 `prefers-color-scheme` 就有等效（甚至更好）的行為；第三項是
+真的狀態，沒有替代品。**這是 Kaburi 那邊的決定，所以先只改 header，內容不動。**
+
+> **持久的修法在上游。** 只要 Kaburi 再產一次 mockup 推上來，這個例外就會回來 ——
+> 除非它的產生器本身不再輸出 storage API。artifact 這一側的修補都是暫時的。
+
+> **順帶一個小問題：** 這次 `PUT` 回的 `storage-api-with-sandbox-on` warning，`fix`
+> 欄位寫的是「移掉第三方 script，然後改用 `X-Sandbox: off` 重推」—— 那是**反過來的
+> 建議**。這一頁沒有第三方 script，而且我們要的正是 sandbox on。另一條合法的解法
+> 「把 storage 呼叫拿掉」沒有被寫進去。`policy.js:106` 的那段文案值得改。
 
 - [x] 第 0 步 · visibility 盤點 —— 8 份全 public / owner=rd
 - [x] 批次 A · uncle-bob / sin / busan-v1 —— 已推，CSP 已回來
 - [x] 批次 B · html-working-artifact / checklist —— 已推，CSP 已回來
 - [x] 批次 C · 三個 app 移進 `sandbox/` 並從站上刪除，`/r/` 回 404
-- [ ] **`kaburi-mockup-v3`** —— 全站掃描才找到的第 9 份，`owner=bot`，要用 bot 的
-      token 或從 Kaburi 那邊重推。它的 4 處 `localStorage` 都包在 `try/catch` 裡
-      （`kaburi.` 前綴、`kaburi.stowed`），所以開 sandbox 不會壞掉，只是「收起來的
-      東西」不再跨次保留 —— 要不要接受這個代價是 Kaburi 那邊的決定。
+- [x] **`kaburi-mockup-v3`** —— 用 bot 的 token 重推，只改 `X-Sandbox: on`，
+      **內容一個 byte 都沒動**（`visibility`、`title`、`updatedAt` 全部保留）。
+- [x] **全站掃描 279 份：沒有 CSP 的 0 份。**
 - [ ] 收尾 · sandbox 進 `GET /v1/a`
 - [ ] 收尾 · `X-Sandbox: off` 的規則化
