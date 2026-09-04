@@ -326,6 +326,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
   .anno-btn{left:auto;right:0;top:-30px}
 }
 @media (max-width:640px){
+  /* masthead 高度不能動 —— .spine 與 .drawer 用 top:50px 對齊它。所以在窄螢幕
+     上是把純資訊的部分收掉，而不是讓它換行：換行會撐破那 50px，內容就疊上來。
+     「狀態不自動保存」那句改由匯出區塊承擔，那裡每個尺寸都看得到。 */
+  .masthead{gap:8px;padding:0 12px}
+  .masthead .file{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .masthead .sep,.masthead .note{display:none}
+  .mast-actions{gap:4px;flex:none}
+  .masthead .btn{font-size:11px;padding:0 8px;letter-spacing:.03em}
   .hero h1{font-size:31px}
   .head h2{font-size:23px}
   .row{grid-template-columns:1fr;gap:4px}
@@ -354,7 +362,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
 <header class="masthead">
   <span class="file"><b>working-artifact.html</b></span>
   <span class="sep">/</span>
-  <span class="note">單檔 · 無 CDN · 狀態存在你的瀏覽器</span>
+  <span class="note">單檔 · 無 CDN · 狀態不自動保存</span>
   <div class="mast-actions no-print">
     <button class="btn" id="btnNotes">註記 <b id="noteCount" class="m">0</b></button>
     <button class="btn" id="btnImport">載入狀態</button>
@@ -627,7 +635,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
   <div class="head">
     <span class="lbl">交付 / 07</span>
     <h2>交付與來源</h2>
-    <p class="sub">你在這頁上做的每個動作都在這份 payload 裡。下載它，或連同這個 HTML 一起寄出去，對方打開就能還原。</p>
+    <p class="sub">你在這頁上做的每個動作都在這份 payload 裡。下載它，或連同這個 HTML 一起寄出去，對方打開就能還原。<b>這一頁不會自動保存 —— 離開前請按「下載 .json」，回來時用上面的「載入狀態」讀回去。</b></p>
   </div>
 
   <div class="two">
@@ -654,7 +662,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radiu
     </div>
     <div class="src">
       <b>internal-gitops-blueprint.html</b>（上一版產物）<br />
-      已具章節導覽、架構版面、code 複製、區塊註解、localStorage 與註解匯入匯出；GitOps 決策本身不可操作。第 05 節的評分依據就是它實際有的功能。
+      已具章節導覽、架構版面、code 複製、區塊註解、狀態與註解的匯出匯入；GitOps 決策本身不可操作。第 05 節的評分依據就是它實際有的功能。
     </div>
   </div>
 
@@ -748,20 +756,12 @@ var state={dials:{},picks:{},notes:[],author:"",ticks:0,fb:"sunset",touched:fals
 DIALS.forEach(function(d){state.dials[d.id]=d.d});
 Object.keys(DEF_PICKS).forEach(function(k){state.picks[k]=DEF_PICKS[k]});
 
-function load(){
-  try{
-    var raw=localStorage.getItem(KEY); if(!raw) return;
-    var s=JSON.parse(raw);
-    if(s.dials) Object.keys(s.dials).forEach(function(k){ if(k in state.dials) state.dials[k]=s.dials[k]});
-    if(s.picks) Object.keys(s.picks).forEach(function(k){ if(k in state.picks) state.picks[k]=s.picks[k]});
-    if(Array.isArray(s.notes)) state.notes=s.notes;
-    if(typeof s.author==="string") state.author=s.author;
-    if(typeof s.fb==="string") state.fb=s.fb;
-    if(typeof s.ticks==="number") state.ticks=s.ticks;
-    if(typeof s.touched==="boolean") state.touched=s.touched;
-  }catch(e){}
-}
-function save(){ try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){} }
+// 狀態不再自動存進瀏覽器：storage API 在 imitator 的 sandbox（opaque origin）下
+// 會丟 SecurityError，而這一頁本來就有完整的匯出／載入（「下載 .json」與
+// 「載入狀態」，後者在下面自己做欄位對應），那條路徑才是它交付狀態的方式。
+// load/save 留成空函式，因為呼叫點散在各處，拿掉它們的差異會比留著大。
+function load(){}
+function save(){}
 
 var bumpTimer=null;
 function tick(){
@@ -1027,8 +1027,8 @@ $$("[data-copy]").forEach(function(b){
 $("#btnDownload").addEventListener("click",download);
 $("#btnRailCopy").addEventListener("click",function(e){ e.stopPropagation(); copyText(JSON.stringify(payload(),null,2),this) });
 $("#btnReset").addEventListener("click",function(){
-  if(!confirm("清空這頁的所有狀態，包括註記？")) return;
-  localStorage.removeItem(KEY); location.reload();
+  if(!confirm("清空這頁的所有狀態，包括註記？未下載的內容會消失。")) return;
+  location.reload();
 });
 $("#btnRail").addEventListener("click",function(){ $("#rail").classList.toggle("open") });
 $("#railBar").addEventListener("click",function(){ $("#rail").classList.toggle("open") });

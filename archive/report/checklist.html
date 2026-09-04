@@ -184,9 +184,18 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <h1 class="text-xl font-bold flex items-center gap-2">
                 <span>✈️</span> 旅行清單
             </h1>
-            <button onclick="confirmReset()" class="p-2 active:opacity-50 transition-opacity">
-                ↺ 重置
-            </button>
+            <div class="flex items-center gap-1">
+                <button onclick="exportList()" class="p-2 active:opacity-50 transition-opacity text-sm" title="把目前的清單存成檔案">
+                    ⤓ 匯出
+                </button>
+                <button onclick="document.getElementById('fileImport').click()" class="p-2 active:opacity-50 transition-opacity text-sm" title="讀回之前匯出的清單">
+                    ⤒ 載入
+                </button>
+                <input type="file" id="fileImport" accept=".json,application/json" hidden onchange="importList(event)">
+                <button onclick="confirmReset()" class="p-2 active:opacity-50 transition-opacity text-sm">
+                    ↺ 重置
+                </button>
+            </div>
         </div>
         <!-- Progress Bar -->
         <div class="w-full bg-blue-800 rounded-full h-2 mb-1">
@@ -230,15 +239,67 @@ Check your Browserslist config to be sure that your targets are set up correctly
         let items = [];
         let sortableInstance = null; // 儲存 Sortable 實例
 
+        // 這份清單不再自動存進瀏覽器：storage API 在 imitator 的 sandbox
+        // （opaque origin）下會丟 SecurityError。改用明確的匯出／載入 —— 清單是
+        // 拿來帶走的東西，存成檔案也比綁在某一台裝置的某一個瀏覽器裡好帶。
         function init() {
-            const saved = localStorage.getItem('travel-list-drag');
-            items = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+            items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
             render();
         }
 
+        // 名字留著：拖曳、勾選、新增、刪除都會呼叫它。現在它只負責更新進度。
         function save() {
-            localStorage.setItem('travel-list-drag', JSON.stringify(items));
             renderStats();
+        }
+
+        function exportList() {
+            const payload = {
+                schemaVersion: 1,
+                kind: 'travel-checklist',
+                exportedAt: new Date().toISOString(),
+                items: items,
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // 檔名用 ASCII：中文的 download 屬性在部分瀏覽器會被忽略，檔案就變成
+            // 沒有副檔名的 "download"。
+            a.download = 'travel-checklist-' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            // 立刻撤銷會讓部分瀏覽器來不及開始下載。
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+
+        function importList(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const data = JSON.parse(reader.result);
+                    const incoming = Array.isArray(data) ? data : data.items;
+                    if (!Array.isArray(incoming)) throw new Error('這個檔案裡沒有清單');
+                    const clean = incoming
+                        .filter(x => x && typeof x.text === 'string')
+                        .map((x, i) => ({
+                            id: typeof x.id === 'string' ? x.id : 'i-' + Date.now() + '-' + i,
+                            text: x.text,
+                            checked: x.checked === true,
+                        }));
+                    if (!clean.length) throw new Error('這個檔案裡沒有任何項目');
+                    if (!confirm('讀入 ' + clean.length + ' 個項目，取代目前的清單？')) return;
+                    items = clean;
+                    render();
+                } catch (err) {
+                    alert('讀不到這個檔案：' + err.message);
+                } finally {
+                    e.target.value = '';
+                }
+            };
+            reader.readAsText(file);
         }
 
         function render() {
@@ -354,7 +415,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         }
 
         function confirmReset() {
-            if (confirm('確定要取消所有勾選狀態嗎？')) {
+            if (confirm('確定要取消所有勾選狀態嗎？沒有匯出的話，這一步不能復原。')) {
                 items.forEach(i => i.checked = false);
                 save();
                 render();
