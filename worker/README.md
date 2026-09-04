@@ -186,9 +186,40 @@ Skip 來得及生效。驗證方式是看 Firewall Events 有沒有這一列：
 firewallCustom  skip  imitator — skip SBFM for API and join  PUT /v1/a/<slug>
 ```
 
-**多條 custom rule 可以並存**，按順序求值。目前這個 zone 上有三條：擋掃描器路徑的
-Block、上面這條 Skip、以及一條針對 `http.user_agent contains "bot"/"crawl" and not
-cf.client.bot` 的 Managed Challenge。
+**多條 custom rule 可以並存**，按順序求值。目前這個 zone 上有四條：擋掃描器路徑的
+Block、上面這條 Skip、一條針對 `http.user_agent contains "bot"/"crawl" and not
+cf.client.bot` 的 Managed Challenge，以及一條給 ytplayer 的 API bypass。
+
+> ⚠️ **custom rule 少了 `http.host` 就是整個 zone 的規則，不是那個服務的規則。**
+> `imitator.ai-apps.work` 只是 `ai-apps.work` 上的一個主機名，所以這件事踩過一次：
+> 2026-09-04 為了讓 ytplayer 的擴充能通過 SBFM，加了一條 `Skip → All remaining
+> custom rules ＋ SBFM` 的規則，條件是一串 API 路徑加上一句無條件的
+> `http.request.method eq "OPTIONS"` —— **沒有 host 條件**。實測 imitator 上：
+>
+> ```
+> GET /health /inbox/x /subs/x …        → 404（Worker 回的，不是 403）
+> OPTIONS /wp-admin  /.env              → 404
+> GET /wp-admin（對照）                  → 403
+> ```
+>
+> 那 11 條路徑連同**任何路徑的 OPTIONS**，都穿過了擋掃描器那條 Block。不是資安
+> 破口（那些路由在 Worker 上不存在，一律 404/405），但掃描器從此會叫起 Worker。
+>
+> 真正的危險在「Skip → **All remaining** custom rules」：它連**之後才新增的規則**
+> 一起跳過。那不是一個當下的破口，是一個會長大的盲區。
+>
+> 修法是把整組條件包進括號、前面掛上 `http.host eq "ytplayer.ai-apps.work" and`。
+> **括號不能省** —— Cloudflare 的表達式裡 `and` 比 `or` 綁得緊，少了括號那串 OR
+> 會全部退回 zone-wide，等於沒改。
+>
+> 另外那句無條件的 `OPTIONS` 其實是多餘的：CORS preflight 打的是跟正式請求同一條
+> 路徑，路徑清單已經接住了。留著只在「清單漏了某個端點」時才有用。
+
+> **看到 403 先分辨是誰回的。** Cloudflare 擋的會帶 `cf-mitigated` 標頭或是
+> `Just a moment…` 的 HTML；應用程式自己回的是它自己的 content-type 與 body。
+> 驗證上面那條修好沒有時，ytplayer 的 `/jobs.json` 回 403 但內容是
+> `{"ok":false,"error":"unauthorized"}` —— 那是 app 說沒帶憑證，請求其實通了。
+> 同一次量測裡 `/` 的 403 則帶著 `cf-mitigated: challenge`，那才是被擋。
 
 > `cf.client.bot`（Known Bots）認的是 **Web Bot Auth 簽章、公布的 IP 段＋穩定 UA、
 > 或反解 DNS**，不是 UA 字串。所以從無關的 IP 送一個假造的 `Slackbot` UA 會被擋 ——

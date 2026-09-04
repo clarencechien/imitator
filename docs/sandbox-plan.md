@@ -362,4 +362,10 @@ JS 錯誤         = 0 個
 - [x] **全站掃描 279 份：沒有 CSP 的 0 份。**
 - [x] 收尾 · sandbox 進 `GET /v1/a`（待部署）
 - [x] 收尾 · `X-Sandbox: off` 的規則化 ＋ 文案更正（待部署）
-- [ ] **部署 Worker** —— `cd worker && npx wrangler deploy`
+- [x] **部署 Worker** —— 已部署並驗過：`GET /v1/a` 每一筆都帶 `sandbox`、
+      `sandbox-off-not-needed` 會發、`storage-api-with-sandbox-on` 是新文案。
+- [x] **checklist 的 DOM XSS** —— 安全掃描抓到的，是加匯入時造成的。已修並重推，
+      拿站上的 bytes 用三種脈絡的 payload 實測打不穿。規則寫進 `STYLE.md` 第 8 條
+      與 `docs/publishing-rules.md` §5。
+- [x] **最終確認** —— 全站 279 份逐份看回應標頭：實際沒有 CSP 的 0 份，而且
+      API 的 `sandbox` 與實際標頭 0 份不一致。憑證已輪替。
