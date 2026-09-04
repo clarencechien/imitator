@@ -221,7 +221,11 @@ export async function putArtifact(request, env, slug, gid) {
     },
   });
 
-  const entry = { visibility, owner, title, updatedAt: timestamp, ...(styleRecord ? { style: styleRecord } : {}) };
+  // sandbox 一併寫進索引：它決定這一份有沒有完整的同源權限，是這個站上最值得
+  // 隨時查得到的一件事。先前它只存在於 R2 的 customMetadata 裡，從 GET /v1/a
+  // 完全看不到 —— 於是「站上還有幾份 off」只能靠逐份看 /r/<slug> 的回應標頭，
+  // 或掃本機檔案（而用 curl 直接推的那些，本機根本沒有副本）。
+  const entry = { visibility, owner, title, sandbox, updatedAt: timestamp, ...(styleRecord ? { style: styleRecord } : {}) };
   // 同時寫進 value 與 metadata：portal 列表只需要一次 list()，不必逐筆 get()。
   // KV metadata 上限 1024 bytes，而 title 最長可以到 600 bytes —— 指紋放精簡版，
   // 還是塞不下就整個拿掉（value 裡仍是完整的）。
@@ -317,6 +321,10 @@ export async function listArtifacts(env, gid) {
         // owner 沒有就是還沒被 backfill 到 —— 這是唯一唯讀查得到的地方。
         owner: meta.owner ?? null,
         updatedAt: meta.updatedAt ?? null,
+        // 這一份有沒有 CSP sandbox。缺這個欄位代表它是這個欄位存在之前寫進去的
+        // —— 當成 'on' 是安全的：2026-09-04 逐份掃過全站 279 份的回應標頭，
+        // 沒有 CSP 的是 0 份。之後每一次寫入都會明確帶上它。
+        sandbox: meta.sandbox ?? 'on',
         // 樣式指紋（版本、語域、參照物、紙色、重點色）。沒有就是沒套指引。
         style: meta.style ?? null,
       });

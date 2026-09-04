@@ -78,9 +78,10 @@ Open the result in a browser before uploading. Inlining freezes a snapshot: you 
 receiving upstream fixes, which is the right trade for a frozen report and the wrong
 one for something you actively maintain.
 
-## 2. Storage APIs require `X-Sandbox: off`
+## 2. Storage APIs and `X-Sandbox`
 
-**Warned, not enforced.** A successful `PUT` may return a `warnings` array.
+**Warned, not enforced, in both directions.** A successful `PUT` may return a
+`warnings` array.
 
 An opaque origin makes these throw `SecurityError`:
 
@@ -88,15 +89,44 @@ An opaque origin makes these throw `SecurityError`:
 `document.domain` · `Notification` · `BroadcastChannel` · `SharedWorker` ·
 `serviceWorker`
 
-If your HTML uses any of them and you upload with the default `X-Sandbox: on`, the
-page will break in the browser and nothing will tell you — no error reaches the
-uploader. The warning exists because that failure is silent.
+### `storage-api-with-sandbox-on` — the page will break, silently
 
-The fix is rule 1 in reverse: remove every third-party `<script src>`, then upload
-with `X-Sandbox: off`.
+Your HTML uses one of those APIs but was uploaded sandboxed. The calls throw in the
+browser and nothing reaches you. The warning exists because that failure is silent.
 
-**Best of all, avoid needing it.** A report that keeps its state in memory instead of
-`localStorage` stays sandboxed, and sandboxed is the safer default.
+**The fix is almost always to drop the storage call, not to drop the sandbox.**
+
+- Per-view state — a theme, a language, a collapsed section — belongs in a variable.
+  Default it from `prefers-color-scheme` or `navigator.language` and you get better
+  behaviour than a remembered value: it follows the reader's system.
+- State the reader should keep belongs in an explicit **export/import** — a download
+  plus a file picker. A file travels between devices; `localStorage` does not.
+
+Only when the page genuinely needs a real origin — `Notification` has no
+sandbox-compatible equivalent at all — is `X-Sandbox: off` the answer, and then
+rule 1 applies: no third-party `<script src>`, or the upload is refused outright.
+
+### `sandbox-off-not-needed` — you paid for nothing
+
+You asked for `X-Sandbox: off` but the HTML uses none of those APIs. Dropping the
+sandbox buys nothing here and costs a lot: the page gets full same-origin access and
+can read every artifact the viewer is allowed to see, including group-only ones.
+Upload it again without the header.
+
+### Counting the exceptions
+
+`GET /v1/a` returns `sandbox` on every entry, so the exceptions are countable at any
+time:
+
+```bash
+curl -s https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_TOKEN" \
+  | node -e 'const a=JSON.parse(require("fs").readFileSync(0,"utf8"));
+    console.log(a.filter(x=>x.sandbox==="off").map(x=>x.slug).join("\n")||"0 份")'
+```
+
+An entry written before that field existed reports `on`; every write since records it
+explicitly. Scanning local files is **not** a substitute — anything pushed straight
+with `curl` has no local copy to scan.
 
 ## 3. Writing prompts for report generation
 

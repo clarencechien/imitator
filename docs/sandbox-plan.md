@@ -248,16 +248,27 @@ ASCII —— 中文的 `download` 屬性在部分瀏覽器會被忽略，檔案�
 
 ---
 
-## 收完之後要順手做的兩件事
+## 收完之後要順手做的兩件事（已完成，待部署）
 
 不做的話，例外會再長回來。
 
-1. **讓 sandbox 旗標可稽核。** `GET /v1/a` 現在不回傳它，所以「站上哪幾份是 off」
-   只能靠這份文件或重掃本機檔案。加進列表就跟 `owner` 一樣可以隨時查，也讓
-   `style-census.mjs` 數得出來。
-2. **把「不再新增 `X-Sandbox: off`」寫成規則。** 現在 `policy.js` 只做了一半 ——
-   對「用了 storage 卻沒關 sandbox」回 warning，但 `off` 本身是隨手就能帶的 header。
-   `STYLE.md` 已經要求新報告不准用 storage，缺的是 host 這一側的對應檢查。
+1. **讓 sandbox 旗標可稽核。** ✅ `GET /v1/a` 的每一筆現在都帶 `sandbox`。它同時寫進
+   KV 索引的 metadata（`artifacts.js` 的 `entry`），所以列表不必逐筆 `get()`。
+   這個欄位存在之前寫進去的紀錄會回報 `on` —— 那是安全的預設：2026-09-04 逐份掃過
+   全站 279 份的回應標頭，沒有 CSP 的是 0 份。
+2. **把「不再新增 `X-Sandbox: off`」寫成規則。** ✅ 新增 warning
+   `sandbox-off-not-needed`：帶了 `off`、但整份 HTML 掃不到任何需要真實來源的 API，
+   就是付了代價卻沒買到東西。**不擋**，只講一聲 —— 擋下去會讓誤判變成無法發佈。
+   於是 `off` 現在只有兩種結局：真的需要（安靜通過），或不需要（收到警告）。
+
+順帶修掉一則誤導的文案：`storage-api-with-sandbox-on` 的 `fix` 原本寫「移掉第三方
+script，然後改用 `X-Sandbox: off` 重推」—— 那是**反過來的建議**，而且漏掉了正確的
+第一選項。現在它先講「把 storage 呼叫拿掉」（偏好用 `prefers-color-scheme` /
+`navigator.language` 取代、真狀態用匯出匯入），把 `off` 放在最後、並註明它跟第三方
+script 互斥。`docs/publishing-rules.md` §2 整節照同樣的順序重寫。
+
+> **這三項都要部署 Worker 才生效。** 這個 session 沒有 Cloudflare 憑證，
+> `cd worker && npx wrangler deploy` 要你自己跑。93 個測試通過（新增 5 個）。
 
 做完這兩件，「imitator.ai-apps.work 上沒有你不信任的同源頁面」這句話才會**持續**
 成立 —— 而那正是把發佈動線移進瀏覽器（PWA ＋ cookie 授權）的前提。
@@ -322,8 +333,13 @@ JS 錯誤         = 0 個
 - [x] 批次 A · uncle-bob / sin / busan-v1 —— 已推，CSP 已回來
 - [x] 批次 B · html-working-artifact / checklist —— 已推，CSP 已回來
 - [x] 批次 C · 三個 app 移進 `sandbox/` 並從站上刪除，`/r/` 回 404
-- [x] **`kaburi-mockup-v3`** —— 用 bot 的 token 重推，只改 `X-Sandbox: on`，
-      **內容一個 byte 都沒動**（`visibility`、`title`、`updatedAt` 全部保留）。
+- [x] **`kaburi-mockup-v3`** —— 先只改 `X-Sandbox: on`（內容不動），之後把四處
+      `localStorage` 也拿掉了：`lang` 改讀 `navigator.language`、`theme` 改讀
+      `prefers-color-scheme`、`stowed` 只活在記憶體裡。重推後**零 warning**。
+      三種系統組合（dark/en、light/zh-TW、dark/zh-TW）在真的 opaque origin 下實測，
+      主題與語言都正確跟隨、JS 錯誤 0 個。
+      **持久的修法仍在上游** —— Kaburi 的產生器再產一次就會把 storage 帶回來。
 - [x] **全站掃描 279 份：沒有 CSP 的 0 份。**
-- [ ] 收尾 · sandbox 進 `GET /v1/a`
-- [ ] 收尾 · `X-Sandbox: off` 的規則化
+- [x] 收尾 · sandbox 進 `GET /v1/a`（待部署）
+- [x] 收尾 · `X-Sandbox: off` 的規則化 ＋ 文案更正（待部署）
+- [ ] **部署 Worker** —— `cd worker && npx wrangler deploy`
