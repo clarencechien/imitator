@@ -7,9 +7,9 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { sandboxFor } from './sandbox.mjs';
 
 const base = (process.env.IMITATOR_BASE ?? 'https://imitator.ai-apps.work').replace(/\/$/, '');
-const NEEDS_ORIGIN = /\b(?:localStorage|sessionStorage|indexedDB|Notification|BroadcastChannel|SharedWorker)\b|document\.(?:cookie|domain)|serviceWorker/;
 const toSlug = (f) => path.basename(f, '.html').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-{2,}/g, '-').replace(/^-|-$/g, '').slice(0, 64).replace(/-$/, '');
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -46,7 +46,9 @@ for (const file of files) {
   else okBytes++;
 
   const csp = res.headers.get('content-security-policy');
-  const wantSandbox = !NEEDS_ORIGIN.test(local.toString('utf-8'));
+  // 判準跟兩支發佈腳本同一份（scripts/sandbox.mjs），否則驗證會對著另一套規則
+  // 打分數 —— 這正是先前那條啟發式正則造成的問題。
+  const wantSandbox = sandboxFor(local.toString('utf-8')) === 'on';
   if (wantSandbox && !csp?.includes('sandbox')) bad.push(`${slug}: 應該要有 sandbox 但沒有`);
   else if (!wantSandbox && csp) bad.push(`${slug}: 應該是例外但被 sandbox 了`);
   else okCsp++;

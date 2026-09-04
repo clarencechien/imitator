@@ -20,6 +20,7 @@
 
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { sandboxFor } from './sandbox.mjs';
 
 const args = new Map(
   process.argv.slice(2).map((a) => {
@@ -130,11 +131,10 @@ async function listExisting() {
   return new Set((await res.json()).map((r) => r.slug));
 }
 
-// artifact 預設會被 Worker 加上 CSP sandbox（opaque origin）。在 opaque origin
-// 下會丟 SecurityError 或被拒絕的 API，偵測到就個別關掉 sandbox。
-// 寧可誤判成需要例外，也不要讓報告靜靜地壞掉 — 被關掉的會列在結尾。
-// （對 report/ 這 272 份實測過：命中 8 份，Chromium 下確實只有那 8 份會壞。）
-const NEEDS_ORIGIN = /\b(?:localStorage|sessionStorage|indexedDB|Notification|BroadcastChannel|SharedWorker)\b|document\.(?:cookie|domain)|serviceWorker/;
+// artifact 預設會被 Worker 加上 CSP sandbox（opaque origin）。要例外的檔案必須
+// 自己在 HTML 開頭寫下 SANDBOX_META_TAG —— 判準與理由在 scripts/sandbox.mjs。
+// 這裡以前是用「內文有沒有出現 localStorage」猜的，那條規則會讓已經收成 on 的
+// 報告在 --force 重推時悄悄變回 off。
 
 async function upload(slug, title, body, sandbox, updatedAt) {
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -210,13 +210,18 @@ if (existing.size) {
 let done = 0;
 let failed = 0;
 const noSandbox = [];
+const warned = [];
 for (const { file, slug, updatedAt } of todo) {
   const html = await readFile(path.join(dir, file), 'utf-8');
-  const sandbox = NEEDS_ORIGIN.test(html) ? 'off' : 'on';
+  const sandbox = sandboxFor(html);
   try {
-    await upload(slug, titleOf(html, slug), html, sandbox, updatedAt);
+    const result = await upload(slug, titleOf(html, slug), html, sandbox, updatedAt);
     done += 1;
     if (sandbox === 'off') noSandbox.push(slug);
+    // Worker 的內容檢查（policy.js）會回警告，最重要的是
+    // storage-api-with-sandbox-on：這一頁用了 storage API 但跑在 opaque origin，
+    // 呼叫會丟 SecurityError，而頁面壞掉不會有任何訊息傳回來。吞掉等於看不見。
+    for (const w of result?.warnings ?? []) warned.push(`${slug} — ${w.code}: ${w.reason} ${w.fix}`);
     console.log(`  ✓ ${file} → /r/${slug}${sandbox === 'off' ? '  (sandbox off)' : ''}`);
   } catch (err) {
     failed += 1;
@@ -228,6 +233,12 @@ for (const { file, slug, updatedAt } of todo) {
 const total = (await listExisting()).size;
 console.log(`\n完成 ${done}／${todo.length}${failed ? `，失敗 ${failed}` : ''}；站上現在共 ${total} 個 artifact`);
 if (noSandbox.length) {
-  console.log(`sandbox 關掉的 ${noSandbox.length} 份（opaque origin 下會壞）：${noSandbox.join(', ')}`);
+  console.log(
+    `sandbox 關掉的 ${noSandbox.length} 份（自己帶了 imitator-sandbox meta）：${noSandbox.join(', ')}`,
+  );
+}
+if (warned.length) {
+  console.log(`\n內容警告 ${warned.length} 則：`);
+  for (const w of warned) console.log(`  - ${w}`);
 }
 process.exit(failed ? 1 : 0);
