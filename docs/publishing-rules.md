@@ -187,7 +187,39 @@ accent away from it (`STYLE.md`, the `RECENT:` step); so anyone reading a file l
 which version of the guide it followed; and so the archive accumulates, per report, what
 was chosen — the raw material for a taste profile that is not the model's average.
 
-## 5. Everything else
+## 5. If your page reads a file, it inherits an untrusted input
+
+**Not enforced — the host cannot see this, and it is the one rule where that matters.**
+
+Every artifact is served in an opaque origin (rule 1), so injected script cannot read
+cookies or fetch other artifacts back. That sandbox is doing real work, and it is also
+why this rule is a rule and not a rejection: the host has no way to tell a safe
+interpolation from an unsafe one, and the blast radius is bounded rather than zero.
+
+A page that only renders data baked into itself can build HTML with string concatenation
+safely — the only author of that data is its author. **Add a file picker, a paste box, a
+query parameter, or a `postMessage` listener and that stops being true.** The values now
+come from whoever hands the reader a file, and every interpolation that reaches
+`innerHTML` becomes a stored XSS.
+
+The interpolation does not have to be new to become a vulnerability. This has already
+happened here: an export/import pair was added to a published checklist whose renderer had
+always built its rows with a template literal. The renderer was not touched. The import is
+what made it reachable.
+
+Two contexts, two different fixes — this is the part that gets missed:
+
+| Where the value lands | Fix |
+|---|---|
+| HTML text — `` `<span>${text}</span>` `` | HTML-escape `& < > " '` |
+| An attribute holding JS — `` `onclick="pick('${id}')"` `` | **Escaping is not enough.** The parser decodes `&#39;` to `'` before the JS is compiled, so the payload survives. Constrain the value to a safe character set and regenerate it when it does not match, or drop the inline handler for `addEventListener`. |
+
+Best is to have no sink: `createElement` + `textContent` + `addEventListener`.
+
+Then test with a hostile file. A clean export/import round-trip proves the feature works
+and proves nothing about this.
+
+## 6. Everything else
 
 | | |
 |---|---|
