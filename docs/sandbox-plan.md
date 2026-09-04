@@ -12,6 +12,12 @@ sandbox，是沒有（`artifacts.js:138`）。它們的 JS 拿到 `imitator.ai-a
 盤點與分類的依據見 `worker/README.md` 的「read secret 會進日誌」上一節，以及
 `scripts/migrate.mjs:137` 那條 `NEEDS_ORIGIN` 正則 —— 本機重掃 280 份，命中剛好這 8 份。
 
+> **「8 份」只涵蓋從 `archive/report/` 遷移上去的那批。** 執行時做了一次全站標頭掃描，
+> 找到第 9 份 `kaburi-mockup-v3` —— 它是用 curl 直接推的，本機沒有副本，所以掃檔案
+> 永遠掃不到。**唯一可靠的清點方式是逐份看 `/r/<slug>` 有沒有 CSP 標頭**，因為
+> `GET /v1/a` 不回傳 sandbox 欄位。這件事本身就是下面「收完之後要順手做的兩件事」
+> 第 1 條的理由。
+
 ---
 
 ## 能一次改到好嗎
@@ -263,17 +269,35 @@ ASCII —— 中文的 `download` 屬性在部分瀏覽器會被忽略，檔案�
 > 每一步做完回來補一行：日期、實際跑的指令、驗證結果。第 0 步查到的 visibility
 > 記在這裡，批次 A/B 才有依據。
 
-**2026-09-04 · 本機部分完成。** 五份改完，`NEEDS_ORIGIN` 掃描歸零，九個 inline
-script 全部通過 `node --check`，五份在 Chromium 實際載入無 JS 錯誤。`checklist`
-的匯出→載入來回測過：38 項出、38 項回。三個 app 已 `git mv` 進 `sandbox/`。
+**2026-09-04 · 全部執行完畢（除了一份不屬於 `rd` 的）。**
 
-站上的部分還沒動 —— 這個 session 的 shell 讀不到 `IMITATOR_TOKEN`（環境變數的
-改動通常要新 session 才生效）。第 0 步與批次 A/B 的推送、批次 C 的刪除都還沒跑。
+第 0 步 · `GET /v1/a`：8 份全部 `public`、全部 `owner=rd`，時間戳與 `report_list.json`
+一致，所以 `--visibility=public` 一次跑完，不需要分開。
 
-- [ ] 第 0 步 · visibility 盤點 —— **待做，需要 token**
-- [x] 批次 A · uncle-bob / sin / busan_v1 —— **本機改完**，待推
-- [x] 批次 B · html-working-artifact / checklist —— **本機改完**，待推
-- [x] 批次 C 的前半 · 三個 app 已移進 `sandbox/`，`archive/` 裡沒有它們了
-- [ ] 批次 C 的後半 · 站上 `DELETE` 三個 slug —— **待做，需要 token，不可逆**
+> **這一步抓到一個會出事的假設。** slug 是從檔名推導的，底線會變成破折號：
+> `busan_v1` → `busan-v1`、`mb_timer` → `mb-timer`、`mb_timer_v2` → `mb-timer-v2`。
+> 先前用檔名當 slug 查，這三份會顯示「不在站上」；批次 C 如果照著檔名去 `DELETE`，
+> 刪到的是不存在的 slug，而回應仍然是成功的樣子。
+
+批次 A/B · `migrate.mjs --visibility=public --force --only=uncle-bob,sin,busan-v1,html-working-artifact,checklist`
+—— 5/5 成功。驗證：五份的 `/r/` 都回 `content-security-policy: sandbox …`（原本是沒有），
+visibility 仍是 `public`，`updatedAt` 沒有跳到今天。`verify.mjs`：內容一致 277/277、
+sandbox 判定正確 277/277、`updatedAt` 正確 272/272。
+
+批次 C · 刪除前逐份比對站上與 `sandbox/` 的內容，用 `verify.mjs` 那條剝除 Cloudflare
+注入的正則，三份都完全相同；也確認三份原檔已經在 origin 上。然後
+`DELETE /v1/a/{twqrcode,mb-timer,mb-timer-v2}` → 三份都 `deleted: true`，`/r/` 回 404。
+
+**全站掃描 279 份** —— 只剩 `kaburi-mockup-v3` 沒有 CSP。它 `owner=bot`，而
+`canWrite` 要求 `meta.owner === gid`，所以 `rd` 的 token 改不動它。見下。
+
+- [x] 第 0 步 · visibility 盤點 —— 8 份全 public / owner=rd
+- [x] 批次 A · uncle-bob / sin / busan-v1 —— 已推，CSP 已回來
+- [x] 批次 B · html-working-artifact / checklist —— 已推，CSP 已回來
+- [x] 批次 C · 三個 app 移進 `sandbox/` 並從站上刪除，`/r/` 回 404
+- [ ] **`kaburi-mockup-v3`** —— 全站掃描才找到的第 9 份，`owner=bot`，要用 bot 的
+      token 或從 Kaburi 那邊重推。它的 4 處 `localStorage` 都包在 `try/catch` 裡
+      （`kaburi.` 前綴、`kaburi.stowed`），所以開 sandbox 不會壞掉，只是「收起來的
+      東西」不再跨次保留 —— 要不要接受這個代價是 Kaburi 那邊的決定。
 - [ ] 收尾 · sandbox 進 `GET /v1/a`
 - [ ] 收尾 · `X-Sandbox: off` 的規則化
