@@ -443,6 +443,16 @@ curl -s https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_T
   有可能（例如報告內容本身在談 localStorage）。
 - Body 超過 2 MB 就跳過檢查（掃描要花 CPU），並在 warning 裡說明跳過了。
 
+- **`X-Sandbox: off` 但整份掃不到任何需要真實來源的 API → 200 加 warning。**
+  `off` 是要付代價的例外（那一頁從此有完整同源權限），沒有理由就不該付。不擋，
+  因為誤判不該變成無法發佈。
+
+**有一件事 host 檢查不到，只能靠指引**：報告自己加了讀外部檔案的入口（檔案選擇器、
+貼上框、query 參數、`postMessage`）之後，它既有的每一個 `innerHTML` 插值就都變成攻擊面。
+host 沒有辦法分辨安全與不安全的插值，所以那是 `STYLE.md` 第 8 條與
+`docs/publishing-rules.md` §5 的規則，不是這裡的檢查。真的發生過一次，見
+`style/README.md`。sandbox 把後果限制住了 —— 那正是它存在的理由。
+
 這確實偏離了 spec 的「收什麼吐什麼」。偏離的範圍很窄：**body 一個 byte 都不會被
 改動**，只是拒絕一個已知危險的組合。理由是那個組合的失敗方式太糟 —— 它不會當場
 壞掉，而是安靜地把整站曝露在某個第三方之下，直到那個第三方哪天出事。

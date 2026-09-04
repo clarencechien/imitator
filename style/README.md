@@ -91,6 +91,24 @@ breakout —— 那個百分比會對到錯的框，在 1440px 下把頁面推�
 `animation: none !important` 是這個原因，不要拿掉。`prefers-reduced-motion` 則是靠
 把整段 `.reveal` 包在 `no-preference` 裡處理的。
 
+**報告一旦讀外部檔案，既有的 `innerHTML` 就全部變成攻擊面。** 這一條是付了代價學到的：
+`checklist` 那份加了匯出／載入之後，它的 `render()` 一直都是用樣板字串拼 HTML 再
+`innerHTML` —— **`render()` 一個字都沒改**，但「載入」讓 `items` 從「只可能是使用者自己」
+變成「可能是別人給的 .json」，那個沉睡的插值於是成了真的 stored XSS。而它是 public 的。
+
+修的時候要按脈絡分開，這是最容易漏的部分：
+
+| 值落在哪 | 修法 |
+|---|---|
+| HTML 文字 `` `<span>${text}</span>` `` | HTML 跳脫 `& < > " '` |
+| 屬性裡包 JS `` `onclick="pick('${id}')"` `` | **跳脫救不了。** HTML parser 會把 `&#39;` 還原成 `'` 才交給 JS，payload 照樣執行。要用字元集限制、不合就重產，或乾脆改 `addEventListener` |
+
+最好的做法是根本沒有 sink：`createElement` ＋ `textContent` ＋ `addEventListener`。
+
+**而且要用惡意檔案測，不是用友善檔案測。** 當時我測的是「匯出 38 項、載回 38 項」——
+那證明功能會動，對這件事一個字都沒證明。是後來跑 `/security-review` 才抓到的。
+規則寫進 `STYLE.md` 第 8 條與 `docs/publishing-rules.md` §5。
+
 **字型可以在 runtime 抓，script 不行。** 樣式表不會執行程式碼，sandbox 底下那一頁也
 沒有東西給它讀。只有 `X-Sandbox: off` 的頁面要連字型一起內聯。
 

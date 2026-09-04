@@ -282,11 +282,16 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     const data = JSON.parse(reader.result);
                     const incoming = Array.isArray(data) ? data : data.items;
                     if (!Array.isArray(incoming)) throw new Error('這個檔案裡沒有清單');
+                    const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
                     const clean = incoming
                         .filter(x => x && typeof x.text === 'string')
                         .map((x, i) => ({
-                            id: typeof x.id === 'string' ? x.id : 'i-' + Date.now() + '-' + i,
-                            text: x.text,
+                            // id 會被放進 onclick 的字串裡，那是跳脫救不了的脈絡 ——
+                            // 不符合字元集就重新產一個，不要試著清洗它。
+                            id: typeof x.id === 'string' && SAFE_ID.test(x.id)
+                                ? x.id
+                                : 'i-' + Date.now() + '-' + i,
+                            text: x.text.slice(0, 500),
                             checked: x.checked === true,
                         }));
                     if (!clean.length) throw new Error('這個檔案裡沒有任何項目');
@@ -300,6 +305,18 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 }
             };
             reader.readAsText(file);
+        }
+
+        // items 可能來自「載入」讀進來的檔案，也就是別人給的內容。render() 用字串
+        // 拼 HTML 再 innerHTML，所以每一個插值都要處理：
+        //   - item.text 進的是 HTML 文字脈絡 → HTML 跳脫
+        //   - item.id 進的是 onclick="toggle('…')"，那是「HTML 屬性裡包 JS 字串」的
+        //     雙重脈絡，光做 HTML 跳脫擋不住（&#39; 會被 HTML parser 還原成 ' 再
+        //     進 JS）。所以 id 在載入時就限制字元集，見 importList()。
+        function esc(v) {
+            return String(v).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
         }
 
         function render() {
@@ -320,7 +337,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 const checkIcon = item.checked ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : '';
 
                 html += `
-                <li class="flex items-center ${bgClass} transition-colors duration-150" data-id="${item.id}">
+                <li class="flex items-center ${bgClass} transition-colors duration-150" data-id="${esc(item.id)}">
                     
                     <!-- 1. 拖拉把手 (防誤觸關鍵：只有按這裡才能拖) -->
                     <div class="drag-handle p-4 text-gray-300 cursor-move active:text-blue-500 touch-manipulation">
@@ -328,15 +345,15 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     </div>
 
                     <!-- 2. 點擊勾選區域 -->
-                    <div class="flex-1 flex items-center py-4 pr-4 cursor-pointer" onclick="toggle('${item.id}')">
+                    <div class="flex-1 flex items-center py-4 pr-4 cursor-pointer" onclick="toggle('${esc(item.id)}')">
                         <div class="w-6 h-6 rounded border-2 mr-4 flex items-center justify-center transition-colors ${checkedClass}">
                             ${checkIcon}
                         </div>
-                        <span class="text-lg ${textClass}">${item.text}</span>
+                        <span class="text-lg ${textClass}">${esc(item.text)}</span>
                     </div>
                     
                     <!-- 3. 刪除按鈕 -->
-                    <button onclick="del('${item.id}')" class="p-4 text-gray-300 active:text-red-500 flex items-center justify-center">
+                    <button onclick="del('${esc(item.id)}')" class="p-4 text-gray-300 active:text-red-500 flex items-center justify-center">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                 </li>

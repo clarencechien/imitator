@@ -95,7 +95,8 @@ material is not. The check exists to catch a collision, not to steer.
    is rejected outright. Webfonts are the exception and are allowed — see Typefaces.
 2. **No storage APIs** — no `localStorage`, `sessionStorage`, `indexedDB`,
    `document.cookie`, `BroadcastChannel`, `serviceWorker`. The page runs in an opaque
-   origin; they throw. Keep state in a variable.
+   origin; they throw. Keep state in a variable. If the reader needs to keep something,
+   give them an explicit export and import — and then rule 8 applies to you.
 3. **`</body>` must be present.** The CDN injects a script immediately before it.
 4. **Body text ≥ 17px with ≥ 1.8 line-height.** The chassis does this. Do not shrink it,
    and do not set long passages in a display or mono face.
@@ -143,6 +144,36 @@ material is not. The check exists to catch a collision, not to steer.
    later built from. `paper` and `accent` must be `hsl()` (or a hex); the rest is free text,
    register ≤ 120 characters, reference ≤ 160. A malformed field is dropped silently — the
    host never rejects a report over its fingerprint.
+8. **The moment your report reads a file, every `innerHTML` in it becomes an attack
+   surface.** This is the rule that costs the most to learn late, so learn it here.
+
+   A report that only renders its own hard-coded data can interpolate that data into an
+   HTML string safely — the only person who can put a `<script>` in it is the person who
+   wrote the file. Add a file picker, a paste box, a URL parameter, or a `postMessage`
+   listener, and that stops being true: the values now come from **whoever hands the
+   reader a file**, and every interpolation that was fine a minute ago is a stored XSS.
+
+   The interpolation does not have to be new. This has already shipped once here: an
+   export/import pair was added to a checklist whose `render()` had always built its
+   `<li>` with a template literal and `innerHTML`. Nothing about `render()` changed. The
+   import is what made it exploitable.
+
+   So when you add any input path, walk **every** interpolation that reaches `innerHTML`
+   and fix it by context — and note that the two common contexts need *different* fixes:
+
+   - **HTML text** — `` `<span>${item.text}</span>` `` — HTML-escape
+     `& < > " '`. That is enough here.
+   - **An HTML attribute that holds JavaScript** — `` `onclick="pick('${item.id}')"` ``
+     — HTML-escaping is **not** enough. The parser decodes `&#39;` back to `'` before the
+     JS is compiled, so the payload survives. Constrain the value to a safe character set
+     (`/^[A-Za-z0-9_-]{1,64}$/`, regenerate it when it does not match) or drop the inline
+     handler and use `addEventListener`. Do not try to sanitise it.
+
+   Best of all, do not build the markup as a string: `createElement` plus `textContent`
+   for the label and `addEventListener` for the handler has no sink to protect.
+
+   Then test it with a hostile file, not a friendly one. "Export 38 items, import 38
+   items" proves the feature works; it proves nothing about this.
 
 ## Setup
 
