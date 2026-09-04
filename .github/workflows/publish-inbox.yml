@@ -29,11 +29,12 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # @v4 是可變的 tag —— 這個 action 被入侵的話，每一次執行都會把 secret 送出去。
-      # 要更嚴的話把它釘在 commit SHA：
-      #   gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha
-      # 然後寫成 actions/checkout@<sha>  # v4.x.x
-      - uses: actions/checkout@v4
+      # 釘在 commit SHA，不是 @v4。@v4 是**可變的** tag：actions/checkout 被入侵、
+      # 或者有人拿到那個 repo 的 push 權限重指 v4，這支 workflow 下一次執行就會把
+      # IMITATOR_TOKEN 交給新的程式碼。SHA 指到的內容改不掉。
+      # 升版時自己查一次再換：
+      #   git ls-remote --tags https://github.com/actions/checkout | grep 'refs/tags/v4\.'
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Publish to imitator
         env:

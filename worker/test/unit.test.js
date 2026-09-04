@@ -261,3 +261,60 @@ describe('X-Sandbox: off 要有理由', () => {
     expect(codes('<p>就是一份報告</p>', 'on')).toEqual([]);
   });
 });
+
+describe('第三方程式碼:module import 也算', () => {
+  const enc = (s) => new TextEncoder().encode(s).buffer;
+  const blocked = (html) => Boolean(inspectBody(enc(html), 'off').error);
+
+  // publishing-rules §1 說「sandbox off 不得載入第三方 script」是 enforced,
+  // 但先前只掃 <script src>。import 同樣是 runtime 從別人的網域拉可執行程式碼,
+  // 而 LLM 產生的頁面用 esm.sh / skypack 相當常見。
+  it('static import 被擋', () => {
+    expect(blocked('<script type="module">import x from "https://esm.sh/lodash";</script>')).toBe(true);
+  });
+
+  it('dynamic import 被擋', () => {
+    expect(blocked('<script type="module">import("https://cdn.jsdelivr.net/npm/x")</script>')).toBe(true);
+  });
+
+  it('export … from 被擋', () => {
+    expect(blocked('<script type="module">export * from "https://esm.sh/y";</script>')).toBe(true);
+  });
+
+  it('protocol-relative 的 import 被擋', () => {
+    expect(blocked('<script type="module">import x from "//esm.sh/z";</script>')).toBe(true);
+  });
+
+  it('本地 import 照常放行', () => {
+    expect(blocked('<script type="module">import x from "./local.js";</script>')).toBe(false);
+    expect(blocked('<script type="module">import x from "/lib/a.js";</script>')).toBe(false);
+  });
+
+  it('錯誤訊息把主機名列出來', () => {
+    const r = inspectBody(enc('<script type="module">import x from "https://esm.sh/lodash";</script>'), 'off');
+    expect(r.error.reason).toContain('esm.sh');
+  });
+
+  it('sandbox on 不受影響 —— 那條規則只在 off 時 enforce', () => {
+    const r = inspectBody(enc('<script type="module">import x from "https://esm.sh/lodash";</script>'), 'on');
+    expect(r.error).toBeUndefined();
+  });
+});
+
+describe('掃描上限不該變成繞過的方法', () => {
+  const big = (inner) => {
+    const pad = '<!-- ' + 'x'.repeat(2 * 1024 * 1024) + ' -->';
+    return new TextEncoder().encode(pad + inner).buffer;
+  };
+
+  it('sandbox off 的大檔案照樣掃,照樣擋', () => {
+    const r = inspectBody(big('<script src="https://cdn.example.com/a.js"></script>'), 'off');
+    expect(r.error).toBeDefined();
+    expect(r.warnings.map((w) => w.code)).not.toContain('content-checks-skipped');
+  });
+
+  it('sandbox on 的大檔案維持原本行為:跳過並警告', () => {
+    const r = inspectBody(big('<p>x</p>'), 'on');
+    expect(r.warnings.map((w) => w.code)).toEqual(['content-checks-skipped']);
+  });
+});

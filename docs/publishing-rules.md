@@ -24,6 +24,21 @@ compromised months later, the polyfill.io pattern. One page is enough to read
 everything, including the artifacts that *are* sandboxed: a CSP governs the document
 built from a response, not a `fetch()` that reads it as data.
 
+"Third-party script" here means **anything that pulls code at runtime**, not just
+`<script src>`:
+
+```html
+<script src="https://cdn.example.com/x.js"></script>
+<script type="module">import x from "https://esm.sh/lodash"</script>
+<script type="module">import("https://cdn.jsdelivr.net/npm/x")</script>
+```
+
+All three are refused. The module forms were not checked until 2026-09-04, which
+made this rule's "enforced" claim false for exactly the pattern an LLM reaches for
+first. Uploads with `X-Sandbox: off` are also always scanned in full — the 2 MB
+scan limit applies to `on` only, because "make the file bigger" should not be a way
+past the one rule that returns 400.
+
 So: if a page needs `X-Sandbox: off`, **inline its dependencies** — including its
 webfonts, since on a same-origin page even a stylesheet can be made to leak (a
 selector that fires a background-image request reports what it matched). Paste the

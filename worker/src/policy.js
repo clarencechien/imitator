@@ -15,6 +15,24 @@ const SCAN_LIMIT = 2 * 1024 * 1024;
 const THIRD_PARTY_SCRIPT = /<script\b[^>]*\bsrc\s*=\s*["']?(?:https?:)?\/\/([^"'\s/>]+)/gi;
 
 /**
+ * ES module 的第三方相依。`<script src>` 不是唯一一條路 —— 這幾種同樣是 runtime
+ * 從別人的網域拉可執行程式碼進來,而 LLM 產生的頁面用 esm.sh / skypack 相當常見:
+ *
+ *   <script type="module">import x from "https://esm.sh/…"</script>
+ *   import("https://cdn.jsdelivr.net/…")
+ *   export * from "https://…"
+ *
+ * 這個 repo 自己知道這件事 —— `scripts/inline-cdn.mjs` 遇到 module import 會特別
+ * 跳過並警告 —— 但 Worker 這一側先前沒有對應的檢查,於是「規則 1 是 enforced」
+ * 這句話對 module import 是假的。
+ *
+ * 只在 sandbox off 時用來擋人,所以寧可寬一點也不要漏:內文裡剛好寫著
+ * `import … from "https://…"` 的技術文章會被誤判,但那種頁面本來就不該要 off。
+ */
+const MODULE_IMPORT =
+  /\b(?:import|export)\b[\s\S]{0,200}?["'](?:https?:)?\/\/([^"'\s/]+)/gi;
+
+/**
  * `<link rel=stylesheet href="//host/…">`。字型的樣式表是允許的（見
  * docs/publishing-rules.md 規則 1），其他第三方樣式表則值得講一聲：報告要單檔
  * 自足，而外部樣式表是一個看不見的相依。
@@ -33,7 +51,9 @@ const DOC = 'docs/publishing-rules.md in https://github.com/clarencechien/imitat
 
 function thirdPartyHosts(html) {
   const hosts = new Set();
-  for (const m of html.matchAll(THIRD_PARTY_SCRIPT)) hosts.add(m[1].toLowerCase());
+  for (const re of [THIRD_PARTY_SCRIPT, MODULE_IMPORT]) {
+    for (const m of html.matchAll(re)) hosts.add(m[1].toLowerCase());
+  }
   return [...hosts];
 }
 
@@ -49,10 +69,13 @@ function thirdPartyHosts(html) {
 export function inspectBody(body, sandbox) {
   const warnings = [];
 
-  if (body.byteLength > SCAN_LIMIT) {
+  // 掃描上限只適用於 sandbox on。sandbox off 是唯一一條會回 400 的規則,
+  // 而「檔案大於 2 MB」不該是繞過它的方法 —— 那正好是內嵌了一堆東西的頁面,
+  // 也就是最需要看一眼的那一種。對 25 MB 的字串跑幾個正則是幾十毫秒的事。
+  if (sandbox === 'on' && body.byteLength > SCAN_LIMIT) {
     warnings.push({
       code: 'content-checks-skipped',
-      reason: `Body is ${Math.round(body.byteLength / 1048576)} MB, over the ${SCAN_LIMIT / 1048576} MB scan limit, so the third-party-script and storage-API checks did not run.`,
+      reason: `Body is ${Math.round(body.byteLength / 1048576)} MB, over the ${SCAN_LIMIT / 1048576} MB scan limit, so the third-party-script and storage-API checks did not run. (Uploads with X-Sandbox: off are always scanned — that rule is enforced, not advisory.)`,
       fix: `Review the rules yourself: ${DOC}`,
     });
     return { warnings };
@@ -68,10 +91,10 @@ export function inspectBody(body, sandbox) {
         error: {
           error: 'third-party scripts are not allowed when X-Sandbox is off',
           reason:
-            'X-Sandbox: off drops the CSP sandbox, so this page runs with full same-origin access — its JavaScript can read every artifact the viewer is allowed to see, including group-only ones, and send them anywhere. Any third-party script it loads inherits that. This HTML loads scripts from: ' +
+            'X-Sandbox: off drops the CSP sandbox, so this page runs with full same-origin access — its JavaScript can read every artifact the viewer is allowed to see, including group-only ones, and send them anywhere. Any third-party code it pulls in inherits that. This HTML pulls code at runtime (via <script src>, a module import, or a dynamic import) from: ' +
             hosts.join(', ') +
             '.',
-          fix: `Inline those dependencies into the HTML (paste the library source into a <script> tag) and upload again. If the page does not actually need a storage API, drop X-Sandbox: off instead. See ${DOC}`,
+          fix: `Inline those dependencies into the HTML (paste the library source into a <script> tag) and upload again — that covers <script src>, \`import … from "https://…"\` and \`import("https://…")\` alike. If the page does not actually need a storage API, drop X-Sandbox: off instead. See ${DOC}`,
         },
       };
     }
