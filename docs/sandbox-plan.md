@@ -334,11 +334,15 @@ JS 錯誤         = 0 個
 - [x] 批次 B · html-working-artifact / checklist —— 已推，CSP 已回來
 - [x] 批次 C · 三個 app 移進 `sandbox/` 並從站上刪除，`/r/` 回 404
 - [x] **`kaburi-mockup-v3`** —— 先只改 `X-Sandbox: on`（內容不動），之後把四處
-      `localStorage` 也拿掉了：`lang` 改讀 `navigator.language`、`theme` 改讀
-      `prefers-color-scheme`、`stowed` 只活在記憶體裡。重推後**零 warning**。
-      三種系統組合（dark/en、light/zh-TW、dark/zh-TW）在真的 opaque origin 下實測，
-      主題與語言都正確跟隨、JS 錯誤 0 個。
+      `localStorage` 也拿掉：`PREF` 改成記憶體、`saveStowed()` 變空函式。**預設值
+      維持原本的 `dark` + `en`**，切換鈕照常運作，只是不會被記到下一次瀏覽。
+      中間試過改成跟隨 `prefers-color-scheme` / `navigator.language`，但那是替別人的
+      專案改設計，不是修安全問題 —— 收回來了，介面行為與原本完全一致。
+      重推後**零 warning**（前一次是 `storage-api-with-sandbox-on`）。在真的
+      opaque origin 下實測：初始 `dark` 不隨系統、主題與語言切換鈕都還能動、
+      `localStorage` 確實丟 SecurityError、JS 錯誤 0 個。
       **持久的修法仍在上游** —— Kaburi 的產生器再產一次就會把 storage 帶回來。
+      而且 R2 沒有 versioning，這份修好的內容目前只存在站上那一份。
 - [x] **全站掃描 279 份：沒有 CSP 的 0 份。**
 - [x] 收尾 · sandbox 進 `GET /v1/a`（待部署）
 - [x] 收尾 · `X-Sandbox: off` 的規則化 ＋ 文案更正（待部署）
