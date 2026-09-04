@@ -167,13 +167,15 @@ node scripts/verify.mjs
 
 ### `checklist`
 
-存的是**拖曳後的排序** `travel-list-drag`。這份要先決定它想當什麼：
+存的是**拖曳後的排序** `travel-list-drag`。**決定：留在 imitator，加匯出。**
 
-- 當**報告** → 排序只在該次瀏覽有效，加一顆匯出／複製按鈕。
-- 當**工具** → 它就跟下面三個 app 同一類，應該一起搬走。
+header 加了「⤓ 匯出」與「⤒ 載入」：匯出是一顆 blob 下載（artifact 的 sandbox CSP
+帶著 `allow-downloads`，所以這條路可用），檔名 `travel-checklist-<日期>.json`，
+ASCII —— 中文的 `download` 屬性在部分瀏覽器會被忽略，檔案會變成沒有副檔名的
+`download`（實測過）。載入走 `FileReader`，會檢查每一項的 `text` 欄位、重建
+缺漏的 `id`，並在取代現有清單前問一次。
 
-我的判斷是前者：「旅行必備清單」的價值在清單本身，不在記住你怎麼排。但這是內容
-的決定，不是安全的決定，你來定。
+清單是拿來帶走的東西，存成檔案比綁在某一台裝置的某一個瀏覽器裡好帶。
 
 **驗證**與批次 A 相同（三個步驟一樣跑）。
 
@@ -202,14 +204,16 @@ node scripts/verify.mjs
 
 1. **先確認本機副本在**（刪掉之後站上就沒有了）：
    ```bash
-   ls -l archive/report/{twqrcode,mb_timer,mb_timer_v2}.html
+   ls -l sandbox/{twqrcode,mb_timer,mb_timer_v2}.html
    ```
 2. **把檔案移出 `archive/report/`**，避免日後 `migrate.mjs --force` 又把它們推回去：
    ```bash
-   mkdir -p archive/apps
-   git mv archive/report/{twqrcode,mb_timer,mb_timer_v2}.html archive/apps/
+   mkdir -p sandbox
+   git mv archive/report/{twqrcode,mb_timer,mb_timer_v2}.html sandbox/
    ```
-   `archive/apps/` 放一份 README，寫清楚為什麼它們在這裡、之後要搬到哪。
+   `sandbox/` 放的是**下架當時的原樣**，一個字都沒改 —— 之後重建時那是起點。
+   資料夾裡的 README 寫清楚為什麼它們在這裡、為什麼收不掉、時間戳在哪。
+   `archive/` 裡從此沒有它們。
 3. **確認 commit 了**，再刪站上的：
    ```bash
    for s in twqrcode mb_timer mb_timer_v2; do
@@ -221,7 +225,7 @@ node scripts/verify.mjs
 如果這三個網址有給過別人，下架前先確認沒人還在用 —— 尤其 `twqrcode` 名字裡寫著
 「辦公室」。
 
-**可逆性**：站上不可逆（R2 沒有 versioning）；內容可逆（檔案在 repo 裡，重推就回來）。
+**可逆性**：站上不可逆（R2 沒有 versioning）；內容可逆（檔案在 `sandbox/` 裡，重推就回來）。
 但重推等於又多一個 sandbox 例外，所以那不是回退，是重來。
 
 ---
@@ -259,9 +263,17 @@ node scripts/verify.mjs
 > 每一步做完回來補一行：日期、實際跑的指令、驗證結果。第 0 步查到的 visibility
 > 記在這裡，批次 A/B 才有依據。
 
-- [ ] 第 0 步 · visibility 盤點
-- [ ] 批次 A · uncle-bob / sin / busan_v1
-- [ ] 批次 B · html-working-artifact / checklist
-- [ ] 批次 C · twqrcode / mb_timer / mb_timer_v2 下架
+**2026-09-04 · 本機部分完成。** 五份改完，`NEEDS_ORIGIN` 掃描歸零，九個 inline
+script 全部通過 `node --check`，五份在 Chromium 實際載入無 JS 錯誤。`checklist`
+的匯出→載入來回測過：38 項出、38 項回。三個 app 已 `git mv` 進 `sandbox/`。
+
+站上的部分還沒動 —— 這個 session 的 shell 讀不到 `IMITATOR_TOKEN`（環境變數的
+改動通常要新 session 才生效）。第 0 步與批次 A/B 的推送、批次 C 的刪除都還沒跑。
+
+- [ ] 第 0 步 · visibility 盤點 —— **待做，需要 token**
+- [x] 批次 A · uncle-bob / sin / busan_v1 —— **本機改完**，待推
+- [x] 批次 B · html-working-artifact / checklist —— **本機改完**，待推
+- [x] 批次 C 的前半 · 三個 app 已移進 `sandbox/`，`archive/` 裡沒有它們了
+- [ ] 批次 C 的後半 · 站上 `DELETE` 三個 slug —— **待做，需要 token，不可逆**
 - [ ] 收尾 · sandbox 進 `GET /v1/a`
 - [ ] 收尾 · `X-Sandbox: off` 的規則化
