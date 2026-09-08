@@ -3,7 +3,34 @@
 export const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
+  // artifact 也會帶到這一條。那是有意的:一份報告不該能被別人的頁面嵌起來
+  // 當背景 —— sandbox CSP 擋的是它讀別人,XFO 擋的是別人拿它當畫面。
+  'X-Frame-Options': 'DENY',
+  // zone 上也有一份,但 dashboard 的設定在 repo 裡看不到、改掉沒有人會發現。
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
 };
+
+/**
+ * Worker 自己組的 HTML 頁面(portal、404、連結無效、尚未設定)的 CSP。
+ *
+ * 這些頁面沒有任何外部資源,樣式全是行內 `<style>`,所以 `default-src 'none'`
+ * 加 `style-src 'unsafe-inline'` 就夠。**這條不會套到 artifact** ——
+ * artifact 的 CSP 是 artifacts.js 自己決定的 sandbox 指令,或者(X-Sandbox: off
+ * 的那幾份)刻意不送。把兩者混在一起會把 off 的頁面一起鎖死。
+ *
+ * portal 有一段行內 `<script>`,所以它另外帶一個 nonce —— 見 pageCsp()。
+ */
+export const PAGE_CSP =
+  "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; " +
+  "frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+
+/** 產生一個 CSP nonce,以及帶著它的 PAGE_CSP。 */
+export function pageCspWithNonce() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const nonce = btoa(String.fromCharCode(...bytes)).replace(/=+$/, '');
+  return { nonce, csp: `${PAGE_CSP}; script-src 'nonce-${nonce}'` };
+}
 
 /** @param {string} body @param {ResponseInit & {headers?: Record<string,string>}} [init] */
 export function html(body, init = {}) {
@@ -39,7 +66,7 @@ export function json(data, init = {}) {
 export function notFound() {
   return html(page('找不到頁面', '<p>這個網址沒有東西，或者你沒有權限看它。</p>'), {
     status: 404,
-    headers: { 'Cache-Control': 'private, no-store' },
+    headers: { 'Cache-Control': 'private, no-store', 'Content-Security-Policy': PAGE_CSP },
   });
 }
 
@@ -47,7 +74,10 @@ export function notFound() {
 export function invalidLink() {
   return html(
     page('連結無效', '<p>連結無效或已過期，請向發送者索取新連結。</p>'),
-    { status: 403, headers: { 'Cache-Control': 'private, no-store' } },
+    {
+      status: 403,
+      headers: { 'Cache-Control': 'private, no-store', 'Content-Security-Policy': PAGE_CSP },
+    },
   );
 }
 

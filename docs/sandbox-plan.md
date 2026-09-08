@@ -264,9 +264,32 @@ ASCII —— 中文的 `download` 屬性在部分瀏覽器會被忽略，檔案�
 
 ---
 
-## 收完之後要順手做的兩件事（已完成，待部署）
+## 收完之後要順手做的三件事（已完成，待部署）
 
 不做的話，例外會再長回來。
+
+0. **把「例外會復活」那條路徑堵住。** ✅ 全站例外歸零之後，還有兩支腳本會自己
+   把例外種回來：`publish-inbox.mjs` 與 `migrate.mjs` 都用一條啟發式正則
+   （`NEEDS_ORIGIN`）掃內文，出現 `localStorage` 之類的字樣就送 `X-Sandbox: off`。
+   兩個方向都會錯：
+
+   - **誤判。** 只是在內文裡「談到」`localStorage` 的技術文章會被判成需要真實來源，
+     於是整頁拿到完整的同源權限。這是純粹的損失。
+   - **悄悄復活。** 已經在站上收成 `on`、但本機檔案還是舊內容的報告，只要再跑一次
+     `migrate --force` 或再把舊檔丟進 `inbox/`，就會以 `off` 重新上架。
+     `worker/src/policy.js` 的 `sandbox-off-not-needed` 警告用的是同一組 API 名單，
+     所以這種情況它也不會響 —— 頁面確實用了 storage，警告沒有理由觸發。
+
+   改成**明確 opt-in**：只有 HTML 開頭 8 KB 帶著
+   `<meta name="imitator-sandbox" content="off">` 才送 `off`，其餘一律 `on`。
+   判準集中在 `scripts/sandbox.mjs`，`publish-inbox` / `migrate` / `verify` 三支共用
+   —— 先前 `verify` 自己抄了一份同樣的正則，等於拿另一套規則替發佈結果打分數。
+   要例外的人必須在檔案裡寫下那一行，而那一行會出現在 diff 裡、會被 review 看到。
+
+   > `kaburi-mockup-v3` 就是被這條路徑影響的那一份：站上早就收成 `on`、
+   > `localStorage` 也拿掉了，但 `archive/report/` 裡留的還是舊內容（下面那則紀錄
+   > 描述的改動只推到站上，沒有 commit 回來）。本機那份已經用線上內容補上，
+   > `verify.mjs` 的內容比對現在才會過。
 
 1. **讓 sandbox 旗標可稽核。** ✅ `GET /v1/a` 的每一筆現在都帶 `sandbox`。它同時寫進
    KV 索引的 metadata（`artifacts.js` 的 `entry`），所以列表不必逐筆 `get()`。

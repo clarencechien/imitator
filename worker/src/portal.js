@@ -1,7 +1,7 @@
 // Portal（spec §6.5）。inline 在 Worker 裡，不放 R2 也不用 Static Assets —
 // 這樣「打開網站」這個動作本身一定會叫起 Worker，哨兵值輪替才有觸發點（spec §7.1）。
 
-import { escapeHtml, html } from './http.js';
+import { escapeHtml, html, pageCspWithNonce } from './http.js';
 import { listArtifacts } from './artifacts.js';
 
 /**
@@ -55,6 +55,9 @@ export async function renderPortal(env, gid, groupName, opts = {}) {
       ? `全部 ${items.length} 份 · <a href="/">只看最近三個月</a>`
       : `${items.length} 份報告`;
 
+  // portal 是唯一帶行內 <script> 的自產頁面。用 nonce 而不是 sha256 hash:
+  // 腳本裡插了一個動態值(truncated),hash 會隨它變成兩種,而 nonce 不會漂移。
+  const { nonce, csp } = pageCspWithNonce();
   const body = `<!doctype html>
 <html lang="zh-Hant">
 <meta charset="utf-8">
@@ -98,7 +101,7 @@ ${rows}
   <p id="hint" class="hidden">這裡沒有符合的 — <a href="/?all=1">在全部 ${items.length} 份裡找</a></p>
   <footer>${scope}</footer>
 </main>
-<script>
+<script nonce="${nonce}">
   const q = document.getElementById('q');
   if (q) {
     const rows = [...document.querySelectorAll('#list .row')];
@@ -120,5 +123,7 @@ ${rows}
 </body>
 </html>`;
 
-  return html(body, { headers: { 'Cache-Control': 'private, no-store', ...extraHeaders } });
+  return html(body, {
+    headers: { 'Cache-Control': 'private, no-store', 'Content-Security-Policy': csp, ...extraHeaders },
+  });
 }

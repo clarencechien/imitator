@@ -679,3 +679,51 @@ describe('哨兵值輪替', () => {
     expect((await SELF.fetch(url('/r/priv'))).status).toBe(404);
   });
 });
+
+describe('安全標頭', () => {
+  // 基線 §1.5 把 XFO 與 HSTS 列為正式站必備。先前 SECURITY_HEADERS 只有
+  // nosniff 與 Referrer-Policy,portal / 404 / artifact 一律沒有其他保護。
+  const BASE = ['X-Content-Type-Options', 'Referrer-Policy', 'X-Frame-Options', 'Strict-Transport-Security'];
+
+  it('portal 帶滿基本標頭,而且有自己的 CSP 與 nonce', async () => {
+    const res = await SELF.fetch(url('/'));
+    for (const h of BASE) expect(res.headers.get(h), h).toBeTruthy();
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+    const csp = res.headers.get('Content-Security-Policy');
+    expect(csp).toContain("default-src 'none'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    const nonce = /script-src 'nonce-([A-Za-z0-9+/]+)'/.exec(csp)?.[1];
+    expect(nonce, 'CSP 要帶 nonce').toBeTruthy();
+    // 頁面裡那段行內 script 必須帶同一個 nonce,否則自己會被自己擋掉
+    expect(await res.text()).toContain(`<script nonce="${nonce}">`);
+  });
+
+  it('每次請求的 nonce 都不一樣', async () => {
+    const a = (await SELF.fetch(url('/'))).headers.get('Content-Security-Policy');
+    const b = (await SELF.fetch(url('/'))).headers.get('Content-Security-Policy');
+    expect(a).not.toBe(b);
+  });
+
+  it('404 也帶標頭與頁面 CSP', async () => {
+    const res = await SELF.fetch(url('/r/does-not-exist'));
+    expect(res.status).toBe(404);
+    for (const h of BASE) expect(res.headers.get(h), h).toBeTruthy();
+    expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
+  });
+
+  it('artifact 帶基本標頭,但拿到的是 sandbox CSP,不是頁面 CSP', async () => {
+    await put('hdr', '<p>x</p>', { 'X-Visibility': 'public' });
+    const res = await SELF.fetch(url('/r/hdr'));
+    for (const h of BASE) expect(res.headers.get(h), h).toBeTruthy();
+    const csp = res.headers.get('Content-Security-Policy');
+    expect(csp).toContain('sandbox');
+    expect(csp).not.toContain("default-src 'none'");
+  });
+
+  it('sandbox off 的 artifact 仍然完全沒有 CSP —— 頁面 CSP 不該外溢過去', async () => {
+    await put('hdr-off', '<p>x</p>', { 'X-Sandbox': 'off', 'X-Visibility': 'public' });
+    const res = await SELF.fetch(url('/r/hdr-off'));
+    expect(res.headers.get('Content-Security-Policy')).toBeNull();
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+  });
+});

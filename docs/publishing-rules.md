@@ -24,6 +24,21 @@ compromised months later, the polyfill.io pattern. One page is enough to read
 everything, including the artifacts that *are* sandboxed: a CSP governs the document
 built from a response, not a `fetch()` that reads it as data.
 
+"Third-party script" here means **anything that pulls code at runtime**, not just
+`<script src>`:
+
+```html
+<script src="https://cdn.example.com/x.js"></script>
+<script type="module">import x from "https://esm.sh/lodash"</script>
+<script type="module">import("https://cdn.jsdelivr.net/npm/x")</script>
+```
+
+All three are refused. The module forms were not checked until 2026-09-04, which
+made this rule's "enforced" claim false for exactly the pattern an LLM reaches for
+first. Uploads with `X-Sandbox: off` are also always scanned in full — the 2 MB
+scan limit applies to `on` only, because "make the file bigger" should not be a way
+past the one rule that returns 400.
+
 So: if a page needs `X-Sandbox: off`, **inline its dependencies** — including its
 webfonts, since on a same-origin page even a stylesheet can be made to leak (a
 selector that fires a background-image request reports what it matched). Paste the
@@ -112,6 +127,26 @@ You asked for `X-Sandbox: off` but the HTML uses none of those APIs. Dropping th
 sandbox buys nothing here and costs a lot: the page gets full same-origin access and
 can read every artifact the viewer is allowed to see, including group-only ones.
 Upload it again without the header.
+
+### Automated publishing never guesses
+
+`scripts/publish-inbox.mjs` (the GitHub Action behind `inbox/`) and
+`scripts/migrate.mjs` both send `X-Sandbox: on` unless the HTML opts out **for
+itself**, in its first 8 KB:
+
+```html
+<meta name="imitator-sandbox" content="off">
+```
+
+They used to decide by scanning the body for `localStorage` and friends. That was
+wrong in both directions: an article that merely *discusses* `localStorage` was
+published with full same-origin access, and a report already tightened to `on` on the
+site went back to `off` the moment anyone re-ran `migrate --force` or dropped the old
+file into `inbox/` again. The rule now lives in `scripts/sandbox.mjs`, shared by
+`publish-inbox`, `migrate` and `verify`, so all three score against the same judgment.
+
+If you add that meta tag, rule 1 applies to the page from then on: no third-party
+`<script src>`, or the upload is refused outright.
 
 ### Counting the exceptions
 

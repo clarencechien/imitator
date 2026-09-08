@@ -20,7 +20,7 @@ import {
   serveArtifact,
 } from './artifacts.js';
 import { loadConfig } from './config.js';
-import { apiError, html, invalidLink, json, notFound, page } from './http.js';
+import { PAGE_CSP, apiError, html, invalidLink, json, notFound, page } from './http.js';
 import { renderPortal } from './portal.js';
 import {
   clearCookieHeader,
@@ -152,7 +152,7 @@ async function handleJoin(env, url, gid, secret) {
     console.error('SESSION_SECRET is not set; cannot issue cookies');
     return html(page('尚未設定完成', '<p>這個站台還沒設定完成，請聯絡管理者。</p>'), {
       status: 503,
-      headers: { 'Cache-Control': 'private, no-store' },
+      headers: { 'Cache-Control': 'private, no-store', 'Content-Security-Policy': PAGE_CSP },
     });
   }
 
