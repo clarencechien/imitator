@@ -15,13 +15,6 @@ already happened once. Read the file, paste the bytes.
 Worked example: `https://raw.githubusercontent.com/clarencechien/imitator/main/style/mockup.html`
 Six registers, six specimens: `https://github.com/clarencechien/imitator/tree/main/style/voices`
 
-**This file is the short version — everything a report must get right.** The craft
-(headline, spine, editorial devices, motion, charts, the reject list) and the incidents
-behind each floor rule live in
-`https://raw.githubusercontent.com/clarencechien/imitator/main/style/STYLE-reference.md`.
-Open it when you reach that part of the work; you do not need it to start. **If you draw a
-chart, read its Charts section first — the series colours are not yours to pick.**
-
 ## What these reports are
 
 Not status reports. Not dashboards. Each one is an **argument someone wants to spread** —
@@ -97,12 +90,9 @@ material is not. The check exists to catch a collision, not to steer.
 
 ## The floor — true in every report, whatever the voice
 
-Each of these exists because it was broken once and shipped. The stories are in the
-reference; here are the rules.
-
 1. **One file, no third-party `<script src>`.** Any script you need gets pasted in as
-   source. Enforced: a report that loads a third-party script with the sandbox off is
-   rejected outright. Webfonts are the exception — see Typefaces.
+   source. This is enforced: a report that loads a third-party script with the sandbox off
+   is rejected outright. Webfonts are the exception and are allowed — see Typefaces.
 2. **No storage APIs** — no `localStorage`, `sessionStorage`, `indexedDB`,
    `document.cookie`, `BroadcastChannel`, `serviceWorker`. The page runs in an opaque
    origin; they throw. Keep state in a variable. If the reader needs to keep something,
@@ -113,8 +103,8 @@ reference; here are the rules.
 5. **Both colour schemes, and a way to see the other one.** If you override the light
    tokens you override the dark ones too, with values chosen for a dark surface — never
    an inversion. Then ship the toggle, so a reader whose devices are all dark can still
-   see the light palette you designed. The chassis styles it; you add the button right
-   after `<body>` and the script right before `</body>`:
+   see the light palette you designed (and vice versa). The chassis styles it; you add
+   the button right after `<body>` and the script right before `</body>`:
    ```html
    <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
    ```
@@ -131,21 +121,33 @@ reference; here are the rules.
    })();
    </script>
    ```
-   It stamps `data-theme` only on click; until then the page follows the system. No
-   storage: the choice lasts for the visit, and that is intended.
-6. **Nothing scrolls the page sideways**, at 375px or at 1440px.
-   - **Tables** go inside `<div class="table-scroll">`, always. The chassis handles both
-     screens: on a desktop cells wrap and the wrapper widens into the gutter; on a phone
-     the table scrolls in its box with the first column pinned (`.plain` on the wrapper
-     opts out). Mark the cells that must not break — a model number, a date, a figure —
-     with `.nowrap`, never the whole table. **A phone that has to scroll a spec table is
-     the correct outcome.** Never fix a scrolling table by widening `--page`, raising
-     `--measure` past 34em, or setting `overflow-x: visible`.
+   It stamps `data-theme` only on click — until then the page follows the system, which
+   is why the token blocks are written under both `prefers-color-scheme` and
+   `[data-theme]`. No storage: the choice lasts for the visit and that is intended.
+6. **Nothing scrolls the page sideways**, at 375px or at 1440px. Two things break this
+   in practice, and both are yours to avoid:
+   - **Tables** go inside `<div class="table-scroll">`, always. The chassis already gives
+     them two behaviours, and you do not have to write either:
+     **desktop** — cells wrap, the wrapper widens into the gutter, the table does not
+     scroll. If one still does, the columns are carrying too much.
+     **phone** — the table scrolls inside its box and the first column pins, so the row's
+     label stays on screen. Add `.plain` to the wrapper to opt out of the pin.
+     Mark the cells that must not break (a model number, a date, a figure) with `.nowrap`,
+     never the whole table. **A phone that has to scroll a spec table is the correct
+     outcome** — a model number broken across three lines destroys the data the table
+     exists to carry. Do not fix a scrolling table by widening `--page`, by setting
+     `--measure` past 34em, or by setting `overflow-x: visible`: the first two widen the
+     prose you did not want widened, and the third removes the only thing standing between
+     one long cell and a page that scrolls sideways.
    - **Any grid you write yourself** uses `minmax(0, 1fr)`, never a bare `1fr`, and gives
-     its children `min-width: 0`. Prefer `.cols` / `.tiles`, which already do both.
-
-   Check it by loading the page at 375px, not by reading the CSS.
-7. **Open with the fingerprint** — all five, inside the first 8 KB, before `<title>`:
+     its children `min-width: 0`. A grid track's default minimum is min-content, so one
+     unbreakable string — a URL, an OAuth scope, a long identifier — inside a cell widens
+     the track past the viewport and takes the whole page with it. This has already shipped
+     once: `grid-template-columns: 1fr`, one `<code>` holding
+     `https://www.googleapis.com/auth/…`, and the page measured 534px on a 375px screen.
+     Prefer `.cols` / `.tiles`, which already do both.
+   Check it by actually loading the page at 375px, not by reading the CSS.
+7. Open with the fingerprint — all five, inside the first 8 KB, before `<title>`:
    ```html
    <!doctype html>
    <html lang="zh-Hant">
@@ -158,23 +160,42 @@ reference; here are the rules.
    <meta name="imitator-accent" content="hsl(4 62% 41%)">
    <title>…</title>
    ```
-   The host stores these and lists them at `/v1/a`; that is what the `RECENT:` step reads.
-   `paper` and `accent` must be `hsl()` (or a hex); the rest is free text, register ≤ 120
-   characters, reference ≤ 160. A malformed field is dropped silently, never rejected.
+   The host stores these with the artifact and returns them in the `/v1/a` listing. That is
+   what makes the `RECENT:` step possible for the next report, what tells anyone reading the
+   file which version of this guide it followed, and what the archive's taste profile is
+   later built from. `paper` and `accent` must be `hsl()` (or a hex); the rest is free text,
+   register ≤ 120 characters, reference ≤ 160. A malformed field is dropped silently — the
+   host never rejects a report over its fingerprint.
 8. **The moment your report reads a file, every `innerHTML` in it becomes an attack
-   surface.** A file picker, a paste box, a URL parameter, a `postMessage` listener — the
-   values now come from whoever hands the reader a file, and every interpolation that
-   was fine a minute ago is a stored XSS. The interpolation does not have to be new.
-   Walk **every** one that reaches `innerHTML` and fix it by context; the two contexts
-   need different fixes:
-   - **HTML text** — `` `<span>${item.text}</span>` `` — HTML-escape `& < > " '`.
-   - **An attribute holding JavaScript** — `` `onclick="pick('${item.id}')"` `` —
-     escaping is **not** enough: the parser decodes `&#39;` back to `'` before the JS
-     is compiled. Constrain the value to `/^[A-Za-z0-9_-]{1,64}$/` and regenerate it when
-     it does not match, or drop the inline handler for `addEventListener`.
+   surface.** This is the rule that costs the most to learn late, so learn it here.
 
-   Best is no sink at all: `createElement` + `textContent` + `addEventListener`. Then
-   test with a hostile file, not a friendly one — a clean round-trip proves nothing here.
+   A report that only renders its own hard-coded data can interpolate that data into an
+   HTML string safely — the only person who can put a `<script>` in it is the person who
+   wrote the file. Add a file picker, a paste box, a URL parameter, or a `postMessage`
+   listener, and that stops being true: the values now come from **whoever hands the
+   reader a file**, and every interpolation that was fine a minute ago is a stored XSS.
+
+   The interpolation does not have to be new. This has already shipped once here: an
+   export/import pair was added to a checklist whose `render()` had always built its
+   `<li>` with a template literal and `innerHTML`. Nothing about `render()` changed. The
+   import is what made it exploitable.
+
+   So when you add any input path, walk **every** interpolation that reaches `innerHTML`
+   and fix it by context — and note that the two common contexts need *different* fixes:
+
+   - **HTML text** — `` `<span>${item.text}</span>` `` — HTML-escape
+     `& < > " '`. That is enough here.
+   - **An HTML attribute that holds JavaScript** — `` `onclick="pick('${item.id}')"` ``
+     — HTML-escaping is **not** enough. The parser decodes `&#39;` back to `'` before the
+     JS is compiled, so the payload survives. Constrain the value to a safe character set
+     (`/^[A-Za-z0-9_-]{1,64}$/`, regenerate it when it does not match) or drop the inline
+     handler and use `addEventListener`. Do not try to sanitise it.
+
+   Best of all, do not build the markup as a string: `createElement` plus `textContent`
+   for the label and `addEventListener` for the handler has no sink to protect.
+
+   Then test it with a hostile file, not a friendly one. "Export 38 items, import 38
+   items" proves the feature works; it proves nothing about this.
 
 ## Setup
 
@@ -250,19 +271,6 @@ near-black (`hsl(38 14% 8%)`), never a desaturated grey.
 - **Dark mode is a second palette.** Warm cream becomes warm near-black (`#16130f`), not
   grey. Accents usually need to be lighter and less saturated than their light-mode twin.
 
-### Two palettes that are already taken
-
-- **Cold neutral grey paper** — anything near `hsl(200 12% 95%)` / `#eef1f3`. Four reports
-  written from four unrelated sources under an earlier draft of this guide all landed
-  within four units of that colour, because it is the tint that offends no rule. It is now
-  the most generic choice available, not the safest one.
-- **Any specimen's palette.** These are taken: bone paper with indigo and a Ming headline
-  (the mockup); warm cream with curtain red (`epic`); grey-green with condensed type and
-  red (`argument`); graph paper with green and orange (`digest`); cream with autopsy red
-  and a stamp (`autopsy`); navy with a gold lamp (`night`); a four-colour bar over ivory
-  with a heavy Latin word (`fieldguide`). Each was one report's answer. Yours is a
-  different report.
-
 ## Typefaces — three jobs, three faces
 
 Webfonts from Google Fonts are allowed:
@@ -305,6 +313,131 @@ display font existing.
 --disp: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
 ```
 
+## The headline
+
+One oversized headline per report, in `--disp`, using `.display` — the chassis scales it
+from 2.6rem on a phone to 5.25rem on a desktop. **Put exactly one `<em>` inside it.** The
+chassis colours it with the accent; it is the report's signature and it stops working the
+moment there are two.
+
+```html
+<p class="eyebrow">架構筆記 · Agent vs Workflow · VOL.2</p>
+<h1 class="display">第一百次，<br>要比第一次<em>聰明</em></h1>
+<p class="lede">一句話說清楚這篇要回答什麼問題。不要重述標題。</p>
+```
+
+Choose the coloured word for meaning, not rhythm: the word the argument turns on.
+
+**Write the line breaks yourself.** At the top display size the text column holds about
+eight CJK characters per line. A headline left to wrap will break inside a word — 台|股,
+燈|嗎 — and a `<br>` fixes that where `text-wrap: balance` cannot. Keep the coloured word
+on one line. A long headline takes three lines, or a smaller `--fs-display`; it never takes
+a mid-word wrap.
+
+## A spine the reader can feel
+
+Long-form needs signposts. Use `.eyebrow` — mono, letterspaced, accent-coloured, with a
+rule running to the right margin — above each section, and give it a **system** that fits
+the piece:
+
+- acts: `序幕 · PROLOGUE` · `第一幕 · 1973` · `終幕 · 2026`
+- numbered chapters: `01 · VOCABULARY` · `02 · THE TWO AXES`
+- a running series: `VOL.2 · 2026-08`
+
+Pick one system and hold it for the whole document. Signposting that changes shape halfway
+is worse than none. Where a section pays off an earlier one, say so inline with a `.chip`:
+`<span class="chip">接回 VOL.1</span>`.
+
+## Editorial devices
+
+Use them where the argument needs them, and sparingly — three or four moments in a report,
+not a device per section.
+
+| Device | Use it for |
+|---|---|
+| `.pull` | one line from the argument, set large in `--serif`. Never a repeat of the lede. |
+| `.mark` | a single sentence the whole section turns on. One per section at most. |
+| `.chip` | a small inverted label that interrupts the column — a callback, a verdict. |
+| `.note` (`.good` `.warn` `.critical`) | an aside that is genuinely aside. The colour never carries the meaning — write it. |
+| `.tiles` + `.stat` | numbers that belong together. |
+| `.hero` | the one number the piece is about. At most one. |
+| `<td>` + `<span class="sub">` | a glossary term with a mono sub-label under it. |
+| `pre` | code. The chassis gives it an accent rule along the top. |
+| `.wide` | a figure that should break out past the text column on a large screen. |
+
+## Motion
+
+A report is read, not operated. Motion has one job here: **mark arrival**. Everything else
+is decoration that costs the reader.
+
+- `.reveal` on a section opening, a figure, a pulled line. Not on body paragraphs, and
+  never on something the reader must wait for.
+- `.stagger` on a group entering together — the chassis spaces items 60ms apart, which
+  reads as one gesture. Past ~80ms it reads as slow.
+- `.progress` once, as the first element in `<body>`, for a reading-progress rule drawn by
+  the scroll position itself.
+- Anything you add yourself: **`transform` and `opacity` only**, `var(--ease-out)`, under
+  300ms for anything that responds to the reader. Never `ease-in` on something being
+  watched — it delays exactly the moment they are looking. Never `transition: all`. Never
+  `scale(0)`: things appear from `scale(.96)` + opacity, not from nothing.
+- Gate hover motion behind `@media (hover: hover) and (pointer: fine)`.
+- `prefers-reduced-motion` is handled by the chassis — do not defeat it, and do not gate
+  any content behind an animation.
+
+All of it is progressive: where scroll-driven animation is unsupported, everything is
+simply already visible.
+
+## Charts — the one thing that is not yours to restyle
+
+Voice stops at the plot area.
+
+- **Series colours in fixed order**: `var(--c1)`, `--c2`, … never reordered, never cycled
+  past `--c6`. The order is what keeps adjacent series distinguishable under colour
+  blindness; it was validated with a tool, not chosen by eye. A seventh series folds into
+  "Other" or the chart becomes small multiples.
+- **One y-axis. Never two.** Two measures of different scale means two charts.
+- **Draw on a 640-wide `viewBox`, `font-size: 12`, no `width`/`height` attributes.** A
+  viewBox scales text: a 720-wide chart on a 375px screen renders its labels at 6px. The
+  chassis bounds the rendered width and scrolls the chart in its own box below the floor.
+- **A legend for two or more series**; one series needs none — the title names it. Direct
+  labels on the endpoint or the extreme only, never a number on every point.
+- **Every chart ships its numbers** in `<details class="datatable">`. Three light-mode
+  series colours sit below 3:1 against paper and the table is the documented relief; it is
+  also what makes the report survive being printed.
+- **Text never wears the series colour.** Labels use `--ink-2` / `--mist`; identity comes
+  from the swatch beside them.
+- Marks: bars ≤ 24px with a 4px rounded data-end, lines 2px, dots ≥ 8px with a 2px ring in
+  the surface colour, gridlines hairline and solid — never dashed.
+
+## Reject list
+
+These are the tells of a generated page. None of them is a style choice.
+
+- A purple-to-blue gradient anywhere. Gradient text. Glassmorphism. A coloured drop shadow.
+- Emoji as section icons or inside a heading. (A `.note` may carry one glyph. One.)
+- Everything centred. A hero that is a centred headline over a centred paragraph over two
+  centred buttons.
+- `border-radius` on everything, uniformly, including things that are not surfaces.
+- A "Key Takeaways" box repeating the lede. Sections named Introduction / Conclusion /
+  Next Steps with nothing in them. A closing paragraph that begins "In summary".
+- Bold on half the words in a paragraph. Emphasis that emphasises nothing.
+- A number on every data point; a legend for one series; a pie chart with six slices; two
+  y-axes; 3D anything.
+- Decorative motion: things that pulse, float, bounce on loop, or animate on hover for no
+  reason.
+- Filler symmetry — three cards because three fits the grid, when the argument has two
+  points.
+- **Cold neutral grey paper** — anything near `hsl(200 12% 95%)` / `#eef1f3`. Four reports
+  written from four unrelated sources under an earlier draft of this guide all landed
+  within four units of that colour, because it is the tint that offends no rule. It is now
+  the most generic choice available, not the safest one.
+- **Any specimen's palette.** These are taken: bone paper with indigo and a Ming headline
+  (the mockup); warm cream with curtain red (`epic`); grey-green with condensed type and
+  red (`argument`); graph paper with green and orange (`digest`); cream with autopsy red
+  and a stamp (`autopsy`); navy with a gold lamp (`night`); a four-colour bar over ivory
+  with a heavy Latin word (`fieldguide`). Each was one report's answer. Yours is a
+  different report.
+
 ## Before you call it done
 
 Look at your own output, at these four settings, and fix what breaks:
@@ -335,11 +468,3 @@ curl -X PUT https://imitator.ai-apps.work/v1/a/<slug> \
 ```
 
 Full host rules: <https://github.com/clarencechien/imitator/blob/main/docs/publishing-rules.md>
-
-## When to open the reference
-
-`STYLE-reference.md` holds, in this order: **The headline** · **A spine the reader can
-feel** · **Editorial devices** · **Motion** · **Charts** · **Reject list** · **Why the floor
-is what it is**. Read Charts before drawing one. Read the reject list before calling the
-page done. The rest is there when a section of the page feels flat and you want to know
-what the specimens did about it.
