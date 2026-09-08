@@ -28,18 +28,26 @@ const head = (title, fonts, fp) => `<!doctype html>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">`;
 
 const foot = `<script>
+(() => {
   // 主題狀態放在變數裡；sandbox 底下所有 storage API 都會丟 SecurityError。
+  // 點了才 stamp data-theme，沒點之前跟著系統走。
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
   let dark = matchMedia('(prefers-color-scheme: dark)').matches;
-  document.getElementById('theme')?.addEventListener('click', () => {
-    dark = !dark; document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
   });
+})();
 </script>
 </body>
 </html>
 `;
 
-const themeBtn = `<button class="themebtn" id="theme" type="button">DARK / LIGHT</button>`;
-const themeBtnCss = `.themebtn{position:fixed;top:1rem;right:1rem;z-index:20;min-height:44px;padding:.4rem .85rem;background:var(--card);color:var(--ink-2);border:1px solid var(--rule);border-radius:var(--radius);font:var(--fs-xs)/1 var(--mono);letter-spacing:.06em;cursor:pointer}\n@media (max-width:40rem){.themebtn{top:auto;bottom:1rem}}`;
+// 切換鈕的樣式現在在底盤裡（report.css 的 .theme-toggle），這裡只剩標記與腳本 ——
+// 跟 STYLE.md floor 第 5 條給模型抄的那段一模一樣，樣張本身就是它的示範。
+const themeBtn = `<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>`;
+const themeBtnCss = ``;
 
 const voices = [];
 

@@ -100,8 +100,30 @@ material is not. The check exists to catch a collision, not to steer.
 3. **`</body>` must be present.** The CDN injects a script immediately before it.
 4. **Body text ≥ 17px with ≥ 1.8 line-height.** The chassis does this. Do not shrink it,
    and do not set long passages in a display or mono face.
-5. **Both colour schemes.** If you override the light tokens you override the dark ones
-   too, with values chosen for a dark surface — never an inversion.
+5. **Both colour schemes, and a way to see the other one.** If you override the light
+   tokens you override the dark ones too, with values chosen for a dark surface — never
+   an inversion. Then ship the toggle, so a reader whose devices are all dark can still
+   see the light palette you designed (and vice versa). The chassis styles it; you add
+   the button right after `<body>` and the script right before `</body>`:
+   ```html
+   <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+   ```
+   ```html
+   <script>
+   (() => {
+     const root = document.documentElement, btn = document.getElementById('theme-toggle');
+     let dark = matchMedia('(prefers-color-scheme: dark)').matches;   // state in a variable
+     btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+     btn.addEventListener('click', () => {
+       dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+       btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+     });
+   })();
+   </script>
+   ```
+   It stamps `data-theme` only on click — until then the page follows the system, which
+   is why the token blocks are written under both `prefers-color-scheme` and
+   `[data-theme]`. No storage: the choice lasts for the visit and that is intended.
 6. **Nothing scrolls the page sideways**, at 375px or at 1440px. Two things break this
    in practice, and both are yours to avoid:
    - **Tables** go inside `<div class="table-scroll">`, always. The chassis already gives
