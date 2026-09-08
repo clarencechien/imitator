@@ -392,6 +392,22 @@ td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); let
   }
 }
 
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
 /* Reading progress, drawn by the scroll position itself — no JS, no listener. */
 .progress {
   position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
@@ -425,7 +441,7 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
   :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
   .report { max-width: none; padding: 0; }
   .report > * { max-width: none; }
-  .progress, .datatable > summary { display: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
   .datatable { display: block; }
   /* A scroll-driven entrance never runs on paper — without this, everything
      marked .reveal prints as blank space. Content is never gated behind
@@ -473,17 +489,10 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
 }
 
 /* mockup 自己需要的一顆按鈕，用同一組 token 疊上去。 */
-.themebtn {
-  position: fixed; top: 1rem; right: 1rem; z-index: 20;
-  min-height: 44px; padding: .4rem .85rem;
-  background: var(--card); color: var(--ink-2);
-  border: 1px solid var(--rule); border-radius: var(--radius);
-  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
-}
 </style>
 <body>
 <div class="progress"></div>
-<button class="themebtn" id="theme" type="button">DARK / LIGHT</button>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
 
 <main class="report">
 
@@ -661,13 +670,17 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
 
 </main>
 <script>
-  // 主題狀態放在變數裡。sandbox 下所有 storage API 都會丟 SecurityError，
-  // 而報告本來就不該需要持久化任何東西。
+(() => {
+  // 主題狀態放在變數裡；sandbox（opaque origin）底下 storage API 會丟 SecurityError。
+  // 點了才 stamp data-theme，沒點之前跟著系統走。
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
   let dark = matchMedia('(prefers-color-scheme: dark)').matches;
-  document.getElementById('theme').addEventListener('click', () => {
-    dark = !dark;
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
   });
+})();
 </script>
 </body>
 </html>
