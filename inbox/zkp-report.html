@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="講義 — 從 1985 年的定義推到 2026 年的實務，讀者是會問「這跟 OAuth 差在哪」的工程師">
+<meta name="imitator-reference" content="1980 年代大學數學系的油印講義內頁：鋼版蠟紙、藍紫油墨、編號的定義與引理">
+<meta name="imitator-paper" content="hsl(52 16% 94%)">
+<meta name="imitator-accent" content="hsl(264 46% 44%)">
+<title>我不告訴你，但你會相信 — 零知識證明講義</title>
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+</style>
+
+<style>
+/* REGISTER:  講義 — 從 1985 年的定義推到 2026 年的實務，讀者是會問「這跟 OAuth 差在哪」的工程師。
+   REFERENCE: 1980 年代大學數學系的油印講義內頁 — 鋼版蠟紙刻寫、藍紫色油墨、編號的定義與引理、
+              頁邊留白處的手寫批註。
+   PAPER:     模造紙 — 便宜、微黃帶灰、油墨會微微透背，hsl(52 16% 94%)。
+   VOICE:     油印的藍紫墨只給編號、連結與那個字；標題用窄體拉出理工味；等寬體扛所有代號。
+   NOT:       白皮書。沒有 CTA，沒有路線圖，數學不是為了唬人。
+   RECENT:    unavailable — 無 IMITATOR_TOKEN，未能取得前三份的 paper/accent 色相。 */
+
+:root {
+  --paper: hsl(52 16% 94%);
+  --card: hsl(52 24% 97%);
+  --ink: hsl(50 12% 13%);
+  --ink-2: hsl(48 10% 32%);
+  --mist: hsl(48 8% 45%);
+  --rule: hsl(50 14% 86%);
+  --rule-hard: hsl(50 14% 73%);
+  --accent: hsl(264 46% 44%);
+  --accent-soft: hsl(264 34% 90%);
+
+  --sans: "Noto Sans TC", ui-sans-serif, system-ui, "PingFang TC", sans-serif;
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", ui-sans-serif, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(50 10% 9%);
+    --card: hsl(50 8% 13%);
+    --ink: hsl(50 12% 92%);
+    --ink-2: hsl(48 8% 71%);
+    --mist: hsl(48 6% 57%);
+    --rule: hsl(50 8% 22%);
+    --rule-hard: hsl(50 8% 33%);
+    --accent: hsl(264 62% 76%);
+    --accent-soft: hsl(264 22% 24%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(50 10% 9%);
+  --card: hsl(50 8% 13%);
+  --ink: hsl(50 12% 92%);
+  --ink-2: hsl(48 8% 71%);
+  --mist: hsl(48 6% 57%);
+  --rule: hsl(50 8% 22%);
+  --rule-hard: hsl(50 8% 33%);
+  --accent: hsl(264 62% 76%);
+  --accent-soft: hsl(264 22% 24%);
+}
+
+/* 講義的頁首檔頭：課號、日期、頁次，油印講義第一頁上緣的那一排。 */
+.masthead {
+  display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em;
+  color: var(--mist); text-transform: uppercase;
+  border-bottom: 2px solid var(--rule-hard);
+  padding-bottom: var(--sp-3); margin-bottom: var(--sp-6);
+}
+
+/* 編號的定義框 — 講義上用方框圈起來的那一格。 */
+.defn {
+  border: 1px solid var(--rule-hard);
+  border-left: 4px solid var(--accent);
+  background: var(--card);
+  padding: var(--sp-4) var(--sp-5);
+  margin-block: var(--sp-5);
+}
+.defn > :last-child { margin-bottom: 0; }
+.defn .tag {
+  display: block; font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+  margin-bottom: var(--sp-2);
+}
+
+/* 圖說裡的角色標籤。 */
+.dgm-role { fill: var(--ink); font-family: var(--disp); font-size: 13px; font-weight: 700; }
+.dgm-txt  { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+.dgm-mono { fill: var(--mist); font-family: var(--mono); font-size: 11px; letter-spacing: .06em; }
+.dgm-box  { fill: var(--card); stroke: var(--rule-hard); stroke-width: 1.5; }
+.dgm-arrow{ stroke: var(--accent); stroke-width: 2; fill: none; }
+.dgm-rule { stroke: var(--rule); stroke-width: 1; }
+</style>
+
+<body>
+<div class="progress" aria-hidden="true"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<article class="report">
+
+  <p class="masthead">
+    <span>密碼學講義</span>
+    <span>ZKP · 01</span>
+    <span>1985 → 2026</span>
+  </p>
+
+  <p class="eyebrow">序 · WHY THIS EXISTS</p>
+  <h1 class="display">我不告訴你，<br>但你會<em>相信</em></h1>
+  <p class="lede">你要怎麼讓別人相信一件事，卻不把那件事告訴他？聽起來像廢話，但這個問題在 1985 年被寫成了數學，四十年後它正在壓縮以太坊的區塊、查核核彈頭，也決定了歐盟數位身分皮夾長什麼樣子。這份講義從最白話的例子開始，講清楚它怎麼運作、有哪幾種、什麼時候真的用得上——還有它跟你現在手上那些做法差在哪。</p>
+
+  <p class="byline">閱讀時間約 25 分鐘 · 需要的前置知識：公開金鑰密碼學的基本概念</p>
+
+  <hr>
+
+  <section>
+    <p class="eyebrow">01 · DEFINITION</p>
+    <h2>先把「知識」這個詞釘住</h2>
+
+    <p>先從一件你每天都在做的事開始。</p>
+
+    <p>假設你要讓房東相信你有這間房子的鑰匙。最笨的做法是把鑰匙拿出來給他看——但這樣他就知道鑰匙長什麼樣，回頭可以自己去打一把。</p>
+
+    <p>比較聰明的做法是：當著他的面，把門打開。</p>
+
+    <p>門開了，他就知道你有鑰匙。可是他從頭到尾沒看到鑰匙本身。這就是零知識證明的全部精神——<strong>用「做得到」來取代「給你看」</strong>。剩下的一切，都只是在把這句話變成數學。</p>
+
+    <p>1985 年，Goldwasser、Micali 和 Rackoff 三個人在一篇論文裡第一次認真追問了這件事：一場證明過程，除了「這件事是真的」以外，還<em>順便洩漏</em>了什麼？</p>
+
+    <p>這個問法本身就是突破。在那之前，「證明」是一個靜態的東西——一串寫死的推導，你拿去檢查對不對。他們把證明改寫成一場<strong>對話</strong>：證明的人和驗證的人你一句我一句來回幾輪，最後由驗證的人決定信不信。</p>
+
+    <p>一旦證明變成對話，就可以追問一句：驗證的人從這段對話裡，到底聽走了什麼？</p>
+
+    <div class="defn">
+      <span class="tag">定義 1 · 互動證明系統的三個性質</span>
+      <p><strong>完整性（completeness）</strong>　陳述為真時，誠實的 P 幾乎必定能說服 V。</p>
+      <p><strong>健全性（soundness）</strong>　陳述為假時，任何 P（含作弊的）只有極小的機率能說服 V。</p>
+      <p><strong>零知識性（zero-knowledge）</strong>　V 從互動中學不到「陳述為真」以外的任何東西。</p>
+    </div>
+
+    <p>前兩個是任何證明系統都該有的。第三個是新的，而它的形式化方式是整個領域最漂亮的一步。</p>
+
+    <h3>怎麼證明「你什麼都沒學到」</h3>
+
+    <p>前兩個性質好懂。第三個麻煩——「學到東西」聽起來像心理學，不像能寫成數學的東西。</p>
+
+    <p>他們的解法是把問題整個倒過來問。</p>
+
+    <p>假設有人把整段對話錄下來，做成一份逐字稿。如果這份逐字稿裡真的藏著秘密，那它一定是「非得知道秘密才寫得出來」的東西。所以反過來說：<span class="mark">只要有一個完全不知道秘密的人，也能自己編出一份看起來一模一樣的逐字稿，那原本那份裡就不可能藏著秘密。</span></p>
+
+    <p>這個「編逐字稿的人」，論文裡叫<strong>模擬器</strong>。它沒有秘密，但它有一個作弊的自由：它可以<em>倒著寫</em>。真實對話裡，證明的人必須先承諾、後回答，順序不能改；模擬器反正沒人看著，可以先把答案寫好，再回頭補一個配得上的承諾。</p>
+
+    <p>如果模擬器編出來的東西跟真的分不出來，零知識性就成立。</p>
+
+    <p>這個保證比它看起來強得多。它說的不是「驗證的人拿不到秘密」，而是「他就算把整段對話存起來慢慢分析、就算他一開始就不安好心，也拿不到任何原本沒有的東西」——因為那份逐字稿，本來就是誰都編得出來的。</p>
+
+    <div class="note">
+      <p class="head">為什麼中文叫「零知識」會讓人誤會</p>
+      <p>knowledge 在這裡是密碼學術語，指的是「可從互動中萃取出的資訊」，不是日常語感裡的「知識」。中文譯法本身沒錯，問題出在後來業界把 zero-knowledge 拿去當行銷詞——1Password、Proton、Tresorit 講的「零知識架構」其實只是 client-side encryption：金鑰不上傳，所以伺服器讀不到。那裡面沒有任何證明協定。Proton 後來改口叫 <code>zero-access encryption</code>，比較誠實。</p>
+      <p>本文從頭到尾談的是前者：有證明、有驗證、有模擬器的那一種。</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">02 · INTUITION</p>
+    <h2>兩個不用數學就能懂的例子</h2>
+
+    <h3>阿里巴巴的洞穴</h3>
+
+    <p>1989 年有人寫了一篇論文，標題叫〈如何向你的小孩解釋零知識協定〉。裡面的例子後來變成標準教材。</p>
+
+    <p>想像一個 U 字形的洞穴。入口進去之後分成左右兩條路，兩條路在最深處會合，但中間隔著一道門，要念咒語才打得開。</p>
+
+    <p>Peggy 說她會咒語，但她不打算告訴任何人。Victor 想確認她是不是在唬爛。</p>
+
+    <p>做法是這樣：</p>
+
+    <ol>
+      <li>Victor 先站在洞外，<strong>看不到裡面</strong>。Peggy 自己走進去，隨便挑左邊或右邊。</li>
+      <li>等 Peggy 就定位了，Victor 才走到分岔口，隨口喊一聲「左」或「右」。</li>
+      <li>Peggy 必須從他喊的那一邊走出來。</li>
+    </ol>
+
+    <p>如果她真的會咒語，這對她毫無難度——走錯邊就開門穿過去。如果她不會，她只能賭 Victor 喊的剛好是她進去的那一邊，一半機率。</p>
+
+    <p>玩一次，她矇到的機會是二分之一。玩二十次，是一百萬分之一。到那個時候 Victor 就算不想信也得信了，<strong>而他從頭到尾沒聽到半個字的咒語</strong>。</p>
+
+    <p>這裡有個關鍵，就是<strong>順序</strong>：Victor 一定要等 Peggy 進去之後才喊。如果他先喊，Peggy 直接挑那一邊走進去就行了，什麼咒語都不用會。</p>
+
+    <p>這個例子還順便示範了上一節的模擬器。假設有人把整場過程錄了影，這卷帶子拿去給第三個人看，能說服他嗎？</p>
+
+    <p><strong>不能。</strong>只要攝影師和 Peggy 串通好，每次都讓她先進對的那一邊、再喊那一邊，然後把喊錯的片段剪掉，就能拍出一模一樣的影片。</p>
+
+    <p>帶子沒有說服力，這不是協定的漏洞，反而正是它零知識的證據。現場的 Victor 之所以會被說服，靠的是「他自己隨機喊」這件事——而那個東西錄不進帶子裡。</p>
+
+    <h3>兩顆球</h3>
+
+    <p>第二個例子換個角度看。</p>
+
+    <p>Victor 是紅綠色盲。Peggy 手上有兩顆球，一紅一綠，在 Victor 眼裡長得一模一樣。她想證明這兩顆<strong>顏色不同</strong>，但不想告訴他哪顆是紅的。</p>
+
+    <p>做法更簡單：Victor 兩手各拿一顆，藏到背後，自己決定要不要把兩隻手交換，然後伸出來問一句「我換過了嗎？」</p>
+
+    <p>Peggy 看得見顏色，所以她每次都答得出來。如果兩顆球其實同色，她就只能猜。重複個幾十次，Victor 就知道她沒唬他。</p>
+
+    <p>這個例子值得單獨講，是因為它示範了互動<strong>真正買到的東西</strong>。</p>
+
+    <p>要證明兩個東西「一樣」，其實不難：把對應關係指出來，對方自己核對一遍就信了。但要證明兩個東西「不一樣」，傳統上非常難——你得把所有可能性都排除掉，而那通常是天文數字。</p>
+
+    <p>色盲的 Victor 就卡在這裡。他自己怎麼看都看不出差別，Peggy 也拿不出任何可以寫在紙上的論據。可是只要允許他<em>出題</em>，問題就解了。</p>
+
+    <p><span class="mark">互動之所以強大，是因為隨機出題可以繞過「必須寫得出簡短論據」這個限制。</span>有些事情你證明不出來，但你可以一直答對。</p>
+
+    <figure class="wide reveal">
+      <p class="title">圖 1　Sigma 協定：所有互動式證明的骨架</p>
+      <p class="subtitle">三個回合，順序不能換。承諾必須在挑戰之前，否則作弊者可以看菜下飯。</p>
+      <div class="chart">
+        <svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sigma 協定三回合流程圖：證明者先送承諾，驗證者送隨機挑戰，證明者送回應，驗證者檢查等式">
+          <rect class="dgm-box" x="8" y="24" width="128" height="52" rx="6"/>
+          <text class="dgm-role" x="72" y="46" text-anchor="middle">證明者 P</text>
+          <text class="dgm-mono" x="72" y="64" text-anchor="middle">KNOWS x</text>
+
+          <rect class="dgm-box" x="504" y="24" width="128" height="52" rx="6"/>
+          <text class="dgm-role" x="568" y="46" text-anchor="middle">驗證者 V</text>
+          <text class="dgm-mono" x="568" y="64" text-anchor="middle">KNOWS y = g^x</text>
+
+          <line class="dgm-rule" x1="72" y1="80" x2="72" y2="228"/>
+          <line class="dgm-rule" x1="568" y1="80" x2="568" y2="228"/>
+
+          <path class="dgm-arrow" d="M72 108 H548"/>
+          <path class="dgm-arrow" d="M540 102 l10 6 -10 6"/>
+          <text class="dgm-txt" x="310" y="100" text-anchor="middle">① 承諾　隨機選 r，送出 t = g^r</text>
+          <text class="dgm-mono" x="310" y="126" text-anchor="middle">COMMITMENT</text>
+
+          <path class="dgm-arrow" d="M568 158 H92"/>
+          <path class="dgm-arrow" d="M100 152 l-10 6 10 6"/>
+          <text class="dgm-txt" x="330" y="150" text-anchor="middle">② 挑戰　隨機選 c，送回來</text>
+          <text class="dgm-mono" x="330" y="176" text-anchor="middle">CHALLENGE</text>
+
+          <path class="dgm-arrow" d="M72 208 H548"/>
+          <path class="dgm-arrow" d="M540 202 l10 6 -10 6"/>
+          <text class="dgm-txt" x="310" y="200" text-anchor="middle">③ 回應　算 s = r + c·x，送出</text>
+          <text class="dgm-mono" x="310" y="226" text-anchor="middle">RESPONSE</text>
+
+          <rect class="dgm-box" x="440" y="234" width="192" height="0" rx="6"/>
+          <text class="dgm-txt" x="632" y="248" text-anchor="end">V 檢查：g^s = t · y^c</text>
+        </svg>
+      </div>
+      <figcaption>P 知道離散對數 x，V 只知道 y = g<sup>x</sup>。驗證等式成立，卻推不回 x。</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <p class="eyebrow">03 · MECHANISM</p>
+    <h2>Schnorr 與那個把一切變成現實的技巧</h2>
+
+    <p>圖 1 畫的是 <strong>Schnorr 識別協定</strong>，1989 年提出，是實務上最小、也最常見的零知識證明。</p>
+
+    <p>它要證明的說法只有一句：<strong>「我知道那把私鑰。」</strong>對照最前面的比喻，這就是當著房東的面開門。洞穴例子裡的三個步驟，在這裡原封不動：先承諾、再被出題、最後回答。</p>
+
+    <h3>為什麼騙不過去</h3>
+
+    <p>關鍵在於，如果一個作弊的人能對<em>同一個承諾</em>回答出<em>兩道不同的題目</em>，把兩份答案相減，私鑰就直接掉出來了。</p>
+
+    <p>換句話說：<strong>有本事作弊兩次，就等於真的知道秘密。</strong>所以作弊的人做不到——他頂多賭中一次。</p>
+
+    <p>這也是「知識證明」這個名字的由來。它證明的不只是「這句話是真的」，而是「這個人手上真的握有那個東西」。</p>
+
+    <h3>為什麼學不到東西</h3>
+
+    <p>因為模擬器可以倒著算：先隨便把答案和題目挑好，再反推一個能讓驗證等式成立的承諾。它從頭到尾沒碰過私鑰，卻能生出一份合格的逐字稿。</p>
+
+    <h3>為什麼順序不能換</h3>
+
+    <p>承諾一定要在題目之前送出。如果讓證明的人先看到題目再送承諾，他就能用剛剛那招倒著算，當場矇混過去。</p>
+
+    <p><span class="mark">承諾機制存在的唯一目的，就是把時間釘死。</span>這跟洞穴裡「Victor 一定要等她進去才喊」是同一件事。</p>
+
+    <h3>Fiat–Shamir：把出題的人換成一個雜湊函數</h3>
+
+    <p>互動很麻煩。雙方得同時在線，而且證明沒辦法拿給第三個人看。</p>
+
+    <p>1986 年 Fiat 和 Shamir 想到一招。既然題目只需要是「證明的人無法預先控制的隨機值」，那何必真的找個人來出題？<span class="mark">直接把承諾丟進雜湊函數，算出來的值就拿來當題目。</span></p>
+
+    <p>雜湊的輸出沒人猜得到，而且證明的人一旦送出承諾就反悔不了——改承諾就會連題目一起改掉。於是三個回合塌成一則訊息，證明變成一個可以貼在網頁上、寄 email 給別人的字串。</p>
+
+    <div class="note good">
+      <p class="head">一個你每天都在用的推論</p>
+      <p>把待簽署的訊息一起丟進那個雜湊——<code>c = Hash(t ‖ y ‖ m)</code>——你得到的就是 <strong>Schnorr 簽章</strong>。EdDSA、Ed25519、比特幣 Taproot 用的都是這一支。</p>
+      <p>所以：<strong>數位簽章本身就是一種非互動零知識證明</strong>，證明的陳述是「我知道對應這把公鑰的私鑰」。你的 SSH 金鑰、你的 passkey、你的 TLS 憑證，全都站在同一個定義上。零知識不是什麼異星科技，它的最基本形式早就在你的系統裡跑了三十年。</p>
+    </div>
+
+    <p>這一點值得記住，因為它劃出了成本邊界：<strong>證明「我知道一把金鑰」是免費的，那條路已經鋪好了</strong>。真正貴的是下一節那些——證明「我知道一個滿足某個複雜條件的東西」。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">04 · THE FAMILY</p>
+    <h2>四種主流方案，四種不同的取捨</h2>
+
+    <p>Schnorr 很好用，但它只會證明一種說法：「我知道那把私鑰。」如果你想證明的是「我年齡超過 18」或「這一萬筆交易全部合法」，它就派不上用場。</p>
+
+    <p>現代方案的野心是<strong>什麼都能證</strong>。做法是把你想證明的條件先寫成一個「電路」——可以想成一台只會吐 0 或 1 的機器，你把答案餵進去，它說對或不對。於是你要證明的說法就統一變成：「我知道一組輸入，能讓這台機器吐出 1。」</p>
+
+    <p>因為任何條件都寫得成電路，這一步等於一次解鎖全部。</p>
+
+    <p>代價是「寫成電路」這個步驟本身。它慢、容易寫錯，而且平常寫程式的直覺在裡面幾乎都不管用：迴圈得整個攤開來、if/else 兩邊都得算過一遍、連比大小都意外地貴。這是導入 ZKP 最大的一筆隱形成本，而且通常會被低估。</p>
+
+    <figure class="wide reveal">
+      <p class="title">圖 2　證明大小的數量級差距</p>
+      <p class="subtitle">對數刻度。同一段運算，四種方案產出的證明體積差三個數量級——而這決定了它能不能上鏈。</p>
+      <div class="chart">
+        <svg viewBox="0 0 640 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="橫條圖：Groth16 約 200 bytes、PLONK 約 500 bytes、Bulletproofs 約 700 bytes、STARK 約 100 KB">
+          <line class="grid" x1="248" y1="16" x2="248" y2="168"/>
+          <line class="grid" x1="346" y1="16" x2="346" y2="168"/>
+          <line class="grid" x1="444" y1="16" x2="444" y2="168"/>
+          <line class="grid" x1="542" y1="16" x2="542" y2="168"/>
+          <text class="axis" x="248" y="186" text-anchor="middle">100 B</text>
+          <text class="axis" x="346" y="186" text-anchor="middle">1 KB</text>
+          <text class="axis" x="444" y="186" text-anchor="middle">10 KB</text>
+          <text class="axis" x="542" y="186" text-anchor="middle">100 KB</text>
+
+          <text class="label" x="140" y="36" text-anchor="end">Groth16</text>
+          <rect class="bar" x="150" y="22" width="127" height="20" fill="var(--c1)"/>
+          <text class="axis" x="287" y="36">~200 B</text>
+
+          <text class="label" x="140" y="74" text-anchor="end">PLONK</text>
+          <rect class="bar" x="150" y="60" width="166" height="20" fill="var(--c1)"/>
+          <text class="axis" x="326" y="74">~500 B</text>
+
+          <text class="label" x="140" y="112" text-anchor="end">Bulletproofs</text>
+          <rect class="bar" x="150" y="98" width="180" height="20" fill="var(--c1)"/>
+          <text class="axis" x="340" y="112">~700 B</text>
+
+          <text class="label" x="140" y="150" text-anchor="end">STARK</text>
+          <rect class="bar" x="150" y="136" width="391" height="20" fill="var(--c1)"/>
+          <text class="axis" x="551" y="150">~100 KB</text>
+
+          <line class="grid" x1="150" y1="168" x2="600" y2="168"/>
+        </svg>
+      </div>
+      <details class="datatable">
+        <summary>數字</summary>
+        <div class="table-scroll plain">
+          <table>
+            <thead><tr><th>方案</th><th class="num">代表性證明大小</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap">Groth16</td><td class="num nowrap">約 200 bytes</td></tr>
+              <tr><td class="nowrap">PLONK</td><td class="num nowrap">約 500 bytes</td></tr>
+              <tr><td class="nowrap">Bulletproofs（64-bit 範圍證明）</td><td class="num nowrap">約 700 bytes</td></tr>
+              <tr><td class="nowrap">STARK</td><td class="num nowrap">數十至數百 KB</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <figcaption>這些是代表性數量級，實際大小隨曲線、參數與安全等級變動；請以你採用的實作為準，不要把這裡的數字寫進規格書。</figcaption>
+    </figure>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>方案</th>
+            <th>可信設定</th>
+            <th>證明大小</th>
+            <th>驗證成本</th>
+            <th>後量子</th>
+            <th>典型用途</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="nowrap">Sigma / Schnorr<span class="sub">1989</span></td>
+            <td>不需要</td>
+            <td class="nowrap">數十 bytes</td>
+            <td>常數，極快</td>
+            <td>否</td>
+            <td>證明持有金鑰；數位簽章</td>
+          </tr>
+          <tr>
+            <td class="nowrap">Groth16<span class="sub">zk-SNARK</span></td>
+            <td>需要，且<strong>每個電路各一次</strong></td>
+            <td class="nowrap">最小</td>
+            <td>常數，毫秒級</td>
+            <td>否</td>
+            <td>電路固定的鏈上驗證</td>
+          </tr>
+          <tr>
+            <td class="nowrap">PLONK / Halo2<span class="sub">zk-SNARK</span></td>
+            <td>通用且可更新，一次設定通吃</td>
+            <td class="nowrap">小</td>
+            <td>常數，毫秒級</td>
+            <td>否</td>
+            <td>需要改電路的通用平台</td>
+          </tr>
+          <tr>
+            <td class="nowrap">Bulletproofs</td>
+            <td>不需要</td>
+            <td class="nowrap">對數成長</td>
+            <td><strong>隨電路線性成長</strong></td>
+            <td>否</td>
+            <td>範圍證明、機密交易金額</td>
+          </tr>
+          <tr>
+            <td class="nowrap">zk-STARK</td>
+            <td>不需要（transparent）</td>
+            <td class="nowrap">最大</td>
+            <td>對數級，仍然很快</td>
+            <td>是（僅依賴雜湊）</td>
+            <td>大規模運算的可驗證外包</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>「可信設定」是這張表最該先看的一欄</h3>
+
+    <p>SNARK 開始運作之前，得先有人產生一組公開參數。麻煩在於，產生的過程中會冒出一批隨機值，必須當場銷毀——業界直接叫它<strong>有毒廢料</strong>。</p>
+
+    <p>為什麼有毒？因為誰偷留了一份，誰就能替<em>假的說法</em>做出通過驗證的證明。整個系統的安全性瞬間歸零，而且從外面完全看不出來。</p>
+
+    <p>對策是辦一場「儀式」：找幾百上千個人排隊，每個人依序加一點自己的隨機性進去。只要有<strong>任何一個人</strong>老實把自己那份燒掉，整組參數就是安全的。你不需要相信全部的人，只需要相信「不是所有人都串通好」。以太坊那場做到了數萬人規模。</p>
+
+    <p>這在密碼學上是可以接受的假設，但它終究是個假設。STARK 完全不需要這一步——這就是它甘願讓證明大上一百倍，所換來的東西。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">05 · SUCCINCTNESS</p>
+    <h2>主戰場不是隱私</h2>
+
+    <p>這是整份講義最反直覺的一節，也是最多人搞錯的地方。</p>
+
+    <p>zk-SNARK 的第一個 S 是 <strong>succinct</strong>，簡潔。意思是：證明可以很小、驗證可以很快，而且<em>幾乎不會隨著被證明的運算量一起變大</em>。</p>
+
+    <p>這句話的份量要舉例才看得出來。你在 L2 上跑了一萬筆交易，把它們壓成一份幾百 bytes 的證明；主鏈只驗證這一份，就知道那一萬筆全部合法，一筆都不用重跑。</p>
+
+    <p>證明一萬筆和證明一百萬筆，驗證的成本幾乎一樣。這是在此之前根本不存在的能力。</p>
+
+    <p class="pull">以太坊上大部分 zk 的用途是可擴展性，不是匿名。zk-rollup 的交易內容通常是公開的。</p>
+
+    <p>這條性質延伸出去，就是<strong>可驗證運算（verifiable computation）</strong>：把昂貴的運算外包出去，拿回結果加一份證明，你花很少的力氣就能確認對方沒有偷工或動手腳，不必自己重算一遍。ML 推論的證明、資料庫查詢正確性的證明，都走這條線。</p>
+
+    <p>這裡沒有任何秘密要保護。買到的東西是<strong>完整性</strong>，不是機密性。而且它買到的是一個原本不存在的能力——在此之前，「便宜地確認一段昂貴運算沒被動手腳」根本做不到，只能重算或信任對方。</p>
+
+    <h3>還有一類：讓互斥的要求同時成立</h3>
+
+    <p>第三類用途落在隱私和完整性的交集上，價值不在保密本身，而在於<strong>兩個原本衝突的要求可以同時被滿足</strong>：</p>
+
+    <ul>
+      <li>交易所證明準備金足額，但不揭露客戶名單與各自部位。</li>
+      <li>選舉證明計票正確，但不揭露任何一張選票。</li>
+      <li>核彈頭查核：確認被銷毀的物件確實是一枚真彈頭，同時不洩漏彈頭設計——這是核不擴散條約下的經典僵局，2014 年普林斯頓團隊在《自然》發表過一個零知識取向的物理協定。</li>
+    </ul>
+
+    <p>這幾個案例的共同結構是：稽核方<em>必須</em>驗證，被稽核方<em>不能</em>揭露，而在 ZKP 出現以前，這種局面只能靠「找一個雙方都勉強能忍受的第三方」來收場。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">06 · IDENTITY</p>
+    <h2>跟 OAuth 到底差在哪</h2>
+
+    <p>先修一個很常見的用詞錯誤：<strong>OAuth 2.0 不是拿來做身分認證的</strong>。它解的是「授權」——讓某個 app 代替我，去存取我放在另一個服務上的資料。真正在做身分的，是疊在它上面的 OIDC。</p>
+
+    <p>這個區分要緊，是因為兩者共有一個結構，而 ZKP 買到的東西幾乎都是從這個結構的反面來的：<strong>你每一次登入，Google 都在場，而且它看得見。</strong></p>
+
+    <p>這件事本身不一定是壞的，大部分時候它還很方便。問題在於，你的登入能力完全掛在它身上——它斷線你就進不去，它砍你帳號你就一次全沒了，而且技術上它隨時可以憑空冒充你，因為那張通行證本來就是它簽的。</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>比較軸</th><th>OIDC（Sign in with…）</th><th>可驗證憑證 + ZKP</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="nowrap">信任模型<span class="sub">TRUST</span></td>
+            <td>驗證方信任 IdP，每次即時查詢</td>
+            <td>驗證方信任發證方的簽章，離線可驗</td>
+          </tr>
+          <tr>
+            <td class="nowrap">誰必須在線<span class="sub">LIVENESS</span></td>
+            <td>IdP 必須在線，否則登入全掛</td>
+            <td>只要持有者和驗證方，發證方不參與</td>
+          </tr>
+          <tr>
+            <td class="nowrap">誰能冒充你<span class="sub">IMPERSONATION</span></td>
+            <td>IdP 可以，token 是它簽的</td>
+            <td>沒有人，私鑰在你的裝置裡</td>
+          </tr>
+          <tr>
+            <td class="nowrap">IdP 看得到什麼<span class="sub">VISIBILITY</span></td>
+            <td>你在哪裡、什麼時候登入了什麼</td>
+            <td>發證那一次，之後全無</td>
+          </tr>
+          <tr>
+            <td class="nowrap">驗證方拿到什麼<span class="sub">DISCLOSURE</span></td>
+            <td>scope 內的完整欄位</td>
+            <td>只有被證明的那個述語</td>
+          </tr>
+          <tr>
+            <td class="nowrap">兩次出示可否關聯<span class="sub">LINKABILITY</span></td>
+            <td>可以，sub 是穩定識別碼</td>
+            <td>可做到不可關聯（視方案）</td>
+          </tr>
+          <tr>
+            <td class="nowrap">撤銷<span class="sub">REVOCATION</span></td>
+            <td>簡單，IdP 直接停掉</td>
+            <td><strong>困難</strong>，且容易反過來洩漏身分</td>
+          </tr>
+          <tr>
+            <td class="nowrap">導入成本<span class="sub">COST</span></td>
+            <td>現成 SDK，一個下午</td>
+            <td>電路、證明產生、稽核，還得找到發證方</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>揭露不是開關，是一道光譜</h3>
+
+    <p>實務上最容易誤判的一點是：把「選擇性揭露」和「零知識」當成同義詞。它們不是。</p>
+
+    <figure class="wide reveal">
+      <p class="title">圖 3　從全揭露到零知識的四個刻度</p>
+      <p class="subtitle">越往右揭露越少，成本與撤銷難度越高。歐盟數位身分皮夾的強制基線停在第二格。</p>
+      <div class="chart">
+        <svg viewBox="0 0 640 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="四段刻度：完整憑證、SD-JWT 選擇性揭露、BBS+ 不可關聯、通用 ZKP 述語證明">
+          <line class="dgm-rule" x1="20" y1="96" x2="620" y2="96" stroke-width="2"/>
+
+          <circle cx="76" cy="96" r="7" fill="var(--rule-hard)"/>
+          <text class="dgm-mono" x="76" y="34" text-anchor="middle">LEVEL 0</text>
+          <text class="dgm-role" x="76" y="58" text-anchor="middle">完整憑證</text>
+          <text class="dgm-txt" x="76" y="78" text-anchor="middle">出示整張證件</text>
+          <text class="dgm-txt" x="76" y="126" text-anchor="middle">生日、姓名、</text>
+          <text class="dgm-txt" x="76" y="144" text-anchor="middle">字號全都看見</text>
+
+          <circle cx="248" cy="96" r="7" fill="var(--accent)"/>
+          <text class="dgm-mono" x="248" y="34" text-anchor="middle">LEVEL 1</text>
+          <text class="dgm-role" x="248" y="58" text-anchor="middle">SD-JWT</text>
+          <text class="dgm-txt" x="248" y="78" text-anchor="middle">雜湊式選擇性揭露</text>
+          <text class="dgm-txt" x="248" y="126" text-anchor="middle">只給生日，</text>
+          <text class="dgm-txt" x="248" y="144" text-anchor="middle">但簽章值可被追蹤</text>
+
+          <circle cx="420" cy="96" r="7" fill="var(--accent)"/>
+          <text class="dgm-mono" x="420" y="34" text-anchor="middle">LEVEL 2</text>
+          <text class="dgm-role" x="420" y="58" text-anchor="middle">BBS+</text>
+          <text class="dgm-txt" x="420" y="78" text-anchor="middle">不可關聯的揭露</text>
+          <text class="dgm-txt" x="420" y="126" text-anchor="middle">每次出示都是</text>
+          <text class="dgm-txt" x="420" y="144" text-anchor="middle">全新的證明</text>
+
+          <circle cx="580" cy="96" r="7" fill="var(--accent)"/>
+          <text class="dgm-mono" x="580" y="34" text-anchor="middle">LEVEL 3</text>
+          <text class="dgm-role" x="580" y="58" text-anchor="middle">通用 ZKP</text>
+          <text class="dgm-txt" x="580" y="78" text-anchor="middle">述語證明</text>
+          <text class="dgm-txt" x="580" y="126" text-anchor="middle">「滿 18 歲」，</text>
+          <text class="dgm-txt" x="580" y="144" text-anchor="middle">生日從未離開裝置</text>
+
+          <text class="dgm-mono" x="20" y="180">揭露多 · 成本低</text>
+          <text class="dgm-mono" x="620" y="180" text-anchor="end">揭露少 · 成本高</text>
+        </svg>
+      </div>
+      <figcaption>Level 1 常被行銷成「零知識」，但它沒有模擬器、沒有證明協定，簽章值本身就是跨驗證方的追蹤器。</figcaption>
+    </figure>
+
+    <div class="note warn">
+      <p class="head">歐盟選的是 Level 1</p>
+      <p>eIDAS 2.0 要求每個會員國在 2026 年底前提供數位身分皮夾，並把選擇性揭露寫成法規本文裡的基本設計特性。但強制基線選的是 SD-JWT，不是 BBS+。</p>
+      <p>差別在於<strong>不可關聯性</strong>：SD-JWT 做得到「只給必要欄位」，做不到「兩個驗證方私下對帳也認不出是同一人」。所以「數位皮夾等於零知識」這個等式，在目前的實作上是打折的——評估任何身分技術棧時，該問的不是「支不支援 ZKP」，而是「選擇性揭露是用哪一種機制做的」。</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">07 · SCENARIOS</p>
+    <h2>真正在跑的場景，以及它們各自買到了什麼</h2>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>場景</th><th>證明的陳述</th><th>買到的主要是</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="nowrap">zk-rollup</td>
+            <td>這一萬筆交易的狀態轉換全部合法</td>
+            <td><strong>簡潔性</strong>　交易通常公開</td>
+          </tr>
+          <tr>
+            <td class="nowrap">可驗證運算</td>
+            <td>這段外包的運算沒有被動手腳</td>
+            <td><strong>完整性</strong>　與隱私無關</td>
+          </tr>
+          <tr>
+            <td class="nowrap">年齡驗證</td>
+            <td>持有者已滿法定年齡</td>
+            <td>隱私　＋驗證方的<strong>責任減免</strong></td>
+          </tr>
+          <tr>
+            <td class="nowrap">準備金證明</td>
+            <td>資產總額 ≥ 負債總額</td>
+            <td>兩個互斥要求同時成立</td>
+          </tr>
+          <tr>
+            <td class="nowrap">機密交易</td>
+            <td>金額為正、收支平衡，但金額不公開</td>
+            <td>隱私（範圍證明是核心）</td>
+          </tr>
+          <tr>
+            <td class="nowrap">核彈頭查核</td>
+            <td>此物件與參考彈頭一致</td>
+            <td>在無法互信下完成稽核</td>
+          </tr>
+          <tr>
+            <td class="nowrap">匿名憑證</td>
+            <td>我持有某可信機構簽發的有效憑證</td>
+            <td>不可關聯性</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>把這張表讀一遍會發現：<strong>「隱私」只解釋了其中一半</strong>。而就算歸到隱私名下的那幾項，換算出來的東西其實是可用性、去中心化，和法遵成本。</p>
+
+    <p>最後那一點在商業上最實在：很多驗證方<em>不想要</em>你的個資，因為持有即負債。酒吧、遊戲平台、成人網站要的只是「滿 18」，拿到身分證字號只會在外洩那天增加賠償金額。在各國陸續立法要求年齡驗證之後，這變成一條真金白銀的成本項，不是理念。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">08 · FAILURE MODES</p>
+    <h2>成本，以及會咬人的地方</h2>
+
+    <h3>ZKP 不創造信任，只搬運信任</h3>
+
+    <p>這句話最常被忽略。證明「這張憑證是有效的、而且滿足條件」，完全不代表<em>憑證上寫的是真的</em>。</p>
+
+    <p>如果發證的機關一開始就發錯了、被騙了、或根本在說謊，你會拿到一個數學上完美無瑕的證明——證明著一件假事。而且因為證明本身無懈可擊，它反而更難被質疑。</p>
+
+    <p>所以 ZKP 前面永遠要有一個信得過的發證方。它幫你省掉的是「之後每一次出示都要重複洩漏」，它沒有幫你省掉「第一次總得有人查證你是誰」。</p>
+
+    <div class="note critical">
+      <p class="head">撤銷是這個領域最難的工程題</p>
+      <p>要證明「我的憑證沒有被撤銷」，最直覺的做法是去查撤銷清單——而那個查詢本身就洩漏了你是誰，把前面辛苦建立的不可關聯性一次還回去。</p>
+      <p>現有解法（累加器、時間分片、短效憑證重簽）各有取捨，沒有一個乾淨。評估任何 VC/ZKP 方案時，撤銷機制是第一個該追問的東西，不是最後一個。</p>
+    </div>
+
+    <h3>其他要先算進去的</h3>
+
+    <ul>
+      <li><strong>電路開發是一門獨立技能。</strong>把邏輯寫成約束系統，和寫一般程式的直覺差很遠。約束寫少了會出現偽造漏洞，寫多了效能爆炸，而這類 bug 很難用測試抓到——測試只驗證「合法輸入會通過」，抓不到「非法輸入也會通過」。</li>
+      <li><strong>證明產生的成本落在最弱的那一端。</strong>驗證很快，但產生證明的通常是使用者的手機。複雜電路在低階裝置上要跑好幾秒，這會直接變成體驗問題。</li>
+      <li><strong>不可關聯性與稽核義務是對立的。</strong>如果你的服務落在洗錢防制、電子支付、虛擬資產的範圍內，實名要求是強制規定。「我用零知識所以不知道使用者是誰」在主管機關面前不是抗辯，是自陳違規。這一點在幣圈翻車過很多次。</li>
+      <li><strong>法律效力不看密碼學強度。</strong>以台灣為例，《電子簽章法》給「推定為本人親自簽名」效力的條件，是使用經主管機關許可的憑證機構所簽發的憑證——分水嶺在有沒有政府許可的 CA 背書，不在你用了多高級的數學。自己刻的方案在當事人之間有效（契約自由），但沒有法定推定，舉證責任在你。</li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="eyebrow">09 · THE TEST</p>
+    <h2>三個問題，答不出來就別用</h2>
+
+    <div class="cols stagger">
+      <div class="card">
+        <p class="chip">問題一</p>
+        <h3>有沒有一個你不想信、或不能永遠依賴的第三方？</h3>
+        <p>如果答案是「Google 一直都在，而且我信它」，OIDC 就是對的工具。ZKP 買的是發證方離線、IdP 無法冒充你——沒有這個需求，就是在為不存在的問題付錢。</p>
+      </div>
+      <div class="card">
+        <p class="chip">問題二</p>
+        <h3>驗證方持有原始資料，是不是一種負債？</h3>
+        <p>如果對方巴不得不要拿到你的個資（法遵風險、外洩賠償），選擇性揭露就有商業價值。如果對方本來就要拿去做業務，那揭露不是問題，是需求。</p>
+      </div>
+      <div class="card">
+        <p class="chip">問題三</p>
+        <h3>需不需要讓別人便宜地驗證一段昂貴的運算？</h3>
+        <p>這條與隱私無關，卻是 ZKP 目前最大的產業用途。如果你的問題裡沒有「外包運算」或「批次壓縮」的形狀，succinctness 對你就是零。</p>
+      </div>
+    </div>
+
+    <p>三個都答不出來，就不需要 ZKP。這不是保守，是因為替代方案的成本低到不成比例——OIDC 有現成 SDK、現成信任錨、清楚的法律地位；端對端加密解掉了絕大多數「伺服器不該看到內容」的需求；而 Schnorr 簽章早就免費幫你證明了「我持有這把金鑰」。</p>
+
+    <p>反過來說，只要有一題答得出來，那個需求通常<strong>沒有別的解法</strong>。ZKP 不是一個更好的做法，它是一個原本做不到的做法——這也是為什麼它值得你花時間讀懂，即使今年不會用到。</p>
+
+    <hr>
+
+    <p class="byline">參考起點：Goldwasser, Micali &amp; Rackoff（1985）《The Knowledge Complexity of Interactive Proof-Systems》· Quisquater 等（1989）《How to Explain Zero-Knowledge Protocols to Your Children》· Fiat &amp; Shamir（1986）· Schnorr（1989）· eIDAS 2.0 架構參考框架的 ZKP 討論文件</p>
+  </section>
+
+</article>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;   // state in a variable
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
