@@ -1,0 +1,1506 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="對帳 — 把同一筆 AI 支出的三個分母並排查核">
+<meta name="imitator-reference" content="1980 年代會計師事務所的查核工作底稿：十四欄分析紙、W/P 索引、藍色查核鉛筆的勾稽與合計雙線">
+<meta name="imitator-paper" content="hsl(76 30% 94%)">
+<meta name="imitator-accent" content="hsl(224 62% 40%)">
+<title>沒有匯率：三個分母、四種單位、一頁字典</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@600;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+</style>
+<style>
+/* REGISTER:  對帳 — 把同一筆 AI 支出的三個分母並排查核；讀者是要替 agent 編預算、或要讀懂雲端財報的人。
+   REFERENCE: 1980 年代會計師事務所的查核工作底稿 — 十四欄分析紙、W/P 索引編號、藍色查核鉛筆的勾稽、合計列下的雙線。
+   PAPER:     工作底稿用的護眼綠分析紙 — 偏黃的淡綠，hsl(76 30% 94%)。夜裡是同一張紙的暗面：hsl(78 14% 8%)。
+   VOICE:     表單式的無襯線標題、等寬體的底稿編號與出處上標、雙線框住判讀（像合計列）、藍鉛筆色只給索引、編號與連結。
+   NOT:       儀表板，也不是 AI 泡沫論戰。數字是查核證據，每一個都附出處與來源等級。
+   RECENT:    unavailable（本機無 IMITATOR_TOKEN）；改對系列前兩篇：paper 44°、210° · accent 158°、8° — paper 76° 與 44° 差 32°，accent 224° 與 158° 差 66°，不用改。 */
+
+:root {
+  /* 分析紙 */
+  --paper: hsl(76 30% 94%);
+  --card: hsl(76 36% 97.5%);
+  --ink: hsl(80 18% 11%);
+  --ink-2: hsl(80 10% 28%);
+  --mist: hsl(80 8% 36%);
+  --rule: hsl(78 22% 82%);        /* 分析紙上的欄線 */
+  --rule-hard: hsl(80 16% 64%);
+  /* 藍色查核鉛筆 */
+  --accent: hsl(224 62% 40%);
+  --accent-soft: hsl(224 52% 90%);
+
+  --disp: "IBM Plex Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(78 14% 8%); --card: hsl(78 12% 11%);
+    --ink: hsl(70 20% 90%); --ink-2: hsl(72 10% 74%); --mist: hsl(74 8% 62%);
+    --rule: hsl(78 10% 20%); --rule-hard: hsl(78 10% 31%);
+    --accent: hsl(222 72% 74%); --accent-soft: hsl(222 30% 22%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(78 14% 8%); --card: hsl(78 12% 11%);
+  --ink: hsl(70 20% 90%); --ink-2: hsl(72 10% 74%); --mist: hsl(74 8% 62%);
+  --rule: hsl(78 10% 20%); --rule-hard: hsl(78 10% 31%);
+  --accent: hsl(222 72% 74%); --accent-soft: hsl(222 30% 22%);
+}
+
+/* 標題：表單上的粗黑字，不是書本 */
+.display { font-weight: 700; letter-spacing: -.035em; }
+.kicker {
+  font-family: var(--disp); font-weight: 700; font-size: var(--fs-2);
+  line-height: 1.35; color: var(--ink-2); margin: 0 0 var(--sp-5);
+}
+h2 { font-weight: 700; }
+
+/* 十四欄分析紙的抬頭：欄線＋合計雙線 */
+.ledger {
+  height: 1.1rem; margin-block: var(--sp-5) var(--sp-6);
+  border-top: 1px solid var(--rule-hard);
+  border-bottom: 3px double var(--rule-hard);
+  background: repeating-linear-gradient(to right,
+    transparent 0, transparent calc(100% / 14 - 1px),
+    var(--rule) calc(100% / 14 - 1px), var(--rule) calc(100% / 14));
+}
+
+/* 判讀：框在合計列的雙線之間 */
+.verdict {
+  margin-block: var(--sp-6);
+  padding-block: var(--sp-4);
+  border-top: 3px double var(--ink-2);
+  border-bottom: 3px double var(--ink-2);
+}
+.verdict::before {
+  content: "判讀 · VERDICT";
+  display: block; margin-bottom: var(--sp-2);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .16em; color: var(--accent);
+}
+.verdict > :last-child { margin-bottom: 0; }
+.report > section > .verdict.whole { max-width: none; }
+.verdict.whole > :is(p, h3, .formula) { max-width: var(--measure); }
+.verdict.whole > :is(figure, .table-scroll) { max-width: none; }
+
+/* 出處上標：底稿的交叉索引 */
+sup.ref { font-family: var(--mono); font-size: .66em; line-height: 0; letter-spacing: .02em; }
+sup.ref a { text-decoration: none; }
+sup.ref a:hover { text-decoration: underline; }
+
+/* 來源等級戳記 */
+.tier {
+  display: inline-block; font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .06em; color: var(--ink-2);
+  border: 1px solid var(--rule-hard); border-radius: 2px; padding: 0 .4em; line-height: 1.6;
+}
+
+/* 欄位矩陣的勾稽格 */
+td.cell { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .04em; white-space: nowrap; }
+td.cell.yes { color: var(--ink); font-weight: 500; }
+td.cell.yes::before { content: "✓ "; color: var(--accent); }
+td.cell.part { color: var(--ink-2); }
+td.cell.no { color: var(--mist); }
+
+/* 公式列 */
+.formula {
+  font-family: var(--disp); font-weight: 600; font-size: var(--fs-3); line-height: 1.7;
+  background: var(--card); border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent); border-radius: 3px;
+  padding: var(--sp-4) var(--sp-5); margin-block: var(--sp-5);
+}
+.formula small { display: block; font-family: var(--sans); font-weight: 400; font-size: var(--fs-sm); color: var(--mist); margin-top: var(--sp-1); }
+
+/* 圖：三本帳 —— 寬版在桌機放大，手機換成直式三欄，不靠縮小字 */
+.diagram-fig > :is(.title, .subtitle, figcaption) { padding-inline: var(--bleed); }
+.diagram { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: clamp(.75rem, .4rem + 1.2vw, 1.5rem); }
+.diagram svg { display: block; width: 100%; height: auto; }
+.diagram .dg-mobile { display: none; }
+@media (max-width: 40rem) {
+  .diagram .dg-desktop { display: none; }
+  .diagram .dg-mobile { display: block; }
+}
+.dg-box { fill: var(--paper); stroke: var(--ink-2); stroke-width: 1.6; }
+.dg-box.hidden { fill: none; stroke: var(--rule-hard); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.dg-t { fill: var(--ink); font-family: var(--sans); font-weight: 500; }
+.dg-t.hidden { fill: var(--mist); font-weight: 400; }
+.dg-row { fill: var(--accent); font-family: var(--mono); font-weight: 500; letter-spacing: .06em; }
+.dg-sub { fill: var(--mist); font-family: var(--sans); }
+.dg-note { fill: var(--ink-2); font-family: var(--sans); }
+.dg-arrow { stroke: var(--mist); stroke-width: 1.6; fill: none; }
+.dg-head { fill: var(--mist); }
+.dg-brace { stroke: var(--rule-hard); stroke-width: 1.4; fill: none; }
+.dg-desktop .dg-t { font-size: 19px; }
+.dg-desktop .dg-row { font-size: 16px; }
+.dg-desktop .dg-note { font-size: 16px; }
+.dg-mobile .dg-t { font-size: 13.5px; }
+.dg-mobile .dg-row { font-size: 15px; }
+.dg-mobile .dg-sub, .dg-mobile .dg-note { font-size: 12px; }
+
+/* 圖：成本 */
+.chart .ref-line { stroke: var(--ink-2); stroke-width: 1.5; }
+.chart .bar-c1 { fill: var(--c1); }
+.chart .dot-c2 { fill: var(--c2); }
+
+/* 出處清單 */
+ol.sources { font-size: var(--fs-sm); line-height: 1.65; padding-left: 2.2em; }
+ol.sources li { margin-top: var(--sp-2); }
+ol.sources li::marker { font-family: var(--mono); color: var(--accent); }
+ol.sources a { overflow-wrap: anywhere; font-family: var(--mono); font-size: var(--fs-xs); }
+ol.sources .src { color: var(--ink); }
+ol.sources .meta { color: var(--mist); }
+
+/* 調查數字格：說明文字要能自然換行，出處上標跟在句尾 */
+.tiles .stat .delta { display: block; line-height: 1.6; }
+
+/* 查核意見：編號、粗體主張、節次索引 */
+ol.findings { padding-left: 2.2em; }
+ol.findings li { margin-top: var(--sp-3); }
+ol.findings li::marker { font-family: var(--mono); color: var(--accent); }
+ol.findings strong { display: block; }
+ol.findings .where { display: inline-block; margin-left: .5em; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+ul.sayings { list-style: none; padding: 0; }
+ul.sayings li { font-family: var(--disp); font-weight: 600; font-size: var(--fs-3); line-height: 1.55; padding: var(--sp-3) 0 var(--sp-3) var(--sp-4); border-left: 2px solid var(--rule-hard); margin-top: var(--sp-3); }
+
+.open-items li::marker { font-family: var(--mono); color: var(--accent); }
+.fw li { margin-top: var(--sp-3); }
+</style>
+
+<body>
+<div class="progress" aria-hidden="true"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<header>
+<p class="eyebrow">VOL.3 · AI × 企業軟體 · 2026-09</p>
+<h1 class="display">沒有<em>匯率</em></h1>
+<p class="kicker">三個分母、四種單位、一頁字典</p>
+<p class="lede">同一筆 AI 支出，賣方用晶片小時算回本，買方用人頭編預算，帳單按機器消耗開。三本帳各自封閉，彼此之間沒有換算。這篇把三個分母並排對帳，最後試著替「判斷」寫出字典的第一頁。</p>
+<p class="byline">Clarence Chien · 2026-09-10 · 系列第三篇 · 接《<a href="https://imitator.ai-apps.work/r/incumbents-are-coming">工作比紀錄大</a>》與《<a href="https://imitator.ai-apps.work/r/layers-melting">分層融化</a>》</p>
+</header>
+
+<div class="ledger wide" aria-hidden="true"></div>
+
+<div class="note">
+<p class="head">怎麼讀這篇</p>
+<p>數字後面的上標編號，連到文末出處；每筆出處都標了來源等級：揭露（財報、官方逐字稿、官方文件、論文）＞ 調查 ＞ 分析師 ＞ 轉述 ＞ 部落格。雙線框起來的段落是判讀——整理者的推論，可以被推翻，不代表任何原始機構的立場。</p>
+</div>
+
+<!-- ─────────────────────────────── 01 ─────────────────────────────── -->
+<section id="s01">
+<p class="eyebrow reveal">W/P 01 · PREFACE</p>
+<h2>缺一頁的字典</h2>
+
+<p><span class="chip">接回 番外 §07</span> 《分層融化》第 07 節留了一個洞沒補。Gartner 的 pace layering 能在企業裡活十五年，是因為它能換算成錢：哪一層多久改一次，就編多少維護費、內部做還是外包、多久重評一次。a16z 的四級梯子（Retrieval、Process、Policy、Principal）告訴你這次動作要動用多少判斷，卻不告訴你判斷值多少、誰付、出錯記在哪個科目。</p>
+
+<p>這篇原本要找的，是那本把「判斷」翻譯成預算的字典。查下去，發現問題更底層：同一筆 AI 支出，三方各用各的分母在算。</p>
+
+<figure class="reveal wide diagram-fig">
+<p class="title">三本帳，三個分母</p>
+<p class="subtitle">實線格是公開或算得出來的；虛線格是查不到、或沒有人接起來的。</p>
+<div class="diagram">
+<svg class="dg-desktop" viewBox="0 0 960 430" role="img" aria-labelledby="dgd-t dgd-d" xmlns="http://www.w3.org/2000/svg">
+<title id="dgd-t">三本帳，三個分母</title>
+<desc id="dgd-d">賣方鏈：判斷、token 量、晶片小時、營收／GW、回本期，中間兩格不公開。帳單鏈：步數、每步單價、除以成功率、每次成功成本、對任務長度作圖，最後一格沒有人公開做。買方鏈：人頭預算、中間的換算空白、業務結果。</desc>
+<text class="dg-row" x="30" y="30">賣方 · 分母是晶片小時</text>
+<rect class="dg-box" x="30" y="44" width="150" height="54" rx="4"/><text class="dg-t" x="105.0" y="77.0" text-anchor="middle">判斷</text><line class="dg-arrow" x1="183" y1="71.0" x2="211" y2="71.0"/><path class="dg-head" d="M219 71.0 l-9 -5 v10 z"/><rect class="dg-box" x="222" y="44" width="150" height="54" rx="4"/><text class="dg-t" x="297.0" y="77.0" text-anchor="middle">token 量</text><line class="dg-arrow" x1="375" y1="71.0" x2="403" y2="71.0"/><path class="dg-head" d="M411 71.0 l-9 -5 v10 z"/><rect class="dg-box hidden" x="414" y="44" width="150" height="54" rx="4"/><text class="dg-t hidden" x="489.0" y="77.0" text-anchor="middle">晶片小時</text><line class="dg-arrow" x1="567" y1="71.0" x2="595" y2="71.0"/><path class="dg-head" d="M603 71.0 l-9 -5 v10 z"/><rect class="dg-box hidden" x="606" y="44" width="150" height="54" rx="4"/><text class="dg-t hidden" x="681.0" y="77.0" text-anchor="middle">營收／GW</text><line class="dg-arrow" x1="759" y1="71.0" x2="787" y2="71.0"/><path class="dg-head" d="M795 71.0 l-9 -5 v10 z"/><rect class="dg-box" x="798" y="44" width="150" height="54" rx="4"/><text class="dg-t" x="873.0" y="77.0" text-anchor="middle">回本期</text>
+<path class="dg-brace" d="M414 106 v9 h342 v-9"/><text class="dg-note" x="585.0" y="138" text-anchor="middle">不公開</text>
+<text class="dg-row" x="30" y="178">帳單 · 分母是機器消耗</text>
+<rect class="dg-box" x="30" y="192" width="150" height="54" rx="4"/><text class="dg-t" x="105.0" y="225.0" text-anchor="middle">步數</text><line class="dg-arrow" x1="183" y1="219.0" x2="211" y2="219.0"/><path class="dg-head" d="M219 219.0 l-9 -5 v10 z"/><rect class="dg-box" x="222" y="192" width="150" height="54" rx="4"/><text class="dg-t" x="297.0" y="225.0" text-anchor="middle">每步單價</text><line class="dg-arrow" x1="375" y1="219.0" x2="403" y2="219.0"/><path class="dg-head" d="M411 219.0 l-9 -5 v10 z"/><rect class="dg-box" x="414" y="192" width="150" height="54" rx="4"/><text class="dg-t" x="489.0" y="225.0" text-anchor="middle">÷ 成功率</text><line class="dg-arrow" x1="567" y1="219.0" x2="595" y2="219.0"/><path class="dg-head" d="M603 219.0 l-9 -5 v10 z"/><rect class="dg-box" x="606" y="192" width="150" height="54" rx="4"/><text class="dg-t" x="681.0" y="225.0" text-anchor="middle">每次成功成本</text><line class="dg-arrow" x1="759" y1="219.0" x2="787" y2="219.0"/><path class="dg-head" d="M795 219.0 l-9 -5 v10 z"/><rect class="dg-box hidden" x="798" y="192" width="150" height="54" rx="4"/><text class="dg-t hidden" x="873.0" y="225.0" text-anchor="middle">對任務長度</text>
+<path class="dg-brace" d="M798 254 v9 h150 v-9"/><text class="dg-note" x="873.0" y="286" text-anchor="middle">沒有人公開做</text>
+<text class="dg-row" x="30" y="326">買方 · 分母是人頭</text>
+<rect class="dg-box" x="30" y="340" width="150" height="54" rx="4"/><text class="dg-t" x="105.0" y="373.0" text-anchor="middle">人頭預算</text>
+<line class="dg-arrow" x1="183" y1="367.0" x2="211" y2="367.0"/><path class="dg-head" d="M219 367.0 l-9 -5 v10 z"/>
+<rect class="dg-box hidden" x="222" y="340" width="534" height="54" rx="4"/>
+<text class="dg-t hidden" x="489.0" y="373.0" text-anchor="middle">？　判斷 → 預算的換算</text>
+<line class="dg-arrow" x1="759" y1="367.0" x2="787" y2="367.0"/><path class="dg-head" d="M795 367.0 l-9 -5 v10 z"/>
+<rect class="dg-box" x="798" y="340" width="150" height="54" rx="4"/><text class="dg-t" x="873.0" y="373.0" text-anchor="middle">業務結果</text>
+</svg>
+<svg class="dg-mobile" viewBox="0 0 360 430" role="img" aria-labelledby="dgm-t dgm-d" xmlns="http://www.w3.org/2000/svg">
+<title id="dgm-t">三本帳，三個分母</title>
+<desc id="dgm-d">三欄由上而下：賣方鏈中間兩格不公開；帳單鏈最後一格沒有人公開做；買方鏈中間是空的。</desc>
+<text class="dg-row" x="66.0" y="24" text-anchor="middle">賣方</text>
+<text class="dg-sub" x="66.0" y="44" text-anchor="middle">分母：晶片小時</text>
+<text class="dg-row" x="184.0" y="24" text-anchor="middle">帳單</text>
+<text class="dg-sub" x="184.0" y="44" text-anchor="middle">分母：機器消耗</text>
+<text class="dg-row" x="302.0" y="24" text-anchor="middle">買方</text>
+<text class="dg-sub" x="302.0" y="44" text-anchor="middle">分母：人頭</text>
+<rect class="dg-box" x="14" y="70" width="104" height="40" rx="4"/><text class="dg-t" x="66.0" y="95.0" text-anchor="middle">判斷</text><line class="dg-arrow" x1="66.0" y1="113" x2="66.0" y2="123"/><path class="dg-head" d="M66.0 131 l-5 -9 h10 z"/><rect class="dg-box" x="14" y="134" width="104" height="40" rx="4"/><text class="dg-t" x="66.0" y="159.0" text-anchor="middle">token 量</text><line class="dg-arrow" x1="66.0" y1="177" x2="66.0" y2="187"/><path class="dg-head" d="M66.0 195 l-5 -9 h10 z"/><rect class="dg-box hidden" x="14" y="198" width="104" height="40" rx="4"/><text class="dg-t hidden" x="66.0" y="223.0" text-anchor="middle">晶片小時</text><line class="dg-arrow" x1="66.0" y1="241" x2="66.0" y2="251"/><path class="dg-head" d="M66.0 259 l-5 -9 h10 z"/><rect class="dg-box hidden" x="14" y="262" width="104" height="40" rx="4"/><text class="dg-t hidden" x="66.0" y="287.0" text-anchor="middle">營收／GW</text><line class="dg-arrow" x1="66.0" y1="305" x2="66.0" y2="315"/><path class="dg-head" d="M66.0 323 l-5 -9 h10 z"/><rect class="dg-box" x="14" y="326" width="104" height="40" rx="4"/><text class="dg-t" x="66.0" y="351.0" text-anchor="middle">回本期</text>
+<rect class="dg-box" x="132" y="70" width="104" height="40" rx="4"/><text class="dg-t" x="184.0" y="95.0" text-anchor="middle">步數</text><line class="dg-arrow" x1="184.0" y1="113" x2="184.0" y2="123"/><path class="dg-head" d="M184.0 131 l-5 -9 h10 z"/><rect class="dg-box" x="132" y="134" width="104" height="40" rx="4"/><text class="dg-t" x="184.0" y="159.0" text-anchor="middle">每步單價</text><line class="dg-arrow" x1="184.0" y1="177" x2="184.0" y2="187"/><path class="dg-head" d="M184.0 195 l-5 -9 h10 z"/><rect class="dg-box" x="132" y="198" width="104" height="40" rx="4"/><text class="dg-t" x="184.0" y="223.0" text-anchor="middle">÷ 成功率</text><line class="dg-arrow" x1="184.0" y1="241" x2="184.0" y2="251"/><path class="dg-head" d="M184.0 259 l-5 -9 h10 z"/><rect class="dg-box" x="132" y="262" width="104" height="40" rx="4"/><text class="dg-t" x="184.0" y="287.0" text-anchor="middle">每次成功成本</text><line class="dg-arrow" x1="184.0" y1="305" x2="184.0" y2="315"/><path class="dg-head" d="M184.0 323 l-5 -9 h10 z"/><rect class="dg-box hidden" x="132" y="326" width="104" height="40" rx="4"/><text class="dg-t hidden" x="184.0" y="351.0" text-anchor="middle">對任務長度</text>
+<rect class="dg-box" x="250" y="70" width="104" height="40" rx="4"/><text class="dg-t" x="302.0" y="95.0" text-anchor="middle">人頭預算</text>
+<line class="dg-arrow" x1="302.0" y1="113" x2="302.0" y2="123"/><path class="dg-head" d="M302.0 131 l-5 -9 h10 z"/>
+<rect class="dg-box hidden" x="250" y="134" width="104" height="168" rx="4"/>
+<text class="dg-t hidden" x="302.0" y="210.0" text-anchor="middle">？</text>
+<text class="dg-t hidden" x="302.0" y="232.0" text-anchor="middle">判斷 → 預算</text>
+<line class="dg-arrow" x1="302.0" y1="305" x2="302.0" y2="315"/><path class="dg-head" d="M302.0 323 l-5 -9 h10 z"/>
+<rect class="dg-box" x="250" y="326" width="104" height="40" rx="4"/><text class="dg-t" x="302.0" y="351.0" text-anchor="middle">業務結果</text>
+<text class="dg-note" x="66.0" y="396" text-anchor="middle">中間兩格不公開</text>
+<text class="dg-note" x="184.0" y="396" text-anchor="middle">最後一格沒人做</text>
+<text class="dg-note" x="302.0" y="396" text-anchor="middle">中間是空的</text>
+</svg>
+</div>
+<figcaption>賣方公開兩端、中間不公開；帳單的每個量綱都有人量過，但沒有人接成一條曲線；買方那條鏈，中間是空的。</figcaption>
+</figure>
+
+<p>連 Gartner 都替賣方承認了分母在換：agentic AI「breaks the link between user growth and revenue growth for many enterprise software vendors」<sup class="ref">[<a href="#ref-1">1</a>]</sup>——對許多企業軟體廠商來說，使用者數不再決定營收。</p>
+
+<div class="verdict">
+<p>字典缺的不是詞，是匯率。賣方、買方、帳單三本帳各自封閉，彼此之間沒有換算。接下來每一節，都在對其中一個分母。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 02 ─────────────────────────────── -->
+<section id="s02">
+<p class="eyebrow reveal">W/P 02 · SELLER</p>
+<h2>賣方的鏈：兩端公開，中間不公開</h2>
+
+<p>9 月 8 日，Google Cloud 執行長 Thomas Kurian 在 Goldman Sachs 的科技大會上，把賣方那條鏈的一端講得很清楚：「our payback period on AI servers in aggregate is less than two years, and on our own silicon is half that.」他接著說，基礎設施合約的總約值，多數是「long-term committed five-year contracts」。<sup class="ref">[<a href="#ref-2">2</a>]</sup></p>
+
+<p>鏈的另一端在 Alphabet 七月的財報講稿裡：模型 API 每分鐘處理約 220 億個 token，一季前是 160 億；近 500 家雲端客戶，過去一年各自處理超過一兆個 token。<sup class="ref">[<a href="#ref-3">3</a>]</sup></p>
+
+<p>中間那幾格——token 怎麼換成晶片小時、晶片小時怎麼換成營收——在整場逐字稿、10-Q 和財報新聞稿裡找不到一個數字。Kurian 全場沒有提 gigawatt、backlog、折舊，也沒有點名任何一家實驗室。<sup class="ref">[<a href="#ref-2">2</a>,&#8202;<a href="#ref-4">4</a>,&#8202;<a href="#ref-5">5</a>]</sup></p>
+
+<p>順帶更正一個常見引用：「年營收執行率近一千億美元」是主持人的開場介紹詞，不是 Kurian 說的。數字本身和第二季雲端營收 247.7 億美元乘以四吻合。<sup class="ref">[<a href="#ref-2">2</a>,&#8202;<a href="#ref-5">5</a>]</sup></p>
+
+<div class="verdict">
+<p>賣方的鏈是封閉的，但只封閉在賣方內部。對外公開的只有兩端：一端是每分鐘多少 token，一端是幾年回本。中間怎麼換算，是賣方的營業祕密，也正是買方沒有的那本字典。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 03 ─────────────────────────────── -->
+<section id="s03">
+<p class="eyebrow reveal">W/P 03 · PAYBACK</p>
+<h2>回本期是會計選擇</h2>
+
+<p>「不到兩年」的分母是「AI servers in aggregate」。這個分母裡，至少藏著三個選擇。</p>
+
+<h3>第一個選擇：混進賣出去的硬體</h3>
+
+<p>Alphabet 第二季 10-Q 寫得很明白：「Our Google Cloud product sales generally consist of the sale of TPU systems comprising hardware, software, installation, support, and extended warranty services.」<sup class="ref">[<a href="#ref-4">4</a>]</sup> TPU 硬體銷售算在雲端營收裡，金額沒有單獨揭露。</p>
+
+<p>Kurian 在同一場會上說，雲端提供「2 or 3 types of business models」：雲端訂閱、客戶資本採購，以及與 Blackstone 合作的 neocloud。客戶把硬體買回自己機房時，「we do not need to spend capital expense for data centers」。<sup class="ref">[<a href="#ref-2">2</a>]</sup> Blackstone 那邊的公告只寫了初始股權承諾 50 億美元、2027 年上線 500 MW，沒有寫 Google 怎麼收錢。<sup class="ref">[<a href="#ref-6">6</a>]</sup> 三種模式各佔多少營收，查無揭露。</p>
+
+<p>一次性硬體銷售的回本期趨近於零。和雲端訂閱混在一起算「整體」回本期，數字自然好看。</p>
+
+<h3>第二個選擇：不算建築</h3>
+
+<p>伺服器之外還有殼。SemiAnalysis 的估計是「A large datacenter lease is typically 15+ years, with a typical payback period of ~8 years」，而 GPU 叢集的經濟壽命只有四到五年。<sup class="ref">[<a href="#ref-7">7</a>]</sup> 這句講的是資料中心投資與 neocloud 的融資錯配，不是 Google 自己的數字——但它說明了殼與晶片的久期差多少。</p>
+
+<p>而建築的年限一樣可以調。Microsoft 今年七月宣布，從 FY27 起「extending the estimated useful lives of our datacenters and office buildings, from 15 to 25 years」。<sup class="ref">[<a href="#ref-8">8</a>]</sup></p>
+
+<h3>第三個選擇：年限自己定</h3>
+
+<p>伺服器的耐用年限是一顆旋鈕，而且在同一個產業裡往兩個方向轉。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>公司</th><th>生效</th><th>資產</th><th>年限</th><th>影響</th><th>性質</th></tr></thead>
+<tbody>
+<tr><td>Alphabet <sup class="ref">[<a href="#ref-9">9</a>]</sup></td><td class="nowrap">FY2023</td><td>伺服器／部分網路設備</td><td class="nowrap">4→6 年<br>5→6 年</td><td>折舊 −39 億美元、淨利 +30 億美元</td><td>年終實際（期初預估 −34 億）</td></tr>
+<tr><td>Microsoft <sup class="ref">[<a href="#ref-10">10</a>]</sup></td><td class="nowrap">FY2023</td><td>雲端伺服器與網路設備</td><td class="nowrap">4→6 年</td><td>營業利益 +約 37 億美元</td><td>期初預估</td></tr>
+<tr><td>Microsoft <sup class="ref">[<a href="#ref-8">8</a>]</sup></td><td class="nowrap">FY2027</td><td>資料中心與辦公大樓</td><td class="nowrap">15→25 年</td><td>「minimal benefit to FY27 operating income」</td><td>官方說明</td></tr>
+<tr><td>Amazon <sup class="ref">[<a href="#ref-11">11</a>]</sup></td><td class="nowrap">2024</td><td>伺服器</td><td class="nowrap">5→6 年</td><td>折舊 −32 億美元、淨利 +25 億美元</td><td>年報，經第三方轉引</td></tr>
+<tr><td>Amazon <sup class="ref">[<a href="#ref-12">12</a>]</sup></td><td class="nowrap">2025</td><td>部分伺服器與網路設備</td><td class="nowrap">6→5 年</td><td>2025 營業利益 −約 7 億美元；另 2024 Q4 提前除役認列約 9.2 億美元</td><td>CFO 法說預估</td></tr>
+<tr><td>Meta <sup class="ref">[<a href="#ref-13">13</a>]</sup></td><td class="nowrap">2025</td><td>部分伺服器與網路設備</td><td class="nowrap">延長至 5.5 年</td><td>2025 年折舊 −約 29 億美元</td><td>財報新聞稿</td></tr>
+<tr><td>Oracle <sup class="ref">[<a href="#ref-14">14</a>]</sup></td><td class="nowrap">FY2025</td><td>電腦、網路與機器設備</td><td class="nowrap">1–6 年（區間）</td><td>未見變更揭露</td><td>年報附註</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Amazon 縮短的理由是「an increased pace of technology development, particularly in the area of artificial intelligence and machine learning」。<sup class="ref">[<a href="#ref-12">12</a>]</sup> Goldman Sachs Global Institute 則說：「Useful life of silicon chips is the single most influential variable in determining the scale of cumulative AI infrastructure investment」。<sup class="ref">[<a href="#ref-15">15</a>]</sup> Michael Burry 去年十一月估計，2026 到 2028 年產業合計低估折舊約 1,760 億美元<sup class="ref">[<a href="#ref-16">16</a>]</sup>——那是他的估計，算法沒有公開，本篇不展開。</p>
+
+<p>Kurian 以外，沒有任何賣方公開過可以對照的 GPU 伺服器回本期。</p>
+
+<div class="verdict">
+<p>「回本不到兩年」不是一個物理量。分母可以含賣出去的硬體，可以不含建築，年限可以自己定——三個選擇都合法，也都往好看的方向。當同一個產業裡有人延長、有人縮短，年限就不是事實，是選擇。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 04 ─────────────────────────────── -->
+<section id="s04">
+<p class="eyebrow reveal">W/P 04 · OVERRUN</p>
+<h2>超出承諾五成，是誰超出</h2>
+
+<p>Kurian 那場最常被摘出來的一句是：「When a customer gives us a commitment, say, for $100, typically they spend more than 50% more than that.」<sup class="ref">[<a href="#ref-2">2</a>]</sup></p>
+
+<p>這不是隨口一說，是逐季經營的指標。Alphabet 第一季講稿寫客戶「outpaced their initial commitments by 45%」<sup class="ref">[<a href="#ref-17">17</a>]</sup>，第二季變成「exceeding their commitments by more than 50% — also an acceleration over last quarter」。<sup class="ref">[<a href="#ref-3">3</a>]</sup> 分母——哪些客戶、承諾怎麼算——從來沒有說明。</p>
+
+<h3>backlog 的形狀</h3>
+
+<p>截至六月底，Alphabet 的剩餘履約義務是 5,195 億美元，其中 5,139 億美元屬於 Google Cloud，公司預計「just over 50%」在未來 24 個月內認列。<sup class="ref">[<a href="#ref-4">4</a>]</sup> 以第二季雲端營收年化計算，這份 backlog 約是年營收的 5.2 倍，而且將近一半落在兩年之後。這是少數超大型多年約的形狀，不是大量中型客戶的形狀。</p>
+
+<h3>拆得開，但沒拆</h3>
+
+<p>Microsoft 今年一月揭露：「Approximately 45% of our commercial RPO balance is from OpenAI」。<sup class="ref">[<a href="#ref-18">18</a>]</sup> 到了七月，它不再給比例，改說「RPO increased 25% when excluding OpenAI」，並且「All sequential commercial RPO growth was driven by commitments from customers outside of frontier model companies.」<sup class="ref">[<a href="#ref-8">8</a>]</sup></p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>公司</th><th>Backlog</th><th>期間資訊</th><th>實驗室佔比揭露</th></tr></thead>
+<tbody>
+<tr><td>Microsoft <sup class="ref">[<a href="#ref-18">18</a>,&#8202;<a href="#ref-8">8</a>]</sup></td><td class="nowrap">6,780 億美元</td><td>加權平均 2.3 年</td><td>有：一月 OpenAI 約 45%；七月改給排除 OpenAI 的成長</td></tr>
+<tr><td>Alphabet <sup class="ref">[<a href="#ref-4">4</a>]</sup></td><td class="nowrap">5,195 億美元</td><td>24 個月內略過半</td><td>無</td></tr>
+<tr><td>AWS <sup class="ref">[<a href="#ref-19">19</a>]</sup></td><td class="nowrap">約 4,960 億美元</td><td>加權剩餘 6.4 年</td><td>無</td></tr>
+<tr><td>Oracle <sup class="ref">[<a href="#ref-20">20</a>]</sup></td><td class="nowrap">6,380 億美元</td><td>未查到</td><td>無；質性描述為增量多來自客戶預付或自備 GPU 的合約</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">三家的期間口徑不同，不能直接比。AWS 數字經第三方轉引 10-Q，Oracle 經媒體轉述。</p>
+
+<p>外部估計補上了 Google 沒拆的那一塊。The Information 報導，Anthropic 與 OpenAI 相關合約約佔四大雲 2 兆美元 backlog 的一半。<sup class="ref">[<a href="#ref-21">21</a>]</sup> UBS 估計兩家佔 Google Cloud 營收的比重，2026 年是 27%，2027 年超過 48%——這個數字經過三手轉述，只能當方向讀。<sup class="ref">[<a href="#ref-22">22</a>]</sup> Kurian 自己也說，基礎設施需求「beyond just the labs」，最後補上一句「and of course, a number of labs as well」。<sup class="ref">[<a href="#ref-2">2</a>]</sup></p>
+
+<h3>買方看到的超支，是另一個形狀</h3>
+
+<p>賣方不拆，就從買方的調查看。</p>
+
+<div class="tiles stagger">
+<div class="stat"><p class="label">IDC · 超出 2025 年雲端 AI 預算</p><div class="value">61%</div><div class="delta">其中 83% 超支在 15% 以內 · N=320，限中東、土耳其、非洲 <sup class="ref">[<a href="#ref-23">23</a>]</sup></div></div>
+<div class="stat"><p class="label">KPMG · 因成本重新分期 agent 部署</p><div class="value">近半</div><div class="delta">成本超過預期價值時 · 全球 N=2,145 <sup class="ref">[<a href="#ref-24">24</a>]</sup></div></div>
+<div class="stat"><p class="label">WitnessAI · AI 專案總是或大多超支</p><div class="value">33%</div><div class="delta">N=300，千人以上企業，資安廠商自辦 <sup class="ref">[<a href="#ref-25">25</a>]</sup></div></div>
+</div>
+
+<p>McKinsey 今年的調查裡，約兩成受訪者說 AI 營運成本（包括 token）限制了他們的使用。<sup class="ref">[<a href="#ref-26">26</a>]</sup> Uber 技術長四月對 The Information 說：「the budget I thought I would need is blown away already」——報導沒有給金額。<sup class="ref">[<a href="#ref-27">27</a>]</sup></p>
+
+<p>Gartner 的 John-David Lovelock 把話講白：「Up to this point, AI spending has primarily been driven by technology companies and hyperscalers.」<sup class="ref">[<a href="#ref-28">28</a>]</sup></p>
+
+<div class="verdict">
+<p>「超出承諾五成」把兩種超支平均在同一個數字裡：實驗室的超支是有多少算力買多少，企業的超支是預測不準。Microsoft 證明這兩群客戶拆得開，Google 選擇不拆。買方調查看到的超支很普遍，但多半在一成五以內——那個五成，比較像實驗室的形狀。兩邊樣本不同，這只是形狀的對照，不是可以相減的數字。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 05 ─────────────────────────────── -->
+<section id="s05">
+<p class="eyebrow reveal">W/P 05 · WALLET</p>
+<h2>從營運錢包裡長出來</h2>
+
+<p>換到買方。ETR 連續三波、每波 600 位受訪者的調查問「AI 開發的預算從哪來」，可以複選。把「較廣義的 IT 預算」勾為來源的比例，一年內從 56.7% 升到 61.7%；大型企業從 60% 升到 65.1%。ETR 對這筆預算的描述是「the operating wallet that funds renewals and infrastructure」。<sup class="ref">[<a href="#ref-29">29</a>]</sup></p>
+
+<p>同一份調查裡，AI 佔 IT 預算的比重從 12.1%、13.3% 升到 14.2%。ETR 的原話是「With IT budgets growing 3.6% and AI spend growing 13%, non-AI spend is under pressure.」，以及「Reallocation has begun, but displacement has not yet arrived.」<sup class="ref">[<a href="#ref-29">29</a>]</sup></p>
+
+<p>其他調查從不同角度指向同一個方向，但口徑各不相同，不能畫在同一條軸上。a16z 訪問的 100 位 CIO 說，LLM 支出裡來自創新預算的份額，從四分之一掉到 7%。<sup class="ref">[<a href="#ref-30">30</a>]</sup> ISG 對 300 家 G2000 企業的調查預計，2025 年 IT 預算只增加 1.8%，AI 卻吃掉增額的三成。<sup class="ref">[<a href="#ref-31">31</a>]</sup></p>
+
+<p>營運錢包的遊戲規則是可預測：續約、基礎設施、人頭，明年要花多少，今年就要說得出來。</p>
+
+<p>ROI 也還對不上帳。PagerDuty 的受訪企業「預期」agentic AI 平均報酬 171%<sup class="ref">[<a href="#ref-32">32</a>]</sup>；McKinsey 今年的調查裡，37% 的受訪者說 AI 帶來了任何程度的 EBIT 影響，和去年差不多。<sup class="ref">[<a href="#ref-26">26</a>]</sup> 這是兩份不同的調查，一個是預期、一個是實際，只能並排讀，不能拼成一句。</p>
+
+<p>買方的統計自己也在換分母。Menlo Ventures 去年公布，2024 年企業生成式 AI 支出是 138 億美元<sup class="ref">[<a href="#ref-33">33</a>]</sup>；今年的報告把推論（inference）排除在外，把同一年重估為 115 億美元，才算出 2025 年的 370 億美元是 3.2 倍。<sup class="ref">[<a href="#ref-34">34</a>]</sup> 治理成本更沒有共同帳目：IDC 說企業把計畫中 AI 支出的 16.7% 給「AI and Agent security and governance」<sup class="ref">[<a href="#ref-35">35</a>]</sup>，WitnessAI 的受訪者則有一半多把 21% 到 45% 的 AI 預算給風險管理與治理。<sup class="ref">[<a href="#ref-25">25</a>]</sup></p>
+
+<div class="verdict">
+<p>AI 的錢不是新開一個帳戶，而是從續約與基礎設施的那個營運錢包裡長出來。營運錢包只有一條規矩：明年要花多少，今年就要說得出來。AI 帶進來的，偏偏是整本預算裡最說不出來的那一塊。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 06 ─────────────────────────────── -->
+<section id="s06">
+<p class="eyebrow reveal">W/P 06 · SEATS</p>
+<h2>錨還在，但被掏空</h2>
+
+<p><span class="chip">接回 VOL.1</span> 主篇寫過 Jason Lemkin 的帳單：「We now pay Salesforce ~$22,000 a year, up from $12,000. That's an 83% increase year-over-year, with 80% fewer human users.」<sup class="ref">[<a href="#ref-36">36</a>]</sup> 當時的讀法是「席次死了，消耗活了」。查下去，席次沒有死。</p>
+
+<p>GitHub 從六月起，Copilot Business 是「$19/user/month, including $19 in monthly AI Credits」，點數「based on token consumption, including input, output, and cached tokens, using the listed API rates for each model」。<sup class="ref">[<a href="#ref-37">37</a>]</sup> Salesforce 的 Agentforce 有一個每月 5 美元的 User License，用量要另外買 Flex Credits，而且「Unused Flex Credits do not roll over into subsequent subscription terms」。<sup class="ref">[<a href="#ref-38">38</a>]</sup> Microsoft 讓持有 M365 Copilot 授權的人，在 Copilot Chat、Teams、SharePoint 裡使用部分 agent 功能時「doesn't count against the Copilot Studio message pack or meter」。<sup class="ref">[<a href="#ref-39">39</a>]</sup></p>
+
+<p>席次的名目按人頭算，裡面裝的是點數。Salesforce 的 Miguel Milano 去年底對分析師說出了席次真正在賣的東西：「The reality is there are a lot of customers that want seat-based because seat-based gives you the predictability.」<sup class="ref">[<a href="#ref-40">40</a>]</sup> 今年八月的法說上，他又說：「Fifty percent of the bookings came from customers refilling the tank: they consume Flex Credits, they want more.」<sup class="ref">[<a href="#ref-41">41</a>]</sup></p>
+
+<p>買方那一邊，IDC 對 1,448 位 IT 主管的調查發現：「Difficulty budgeting for token- and inference-based pricing is now the single largest barrier organizations report when evaluating AI vendor pricing」。<sup class="ref">[<a href="#ref-23">23</a>]</sup> 賣方這一邊，Growth Unhinged 與 Metronome 對兩百三十多家軟體公司的調查裡，採用混合定價的比例一年從 25% 升到 37%。<sup class="ref">[<a href="#ref-42">42</a>]</sup></p>
+
+<div class="verdict">
+<p>席次沒有死，是被掏空了：外殼按人頭算，裡面裝的是點數。Salesforce 自己說出席次真正在賣的東西——可預測。消耗計價把這個東西拿走，卻把人頭的外殼留在買方的預算表上。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 07 ─────────────────────────────── -->
+<section id="s07">
+<p class="eyebrow reveal">W/P 07 · RULER</p>
+<h2>尺也掛在人頭上</h2>
+
+<p>預算表之外，業界衡量「agent 能做多少事」最主流的一把尺，是 METR 的時間視野。它量的是 AI 能取代多少連續的人類勞動——「the amount of serial human labor they can replace」，以 50% 成功率計。<sup class="ref">[<a href="#ref-43">43</a>]</sup></p>
+
+<p>讀數很驚人。METR 的長期趨勢是每六到七個月倍增。<sup class="ref">[<a href="#ref-43">43</a>]</sup> 今年二月，它估計 Claude Opus 4.6 的時間視野約 14.5 小時，同時說「this measurement is extremely noisy because our current task suite is nearly saturated」<sup class="ref">[<a href="#ref-44">44</a>]</sup>；網站上也註明「Measurements above 16 hrs are unreliable with our current task suite」。<sup class="ref">[<a href="#ref-45">45</a>]</sup></p>
+
+<p>企業能用的門檻不是 50%。BRIDGE 的測量是：「The current frontier models reach a task-length horizon of approximately 40 minutes across all tasks at 80% threshold, which is roughly 1/3 of the ~2 hours horizon observed at 50% success.」<sup class="ref">[<a href="#ref-46">46</a>]</sup> METR 自己也提醒，80% 視野不是獨立估計。<sup class="ref">[<a href="#ref-43">43</a>]</sup> 任務一拉長，衰退更明顯：前沿模型在人類四分鐘內做得完的任務上接近全對，四小時以上的任務成功率不到一成；短版本做得到四、五成的任務，嵌進較長的互動歷史後會掉到一成以下。<sup class="ref">[<a href="#ref-47">47</a>]</sup></p>
+
+<p>這把尺回答的問題是「能取代多少人工」，不是「花了多少機器」。Toby Ord 說得直接：時間視野「meant to show the best possible performance that can be attained with a model (regardless of cost)」。<sup class="ref">[<a href="#ref-48">48</a>]</sup></p>
+
+<div class="verdict">
+<p>評測界最主流的那把尺，分母是「人要花多久」。它回答的是「這能取代多少人工」——這是評測版的人頭預算，和買方預算表犯的是同一個錯：用人的時間，去量一個按機器計費的東西。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 08 ─────────────────────────────── -->
+<section id="s08">
+<p class="eyebrow reveal">W/P 08 · NO RATE</p>
+<h2>尺各量各的</h2>
+
+<p>這一節先更正本系列自己的前提。研究開始時，我們以為「沒有人量機器花了多少」。這不成立。</p>
+
+<p>Princeton 的 HAL 在 9 個 benchmark 上跑了 21,730 次 agent，總花費約 4 萬美元，每一格都記了美元成本；其中一個發現是「For 21 of 36 runs, higher reasoning effort does not improve accuracy.」<sup class="ref">[<a href="#ref-49">49</a>]</sup> 它後續的可靠度研究指出，同一個任務重跑，token 與算力用量變異很大——「agents allocate effort unpredictably」。<sup class="ref">[<a href="#ref-50">50</a>]</sup> METR 七月推出 Expenditure Horizon，自己把量綱從人的時間換成美元。<sup class="ref">[<a href="#ref-51">51</a>]</sup> OSWorld 2.0 同時記了完成率、每任務成本、工具呼叫數與步數。<sup class="ref">[<a href="#ref-52">52</a>]</sup></p>
+
+<h3>但每把尺只量一段</h3>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>評測</th><th>成功率</th><th>美元</th><th>token</th><th>步數</th><th>人類耗時</th><th>重跑變異</th></tr></thead>
+<tbody>
+<tr><td>METR 時間視野 <sup class="ref">[<a href="#ref-45">45</a>]</sup></td><td class="cell yes">有</td><td class="cell no">無</td><td class="cell part">部分</td><td class="cell no">無</td><td class="cell yes">有</td><td class="cell part">部分</td></tr>
+<tr><td>METR Expenditure Horizon <sup class="ref">[<a href="#ref-51">51</a>]</sup></td><td class="cell part">部分</td><td class="cell yes">有</td><td class="cell no">無</td><td class="cell no">無</td><td class="cell part">部分</td><td class="cell part">部分</td></tr>
+<tr><td>UK AISI 算力冪律 <sup class="ref">[<a href="#ref-53">53</a>]</sup></td><td class="cell yes">有</td><td class="cell no">無</td><td class="cell yes">有</td><td class="cell no">無</td><td class="cell yes">有</td><td class="cell part">部分</td></tr>
+<tr><td>HAL <sup class="ref">[<a href="#ref-49">49</a>]</sup></td><td class="cell yes">有</td><td class="cell yes">有</td><td class="cell part">部分</td><td class="cell no">無</td><td class="cell no">無</td><td class="cell no">無</td></tr>
+<tr><td>HAL 可靠度 <sup class="ref">[<a href="#ref-50">50</a>]</sup></td><td class="cell yes">有</td><td class="cell part">待驗</td><td class="cell part">部分</td><td class="cell part">待驗</td><td class="cell no">無</td><td class="cell yes">有</td></tr>
+<tr><td>OSWorld 2.0 <sup class="ref">[<a href="#ref-52">52</a>]</sup></td><td class="cell yes">有</td><td class="cell yes">有</td><td class="cell yes">有</td><td class="cell yes">有</td><td class="cell part">部分</td><td class="cell no">無</td></tr>
+<tr><td>ARC-AGI-3 <sup class="ref">[<a href="#ref-54">54</a>]</sup></td><td class="cell yes">有</td><td class="cell part">部分</td><td class="cell no">無</td><td class="cell yes">有</td><td class="cell part">部分</td><td class="cell part">待驗</td></tr>
+<tr><td>Artificial Analysis <sup class="ref">[<a href="#ref-55">55</a>]</sup></td><td class="cell yes">有</td><td class="cell yes">有</td><td class="cell yes">有</td><td class="cell part">上限</td><td class="cell no">無</td><td class="cell yes">有</td></tr>
+<tr><td>Terminal-Bench <sup class="ref">[<a href="#ref-56">56</a>]</sup></td><td class="cell yes">有</td><td class="cell yes">有</td><td class="cell yes">有</td><td class="cell no">無</td><td class="cell no">無</td><td class="cell part">部分</td></tr>
+<tr><td>τ-bench <sup class="ref">[<a href="#ref-57">57</a>]</sup></td><td class="cell yes">有</td><td class="cell no">無</td><td class="cell no">無</td><td class="cell no">無</td><td class="cell no">無</td><td class="cell yes">有</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">精簡版。研究底稿共盤了 18 個評測與排行榜，沒有一個六欄全有。「部分」指只有聚合值、上限或相關資訊；「待驗」指頁面讀不到。</p>
+
+<p>量人類耗時的不記錢，記錢的不記人類耗時。英國 AI Security Institute 量出了最接近的一段：「The compute an agent needs to solve a task scales in proportion to how long the task would take a skilled human」，擬合指數約 0.7 到 1.0。<sup class="ref">[<a href="#ref-53">53</a>]</sup> 但它的單位是 token，不是錢。METR 的 Expenditure Horizon 用的是錢，卻只量了一個任務（NanoGPT 加速賽），而且在不同的人工成本假設下，結果從 120 美元到 14,400 美元，差了將近兩個數量級。<sup class="ref">[<a href="#ref-51">51</a>]</sup></p>
+
+<h3>帳單由單價決定，不是步數</h3>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>模型（模式）</th><th class="num">完成率</th><th class="num">每任務成本</th><th class="num">步數</th><th class="num">每步成本</th><th class="num">每次成功成本</th></tr></thead>
+<tbody>
+<tr><td>Opus 4.8（batched）</td><td class="num nowrap">20.6%</td><td class="num nowrap">~$72.4</td><td class="num">103</td><td class="num nowrap">$0.70</td><td class="num nowrap">$351</td></tr>
+<tr><td>Opus 4.7（batched）</td><td class="num nowrap">18.2%</td><td class="num nowrap">~$33.6</td><td class="num">160.7</td><td class="num nowrap">$0.21</td><td class="num nowrap">$185</td></tr>
+<tr><td>GPT-5.5（batched）</td><td class="num nowrap">13.0%</td><td class="num nowrap">~$25.5</td><td class="num">95.2</td><td class="num nowrap">$0.27</td><td class="num nowrap">$196</td></tr>
+<tr><td>Opus 4.8（single）</td><td class="num nowrap">18.5%</td><td class="num nowrap">~$76.1</td><td class="num">190.5</td><td class="num nowrap">$0.40</td><td class="num nowrap">$411</td></tr>
+<tr><td>Opus 4.7（single）</td><td class="num nowrap">13.9%</td><td class="num nowrap">~$35.8</td><td class="num">318.4</td><td class="num nowrap">$0.11</td><td class="num nowrap">$258</td></tr>
+<tr><td>Sonnet 4.6（single）</td><td class="num nowrap">8.3%</td><td class="num nowrap">~$22.3</td><td class="num">253.3</td><td class="num nowrap">$0.09</td><td class="num nowrap">$269</td></tr>
+<tr><td>MiniMax M3（single）</td><td class="num nowrap">4.6%</td><td class="num nowrap">~$2.4</td><td class="num">326.7</td><td class="num nowrap">$0.007</td><td class="num nowrap">$52</td></tr>
+<tr><td>Kimi 2.6（single）</td><td class="num nowrap">4.6%</td><td class="num nowrap">~$6.6</td><td class="num">179.3</td><td class="num nowrap">$0.04</td><td class="num nowrap">$143</td></tr>
+<tr><td>Qwen 3.7-Plus（single）</td><td class="num nowrap">2.8%</td><td class="num nowrap">~$3.8</td><td class="num">173.5</td><td class="num nowrap">$0.02</td><td class="num nowrap">$136</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">OSWorld 2.0，500 步預算、108 題的每任務平均。<sup class="ref">[<a href="#ref-52">52</a>]</sup> 每步成本與每次成功成本為本篇推算；論文未說明成本的定價假設。表中模型是 2026 年年中的快照：此後美國有 GPT-6 Astra、Claude Fable 5.1，中國有 Kimi K3、GLM-5.3，都不在表裡。</p>
+
+<p>OSWorld 2.0 的任務，人類中位數要 1.6 小時；最好的組合（Opus 4.8、最大思考、批次工具呼叫）完成 20.6%。<sup class="ref">[<a href="#ref-52">52</a>]</sup> 表裡的步數跨模型大約差三倍，每步成本卻差將近一百倍——從 MiniMax M3 的不到 1 美分，到 Opus 4.8 的 70 美分。決定帳單的是單價，不是步數。論文另一句也值得記下：「The same six-fold increase in tokens adds only ∼5 partial points」。<sup class="ref">[<a href="#ref-52">52</a>]</sup></p>
+
+<p>ARC-AGI-3 則是把步數直接放進計分的例子：每一關按人類動作數對 AI 動作數的比例計分，動作預算是人類中位數的五倍。<sup class="ref">[<a href="#ref-54">54</a>]</sup></p>
+
+<div class="verdict">
+<p>尺已經有了，只是各量各的：量人類耗時的不記錢，記錢的不記人類耗時。缺的不是尺，是尺與尺之間的匯率。量綱都對上了，只差一步——把 token 乘上單價、除以成功率，再對任務長度畫出來——這一步，還沒有人公開做。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 09 ─────────────────────────────── -->
+<section id="s09">
+<p class="eyebrow reveal">W/P 09 · UNITS</p>
+<h2>四種單位，沒有一種是判斷</h2>
+
+<p>尺之間沒有匯率，賣方怎麼開帳單？把市面上的計價單位攤開，大致只有四種：承諾消耗、動作、結果、token 或點數。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>廠商</th><th>單位</th><th>一個單位怎麼算</th><th>刻度</th><th>預測風險在誰</th></tr></thead>
+<tbody>
+<tr><td>三大雲（通則）</td><td>承諾消耗＋超額</td><td>承諾金額換折扣</td><td>承諾年期</td><td>買方</td></tr>
+<tr><td>Google Gemini Enterprise <sup class="ref">[<a href="#ref-58">58</a>]</sup></td><td>席次＋按用量</td><td>「compute and tokens at API rates」</td><td>模型；延後執行「pay up to half the inference cost」</td><td>超額在買方；到上限 agent 暫停</td></tr>
+<tr><td>UiPath <sup class="ref">[<a href="#ref-59">59</a>,&#8202;<a href="#ref-60">60</a>]</sup></td><td>Agent Unit／transaction</td><td>每次 LLM 呼叫，64k input token 為一級；新方案把完成交易所需呼叫全包，邊界未定義</td><td>模型等級 2／1／0.8</td><td>買方；新方案的呼叫變異在賣方</td></tr>
+<tr><td>Salesforce Agentforce <sup class="ref">[<a href="#ref-61">61</a>,&#8202;<a href="#ref-38">38</a>]</sup></td><td>Flex Credits</td><td>1 action＝20 credits＝$0.10</td><td>動作數</td><td>買方（點數不遞延）</td></tr>
+<tr><td>Microsoft Copilot Studio <sup class="ref">[<a href="#ref-62">62</a>]</sup></td><td>Copilot Credits</td><td>按功能類型與模型等級</td><td>1／2／5／10；AI tools 1／15／100</td><td>買方</td></tr>
+<tr><td>GitHub Copilot <sup class="ref">[<a href="#ref-37">37</a>]</sup></td><td>AI Credits</td><td>token × 各模型 API 牌價</td><td>模型</td><td>買方</td></tr>
+<tr><td>Sierra <sup class="ref">[<a href="#ref-63">63</a>]</sup></td><td>結果</td><td>事前約定；未解決「in most cases」不收</td><td>結果</td><td>失敗在賣方</td></tr>
+<tr><td>Intercom Fin <sup class="ref">[<a href="#ref-64">64</a>]</sup></td><td>結果</td><td>客戶確認，或 24 小時沒回應；$0.99</td><td>結果</td><td>失敗在賣方；「沉默算解決」在買方</td></tr>
+<tr><td>Zendesk <sup class="ref">[<a href="#ref-65">65</a>]</sup></td><td>驗證過的解決</td><td>賣方 LLM 驗證才計；轉人工、contained 不計</td><td>驗證等級</td><td>驗證者是賣方</td></tr>
+<tr><td>ServiceNow <sup class="ref">[<a href="#ref-66">66</a>]</sup></td><td>assist＋版本</td><td>Foundation／Advanced／Prime；扣點值未公開</td><td>自主上限</td><td>買方，且不透明</td></tr>
+<tr><td>AWS AgentCore <sup class="ref">[<a href="#ref-67">67</a>]</sup></td><td>vCPU-hour 等</td><td>I/O 等待免費；政策檢查每次 $0.000025</td><td>算力</td><td>買方</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">查於 2026-09-10，價目會變。</p>
+
+<h3>「用對模型」的刻度是模型價</h3>
+
+<p>Kurian 把成本控制當功能在賣：企業「want to manage costs and set budget caps」，而 Google「allow people to use the right model for the right task. You do not have to always use the most expensive model」。<sup class="ref">[<a href="#ref-2">2</a>]</sup> 這顆旋鈕在各家的刻度都一樣。UiPath 每次 LLM 呼叫依模型等級計 2、1、0.8 個 Agent Unit<sup class="ref">[<a href="#ref-59">59</a>]</sup>；Microsoft 的 AI tools 依 basic、standard、premium 每十次回應計 1、15、100 點<sup class="ref">[<a href="#ref-62">62</a>]</sup>；GitHub 直接用各模型的 API 牌價。<sup class="ref">[<a href="#ref-37">37</a>]</sup> Microsoft 的文件寫點數「depends on the complexity of the task the agent completes」<sup class="ref">[<a href="#ref-39">39</a>]</sup>，但費率表按的是功能類型與模型等級。</p>
+
+<h3>結果計價把轉人工定成免費</h3>
+
+<p>Sierra 的 Bret Taylor 說：「if the AI agent resolves the case, no human intervention, there's a pre-negotiated rate for that.」以及「If we do have to escalate to a person, that's free.」<sup class="ref">[<a href="#ref-68">68</a>]</sup> Intercom 的 Fin 每次結果收 0.99 美元，客戶在最後一次回答後 24 小時沒有回應，就「considered an assumed resolution」。<sup class="ref">[<a href="#ref-64">64</a>]</sup> Zendesk 的轉人工與 contained 兩層，都「does not count against your resolution allowance」。<sup class="ref">[<a href="#ref-65">65</a>]</sup></p>
+
+<p>買方未必喜歡這樣。a16z 訪問的 CIO 對結果計價的顧慮包括「lack of clear outcomes that map to business goals, unpredictable costs, and attribution」，多數仍偏好按用量付費。<sup class="ref">[<a href="#ref-30">30</a>]</sup></p>
+
+<h3>最接近分級的，也不是按判斷</h3>
+
+<p>ServiceNow 四月把 AI 方案改成三級，最高一級 Prime「for companies that want to replace entire roles, such as Level 1 Service Desk, with AI agents」。<sup class="ref">[<a href="#ref-66">66</a>]</sup> 但它分的是「買多高的自主上限」，單次仍按 assist 點數扣，扣多少沒有公開。UiPath 則在九月的法說上說，新推的 transaction-based 定價把完成交易所需的呼叫都包進去，方向是「more towards outcome-based pricing that would be inclusive of the tokens required to complete the transaction」。<sup class="ref">[<a href="#ref-60">60</a>]</sup></p>
+
+<p>預算控制本身也有副作用。Google 的預算上限一到，「the agent's API calls temporarily pause」<sup class="ref">[<a href="#ref-58">58</a>]</sup>——風險從超支換成停工。AWS AgentCore 的政策檢查每次 0.000025 美元<sup class="ref">[<a href="#ref-67">67</a>]</sup>，一次讀取和一次放款核准，在價目上同價。</p>
+
+<div class="verdict">
+<p>四種單位——承諾、動作、結果、token——沒有一種在量判斷。「用對模型」這顆旋鈕的刻度是模型價，不是這次判斷值不值。結果計價把「轉人工」定成免費，但接手的人是買方的員工：賣方收 agent 的錢，覆核的錢留在買方的人頭預算裡。兩本帳，又沒有匯率。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 10 ─────────────────────────────── -->
+<section id="s10">
+<p class="eyebrow reveal">W/P 10 · DICTIONARY</p>
+<h2>字典第一頁</h2>
+
+<p>這一節整節都是判讀。</p>
+
+<div class="verdict whole">
+<p>先處理 Gartner 兩個常被說成「互打」的數字。一個是「Gartner's best case scenario projection predicts that agentic AI could drive approximately 30% of enterprise application software revenue by 2035, surpassing $450 billion」<sup class="ref">[<a href="#ref-69">69</a>]</sup>；另一個是 2027 年底前，超過四成 agentic AI 專案會因為「escalating costs, unclear business value or inadequate risk controls」被取消。<sup class="ref">[<a href="#ref-70">70</a>]</sup> 前者的分母是 2035 年的營收，而且是最佳情境；後者的分母是 2027 年的專案數。這不是互打，是又一次分母不同。</p>
+
+<p>那麼，把「判斷」翻譯成預算，第一頁可以怎麼寫？</p>
+
+<div class="formula">一次判斷的預算 ≈ 步數 × 每步單價 ＋ 失敗率 × 人工重做成本 ＋ 覆核成本 ＋ 非 token 成本
+<small>前兩項是帳單上看得到的；後兩項落在買方自己的人頭與營運預算裡。</small></div>
+
+<p>拿 OSWorld 2.0 的數字代進去。假設全部寫在這裡：人工時薪 150 美元（沿用 METR 的假設）<sup class="ref">[<a href="#ref-51">51</a>]</sup>、人類完成一題中位 1.6 小時、人工一定做得完、agent 失敗就由人工全額重做、非 token 成本不計。</p>
+
+<figure class="reveal">
+<p class="title">帳單差近八倍，預算只差一成多</p>
+<p class="subtitle">每次成功成本，對照「agent 先做、失敗由人工兜底」的每任務總成本（美元）</p>
+<div class="chart">
+<svg viewBox="0 0 640 344" role="img" aria-labelledby="ct-t ct-d" xmlns="http://www.w3.org/2000/svg">
+<title id="ct-t">帳單差近八倍，預算只差一成多</title>
+<desc id="ct-d">九個模型組合的每次成功成本從 52 到 411 美元；agent 先做、失敗人工重做的每任務總成本落在 230 到 272 美元，純人工為 240 美元。</desc>
+<line class="grid" x1="170.0" y1="32" x2="170.0" y2="310"/>
+<text class="axis" x="170.0" y="328" text-anchor="middle">$0</text>
+<line class="grid" x1="270.0" y1="32" x2="270.0" y2="310"/>
+<text class="axis" x="270.0" y="328" text-anchor="middle">$100</text>
+<line class="grid" x1="370.0" y1="32" x2="370.0" y2="310"/>
+<text class="axis" x="370.0" y="328" text-anchor="middle">$200</text>
+<line class="grid" x1="470.0" y1="32" x2="470.0" y2="310"/>
+<text class="axis" x="470.0" y="328" text-anchor="middle">$300</text>
+<line class="grid" x1="570.0" y1="32" x2="570.0" y2="310"/>
+<text class="axis" x="570.0" y="328" text-anchor="middle">$400</text>
+<text class="label" x="160" y="59.0" text-anchor="end">MiniMax M3（single）</text>
+<rect class="bar bar-c1" x="170" y="49.0" width="52.2" height="12"/>
+<circle class="dot dot-c2" cx="401.4" cy="55.0" r="5"/>
+<text class="label" x="228.2" y="47.0">$52</text>
+<text class="label" x="160" y="89.0" text-anchor="end">Qwen 3.7-Plus（single）</text>
+<rect class="bar bar-c1" x="170" y="79.0" width="135.7" height="12"/>
+<circle class="dot dot-c2" cx="407.1" cy="85.0" r="5"/>
+<text class="label" x="160" y="119.0" text-anchor="end">Kimi 2.6（single）</text>
+<rect class="bar bar-c1" x="170" y="109.0" width="143.5" height="12"/>
+<circle class="dot dot-c2" cx="405.6" cy="115.0" r="5"/>
+<text class="label" x="160" y="149.0" text-anchor="end">Opus 4.7（batched）</text>
+<rect class="bar bar-c1" x="170" y="139.0" width="184.6" height="12"/>
+<circle class="dot dot-c2" cx="399.9" cy="145.0" r="5"/>
+<text class="label" x="160" y="179.0" text-anchor="end">GPT-5.5（batched）</text>
+<rect class="bar bar-c1" x="170" y="169.0" width="196.2" height="12"/>
+<circle class="dot dot-c2" cx="404.3" cy="175.0" r="5"/>
+<text class="label" x="160" y="209.0" text-anchor="end">Opus 4.7（single）</text>
+<rect class="bar bar-c1" x="170" y="199.0" width="257.6" height="12"/>
+<circle class="dot dot-c2" cx="412.4" cy="205.0" r="5"/>
+<text class="label" x="160" y="239.0" text-anchor="end">Sonnet 4.6（single）</text>
+<rect class="bar bar-c1" x="170" y="229.0" width="268.7" height="12"/>
+<circle class="dot dot-c2" cx="412.4" cy="235.0" r="5"/>
+<text class="label" x="160" y="269.0" text-anchor="end">Opus 4.8（batched）</text>
+<rect class="bar bar-c1" x="170" y="259.0" width="351.5" height="12"/>
+<circle class="dot dot-c2" cx="433.0" cy="265.0" r="5"/>
+<text class="label" x="160" y="299.0" text-anchor="end">Opus 4.8（single）</text>
+<rect class="bar bar-c1" x="170" y="289.0" width="411.4" height="12"/>
+<circle class="dot dot-c2" cx="441.7" cy="295.0" r="5"/>
+<text class="label" x="587.4" y="299.0">$411</text>
+<line class="ref-line" x1="410.0" y1="26" x2="410.0" y2="310"/>
+<text class="label" x="416.0" y="22">純人工 $240</text>
+</svg>
+</div>
+<div class="legend">
+<span class="key"><span class="swatch" style="background:var(--c1)"></span>每次成功成本（每任務成本 ÷ 完成率）</span>
+<span class="key"><span class="swatch" style="background:var(--c2)"></span>agent 先做＋失敗人工重做的每任務總成本</span>
+</div>
+<details class="datatable">
+<summary>數字</summary>
+<div class="table-scroll">
+<table>
+<thead><tr><th>組合</th><th class="num">完成率</th><th class="num">每任務成本</th><th class="num">每次成功</th><th class="num">兜底總成本</th><th class="num">＋覆核 15 分鐘</th><th class="num">兩平完成率</th></tr></thead>
+<tbody>
+<tr><td>MiniMax M3（single）</td><td class="num nowrap">4.6%</td><td class="num nowrap">$2.4</td><td class="num nowrap">$52</td><td class="num nowrap">$231</td><td class="num nowrap">$269</td><td class="num nowrap">1.0%</td></tr>
+<tr><td>Qwen 3.7-Plus（single）</td><td class="num nowrap">2.8%</td><td class="num nowrap">$3.8</td><td class="num nowrap">$136</td><td class="num nowrap">$237</td><td class="num nowrap">$275</td><td class="num nowrap">1.6%</td></tr>
+<tr><td>Kimi 2.6（single）</td><td class="num nowrap">4.6%</td><td class="num nowrap">$6.6</td><td class="num nowrap">$143</td><td class="num nowrap">$236</td><td class="num nowrap">$273</td><td class="num nowrap">2.8%</td></tr>
+<tr><td>Opus 4.7（batched）</td><td class="num nowrap">18.2%</td><td class="num nowrap">$33.6</td><td class="num nowrap">$185</td><td class="num nowrap">$230</td><td class="num nowrap">$267</td><td class="num nowrap">14.0%</td></tr>
+<tr><td>GPT-5.5（batched）</td><td class="num nowrap">13.0%</td><td class="num nowrap">$25.5</td><td class="num nowrap">$196</td><td class="num nowrap">$234</td><td class="num nowrap">$272</td><td class="num nowrap">10.6%</td></tr>
+<tr><td>Opus 4.7（single）</td><td class="num nowrap">13.9%</td><td class="num nowrap">$35.8</td><td class="num nowrap">$258</td><td class="num nowrap">$242</td><td class="num nowrap">$280</td><td class="num nowrap">14.9%</td></tr>
+<tr><td>Sonnet 4.6（single）</td><td class="num nowrap">8.3%</td><td class="num nowrap">$22.3</td><td class="num nowrap">$269</td><td class="num nowrap">$242</td><td class="num nowrap">$280</td><td class="num nowrap">9.3%</td></tr>
+<tr><td>Opus 4.8（batched）</td><td class="num nowrap">20.6%</td><td class="num nowrap">$72.4</td><td class="num nowrap">$351</td><td class="num nowrap">$263</td><td class="num nowrap">$300</td><td class="num nowrap">30.2%</td></tr>
+<tr><td>Opus 4.8（single）</td><td class="num nowrap">18.5%</td><td class="num nowrap">$76.1</td><td class="num nowrap">$411</td><td class="num nowrap">$272</td><td class="num nowrap">$309</td><td class="num nowrap">31.7%</td></tr>
+<tr><td>純人工</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num nowrap">$240</td><td class="num nowrap">$240</td><td class="num">—</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+<figcaption>本篇推算，資料來源 OSWorld 2.0 Table 3。兜底總成本＝每任務成本＋（1−完成率）×$240；兩平完成率＝每任務成本 ÷ $240。</figcaption>
+</figure>
+
+<p>每次成功的成本，九個組合之間從 52 美元到 411 美元，差近八倍。可是一旦把「失敗了由人工補做」算進去，九個組合的每任務總成本全落在 230 到 272 美元之間，約在純人工 240 美元的 −5% 到 +15%。如果每次輸出都要有人花 15 分鐘覆核，九個組合全部比純人工貴。</p>
+
+<p><span class="mark">在 1.6 小時、完成率兩成以下的任務上，決定預算的不是 token 價，是失敗率乘上人工——分母又回到人頭。</span></p>
+
+<p>這也說明，按判斷等級計價的依據不在算力。Retrieval 失敗便宜，通常可以不覆核；Policy 通常每次都要覆核，失敗很貴。貴的是責任與覆核人力。</p>
+
+<p>限制要一起寫下。OSWorld 是電腦操作任務，不是企業的 Policy 級工作；人類完成率未知；15 分鐘覆核是假設；METR 的 Expenditure Horizon 顯示，實驗等非 token 成本可以佔一條軌跡成本的七到九成，只算 token 會低估。<sup class="ref">[<a href="#ref-51">51</a>]</sup></p>
+
+<p>字典的第一頁寫出來，最重的那一項不是 token，是「失敗了誰來做」。帳單上差近八倍的模型，放進預算裡只差一成多，因為兜底的人工把差距吃掉了。Gartner 說四成專案會因為成本上升、價值不明而取消——一種讀法是：事前沒有人把「失敗率乘上人工」這一項算進去。按判斷計價還沒有人做，或許正是因為它要賣方替失敗定價；而我們查到的結果計價，都把失敗定成了免費。</p>
+</div>
+
+<h3>換一個人算：時薪與熟練度</h3>
+
+<p>上面的示範只有一個人：時薪 150 美元、做一題 1.6 小時。可是工程師之間，時薪和用 AI 的能力都不一樣——這兩個變數各有公開數字。</p>
+
+<p><strong>時薪。</strong>美國勞工統計局 2025 年 5 月的資料，軟體開發者年薪中位數 135,980 美元<sup class="ref">[<a href="#ref-71">71</a>]</sup>；時薪第 10 百分位 39.64 美元、中位 65.38 美元、第 90 百分位 103.21 美元，不含福利與股票。<sup class="ref">[<a href="#ref-72">72</a>]</sup> 大型科技公司的級距更大：Levels.fyi 使用者自報的美國總薪酬中位數，入門級約 15.5 萬美元、Senior 約 31.2 萬、Staff 約 45.7 萬。<sup class="ref">[<a href="#ref-73">73</a>]</sup></p>
+
+<p><strong>個人產出。</strong>「10 倍工程師」沒有好的實證。Magne Jørgensen 用四組「解同一題」的資料，量到「the top 50% of developers having average productivity that was 2.44 times higher than the bottom 50% of developers」，而且約三成的變異來自同一個人自己的起伏。<sup class="ref">[<a href="#ref-74">74</a>]</sup></p>
+
+<p><strong>用 AI 的效果。</strong>多數研究顯示越資淺越受益，但方向還沒定。三個 Copilot 田野實驗讓每週完成任務平均增加 26%，「less experienced developers had higher adoption rates and greater productivity gains」<sup class="ref">[<a href="#ref-75">75</a>]</sup>；客服研究平均 +14%、新手 +34%、資深接近零。<sup class="ref">[<a href="#ref-76">76</a>]</sup> METR 2025 年初的隨機試驗裡，資深開源開發者用 AI 反而慢了 19%<sup class="ref">[<a href="#ref-77">77</a>]</sup>；2025 下半年的新資料轉為加速，但信賴區間跨零，而且三到五成受試者說自己沒有提交某些「不想在不能用 AI 的情況下做」的任務。<sup class="ref">[<a href="#ref-78">78</a>]</sup> 一份涵蓋 802 名開發者的 2026 年企業縱貫研究則發現，人均產出成為 2.09 倍、每位審查者的負荷約翻倍，增益「broadly shared across seniority」。<sup class="ref">[<a href="#ref-79">79</a>]</sup></p>
+
+<p><strong>覆核人時。</strong>目前最接近的實測，是 METR 試驗的螢幕錄影：「developers spend approximately 9% of their time reviewing and cleaning AI generated outputs when working with AI」，另有約 4% 在等待。<sup class="ref">[<a href="#ref-80">80</a>]</sup> 業界遙測量到的多半是日曆時間，例如 Faros AI 報告 PR 審查時間增加 91%。<sup class="ref">[<a href="#ref-81">81</a>]</sup> Anthropic 估計，Claude 對話裡的任務若由人做，平均要 55 美元的人工，但它自己提醒「we can't account for additional time humans spend on tasks outside of their conversations with Claude, including validating the quality or accuracy of Claude's work」。<sup class="ref">[<a href="#ref-82">82</a>]</sup></p>
+
+<p>把時薪和效率代進同一個示範。仍然是推算，而且研究裡的效率數字不是對 OSWorld 任務量出來的：人用 AI 輔助自己做，耗時是 1.6 小時 ÷（1 ＋效率提升）；agent 先做、失敗由同一個人接手，每次輸出另外覆核。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th class="nowrap">時薪／效率</th><th class="num nowrap">人自己做</th><th class="num nowrap">覆核 5 分</th><th class="num nowrap">覆核 15 分</th><th class="num nowrap">覆核 30 分</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">$50／時<br>效率 +0%</td><td class="num nowrap">$80</td><td class="num nowrap">$99（+24%）</td><td class="num nowrap">$108（+35%）</td><td class="num nowrap">$120（+50%）</td></tr>
+<tr><td class="nowrap">$50／時<br>效率 +55%</td><td class="num nowrap">$52</td><td class="num nowrap">$75（+44%）</td><td class="num nowrap">$83（+61%）</td><td class="num nowrap">$95（+85%）</td></tr>
+<tr><td class="nowrap">$150／時<br>效率 +0%</td><td class="num nowrap">$240</td><td class="num nowrap">$247（+3%）</td><td class="num nowrap">$272（+13%）</td><td class="num nowrap">$309（+29%）</td></tr>
+<tr><td class="nowrap">$150／時<br>效率 +55%</td><td class="num nowrap">$155</td><td class="num nowrap">$173（+12%）</td><td class="num nowrap">$198（+28%）</td><td class="num nowrap">$235（+52%）</td></tr>
+<tr><td class="nowrap">$250／時<br>效率 +0%</td><td class="num nowrap">$400</td><td class="num nowrap">$394（−1%）</td><td class="num nowrap">$436（+9%）</td><td class="num nowrap">$498（+25%）</td></tr>
+<tr><td class="nowrap">$250／時<br>效率 +55%</td><td class="num nowrap">$258</td><td class="num nowrap">$271（+5%）</td><td class="num nowrap">$313（+21%）</td><td class="num nowrap">$375（+45%）</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">本篇推算。後三欄是「agent 先做、失敗人接手，每次輸出覆核 N 分鐘」的每任務總成本，括號是相對「人自己做」。模型用 OSWorld 2.0 的 GPT-5.5（batched）：每任務 $25.5、完成率 13.0%。效率 +55% 取研究中常見的上緣量級；時薪不含雇主負擔。</p>
+
+<p>這張表背後有一條可以直接算出來的線。agent 平均每題只替人省下「完成率 × 人自己做的耗時」，所以覆核一次的時間必須短於這個數，agent 先做才有機會比較便宜。</p>
+
+<div class="formula">覆核上限 ＝ 完成率 × 人自己做的耗時
+<small>時薪越高，越接近這條線，但越不過它。OSWorld 示範：GPT-5.5 是 12.5 分鐘、Opus 4.8 是 19.8 分鐘；人用 AI 的效率 +55% 時，分別剩 8.1 與 12.8 分鐘。</small></div>
+
+<div class="verdict">
+<p>1x 和 10x 的差距確實會改寫任務成本，但方向和直覺相反。時薪越高，agent 先做越接近划算；人越會用 AI，agent 先做越不划算——那個人自己做本來就快，agent 失敗時替他省下的時間變少，覆核卻一分鐘都不會少。長任務、完成率兩成以下時，覆核上限只有十幾分鐘；換成短任務，完成率八成、人做 40 分鐘，上限就放寬到 32 分鐘。至於「1x 對 10x 差幾倍」，目前沒有研究直接量過：還沒有一份研究同時量了熟練度、AI 使用程度和任務成本。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 11 ─────────────────────────────── -->
+<section id="s11">
+<p class="eyebrow reveal">W/P 11 · CHINA</p>
+<h2>同一組尺，量中國實驗室</h2>
+
+<p>「中國追上多少」通常只給一個數字。拿本篇的尺一把一把量，答案各不相同。</p>
+
+<h3>能力：落後五到八個月</h3>
+
+<p>Epoch AI 的能力指數顯示：「Chinese models have trailed US capabilities by an average of seven months, with a minimum gap of four months and a maximum gap of 14.」<sup class="ref">[<a href="#ref-83">83</a>]</sup> 美國國家標準暨技術研究院轄下的 CAISI 在五月評估 DeepSeek V4 Pro，結論是「DeepSeek V4's capabilities lag behind the frontier by about 8 months」。<sup class="ref">[<a href="#ref-84">84</a>]</sup> CAISI 是美國政府機構，任務包括評估對手國家的 AI 系統，引用時要記得這個立場。七月發布的開放權重模型 Kimi K3，在 Epoch 指數上是 158 分，在 264 個模型中排第 11。<sup class="ref">[<a href="#ref-85">85</a>]</sup></p>
+
+<p>METR 的時間視野，是這組尺裡唯一還沒量到 2026 年的一把。METR 最後一份中國模型報告在 2025 年 6 月，結論是「The level of autonomous capabilities of mid-2025 DeepSeek models is similar to the level of capabilities of frontier models from late 2024.」；同一張表上，DeepSeek-R1-0528 的 50% 時間視野約是 o3 的三分之一。<sup class="ref">[<a href="#ref-86">86</a>]</sup> 2026 年的更新紀錄沒有新增中國模型。<sup class="ref">[<a href="#ref-45">45</a>]</sup></p>
+
+<h3>價格：單價便宜十倍，按分數算只便宜一到三倍</h3>
+
+<p>Artificial Analysis 會把每個模型拿去跑同一套智慧指數，並公布跑完的總花費與 token 用量。九月十日的快照：</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>模型</th><th class="nowrap">實驗室</th><th class="num nowrap">指數</th><th class="num nowrap">單價 入／出</th><th class="num nowrap">輸出 token</th><th class="num nowrap">總花費</th><th class="num nowrap">每分花費</th></tr></thead>
+<tbody>
+<tr><td>GPT-6 Astra（max）<sup class="ref">[<a href="#ref-87">87</a>]</sup></td><td>OpenAI</td><td class="num">53</td><td class="num nowrap">$10／$50</td><td class="num nowrap">6,000 萬</td><td class="num nowrap">$5,324</td><td class="num nowrap">$100</td></tr>
+<tr><td>Claude Fable 5.1（max）<sup class="ref">[<a href="#ref-88">88</a>]</sup></td><td>Anthropic</td><td class="num">53</td><td class="num nowrap">$10／$50</td><td class="num nowrap">1.9 億</td><td class="num nowrap">$13,129</td><td class="num nowrap">$248</td></tr>
+<tr><td>Claude Opus 4.8（max）<sup class="ref">[<a href="#ref-89">89</a>]</sup></td><td>Anthropic</td><td class="num">42</td><td class="num nowrap">$5／$25</td><td class="num nowrap">1.7 億</td><td class="num nowrap">$6,874</td><td class="num nowrap">$164</td></tr>
+<tr><td>GLM-5.3（max）<sup class="ref">[<a href="#ref-90">90</a>]</sup></td><td>智譜</td><td class="num">45</td><td class="num nowrap">$1.40／$4.40</td><td class="num nowrap">2.1 億</td><td class="num nowrap">$2,503</td><td class="num nowrap">$56</td></tr>
+<tr><td>Kimi K3（max）<sup class="ref">[<a href="#ref-91">91</a>]</sup></td><td>Moonshot</td><td class="num">44</td><td class="num nowrap">$3／$15</td><td class="num nowrap">1.6 億</td><td class="num nowrap">$3,658</td><td class="num nowrap">$83</td></tr>
+<tr><td>DeepSeek V4 Pro 0813（max）<sup class="ref">[<a href="#ref-92">92</a>]</sup></td><td>DeepSeek</td><td class="num">36</td><td class="num nowrap">$1.32／$3.96</td><td class="num nowrap">1.6 億</td><td class="num nowrap">$1,122</td><td class="num nowrap">$31</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">查於 2026-09-10，max 推理設定。單價為每百萬 token；輸出 token 與總花費是跑完整套智慧指數的用量。指數會改版重標，只能比同一天的快照；「每一分花費」＝總花費 ÷ 指數，假設指數線性，只看量級。</p>
+
+<p>表中分數最高的中國模型 GLM-5.3 拿 45 分，已經超過五月發布的 Claude Opus 4.8（42 分），離九月初的 GPT-6 Astra 與 Claude Fable 5.1（53 分）還差 8 分。它的輸出單價是 GPT-6 Astra 的十一分之一，但跑同一套指數用了 2.1 億個輸出 token，是 Astra 的 3.5 倍，所以總花費只便宜 2.1 倍。token 效率也不按國別分：Claude Fable 5.1 與 Opus 4.8 的輸出 token 用量，和中國模型同一級。</p>
+
+<p>換一個對手，「中國便宜」也不一定成立。CAISI 拿能力相當的 GPT-5.4 mini 比成本：「DeepSeek V4 costs less than GPT-5.4 mini on 5 out of 7 CAISI benchmarks. On those 7 benchmarks, DeepSeek V4 ranged from 53% less expensive to 41% more expensive.」<sup class="ref">[<a href="#ref-84">84</a>]</sup></p>
+
+<h3>放進 agent 任務：價差被兜底人工吃掉</h3>
+
+<p>OSWorld 2.0 測了三個中國模型——MiniMax M3、Kimi 2.6、Qwen 3.7-Plus——都只有 single 模式，也都早於 Kimi K3、GLM-5.3 這一代。<sup class="ref">[<a href="#ref-52">52</a>]</sup></p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>模型（模式）</th><th class="num">完成率</th><th class="num">每任務成本</th><th class="num">每次成功成本</th><th class="num">成功一次的步數</th><th class="num">兜底總成本</th><th class="num">兩平完成率</th></tr></thead>
+<tbody>
+<tr><td>MiniMax M3（single）</td><td class="num nowrap">4.6%</td><td class="num nowrap">~$2.4</td><td class="num nowrap">$52</td><td class="num nowrap">7,102</td><td class="num nowrap">$231</td><td class="num nowrap">1.0%</td></tr>
+<tr><td>Kimi 2.6（single）</td><td class="num nowrap">4.6%</td><td class="num nowrap">~$6.6</td><td class="num nowrap">$143</td><td class="num nowrap">3,898</td><td class="num nowrap">$236</td><td class="num nowrap">2.8%</td></tr>
+<tr><td>Qwen 3.7-Plus（single）</td><td class="num nowrap">2.8%</td><td class="num nowrap">~$3.8</td><td class="num nowrap">$136</td><td class="num nowrap">6,196</td><td class="num nowrap">$237</td><td class="num nowrap">1.6%</td></tr>
+<tr><td>Sonnet 4.6（single）</td><td class="num nowrap">8.3%</td><td class="num nowrap">~$22.3</td><td class="num nowrap">$269</td><td class="num nowrap">3,052</td><td class="num nowrap">$242</td><td class="num nowrap">9.3%</td></tr>
+<tr><td>Opus 4.7（single）</td><td class="num nowrap">13.9%</td><td class="num nowrap">~$35.8</td><td class="num nowrap">$258</td><td class="num nowrap">2,291</td><td class="num nowrap">$242</td><td class="num nowrap">14.9%</td></tr>
+<tr><td>Opus 4.8（single）</td><td class="num nowrap">18.5%</td><td class="num nowrap">~$76.1</td><td class="num nowrap">$411</td><td class="num nowrap">1,030</td><td class="num nowrap">$272</td><td class="num nowrap">31.7%</td></tr>
+<tr><td>Opus 4.7（batched）</td><td class="num nowrap">18.2%</td><td class="num nowrap">~$33.6</td><td class="num nowrap">$185</td><td class="num nowrap">883</td><td class="num nowrap">$230</td><td class="num nowrap">14.0%</td></tr>
+<tr><td>GPT-5.5（batched）</td><td class="num nowrap">13.0%</td><td class="num nowrap">~$25.5</td><td class="num nowrap">$196</td><td class="num nowrap">732</td><td class="num nowrap">$234</td><td class="num nowrap">10.6%</td></tr>
+<tr><td>Opus 4.8（batched）</td><td class="num nowrap">20.6%</td><td class="num nowrap">~$72.4</td><td class="num nowrap">$351</td><td class="num nowrap">500</td><td class="num nowrap">$263</td><td class="num nowrap">30.2%</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">本篇推算，資料來源 OSWorld 2.0 Table 3。兜底總成本假設人工重做一題 $240；成功一次的步數＝每任務步數 ÷ 完成率。</p>
+
+<p>每次成功的成本，三個中國模型是 52 到 143 美元，美國組合是 185 到 411 美元；但完成率低，成功一次要走 3,900 到 7,100 步，美國組合是 500 到 3,050 步。加上人工兜底之後，只比 single 模式，三個中國模型的總成本最低（231 到 237 美元，美國 242 到 272 美元）；美國模型開了批次工具呼叫，Opus 4.7 以 230 美元反超。算交叉點：人工重做一題的成本只要超過約 190 到 230 美元，完成率較高的 Opus 4.7（batched）就比三個中國模型便宜——本篇假設的 240 美元，已經在線的另一側。</p>
+
+<p>HAL 的結果方向一致：九個模型裡，DeepSeek R1 是唯一在九個 benchmark 上從未落在成本與準確率 Pareto 前緣的模型。HAL 也記下一件和分母有關的小事：「Together AI changed their DeepSeek R1 endpoint to serve DeepSeek R1 0528 on release day, keeping the same API endpoint name.」<sup class="ref">[<a href="#ref-49">49</a>]</sup>——同一個名字底下，模型換了。</p>
+
+<p>使用面上，中國開放模型在 OpenRouter 上一年平均約佔 13% 的 token 用量，某些週接近三成；同一份研究發現需求對價格不敏感：「a 10% decrease in price corresponds to only about a 0.5–0.7% increase in usage」。<sup class="ref">[<a href="#ref-93">93</a>]</sup></p>
+
+<div class="verdict">
+<p>「追上多少」要先問用哪一把尺。能力落後五到八個月；單價便宜三到十幾倍；按指數每一分算，只比 GPT-6 Astra 便宜 1.2 到 3.2 倍；放進長時程的 agent 任務、加上人工兜底，差距幾乎歸零，交叉點就落在人工一題兩百美元上下。價差先被 token 用量吃掉一大半，剩下的再被兜底人工吃掉——最後決定帳單的是完成率。這不是替哪一邊說話，是同一件事又換了一次分母。</p>
+</div>
+</section>
+
+<!-- ─────────────────────────────── 12 ─────────────────────────────── -->
+<section id="s12">
+<p class="eyebrow reveal">W/P 12 · FINDINGS</p>
+<h2>現在能說什麼</h2>
+
+<p>查到這裡，話可以分成三種：有證據就能說的、帶著假設才能說的、還不能說的。</p>
+
+<h3>有證據，可以直接說</h3>
+<ol class="findings">
+<li><strong>賣方的回本期與超支率，分母都沒有說明，不能跨公司比。</strong>「不到兩年」可以含硬體銷售、不含建築、年限自定；「超出承諾五成」是逐季經營的指標，客層沒有拆。<span class="where">第 02–04 節</span></li>
+<li><strong>「超出承諾五成」不能當企業的 AI 超支率引用。</strong>Microsoft 證明實驗室客戶拆得開；買方調查看到的超支普遍，但多半在一成五以內。<span class="where">第 04 節</span></li>
+<li><strong>AI 的錢從營運錢包裡長出來，而營運錢包要的是可預測。</strong>token 計價難編預算，是 IT 主管評估廠商定價時的最大障礙。<span class="where">第 05、06 節</span></li>
+<li><strong>席次沒有死，被改裝成點數桶。</strong>賣方自己說，席次賣的是可預測。<span class="where">第 06 節</span></li>
+<li><strong>評測的尺各量各的。</strong>主流的時間視野用人的時間當分母；記錢的評測不記人類耗時；沒有人公開畫過「每次成功成本對任務長度」。<span class="where">第 07、08 節</span></li>
+<li><strong>沒有一種計價單位在量判斷。</strong>刻度是模型價、驗證狀態或自主上限；結果計價把轉人工定成免費。<span class="where">第 09 節</span></li>
+<li><strong>「中國追上多少」沒有單一答案。</strong>能力落後五到八個月，單價便宜三到十幾倍，按指數每一分算只便宜 1.2 到 3.2 倍。<span class="where">第 11 節</span></li>
+</ol>
+
+<h3>帶著假設，可以這樣說</h3>
+<ol class="findings" start="8">
+<li><strong>長任務、完成率兩成以下時，決定預算的是失敗率 × 人工，不是 token 價。</strong>假設人工一題 240 美元、失敗就全額重做。<span class="where">第 10 節</span></li>
+<li><strong>覆核有一條上限：每次覆核要短於「完成率 × 人自己做的耗時」。</strong>OSWorld 示範裡是 12 到 20 分鐘；人越會用 AI，這條線越低。<span class="where">第 10 節</span></li>
+<li><strong>便宜模型的價差，會被兜底人工吃掉。</strong>人工重做一題超過約 190 到 230 美元，完成率較高的貴模型反而便宜。<span class="where">第 11 節</span></li>
+</ol>
+
+<h3>還不能說</h3>
+<ul>
+<li>企業側真實的 AI 超支率——賣方沒有揭露，買方調查的樣本各有偏誤。</li>
+<li>1x 與 10x 工程師的任務成本差幾倍——沒有研究同時量了熟練度、AI 使用程度與任務成本。</li>
+<li>每一次 agent 輸出要人看幾分鐘——最接近的只有 METR 螢幕錄影的「約 9% 時間」。</li>
+<li>AI 替企業省錢還是花錢——買方的回本期目前無法定義。</li>
+</ul>
+
+<h3>可以直接拿去講的句子</h3>
+<p class="pull">帳單上差近八倍的模型，放進預算只差一成多——兜底的人工把差距吃掉了。</p>
+<ul class="sayings">
+<li>「客戶超出承諾五成」是賣方的 KPI，不是買方的超支率。</li>
+<li>席次沒有死，是被掏空了：外殼按人頭，裡面是點數。</li>
+<li>評測量人要花多久，帳單按機器花多少開，中間沒有匯率。</li>
+<li>覆核一次的時間要短於「完成率 × 人的耗時」，agent 才可能比人便宜。</li>
+<li>越會用 AI 的人，越不需要 agent 先替他做一遍。</li>
+<li>問中國追上多少之前，先問用哪一把尺。</li>
+<li>結果計價把失敗定成免費；要替判斷定價，得先替失敗定價。</li>
+</ul>
+<p class="byline">每一句都對應上面的一條。「越會用 AI 的人」那句與「差近八倍只差一成多」只在長任務、低完成率時成立，引用時帶上這個條件。</p>
+</section>
+
+<!-- ─────────────────────────────── 13 ─────────────────────────────── -->
+<section id="s13">
+<p class="eyebrow reveal">W/P 13 · RECONCILIATION</p>
+<h2>分母對帳表</h2>
+
+<p><span class="chip">接回 番外 §11</span> 延續《分層融化》的對帳表：本篇引用的每個關鍵數字，分母是什麼、沒說什麼、能跟什麼比。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>數字</th><th>誰說的</th><th>分母</th><th>分母沒說的</th><th>能跟什麼比</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">回本 &lt;2 年</td><td>Kurian</td><td>AI servers in aggregate</td><td>含不含硬體銷售、建築；年限假設</td><td>無同業可比口徑</td></tr>
+<tr><td class="nowrap">超出承諾 &gt;50%</td><td>Pichai／Kurian</td><td>全客戶承諾</td><td>客層、承諾定義</td><td>自己的上一季（45%）</td></tr>
+<tr><td class="nowrap">Backlog $514B</td><td>Alphabet</td><td>未認列的合約承諾</td><td>客戶集中度</td><td>Microsoft 部分可比（期間口徑不同）</td></tr>
+<tr><td class="nowrap">OpenAI 約 45%</td><td>Microsoft</td><td>commercial RPO</td><td>半年後不再給</td><td>—</td></tr>
+<tr><td class="nowrap">61.7%</td><td>ETR</td><td>複選題的受訪者比例</td><td>金額份額</td><td>同調查的前兩波</td></tr>
+<tr><td class="nowrap">7%</td><td>a16z</td><td>LLM 支出份額，N=100</td><td>樣本代表性</td><td>不可與 ETR 同軸</td></tr>
+<tr><td class="nowrap">$37B</td><td>Menlo</td><td>排除推論的企業支出</td><td>去年版本曾含推論</td><td>同版的 $11.5B</td></tr>
+<tr><td class="nowrap">37% 見 EBIT</td><td>McKinsey</td><td>受訪者比例</td><td>影響幅度</td><td>上一年（原文：about the same share）</td></tr>
+<tr><td class="nowrap">171% ROI</td><td>PagerDuty</td><td>預期值</td><td>實現值</td><td>不可與 McKinsey 拼接</td></tr>
+<tr><td class="nowrap">61% 超預算</td><td>IDC</td><td>中東、土耳其、非洲，N=320</td><td>其他地區</td><td>不可與 +50% 相減</td></tr>
+<tr><td class="nowrap">14.5 小時</td><td>METR</td><td>人類時間、50% 成功率</td><td>成本；任務集頂端飽和</td><td>同一把尺上的其他模型</td></tr>
+<tr><td class="nowrap">$3,300</td><td>METR</td><td>美元、中間假設、單一任務</td><td>其他假設下差近兩個數量級</td><td>同任務的人類 $2,400</td></tr>
+<tr><td class="nowrap">$351／次成功</td><td>本篇推算</td><td>OSWorld 論文的成本</td><td>定價假設</td><td>同表其他模型</td></tr>
+<tr><td class="nowrap">30%／$450B</td><td>Gartner</td><td>2035 年營收、最佳情境</td><td>基準情境</td><td>不可與「四成取消」比</td></tr>
+<tr><td class="nowrap">40% 取消</td><td>Gartner</td><td>2027 年專案數</td><td>金額</td><td>—</td></tr>
+<tr><td class="nowrap">16.7%／21–45%</td><td>IDC／WitnessAI</td><td>各自定義的治理支出</td><td>共同定義</td><td>彼此不可比</td></tr>
+<tr><td class="nowrap">+83%</td><td>Lemkin</td><td>單一客戶（Agentforce 案例客戶）</td><td>代表性</td><td>—</td></tr>
+<tr><td class="nowrap">覆核上限 12.5 分</td><td>本篇推算</td><td>完成率 × 人自己做的耗時</td><td>真實覆核時間；人類完成率</td><td>同一任務、同一模型</td></tr>
+<tr><td class="nowrap">落後約 8 個月</td><td>CAISI</td><td>能力，以美國前沿為參照</td><td>美國政府機構的評估立場</td><td>Epoch 的平均 7 個月</td></tr>
+<tr><td class="nowrap">$2,503 對 $5,324</td><td>Artificial Analysis</td><td>跑同一套指數的總花費</td><td>指數改版後會重標</td><td>同一天的快照</td></tr>
+<tr><td class="nowrap">13% token 份額</td><td>OpenRouter × a16z</td><td>OpenRouter 平台的 token</td><td>企業私有部署與直連 API</td><td>同平台其他模型</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ─────────────────────────────── FW ─────────────────────────────── -->
+<section id="fw">
+<p class="eyebrow reveal">W/P FW · FUTURE WORK</p>
+<h2>下一根要量的尺</h2>
+
+<p>本篇留下三個洞，目前的資料都還補不起來。第一個在第 10 節寫過；這裡把第二、第三個攤開：手上有什麼、缺什麼、要怎樣才補得起來。</p>
+
+<h3>1. 覆核人時</h3>
+
+<p>第 10 節裡最重的一項，還是沒有直接的公開數字：最接近的是 METR 螢幕錄影的「約 9% 時間」，業界遙測量的多是日曆時間。誰先量出「每一次 agent 輸出要人看幾分鐘」，誰就寫出字典第二頁。</p>
+
+<h3>2. 熟練度 × AI × 任務成本</h3>
+
+<p>要回答「1x 與 10x 工程師的任務成本差幾倍」，同一份資料裡至少要湊齊六樣東西：人的熟練度、有沒有用 AI（最好隨機分派）、實際人時、token 帳單、這個人的薪資，以及覆核花的時間。目前查到的研究，沒有一份湊得齊。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>資料</th><th>熟練度</th><th>隨機分派 AI</th><th>人時</th><th>token 帳單</th><th>薪資</th><th>覆核時間</th><th>公開資料</th></tr></thead>
+<tbody>
+<tr><td>METR 2025 初 RCT <sup class="ref">[<a href="#ref-94">94</a>]</sup></td><td>部分：只有每題的「任務熟悉度」</td><td>有</td><td>有（分鐘）</td><td>無</td><td>無</td><td>部分：只有作者回應審查的修改時間</td><td>有：246 題、16 人</td></tr>
+<tr><td>METR 2025 下半年 <sup class="ref">[<a href="#ref-95">95</a>]</sup></td><td>部分：同上，1–5 級</td><td>有</td><td>有（分鐘）</td><td>無</td><td>無</td><td>部分：同上</td><td>有：1,134 題、57 人</td></tr>
+<tr><td>Copilot 三個田野實驗 <sup class="ref">[<a href="#ref-75">75</a>]</sup></td><td>有：年資與職級</td><td>有</td><td>無：量完成任務數</td><td>無</td><td>無</td><td>無</td><td>未查到</td></tr>
+<tr><td>企業 2x 縱貫研究 <sup class="ref">[<a href="#ref-79">79</a>]</sup></td><td>有：職級</td><td>無：公司政策</td><td>無：量 PR 產出</td><td>無</td><td>無</td><td>部分：審查者負荷</td><td>未查到</td></tr>
+<tr><td>AIDev 資料集 <sup class="ref">[<a href="#ref-96">96</a>]</sup></td><td>無：只能自行用帳號資歷代理</td><td>無</td><td>無：只有日曆時間</td><td>無</td><td>無</td><td>部分：審查事件與評論時間</td><td>有：93 萬個 agent PR</td></tr>
+<tr><td>Anthropic 生產力估計 <sup class="ref">[<a href="#ref-82">82</a>]</sup></td><td>無</td><td>無</td><td>部分：模型估計</td><td>無</td><td>部分：職業平均工資</td><td>無：明說未計入</td><td>未查到</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">本篇整理，查於 2026-09-10。METR 兩份資料的欄位已下載核對。</p>
+
+<p>最接近的是 METR 的兩份公開資料：隨機分派、有實際分鐘數，還附上作者「address post-review changes」花的時間。<sup class="ref">[<a href="#ref-95">95</a>]</sup> 但它的經驗欄位問的是「Prior experience with this type of task」——是每一題的熟悉度，不是這個人的職級；受試者以資深開源維護者為主，樣本裡沒有「1x」；也沒有薪資與 token 帳單。企業研究有職級，量的卻是產出而不是人時，也沒有公開資料。</p>
+
+<p><strong>現在能做的。</strong>用 METR 公開資料，依任務熟悉度分組重算 AI 對耗時的效果，再套上薪資級距換成每題人工成本。這能回答「同一群資深工程師，在熟與不熟的任務上，AI 帶來的成本差多少」，回答不了「1x 與 10x 差幾倍」。</p>
+
+<p><strong>資料還不夠的。</strong>要回答 1x 對 10x，需要同一批任務、隨機分派、跨職級的受試者，同時記下人時、token 帳單、職級薪資帶與覆核時間。這是企業內部研究的規模，公開資料湊不出來。</p>
+
+<h3>3. OSWorld 的下一版</h3>
+
+<p>這一件已經在發生。香港大學 XLANG 實驗室維護、Snorkel AI 資助的 OSWorld 2.0 排行榜，9 月 4 日更新，加入了兩個比本篇表格更新的美國模型。<sup class="ref">[<a href="#ref-97">97</a>]</sup></p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>模型</th><th class="num nowrap">完成率</th><th class="num nowrap">partial</th><th class="num nowrap">108 題總成本</th><th>在本篇表中</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">Claude Opus 5</td><td class="num nowrap">31.43%</td><td class="num nowrap">68.31%</td><td class="num">未公布</td><td>否</td></tr>
+<tr><td class="nowrap">GPT-5.6 Sol</td><td class="num nowrap">27.34%</td><td class="num nowrap">62.72%</td><td class="num">未公布</td><td>否</td></tr>
+<tr><td class="nowrap">Claude Opus 4.8</td><td class="num nowrap">20.6%</td><td class="num nowrap">54.8%</td><td class="num">未列（論文約 $72.4／題）</td><td>是</td></tr>
+<tr><td class="nowrap">GPT-5.5</td><td class="num nowrap">13%</td><td class="num nowrap">49.5%</td><td class="num nowrap">$2.75K</td><td>是</td></tr>
+<tr><td class="nowrap">Claude Sonnet 4.6</td><td class="num nowrap">9.3%</td><td class="num nowrap">41.5%</td><td class="num nowrap">$2.41K</td><td>是（論文表為 8.3%）</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">500 步預算，查於 2026-09-10。GPT-6 Astra、Claude Fable 5.1、Kimi K3、GLM-5.3、DeepSeek 都還不在表上。GPT-5.5 的總成本除以 108 題約 $25.5，與論文一致。</p>
+
+<p>交叉點其實只需要兩個數字。兩個模型加上人工兜底之後誰比較便宜，取決於人工重做一題的成本有沒有超過：</p>
+
+<div class="formula">交叉點 ＝ 每任務成本差 ÷ 完成率差
+<small>人工重做一題的成本高於交叉點，完成率較高的模型比較便宜；低於交叉點，便宜的模型比較便宜。</small></div>
+
+<p>所以新模型只要有「完成率」和「每任務成本」，就能直接放進第 10、11 節重算，不必重跑整個 benchmark。完成率已經有了，缺的是成本。舉一個假設性的例子：如果 Claude Opus 5 每任務的成本和 Opus 4.8 一樣是 72.4 美元，它 31.43% 的完成率剛好越過 30.2% 的兩平線，兜底總成本約 237 美元，覆核上限放寬到約 30 分鐘。但它的成本沒有公布，這只是示範數字會怎麼動。</p>
+
+<p><strong>自己跑呢？</strong>評測程式碼以 Apache 2.0 釋出，任務放在需要申請的 Hugging Face 資料集；環境要有支援 KVM 的機器跑 Docker，或用 AWS 平行跑。排行榜不收自報成績，要和 XLANG 約時間在他們那邊跑，或交出完整軌跡。<sup class="ref">[<a href="#ref-98">98</a>]</sup> 成本量級可以從排行榜反推：GPT-5.5 跑完 108 題約 2,750 美元。<sup class="ref">[<a href="#ref-97">97</a>]</sup> 中國新一代模型單價低、但步數多，一輪可能在數百美元的量級——這是推算，要跑了才知道。自己跑的結果只能當自測，不能和排行榜並列。</p>
+
+<p><strong>資料還不夠的。</strong></p>
+<ul>
+<li>新模型的成本欄是空的：Claude Opus 5、GPT-5.6 Sol 只有完成率。</li>
+<li>中國新一代（Kimi K3、GLM-5.3、DeepSeek V4）和美國最新一代（GPT-6 Astra、Claude Fable 5.1）都還沒測。</li>
+<li>同一個模型，排行榜與論文的數字不一致（Sonnet 4.6：9.3% 對 8.3%），版本要逐一對。</li>
+<li>人類完成率沒有公布；本篇的 240 美元，是用中位耗時 1.6 小時乘上假設時薪算的。</li>
+<li>中國模型只有 single 模式，無法和 batched 模式的美國模型對等比較。</li>
+</ul>
+
+<h3>其他</h3>
+<ul>
+<li><strong>席次掏空的後續。</strong>GitHub 十月起新席次要先付款<sup class="ref">[<a href="#ref-99">99</a>]</sup>，Salesforce 半數 bookings 來自續購點數——2027 年初的財報，看席次的外殼還剩多少。</li>
+<li><strong>合規成本入帳。</strong>歐盟 AI 法的高風險義務延到 2027 年 12 月（見《分層融化》第 08 節），監督成本會進產品價，還是留在買方的法遵預算。</li>
+</ul>
+</section>
+
+<!-- ─────────────────────────────── OPEN ─────────────────────────────── -->
+<section id="open">
+<p class="eyebrow">W/P OPEN · 查核註記</p>
+<h2>還沒結案的底稿</h2>
+
+<p>下列項目在定稿時仍待人工開原檔核對；工具讀到的版本被截斷或在付費牆後。它們不影響本篇的論點，但數字的最後一位可能要修。</p>
+
+<ol class="open-items">
+<li>Alphabet FY2025 年報的耐用年限附註——目前「伺服器現行仍為 6 年」只見二手報導。</li>
+<li>KPMG Global AI Pulse Q2 的「近半重新分期」原句與頁碼。</li>
+<li>Salesforce 2025 年 12 月說明會與 FY27 Q2 法說逐字稿——Milano 兩句的原始場合、當時職稱，以及 bookings 的範圍。</li>
+<li>Microsoft FY2023 伺服器年限調整的實際影響（表中為期初預估）；Amazon FY2024 年報中 6→5 年的原句。</li>
+<li>Microsoft Copilot 費率表中，M365 Copilot 授權欄的免計量範圍。</li>
+<li>METR 互動圖上 Kimi K2 Thinking 的時間視野數值；METR 報告表格未標單位，本篇只用相對比例。</li>
+<li>Artificial Analysis 各模型的分項分數與指數版本；表中數字為 2026-09-10 的模型頁快照。</li>
+<li>BLS 時薪百分位取自 O*NET 轉載，待對 OEWS 原表。</li>
+<li>OSWorld 2.0 排行榜與論文的 Sonnet 4.6 完成率不一致（9.3% 對 8.3%）；本篇表格沿用論文 v2 Table 3。</li>
+</ol>
+</section>
+
+<!-- ─────────────────────────────── REF ─────────────────────────────── -->
+<section id="ref">
+<p class="eyebrow">W/P REF · SOURCES</p>
+<h2>出處</h2>
+<p class="byline">依文中首次出現排序。來源等級：揭露 ＞ 調查 ＞ 分析師 ＞ 轉述 ＞ 部落格。查證日 2026-09-10。</p>
+<ol class="sources">
+<li id="ref-1"><span class="src">Gartner Says $234 Billion in Enterprise Application Software Spend Is at Risk from Agentic AI</span> <span class="meta">· Gartner 新聞稿，2026-07-01</span> <span class="tier">分析師</span><br><a href="https://www.gartner.com/en/newsroom/press-releases/2026-07-01-gartner-says-us-dollars-234-billion-in-enterprise-application-software-spend-is-at-risk-from-agentic-artificial-intelligence">https://www.gartner.com/en/newsroom/press-releases/2026-07-01-gartner-says-us-dollars-234-billion-in-enterprise-application-software-spend-is-at-risk-from-agentic-artificial-intelligence</a></li>
+<li id="ref-2"><span class="src">Google Cloud at Goldman Sachs Communacopia + Technology Conference 逐字稿</span> <span class="meta">· Investing.com，2026-09-08</span> <span class="tier">轉述（第三方逐字稿）</span><br><a href="https://www.investing.com/news/transcripts/google-cloud-at-goldman-sachs-conference-ai-stack-drives-growth-93CH-4892197">https://www.investing.com/news/transcripts/google-cloud-at-goldman-sachs-conference-ai-stack-drives-growth-93CH-4892197</a></li>
+<li id="ref-3"><span class="src">Alphabet earnings call, Q2 2026: Sundar Pichai’s remarks</span> <span class="meta">· Google 官方部落格，2026-07-22</span> <span class="tier">揭露</span><br><a href="https://blog.google/company-news/inside-google/message-ceo/alphabet-earnings-q2-2026/">https://blog.google/company-news/inside-google/message-ceo/alphabet-earnings-q2-2026/</a></li>
+<li id="ref-4"><span class="src">Alphabet Inc. Form 10-Q, quarter ended June 30, 2026</span> <span class="meta">· Alphabet 投資人關係</span> <span class="tier">揭露</span><br><a href="https://s206.q4cdn.com/479360582/files/doc_financials/2026/q2/GOOG-10-Q-Q2-2026.pdf">https://s206.q4cdn.com/479360582/files/doc_financials/2026/q2/GOOG-10-Q-Q2-2026.pdf</a></li>
+<li id="ref-5"><span class="src">Alphabet Announces Second Quarter 2026 Results</span> <span class="meta">· Alphabet 財報新聞稿，2026-07-22</span> <span class="tier">揭露</span><br><a href="https://s206.q4cdn.com/479360582/files/doc_financials/2026/q2/2026q2-alphabet-earnings-release.pdf">https://s206.q4cdn.com/479360582/files/doc_financials/2026/q2/2026q2-alphabet-earnings-release.pdf</a></li>
+<li id="ref-6"><span class="src">Blackstone Announces Joint Venture with Google to Create New TPU Cloud</span> <span class="meta">· Blackstone 新聞稿，2026-05-18</span> <span class="tier">揭露</span><br><a href="https://www.blackstone.com/news/press/blackstone-announces-joint-venture-with-google-to-create-new-tpu-cloud/">https://www.blackstone.com/news/press/blackstone-announces-joint-venture-with-google-to-create-new-tpu-cloud/</a></li>
+<li id="ref-7"><span class="src">TPUv7：Google 的 TPU 與資料中心融資</span> <span class="meta">· SemiAnalysis，2025-11-28</span> <span class="tier">分析師</span><br><a href="https://newsletter.semianalysis.com/p/tpuv7-google-takes-a-swing-at-the">https://newsletter.semianalysis.com/p/tpuv7-google-takes-a-swing-at-the</a></li>
+<li id="ref-8"><span class="src">Microsoft FY26 Q4 Earnings Conference Call</span> <span class="meta">· Microsoft 投資人關係，2026-07-29</span> <span class="tier">揭露</span><br><a href="https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q4">https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q4</a></li>
+<li id="ref-9"><span class="src">Alphabet Announces Fourth Quarter and Fiscal Year 2023 Results</span> <span class="meta">· Alphabet 財報新聞稿，2024-01-30</span> <span class="tier">揭露</span><br><a href="https://s206.q4cdn.com/479360582/files/doc_financials/2023/q4/2023q4-alphabet-earnings-release.pdf">https://s206.q4cdn.com/479360582/files/doc_financials/2023/q4/2023q4-alphabet-earnings-release.pdf</a></li>
+<li id="ref-10"><span class="src">Microsoft FY22 Q4 Earnings Conference Call</span> <span class="meta">· Microsoft 投資人關係，2022-07-26</span> <span class="tier">揭露</span><br><a href="https://www.microsoft.com/en-us/investor/events/fy-2022/earnings-fy-2022-q4">https://www.microsoft.com/en-us/investor/events/fy-2022/earnings-fy-2022-q4</a></li>
+<li id="ref-11"><span class="src">Amazon server depreciation</span> <span class="meta">· Hudson Labs，2026-07-30（轉引 Amazon 年報）</span> <span class="tier">轉述</span><br><a href="https://www.hudson-labs.com/research/amazon-server-depreciation-amzn">https://www.hudson-labs.com/research/amazon-server-depreciation-amzn</a></li>
+<li id="ref-12"><span class="src">Amazon.com Q4 2024 earnings call transcript</span> <span class="meta">· MarketBeat，2025-02-06</span> <span class="tier">轉述（第三方逐字稿）</span><br><a href="https://www.marketbeat.com/earnings/reports/2025-2-6-amazoncom-inc-stock">https://www.marketbeat.com/earnings/reports/2025-2-6-amazoncom-inc-stock</a></li>
+<li id="ref-13"><span class="src">Meta Reports Fourth Quarter and Full Year 2024 Results（Exhibit 99.1）</span> <span class="meta">· SEC EDGAR，2025-01-29</span> <span class="tier">揭露</span><br><a href="https://www.sec.gov/Archives/edgar/data/1326801/000132680125000014/meta-12312024xexhibit991.htm">https://www.sec.gov/Archives/edgar/data/1326801/000132680125000014/meta-12312024xexhibit991.htm</a></li>
+<li id="ref-14"><span class="src">Oracle Corporation FY2025 Form 10-K，Property, plant and equipment（XBRL R31）</span> <span class="meta">· SEC EDGAR</span> <span class="tier">揭露</span><br><a href="https://www.sec.gov/Archives/edgar/data/1341439/000095017025087926/R31.htm">https://www.sec.gov/Archives/edgar/data/1341439/000095017025087926/R31.htm</a></li>
+<li id="ref-15"><span class="src">Tracking Trillions: The Assumptions Shaping Scale of the AI Build-Out</span> <span class="meta">· Goldman Sachs Global Institute，2026-05-01</span> <span class="tier">分析師</span><br><a href="https://www.goldmansachs.com/insights/articles/tracking-trillions-the-assumptions-shaping-scale-of-the-ai-build-out">https://www.goldmansachs.com/insights/articles/tracking-trillions-the-assumptions-shaping-scale-of-the-ai-build-out</a></li>
+<li id="ref-16"><span class="src">Michael Burry 於 X 的貼文（折舊低估估計）</span> <span class="meta">· X，2025-11-10</span> <span class="tier">部落格（當事人貼文）</span><br><a href="https://x.com/michaeljburry/status/1987918650104283372">https://x.com/michaeljburry/status/1987918650104283372</a></li>
+<li id="ref-17"><span class="src">Alphabet earnings call, Q1 2026: Sundar Pichai’s remarks</span> <span class="meta">· Google 官方部落格，2026-04-29</span> <span class="tier">揭露</span><br><a href="https://blog.google/company-news/inside-google/message-ceo/alphabet-earnings-q1-2026/">https://blog.google/company-news/inside-google/message-ceo/alphabet-earnings-q1-2026/</a></li>
+<li id="ref-18"><span class="src">Microsoft FY26 Q2 Earnings Conference Call</span> <span class="meta">· Microsoft 投資人關係，2026-01-28</span> <span class="tier">揭露</span><br><a href="https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q2">https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q2</a></li>
+<li id="ref-19"><span class="src">Amazon.com Form 10-Q（Q2 2026）摘要</span> <span class="meta">· Stock Titan</span> <span class="tier">轉述（轉引 10-Q）</span><br><a href="https://www.stocktitan.net/sec-filings/AMZN/10-q-amazon-com-inc-quarterly-earnings-report-0b79ef7cd1d2.html">https://www.stocktitan.net/sec-filings/AMZN/10-q-amazon-com-inc-quarterly-earnings-report-0b79ef7cd1d2.html</a></li>
+<li id="ref-20"><span class="src">Oracle Q4 2026 earnings: AI cloud backlog and funding</span> <span class="meta">· ERP Today，2026-06-11</span> <span class="tier">轉述</span><br><a href="https://erp.today/oracle-q4-2026-earnings-ai-cloud-backlog-funding/">https://erp.today/oracle-q4-2026-earnings-ai-cloud-backlog-funding/</a></li>
+<li id="ref-21"><span class="src">The Information 報導：Anthropic 與 OpenAI 約佔四大雲 2 兆美元 backlog 一半（經 Michael Parekh 轉引）</span> <span class="meta">· The Information 2026-05-06；AI: Reset to Zero 2026-05-07</span> <span class="tier">轉述</span><br><a href="https://michaelparekh.substack.com/p/ai-anthropic-and-opemai-half-of-2">https://michaelparekh.substack.com/p/ai-anthropic-and-opemai-half-of-2</a></li>
+<li id="ref-22"><span class="src">Google Cloud faces 48% revenue reliance on OpenAI and Anthropic in 2027（UBS 估計，經 Ed Zitron 與 Bloomberg 轉述）</span> <span class="meta">· PPC Land，2026-08-02</span> <span class="tier">轉述（三手）</span><br><a href="https://ppc.land/google-cloud-faces-48-revenue-reliance-on-openai-and-anthropic-in-2027/">https://ppc.land/google-cloud-faces-48-revenue-reliance-on-openai-and-anthropic-in-2027/</a></li>
+<li id="ref-23"><span class="src">AI tokenomics and the cost governance gap</span> <span class="meta">· IDC 部落格，2026-08-25（引 IDC 雲端 AI 支出調查 N=320 與買方調查 N=1,448）</span> <span class="tier">分析師（引自家調查）</span><br><a href="https://www.idc.com/resource-center/blog/ai-tokenomics-cost-governance-gap/">https://www.idc.com/resource-center/blog/ai-tokenomics-cost-governance-gap/</a></li>
+<li id="ref-24"><span class="src">KPMG Global AI Pulse, Q2 2026</span> <span class="meta">· KPMG，2026-06（全球 N=2,145）</span> <span class="tier">調查</span><br><a href="https://assets.kpmg.com/content/dam/kpmgsites/xx/pdf/2026/06/global-ai-pulse-q2.pdf">https://assets.kpmg.com/content/dam/kpmgsites/xx/pdf/2026/06/global-ai-pulse-q2.pdf</a></li>
+<li id="ref-25"><span class="src">New WitnessAI Report Reveals the Financial Cost and Risk Factors of Enterprise AI Adoption</span> <span class="meta">· PR Newswire，2026-07-22（N=300）</span> <span class="tier">調查（廠商自辦）</span><br><a href="https://www.prnewswire.com/news-releases/new-witnessai-report-reveals-the-financial-cost-and-risk-factors-of-enterprise-ai-adoption-302831518.html">https://www.prnewswire.com/news-releases/new-witnessai-report-reveals-the-financial-cost-and-risk-factors-of-enterprise-ai-adoption-302831518.html</a></li>
+<li id="ref-26"><span class="src">The state of AI</span> <span class="meta">· McKinsey，2026-08-25（N=1,719）</span> <span class="tier">調查</span><br><a href="https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai">https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai</a></li>
+<li id="ref-27"><span class="src">Uber CTO Shows How Claude Code Can Blow Up AI Budgets</span> <span class="meta">· The Information，約 2026-04-14（付費牆；引文經記者轉貼）</span> <span class="tier">轉述</span><br><a href="https://www.theinformation.com/newsletters/applied-ai/uber-cto-shows-claude-code-can-blow-ai-budgets">https://www.theinformation.com/newsletters/applied-ai/uber-cto-shows-claude-code-can-blow-ai-budgets</a></li>
+<li id="ref-28"><span class="src">Gartner Forecasts Worldwide AI Spending to Grow 47% in 2026</span> <span class="meta">· Gartner 新聞稿，2026-05-19</span> <span class="tier">分析師</span><br><a href="https://www.gartner.com/en/newsroom/press-releases/2026-05-19-gartner-forecasts-worldwide-ai-spending-to-grow-47-percent-in-2026">https://www.gartner.com/en/newsroom/press-releases/2026-05-19-gartner-forecasts-worldwide-ai-spending-to-grow-47-percent-in-2026</a></li>
+<li id="ref-29"><span class="src">Where AI Money Comes From: The Quiet Shift Inside IT Budgets</span> <span class="meta">· ETR，2026-05-14（三波，各 N=600）</span> <span class="tier">調查</span><br><a href="https://research.etr.ai/etr-data-drop/where-ai-money-comes-from-the-quiet-shift-inside-it-budgets">https://research.etr.ai/etr-data-drop/where-ai-money-comes-from-the-quiet-shift-inside-it-budgets</a></li>
+<li id="ref-30"><span class="src">Enterprise AI 2025：100 位 CIO 如何採購與建置生成式 AI</span> <span class="meta">· a16z，2025-06-10（N=100）</span> <span class="tier">調查（投資方自辦）</span><br><a href="https://a16z.com/ai-enterprise-2025/">https://a16z.com/ai-enterprise-2025/</a></li>
+<li id="ref-31"><span class="src">Enterprise AI Spending to Rise 5.7 Percent in 2025 Despite Overall IT Budget Increase of Less than 2 Percent</span> <span class="meta">· ISG 新聞稿，2024-12-05（N=300）</span> <span class="tier">調查</span><br><a href="https://ir.isg-one.com/news-market-information/press-releases/news-details/2024/Enterprise-AI-Spending-to-Rise-5.7-Percent-in-2025-Despite-Overall-IT-Budget-Increase-of-Less-than-2-Percent-ISG-Study/default.aspx">https://ir.isg-one.com/news-market-information/press-releases/news-details/2024/Enterprise-AI-Spending-to-Rise-5.7-Percent-in-2025-Despite-Overall-IT-Budget-Increase-of-Less-than-2-Percent-ISG-Study/default.aspx</a></li>
+<li id="ref-32"><span class="src">PagerDuty agentic AI survey</span> <span class="meta">· PagerDuty 新聞稿，2025-04-02（N=1,000）</span> <span class="tier">調查（廠商自辦）</span><br><a href="https://www.pagerduty.com/newsroom/agentic-ai-survey-2025/">https://www.pagerduty.com/newsroom/agentic-ai-survey-2025/</a></li>
+<li id="ref-33"><span class="src">2024: The State of Generative AI in the Enterprise</span> <span class="meta">· Menlo Ventures，2024-11-20</span> <span class="tier">調查＋模型</span><br><a href="https://menlovc.com/2024-the-state-of-generative-ai-in-the-enterprise/">https://menlovc.com/2024-the-state-of-generative-ai-in-the-enterprise/</a></li>
+<li id="ref-34"><span class="src">2025: The State of Generative AI in the Enterprise</span> <span class="meta">· Menlo Ventures，2025-12-09</span> <span class="tier">調查＋模型</span><br><a href="https://menlovc.com/perspective/2025-the-state-of-generative-ai-in-the-enterprise/">https://menlovc.com/perspective/2025-the-state-of-generative-ai-in-the-enterprise/</a></li>
+<li id="ref-35"><span class="src">AI agent governance and enterprise investment</span> <span class="meta">· IDC 部落格，2026-07-29</span> <span class="tier">分析師</span><br><a href="https://www.idc.com/resource-center/blog/ai-agent-governance-enterprise-investment/">https://www.idc.com/resource-center/blog/ai-agent-governance-enterprise-investment/</a></li>
+<li id="ref-36"><span class="src">Why We Pay Salesforce 83% More Than Last Year, But Stopped Using Notion Entirely</span> <span class="meta">· SaaStr，2026-04-27（作者為 Agentforce 公開案例客戶）</span> <span class="tier">部落格（當事人）</span><br><a href="https://www.saastr.com/why-we-pay-salesforce-83-more-than-last-year-but-stopped-using-notion-entirely-the-ai-agent-seat-problem-is-real/">https://www.saastr.com/why-we-pay-salesforce-83-more-than-last-year-but-stopped-using-notion-entirely-the-ai-agent-seat-problem-is-real/</a></li>
+<li id="ref-37"><span class="src">GitHub Copilot is moving to usage-based billing</span> <span class="meta">· GitHub 官方部落格，2026-04-27</span> <span class="tier">揭露</span><br><a href="https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/">https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/</a></li>
+<li id="ref-38"><span class="src">Agentforce Pricing</span> <span class="meta">· salesforce.com，查於 2026-09-10</span> <span class="tier">揭露</span><br><a href="https://www.salesforce.com/agentforce/pricing/">https://www.salesforce.com/agentforce/pricing/</a></li>
+<li id="ref-39"><span class="src">Licensing for agents powered by the standard harness</span> <span class="meta">· Microsoft Learn，更新 2026-08-03</span> <span class="tier">揭露</span><br><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/billing-licensing">https://learn.microsoft.com/en-us/microsoft-copilot-studio/billing-licensing</a></li>
+<li id="ref-40"><span class="src">Salesforce AI pricing（Miguel Milano 談席次與消耗計價）</span> <span class="meta">· The Register，2025-12-05</span> <span class="tier">轉述</span><br><a href="https://www.theregister.com/2025/12/05/salesforce_ai_pricing/">https://www.theregister.com/2025/12/05/salesforce_ai_pricing/</a></li>
+<li id="ref-41"><span class="src">Salesforce boasts: 50% of bookings were from “customers refilling the tank”</span> <span class="meta">· The Register，2026-08-27</span> <span class="tier">轉述</span><br><a href="https://www.theregister.com/software/2026/08/27/salesforce-boasts-50-of-bookings-were-from-customers-refilling-the-tank-they-consume-flex-credits-they-want-more/5292927">https://www.theregister.com/software/2026/08/27/salesforce-boasts-50-of-bookings-were-from-customers-refilling-the-tank-they-consume-flex-credits-they-want-more/5292927</a></li>
+<li id="ref-42"><span class="src">The state of B2B monetization in 2026</span> <span class="meta">· Growth Unhinged × Metronome，2026-05-13（n=230+，受訪者為軟體賣方）</span> <span class="tier">調查</span><br><a href="https://www.growthunhinged.com/p/the-state-of-b2b-monetization-in-2026">https://www.growthunhinged.com/p/the-state-of-b2b-monetization-in-2026</a></li>
+<li id="ref-43"><span class="src">Time horizon limitations</span> <span class="meta">· METR，2026-01-22</span> <span class="tier">揭露（研究機構）</span><br><a href="https://metr.org/notes/2026-01-22-time-horizon-limitations/">https://metr.org/notes/2026-01-22-time-horizon-limitations/</a></li>
+<li id="ref-44"><span class="src">METR 於 X 公布 Claude Opus 4.6 時間視野</span> <span class="meta">· X，2026-02-20</span> <span class="tier">揭露（研究機構）</span><br><a href="https://x.com/METR_Evals/status/2024923422867030027">https://x.com/METR_Evals/status/2024923422867030027</a></li>
+<li id="ref-45"><span class="src">Task-Completion Time Horizons of Frontier AI Models</span> <span class="meta">· METR，更新 2026-05-08</span> <span class="tier">揭露（研究機構）</span><br><a href="https://metr.org/time-horizons/">https://metr.org/time-horizons/</a></li>
+<li id="ref-46"><span class="src">BRIDGE：前沿模型在 80% 門檻下的任務長度視野</span> <span class="meta">· arXiv 2602.07267，2026-02</span> <span class="tier">論文</span><br><a href="https://arxiv.org/abs/2602.07267">https://arxiv.org/abs/2602.07267</a></li>
+<li id="ref-47"><span class="src">Agent 失敗模式綜述</span> <span class="meta">· arXiv 2607.05775，2026-07（轉引 Kwa et al. 2025 與 arXiv 2512.04307）</span> <span class="tier">論文</span><br><a href="https://arxiv.org/abs/2607.05775">https://arxiv.org/abs/2607.05775</a></li>
+<li id="ref-48"><span class="src">Hourly costs for AI agents</span> <span class="meta">· Toby Ord，2025-12-22</span> <span class="tier">部落格</span><br><a href="https://www.tobyord.com/writing/hourly-costs-for-ai-agents">https://www.tobyord.com/writing/hourly-costs-for-ai-agents</a></li>
+<li id="ref-49"><span class="src">Holistic Agent Leaderboard: The Missing Infrastructure for AI Agent Evaluation</span> <span class="meta">· arXiv 2510.11977，ICLR 2026</span> <span class="tier">論文</span><br><a href="https://arxiv.org/abs/2510.11977">https://arxiv.org/abs/2510.11977</a></li>
+<li id="ref-50"><span class="src">HAL Reliability: findings</span> <span class="meta">· Princeton HAL（Rabanser et al., arXiv 2602.16666）</span> <span class="tier">論文</span><br><a href="https://hal.cs.princeton.edu/reliability/findings">https://hal.cs.princeton.edu/reliability/findings</a></li>
+<li id="ref-51"><span class="src">Expenditure Horizon: Measuring Optimization Ability, with an Application to NanoGPT</span> <span class="meta">· METR，2026-07-21</span> <span class="tier">揭露（研究機構）</span><br><a href="https://metr.org/blog/2026-07-21-expenditure-horizon/">https://metr.org/blog/2026-07-21-expenditure-horizon/</a></li>
+<li id="ref-52"><span class="src">OSWorld 2.0</span> <span class="meta">· arXiv 2606.29537 v2，2026-07-13</span> <span class="tier">論文</span><br><a href="https://arxiv.org/abs/2606.29537">https://arxiv.org/abs/2606.29537</a></li>
+<li id="ref-53"><span class="src">More compute, more capability: why AI agent evals need to account for test-time compute</span> <span class="meta">· UK AI Security Institute，2026-07-02</span> <span class="tier">揭露（研究機構）</span><br><a href="https://www.aisi.gov.uk/blog/more-compute-more-capability-why-ai-agent-evals-need-to-account-for-test-time-compute">https://www.aisi.gov.uk/blog/more-compute-more-capability-why-ai-agent-evals-need-to-account-for-test-time-compute</a></li>
+<li id="ref-54"><span class="src">ARC-AGI-3 technical report（v2）</span> <span class="meta">· arXiv 2603.24621，2026-04-17</span> <span class="tier">論文</span><br><a href="https://arxiv.org/abs/2603.24621">https://arxiv.org/abs/2603.24621</a></li>
+<li id="ref-55"><span class="src">Intelligence Benchmarking Methodology</span> <span class="meta">· Artificial Analysis</span> <span class="tier">分析師</span><br><a href="https://artificialanalysis.ai/methodology/intelligence-benchmarking">https://artificialanalysis.ai/methodology/intelligence-benchmarking</a></li>
+<li id="ref-56"><span class="src">Terminal-Bench leaderboard</span> <span class="meta">· tbench.ai</span> <span class="tier">揭露（排行榜）</span><br><a href="https://www.tbench.ai/leaderboard">https://www.tbench.ai/leaderboard</a></li>
+<li id="ref-57"><span class="src">τ-bench: A Benchmark for Tool-Agent-User Interaction</span> <span class="meta">· arXiv 2406.12045，2024-06</span> <span class="tier">論文</span><br><a href="https://arxiv.org/abs/2406.12045">https://arxiv.org/abs/2406.12045</a></li>
+<li id="ref-58"><span class="src">Flexible billing and cost controls for agents on Google Cloud</span> <span class="meta">· Google Cloud 官方部落格，2026-08-26</span> <span class="tier">揭露</span><br><a href="https://cloud.google.com/blog/products/ai-machine-learning/flexible-billing-and-cost-controls-for-agents-on-google-cloud">https://cloud.google.com/blog/products/ai-machine-learning/flexible-billing-and-cost-controls-for-agents-on-google-cloud</a></li>
+<li id="ref-59"><span class="src">Agents licensing</span> <span class="meta">· UiPath 官方文件，查於 2026-09-10</span> <span class="tier">揭露</span><br><a href="https://docs.uipath.com/agents/automation-cloud/latest/user-guide/licensing">https://docs.uipath.com/agents/automation-cloud/latest/user-guide/licensing</a></li>
+<li id="ref-60"><span class="src">UiPath (PATH) Q2 2027 earnings call transcript</span> <span class="meta">· The Motley Fool，通話日 2026-09-03</span> <span class="tier">轉述（第三方逐字稿）</span><br><a href="https://www.fool.com/earnings/call-transcripts/2026/09/09/uipath-path-q2-2027-earnings-call-transcript/">https://www.fool.com/earnings/call-transcripts/2026/09/09/uipath-path-q2-2027-earnings-call-transcript/</a></li>
+<li id="ref-61"><span class="src">Salesforce Introduces New Flexible Agentforce Pricing to Accelerate the Digital Labor Revolution</span> <span class="meta">· Business Wire，2025-05-15</span> <span class="tier">揭露</span><br><a href="https://www.businesswire.com/news/home/20250515332990/en/Salesforce-Introduces-New-Flexible-Agentforce-Pricing-to-Accelerate-the-Digital-Labor-Revolution">https://www.businesswire.com/news/home/20250515332990/en/Salesforce-Introduces-New-Flexible-Agentforce-Pricing-to-Accelerate-the-Digital-Labor-Revolution</a></li>
+<li id="ref-62"><span class="src">Copilot Studio requirements and messages management</span> <span class="meta">· Microsoft Learn，更新 2026-08-03</span> <span class="tier">揭露</span><br><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/requirements-messages-management">https://learn.microsoft.com/en-us/microsoft-copilot-studio/requirements-messages-management</a></li>
+<li id="ref-63"><span class="src">Outcome-based pricing for AI agents</span> <span class="meta">· Sierra 官方部落格，2024-12-10</span> <span class="tier">揭露</span><br><a href="https://sierra.ai/blog/outcome-based-pricing-for-ai-agents">https://sierra.ai/blog/outcome-based-pricing-for-ai-agents</a></li>
+<li id="ref-64"><span class="src">Fin pricing: outcomes</span> <span class="meta">· Intercom 說明中心，更新 2026-06-19</span> <span class="tier">揭露</span><br><a href="https://fin.ai/help/en/articles/13975800-fin-pricing-outcomes">https://fin.ai/help/en/articles/13975800-fin-pricing-outcomes</a></li>
+<li id="ref-65"><span class="src">About automated resolution tiers</span> <span class="meta">· Zendesk 說明中心，2026-05-18 生效</span> <span class="tier">揭露</span><br><a href="https://support.zendesk.com/hc/en-us/articles/9570369117338">https://support.zendesk.com/hc/en-us/articles/9570369117338</a></li>
+<li id="ref-66"><span class="src">ServiceNow AI pricing change takes on enterprise ROI struggles</span> <span class="meta">· TechTarget，2026-04-10</span> <span class="tier">轉述</span><br><a href="https://www.techtarget.com/searchitoperations/news/366641692/ServiceNow-AI-pricing-change-takes-on-enterprise-ROI-struggles">https://www.techtarget.com/searchitoperations/news/366641692/ServiceNow-AI-pricing-change-takes-on-enterprise-ROI-struggles</a></li>
+<li id="ref-67"><span class="src">Amazon Bedrock AgentCore pricing</span> <span class="meta">· AWS，查於 2026-09-10</span> <span class="tier">揭露</span><br><a href="https://aws.amazon.com/bedrock/agentcore/pricing/">https://aws.amazon.com/bedrock/agentcore/pricing/</a></li>
+<li id="ref-68"><span class="src">Bret Taylor of Sierra on AI agents</span> <span class="meta">· Cheeky Pint，2026-03-10</span> <span class="tier">轉述（podcast 謄寫）</span><br><a href="https://cheekypint.substack.com/p/bret-taylor-of-sierra-on-ai-agents">https://cheekypint.substack.com/p/bret-taylor-of-sierra-on-ai-agents</a></li>
+<li id="ref-69"><span class="src">Gartner Predicts 40% of Enterprise Apps Will Feature Task-Specific AI Agents by 2026, Up from Less Than 5% in 2025</span> <span class="meta">· Gartner 新聞稿，2025-08-26</span> <span class="tier">分析師</span><br><a href="https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025">https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025</a></li>
+<li id="ref-70"><span class="src">Gartner Predicts Over 40% of Agentic AI Projects Will Be Canceled by End of 2027</span> <span class="meta">· Gartner 新聞稿，2025-06-25</span> <span class="tier">分析師</span><br><a href="https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027">https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027</a></li>
+<li id="ref-71"><span class="src">Software Developers, Quality Assurance Analysts, and Testers（Occupational Outlook Handbook）</span> <span class="meta">· U.S. Bureau of Labor Statistics，May 2025 資料</span> <span class="tier">揭露</span><br><a href="https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm">https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm</a></li>
+<li id="ref-72"><span class="src">Local Wages: Software Developers（15-1252.00）</span> <span class="meta">· O*NET OnLine，轉載 BLS 2025 工資資料</span> <span class="tier">揭露（官方轉載）</span><br><a href="https://www.onetonline.org/link/localwages/15-1252.00">https://www.onetonline.org/link/localwages/15-1252.00</a></li>
+<li id="ref-73"><span class="src">Levels.fyi End of Year Pay Report 2025</span> <span class="meta">· Levels.fyi（使用者自報）</span> <span class="tier">調查（自報）</span><br><a href="https://www.levels.fyi/2025/">https://www.levels.fyi/2025/</a></li>
+<li id="ref-74"><span class="src">Characteristics and generative mechanisms of software development productivity distributions</span> <span class="meta">· Magne Jørgensen，Simula，2023</span> <span class="tier">論文</span><br><a href="https://web-backend.simula.no/sites/default/files/publications/files/characteristicsproductivitydistributions2023.pdf">https://web-backend.simula.no/sites/default/files/publications/files/characteristicsproductivitydistributions2023.pdf</a></li>
+<li id="ref-75"><span class="src">The Effects of Generative AI on High-Skilled Work: Evidence from Three Field Experiments with Software Developers</span> <span class="meta">· Cui, Demirer, Jaffe, Musolff, Peng, Salz，SSRN 4945566</span> <span class="tier">論文</span><br><a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4945566">https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4945566</a></li>
+<li id="ref-76"><span class="src">Generative AI at Work</span> <span class="meta">· Brynjolfsson, Li, Raymond，NBER w31161（QJE 2025）</span> <span class="tier">論文</span><br><a href="https://www.nber.org/papers/w31161">https://www.nber.org/papers/w31161</a></li>
+<li id="ref-77"><span class="src">Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity</span> <span class="meta">· METR，2025-07-10</span> <span class="tier">論文</span><br><a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/">https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/</a></li>
+<li id="ref-78"><span class="src">METR 開發者生產力研究更新（2025 下半年資料）</span> <span class="meta">· METR，2026-02-24</span> <span class="tier">論文</span><br><a href="https://metr.org/blog/2026-02-24-uplift-update/">https://metr.org/blog/2026-02-24-uplift-update/</a></li>
+<li id="ref-79"><span class="src">AI Writes Faster Than Humans Can Review: A Longitudinal Study of an Enterprise 2x Mandate</span> <span class="meta">· He, Agarwal, Denisov-Blanch, Azaletskiy, Koyejo, Vasilescu，arXiv 2607.01904，2026-07-02</span> <span class="tier">論文（預印本）</span><br><a href="https://arxiv.org/abs/2607.01904">https://arxiv.org/abs/2607.01904</a></li>
+<li id="ref-80"><span class="src">Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity（論文版，含螢幕錄影分析）</span> <span class="meta">· arXiv 2507.09089</span> <span class="tier">論文</span><br><a href="https://arxiv.org/abs/2507.09089">https://arxiv.org/abs/2507.09089</a></li>
+<li id="ref-81"><span class="src">The AI Productivity Paradox</span> <span class="meta">· Faros AI，2025-07-23</span> <span class="tier">調查（廠商遙測）</span><br><a href="https://www.faros.ai/blog/ai-software-engineering">https://www.faros.ai/blog/ai-software-engineering</a></li>
+<li id="ref-82"><span class="src">Estimating AI productivity gains from Claude conversations</span> <span class="meta">· Anthropic，2025-11-25</span> <span class="tier">揭露（模型估計）</span><br><a href="https://www.anthropic.com/research/estimating-productivity-gains">https://www.anthropic.com/research/estimating-productivity-gains</a></li>
+<li id="ref-83"><span class="src">US vs China on the Epoch Capabilities Index</span> <span class="meta">· Epoch AI，2026-01-02</span> <span class="tier">分析師（研究機構）</span><br><a href="https://epoch.ai/data-insights/us-vs-china-eci">https://epoch.ai/data-insights/us-vs-china-eci</a></li>
+<li id="ref-84"><span class="src">CAISI Evaluation of DeepSeek V4 Pro</span> <span class="meta">· NIST CAISI，2026-05-01（美國政府機構，有政策立場）</span> <span class="tier">揭露（政府評估）</span><br><a href="https://www.nist.gov/news-events/news/2026/05/caisi-evaluation-deepseek-v4-pro">https://www.nist.gov/news-events/news/2026/05/caisi-evaluation-deepseek-v4-pro</a></li>
+<li id="ref-85"><span class="src">Kimi K3（Epoch AI 模型頁）</span> <span class="meta">· Epoch AI，查於 2026-09-10</span> <span class="tier">分析師（研究機構）</span><br><a href="https://epoch.ai/models/kimi-k3">https://epoch.ai/models/kimi-k3</a></li>
+<li id="ref-86"><span class="src">METR 對 DeepSeek 與 Qwen 模型的評估</span> <span class="meta">· METR，2025-06-27</span> <span class="tier">揭露（研究機構）</span><br><a href="https://metr.org/evaluations/deepseek-qwen-report/">https://metr.org/evaluations/deepseek-qwen-report/</a></li>
+<li id="ref-87"><span class="src">GPT-6 Astra（Artificial Analysis 模型頁）</span> <span class="meta">· Artificial Analysis，查於 2026-09-10</span> <span class="tier">分析師</span><br><a href="https://artificialanalysis.ai/models/gpt-6-astra">https://artificialanalysis.ai/models/gpt-6-astra</a></li>
+<li id="ref-88"><span class="src">Claude Fable 5.1（Artificial Analysis 模型頁）</span> <span class="meta">· Artificial Analysis，查於 2026-09-10</span> <span class="tier">分析師</span><br><a href="https://artificialanalysis.ai/models/claude-fable-5-1">https://artificialanalysis.ai/models/claude-fable-5-1</a></li>
+<li id="ref-89"><span class="src">Claude Opus 4.8（Artificial Analysis 模型頁）</span> <span class="meta">· Artificial Analysis，查於 2026-09-10</span> <span class="tier">分析師</span><br><a href="https://artificialanalysis.ai/models/claude-opus-4-8">https://artificialanalysis.ai/models/claude-opus-4-8</a></li>
+<li id="ref-90"><span class="src">GLM-5.3（Artificial Analysis 模型頁）</span> <span class="meta">· Artificial Analysis，查於 2026-09-10</span> <span class="tier">分析師</span><br><a href="https://artificialanalysis.ai/models/glm-5-3">https://artificialanalysis.ai/models/glm-5-3</a></li>
+<li id="ref-91"><span class="src">Kimi K3（Artificial Analysis 模型頁）</span> <span class="meta">· Artificial Analysis，查於 2026-09-10</span> <span class="tier">分析師</span><br><a href="https://artificialanalysis.ai/models/kimi-k3">https://artificialanalysis.ai/models/kimi-k3</a></li>
+<li id="ref-92"><span class="src">DeepSeek V4 Pro 0813（Artificial Analysis 模型頁）</span> <span class="meta">· Artificial Analysis，查於 2026-09-10</span> <span class="tier">分析師</span><br><a href="https://artificialanalysis.ai/models/deepseek-v4-pro">https://artificialanalysis.ai/models/deepseek-v4-pro</a></li>
+<li id="ref-93"><span class="src">State of AI: An Empirical 100 Trillion Token Study with OpenRouter</span> <span class="meta">· OpenRouter × a16z，arXiv 2601.10088，2025-12</span> <span class="tier">調查（平台資料）</span><br><a href="https://arxiv.org/abs/2601.10088">https://arxiv.org/abs/2601.10088</a></li>
+<li id="ref-94"><span class="src">Measuring-Early-2025-AI-on-Exp-OSS-Devs（公開資料與程式碼）</span> <span class="meta">· METR，GitHub</span> <span class="tier">揭露（資料集）</span><br><a href="https://github.com/METR/Measuring-Early-2025-AI-on-Exp-OSS-Devs">https://github.com/METR/Measuring-Early-2025-AI-on-Exp-OSS-Devs</a></li>
+<li id="ref-95"><span class="src">Measuring-Late-2025-AI-on-OSS-Devs（公開資料與程式碼）</span> <span class="meta">· METR，GitHub</span> <span class="tier">揭露（資料集）</span><br><a href="https://github.com/METR/Measuring-Late-2025-AI-on-OSS-Devs">https://github.com/METR/Measuring-Late-2025-AI-on-OSS-Devs</a></li>
+<li id="ref-96"><span class="src">AIDev: Studying AI Coding Agents on GitHub</span> <span class="meta">· Hao Li 等，arXiv 2602.09185</span> <span class="tier">論文（資料集）</span><br><a href="https://arxiv.org/abs/2602.09185">https://arxiv.org/abs/2602.09185</a></li>
+<li id="ref-97"><span class="src">OSWorld 2.0 Leaderboard</span> <span class="meta">· Snorkel AI（XLANG Lab, University of Hong Kong 維護），更新 2026-09-04</span> <span class="tier">揭露（排行榜）</span><br><a href="https://snorkel.ai/leaderboard/os-world-2-0/">https://snorkel.ai/leaderboard/os-world-2-0/</a></li>
+<li id="ref-98"><span class="src">OSWorld-V2 README</span> <span class="meta">· xlang-ai/OSWorld-V2，GitHub</span> <span class="tier">揭露（官方文件）</span><br><a href="https://github.com/xlang-ai/OSWorld-V2/blob/main/README.md">https://github.com/xlang-ai/OSWorld-V2/blob/main/README.md</a></li>
+<li id="ref-99"><span class="src">Upcoming changes to GitHub Copilot policies and billing</span> <span class="meta">· GitHub Changelog，2026-08-28</span> <span class="tier">揭露</span><br><a href="https://github.blog/changelog/2026-08-28-upcoming-changes-to-github-copilot-policies-and-billing/">https://github.blog/changelog/2026-08-28-upcoming-changes-to-github-copilot-policies-and-billing/</a></li>
+</ol>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;   // state in a variable
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
