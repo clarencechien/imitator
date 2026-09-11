@@ -466,6 +466,9 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
    PAPER:     布告欄用的米灰卡紙，hsl(36 24% 93%)。
    VOICE:     橫條當主文、等寬數字貼在條尾、藏青只給標尺與裁決。
    NOT:       儀表板篩選器、熱力圖裝飾、把表格再放大一次。
+   SERIES:    圖表型態色一律取 chassis --c1…c5（依序、不重挑）；灰只給圈外地板，當淡化色，不佔色槽。
+              已跑 dataviz validate_palette：亮／暗兩模式 CVD 與一般視覺都通過；
+              亮色 c3/c4/c5 對紙面低於 3:1，所以每條線、每根條都有直接標值與附錄表格。
    RECENT:    unavailable */
 
 :root {
@@ -478,17 +481,19 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
   --rule-hard: hsl(210 18% 28%);
   --accent: hsl(210 38% 28%);
   --accent-soft: hsl(36 30% 86%);
-  --a: hsl(210 38% 28%);
-  --b: hsl(152 28% 32%);
-  --c: hsl(8 48% 38%);
-  --d: hsl(32 48% 38%);
-  --e: hsl(210 8% 42%);
-  --f: hsl(280 18% 38%);
   --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --serif: "Noto Serif TC", "Songti TC", PMingLiU, serif;
   --disp: var(--serif);
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
   --fs-display: clamp(2.05rem, 1.15rem + 3.4vw, 3.35rem);
+
+  /* 型態 → 色槽（順序固定） */
+  --k-tech:   var(--c1);   /* 高位科技／設計／代工 */
+  --k-ship:   var(--c2);   /* 航運暴起暴落 */
+  --k-ai:     var(--c3);   /* AI 供應鏈爬坡 */
+  --k-stable: var(--c4);   /* 0050 內穩定圈 */
+  --k-pack:   var(--c5);   /* 封測／PCB：股票進 0050，薪水貼地板 */
+  --k-floor:  hsl(210 8% 48%); /* 圈外地板（淡化，不佔色槽） */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -497,17 +502,12 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
     --card: hsl(210 12% 13%);
     --ink: hsl(36 20% 92%);
     --ink-2: hsl(36 10% 72%);
-    --mist: hsl(210 8% 58%);
+    --mist: hsl(210 8% 60%);
     --rule: hsl(210 10% 22%);
     --rule-hard: hsl(28 40% 48%);
     --accent: hsl(28 52% 62%);
-    --accent-soft: hsl(210 14% 18%);
-    --a: hsl(28 52% 62%);
-    --b: hsl(152 35% 48%);
-    --c: hsl(8 55% 58%);
-    --d: hsl(38 55% 55%);
-    --e: hsl(210 8% 58%);
-    --f: hsl(280 25% 62%);
+    --accent-soft: hsl(210 14% 19%);
+    --k-floor: hsl(210 8% 56%);
   }
 }
 html[data-theme="light"] {
@@ -520,188 +520,222 @@ html[data-theme="light"] {
   --rule-hard: hsl(210 18% 28%);
   --accent: hsl(210 38% 28%);
   --accent-soft: hsl(36 30% 86%);
-  --a: hsl(210 38% 28%);
-  --b: hsl(152 28% 32%);
-  --c: hsl(8 48% 38%);
-  --d: hsl(32 48% 38%);
-  --e: hsl(210 8% 42%);
-  --f: hsl(280 18% 38%);
+  --k-floor: hsl(210 8% 48%);
 }
 html[data-theme="dark"] {
   --paper: hsl(210 14% 9%);
   --card: hsl(210 12% 13%);
   --ink: hsl(36 20% 92%);
   --ink-2: hsl(36 10% 72%);
-  --mist: hsl(210 8% 58%);
+  --mist: hsl(210 8% 60%);
   --rule: hsl(210 10% 22%);
   --rule-hard: hsl(28 40% 48%);
   --accent: hsl(28 52% 62%);
-  --accent-soft: hsl(210 14% 18%);
-  --a: hsl(28 52% 62%);
-  --b: hsl(152 35% 48%);
-  --c: hsl(8 55% 58%);
-  --d: hsl(38 55% 55%);
-  --e: hsl(210 8% 58%);
-  --f: hsl(280 25% 62%);
+  --accent-soft: hsl(210 14% 19%);
+  --k-floor: hsl(210 8% 56%);
 }
 
 .file-meta { font-family: var(--mono); font-size: var(--fs-xs); color: var(--mist); letter-spacing: .03em; }
-.axis { font-family: var(--mono); font-size: 11px; fill: var(--mist); }
-.chart svg { width: 100%; height: auto; display: block; }
 
-figure.chart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-.report > figure.chart.wide {
-  max-width: none;
-  margin-inline: calc(-1 * var(--bleed));
-}
-figure.chart.wide svg {
-  display: block;
-  width: min(100%, 58rem);
-  max-width: none !important;
-  min-width: 0 !important;
-  margin-inline: auto;
-  height: auto;
-}
-figure.chart figcaption {
-  width: min(100%, var(--measure));
-  margin-inline: auto;
-}
-figure.chart > .tip {
-  position: static;
-  margin: 0 auto .7rem;
-}
+/* Browsers give <figure> 40px inline margins; the chassis only resets block
+   margins. :where() keeps this below .wide so the bleed still wins. */
+:where(.report) figure { margin-inline: 0; }
 
-.legend { display: flex; flex-wrap: wrap; gap: .55rem 1.1rem; font-size: var(--fs-sm); color: var(--ink-2); margin: 0 0 var(--sp-4); }
-.legend i { display: inline-block; width: .7rem; height: .7rem; border-radius: 2px; margin-right: .35rem; vertical-align: -1px; }
-.sw-a { background: var(--a); } .sw-b { background: var(--b); } .sw-c { background: var(--c); }
-.sw-d { background: var(--d); } .sw-e { background: var(--e); } .sw-f { background: var(--f); }
+/* Reserve the scrollbar lane so a chart that changes page height cannot
+   toggle the scrollbar and bounce every chart's width. */
+html { scrollbar-gutter: stable; }
 
-.board { max-width: none; margin-inline: calc(-1 * var(--bleed)); }
-.ghead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: var(--sp-5) 0 var(--sp-3); padding-bottom: .35rem; border-bottom: 1px solid var(--rule-hard); }
+/* ── 型態圖例 ── */
+.keys { list-style: none; padding: 0; margin: var(--sp-3) 0 0; display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+.keys li { margin: 0; display: inline-flex; align-items: center; gap: .45em; }
+.keys li + li { margin-top: 0; }
+.keys[data-for] li { cursor: default; }
+.sw { display: inline-block; width: .72em; height: .72em; border-radius: 2px; flex: none; }
+.lnk { display: inline-block; width: 1.25em; height: 0; border-top: 2px solid; flex: none; }
+.lnk.dash { border-top-style: dashed; }
+.dotk { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--ink-2); }
+.dotk.open { background: transparent; border: 2px solid var(--ink-2); }
+.lede-keys { margin: var(--sp-4) 0 0; }
+
+/* ── 圖卡：所有寬圖共用同一個底 ── */
+figure.viz {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: clamp(.85rem, .55rem + 1.1vw, 1.5rem);
+  margin-block: var(--sp-5) var(--sp-6);
+}
+.viz-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; margin: 0 0 var(--sp-3); }
+.viz-head > div { min-width: 0; }
+.viz-head .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; line-height: 1.35; margin: 0; }
+.viz-head .sub { font-family: var(--mono); font-size: var(--fs-xs); color: var(--mist); letter-spacing: .02em; line-height: 1.5; margin: .2rem 0 0; }
+.viz-head .sub span { display: inline-block; white-space: nowrap; }
+.viz-head .sub span + span::before { content: "·"; margin: 0 .55em; }
+.zoom-btn {
+  flex: none; min-height: 40px; padding: .3rem .8rem;
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .04em; color: var(--ink-2);
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 999px; cursor: zoom-in;
+}
+.zoom-btn:hover { border-color: var(--accent); color: var(--ink); }
+figure.viz > figcaption { font-size: var(--fs-sm); color: var(--mist); line-height: 1.75; margin-top: var(--sp-3); max-width: var(--measure); }
+
+.plot { position: relative; width: 100%; min-height: 8rem; }
+.plot svg { display: block; max-width: none; height: auto; overflow: visible; touch-action: pan-y; }
+.plot text { font-family: var(--sans); font-size: 12px; }
+.plot .tick { fill: var(--mist); font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.plot .grid { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
+.plot .base { stroke: var(--mist); stroke-width: 1; opacity: .55; shape-rendering: crispEdges; }
+.plot .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.plot .ctx .ln { stroke-width: 1.5; }
+.plot .dim { opacity: .5; }
+.plot .dash { stroke-dasharray: 5 4; }
+.plot .end { stroke: var(--card); stroke-width: 2; }
+.plot .lab { fill: var(--ink); font-weight: 600; }
+.plot .lab.dim { fill: var(--ink-2); font-weight: 400; opacity: 1; }
+.plot .lab.ctx { fill: var(--mist); font-weight: 400; }
+.plot .leader { stroke: var(--mist); stroke-width: 1; fill: none; opacity: .6; }
+.plot .cross { stroke: var(--rule-hard); stroke-width: 1; opacity: .55; shape-rendering: crispEdges; }
+.plot .hov { fill: var(--card); stroke-width: 2.5; pointer-events: none; }
+.plot .ser, .plot .lab, .plot .lg { transition: opacity var(--dur-fast) var(--ease-out); }
+.plot svg.has-active .ser:not(.on),
+.plot svg.has-active .lg:not(.on) { opacity: .16; }
+.plot .ser.on .ln { stroke-width: 2.75; }
+
+/* dumbbell */
+.plot .band { fill: var(--accent-soft); opacity: 0; }
+.plot .band.on { opacity: 1; }
+.plot .nm { fill: var(--ink-2); }
+.plot .val { fill: var(--ink); font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.plot .chg { fill: var(--mist); font-family: var(--mono); }
+.plot .open { fill: var(--card); stroke-width: 2; }
+.plot .fill { stroke: var(--card); stroke-width: 2; }
+
+/* 三張圈內小倍數 */
+.trio { display: grid; gap: var(--sp-3); grid-template-columns: minmax(0, 1fr); margin-block: var(--sp-5) var(--sp-6); }
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .trio { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trio > :last-child { grid-column: 1 / -1; }
+}
+@media (min-width: 64rem) { .trio { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.trio .viz-head .sub span { display: block; }
+.trio .viz-head .sub span + span::before { content: none; }
+.trio > * { min-width: 0; }
+.trio figure.viz { margin: 0; display: flex; flex-direction: column; }
+.trio .viz-head .title { font-family: var(--sans); font-size: 1.05rem; font-weight: 700; }
+.trio .pnote { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.75; margin: var(--sp-2) 0 0; }
+
+/* ── 看板：HTML 橫條 ── */
+.board { --name-w: clamp(8rem, 3.5rem + 7vw, 10.5rem); --val-w: 3.1rem; }
+.bgroup + .bgroup { margin-top: var(--sp-5); }
+.ghead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .1rem 1rem; margin: 0 0 .15rem; padding-bottom: .35rem; border-bottom: 1px solid var(--rule-hard); }
 .ghead h3 { margin: 0; font-size: var(--fs-3); }
 .ghead span { font-family: var(--mono); font-size: var(--fs-xs); color: var(--mist); }
-
-.row { display: grid; grid-template-columns: minmax(6.2rem, 8.2rem) minmax(0, 1fr) 3.4rem; gap: .45rem .7rem; align-items: center; margin: .28rem 0; }
-.row .name { font-size: var(--fs-sm); line-height: 1.3; color: var(--ink); }
-.row .name small { display: block; color: var(--mist); font-family: var(--mono); font-size: 10px; letter-spacing: .02em; }
-.track { position: relative; height: 13px; background: color-mix(in srgb, var(--rule) 80%, transparent); border-radius: 99px; min-width: 0; }
-.fill { height: 100%; border-radius: 99px; }
-.fill.a { background: var(--a); } .fill.b { background: var(--b); } .fill.c { background: var(--c); }
-.fill.d { background: var(--d); } .fill.e { background: var(--e); } .fill.f { background: var(--f); }
-.fill.ghost { background: color-mix(in srgb, var(--e) 45%, transparent); }
-.val { font-family: var(--mono); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
-
-.scale { display: grid; grid-template-columns: minmax(6.2rem, 8.2rem) minmax(0, 1fr) 3.4rem; gap: .45rem .7rem; color: var(--mist); font-family: var(--mono); font-size: 10px; margin-bottom: .4rem; }
-.scale .ticks { display: flex; justify-content: space-between; }
-
-.spark-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.5rem), 1fr)); }
-.spark { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: .9rem 1rem .75rem; min-width: 0; }
-.spark .top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; margin-bottom: .35rem; }
-.spark h4 { margin: 0; font-size: 1rem; font-family: var(--sans); font-weight: 700; }
-.spark .n { font-family: var(--mono); font-size: 12px; color: var(--mist); }
-.spark svg { width: 100%; height: 72px; display: block; }
-.panel { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: .9rem 1rem .85rem; min-width: 0; }
-.panel .top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; margin-bottom: .35rem; }
-.panel h4 { margin: 0; font-size: 1rem; font-family: var(--sans); font-weight: 700; }
-.panel .n { font-family: var(--mono); font-size: 12px; color: var(--mist); }
-.panel svg { width: 100%; height: auto; display: block; min-height: 11rem; }
-.panel > p.n { margin: .45rem 0 0; }
-
-.panel, .spark, .chart, .board { cursor: zoom-in; position: relative; }
-.panel:focus-visible, .spark:focus-visible, .chart:focus-visible, .board:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.zoom-hint { font-family: var(--mono); font-size: 10px; color: var(--mist); letter-spacing: .04em; }
-.tip {
-  display: inline-flex; align-items: center; gap: .3rem;
-  font-family: var(--mono); font-size: 11px; color: var(--mist);
-  border: 1px solid var(--rule); border-radius: 999px;
-  padding: .12rem .55rem; letter-spacing: .03em;
-  background: var(--card); pointer-events: none;
+.brow, .baxis { display: grid; grid-template-columns: var(--name-w) minmax(0, 1fr); column-gap: .8rem; align-items: center; }
+.brow { min-height: 2.35rem; padding-block: .18rem; border-radius: 4px; }
+.brow[data-id] { cursor: default; }
+.brow.on { background: var(--accent-soft); }
+.bname { font-size: var(--fs-sm); line-height: 1.25; color: var(--ink); min-width: 0; padding-left: .25rem; }
+.bname small { display: block; font-family: var(--mono); font-size: 12px; color: var(--mist); letter-spacing: .01em; line-height: 1.35; margin-top: .05rem; }
+.bplot, .bticks { position: relative; margin-right: var(--val-w); }
+.bplot { height: 1.5rem;
+  background:
+    linear-gradient(to right, var(--rule) 1px, transparent 1px) 0 0 / 25% 100% repeat-x;
+  box-shadow: inset -1px 0 0 var(--rule);
 }
-.tip:before { content: ""; width: .55rem; height: .55rem; border: 1.5px solid var(--mist); border-radius: 2px; box-shadow: 2px 2px 0 var(--rule); }
-.chart > .tip, .board > .tip, .panel > .tip, .spark > .tip {
-  position: absolute; top: .45rem; right: .5rem; z-index: 2;
-}
-.spark .top { padding-right: 4.6rem; }
-.panel .top { padding-right: 4.6rem; }
-.lightbox .stage .tip { display: none; }
-.lightbox .stage .chart,
-.lightbox .stage .board,
-.lightbox .stage .panel,
-.lightbox .stage .spark { cursor: default; border: 0; padding: .2rem; }
-.lightbox .stage .board { max-width: none; margin: 0; }
+.bar { position: absolute; left: 0; top: 50%; height: 12px; transform: translateY(-50%); width: var(--w); min-width: 2px; background: var(--col); border-radius: 0 4px 4px 0; }
+.bval { position: absolute; top: 50%; left: calc(var(--w) + .4rem); transform: translateY(-50%); font-family: var(--mono); font-size: 12.5px; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; line-height: 1;
+  text-shadow: 0 0 3px var(--card), 0 0 3px var(--card), 0 0 1px var(--card); }
+.baxis { margin-top: .45rem; }
+.bticks { height: 1.1rem; font-family: var(--mono); font-size: 12px; color: var(--mist); font-variant-numeric: tabular-nums; }
+.bticks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; line-height: 1; }
+.bticks span:first-child { transform: none; }
 
-.lightbox {
-  position: fixed; inset: 0; z-index: 80;
-  background: color-mix(in srgb, var(--paper) 82%, black);
-  display: grid; place-items: center;
-  padding: clamp(1rem, 4vw, 2.5rem);
-}
-.lightbox[hidden] { display: none !important; }
-.lightbox .stage {
-  width: min(96vw, 78rem);
-  max-height: 92vh;
-  overflow: auto;
-  background: var(--card);
-  border: 1px solid var(--rule-hard);
-  border-radius: calc(var(--radius) + 4px);
-  padding: 1.25rem 1.5rem 1.5rem;
-}
-.lightbox .stage .panel,
-.lightbox .stage .spark,
-.lightbox .stage .chart,
-.lightbox .stage .board { cursor: default; border: 0; padding: 0; overflow: visible; max-width: none; margin: 0; width: 100%; }
-.lightbox .stage svg {
-  width: 100% !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0;
-  overflow: visible;
-}
-.lightbox .stage .chart svg { min-height: min(62vh, 34rem); }
-.lightbox .stage .panel svg { min-height: min(52vh, 28rem); }
-.lightbox .stage .spark svg { min-height: min(42vh, 18rem); }
-.lightbox .stage figcaption { max-width: none; margin-top: .8rem; }
-.zoom-close {
-  position: fixed; top: 1rem; right: 1rem;
-  font-family: var(--mono); font-size: 13px;
-  background: var(--card); color: var(--ink);
-  border: 1px solid var(--rule-hard); border-radius: 999px;
-  padding: .35rem .8rem; cursor: pointer;
-}
-.zoom-close:hover { border-color: var(--accent); }
+/* ── 走勢表 ── */
+.trend table { min-width: 44rem; }
+.trend th, .trend td { vertical-align: middle; padding: .5rem .75rem; }
+.trend td:first-child { white-space: nowrap; font-weight: 600; color: var(--ink); }
+.trend td:first-child .sw { margin-right: .5em; vertical-align: .02em; }
+.trend td.spk { width: 148px; padding-block: .3rem; }
+.trend td.spk svg { display: block; width: 132px; height: 34px; max-width: none; overflow: visible; }
+.trend td.num { font-family: var(--mono); white-space: nowrap; }
+.trend td.num small { display: block; font-size: 11px; color: var(--mist); line-height: 1.2; }
+.trend td.chg { font-family: var(--mono); color: var(--ink-2); white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+.trend td.memo { color: var(--ink-2); min-width: 13em; line-height: 1.6; }
+.trend tr.grp td { background: var(--paper); font-family: var(--mono); font-size: var(--fs-xs); font-weight: 400; color: var(--mist); letter-spacing: .03em; padding-block: .45rem; white-space: normal; }
+.trend tbody tr[data-id]:hover td { background: var(--accent-soft); }
+.trend .spk .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend .spk .dash { stroke-dasharray: 4 3; }
+.trend .spk .base { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
+.brow.on .bval { text-shadow: 0 0 3px var(--accent-soft), 0 0 3px var(--accent-soft); }
+.trend .spk .end { stroke: var(--card); stroke-width: 1.5; }
 
-.delta { font-family: var(--mono); font-size: 12px; }
-.delta.up { color: var(--b); } .delta.dn { color: var(--c); } .delta.flat { color: var(--mist); }
+/* ── 附錄表格 ── */
+.data table { min-width: 38rem; }
+.data td:first-child, .data th:first-child { white-space: nowrap; }
+.data td.num, .data th.num { font-family: var(--mono); }
+.data tbody tr:hover td { background: var(--accent-soft); }
 
-
+/* ── 型態卡 ── */
 .kinds { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.5rem), 1fr)); }
-.kind { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1rem 1.1rem 1.05rem; min-width: 0; border-top: 3px solid var(--e); }
-.kind.ka { border-top-color: var(--a); }
-.kind.kb { border-top-color: var(--b); }
-.kind.kc { border-top-color: var(--c); }
-.kind.kd { border-top-color: var(--d); }
-.kind.ke { border-top-color: var(--e); }
-.kind.kf { border-top-color: var(--f); }
-.kind .who { font-family: var(--mono); font-size: 11px; color: var(--mist); margin: 0 0 .25rem; }
+.kind { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1rem 1.1rem 1.05rem; min-width: 0; border-top: 3px solid var(--k-floor); }
+.kind.ka { border-top-color: var(--k-tech); }
+.kind.kb { border-top-color: var(--k-ai); }
+.kind.kc { border-top-color: var(--k-ship); }
+.kind.kd { border-top-color: var(--k-stable); }
+.kind.ke { border-top-color: var(--k-floor); }
+.kind .who { font-family: var(--mono); font-size: 12px; color: var(--mist); margin: 0 0 .25rem; }
 .kind h3 { margin: 0 0 .4rem; font-size: 1.12rem; }
 .kind p { margin: 0; font-size: var(--fs-sm); line-height: 1.7; color: var(--ink-2); }
 .kind strong { color: var(--ink); font-weight: 700; }
 
-.lab { font-family: var(--mono); font-size: 11px; fill: var(--ink); }
-.lab-dim { font-family: var(--mono); font-size: 11px; fill: var(--mist); }
-
 .verdict { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+.verdict > * { min-width: 0; }
 .verdict .card h3 { margin-top: 0; }
 
-@media (max-width: 520px) {
-  .row, .scale { grid-template-columns: minmax(5.4rem, 6.4rem) minmax(0, 1fr) 2.8rem; }
-  .track { height: 11px; }
+/* ── tooltip ── */
+.vt {
+  position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none;
+  min-width: 9rem; max-width: 17rem;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--rule-hard); border-radius: 8px;
+  padding: .5rem .7rem .55rem; font-size: 13px; line-height: 1.45;
+  box-shadow: 0 8px 24px rgb(0 0 0 / .14);
+}
+.vt[hidden] { display: none; }
+.vt .vt-h { font-family: var(--mono); font-size: 12px; color: var(--mist); margin: 0 0 .3rem; letter-spacing: .02em; }
+.vt .vt-t { font-weight: 700; margin: 0 0 .25rem; }
+.vt ul { list-style: none; margin: 0; padding: 0; }
+.vt li { display: grid; grid-template-columns: .6rem minmax(0, 1fr) auto; align-items: center; gap: .5rem; margin: 0; }
+.vt li + li { margin-top: .08rem; }
+.vt li i { width: .6rem; height: .6rem; border-radius: 2px; }
+.vt li b { font-family: var(--mono); font-weight: 400; font-variant-numeric: tabular-nums; }
+.vt li.on span, .vt li.on b { font-weight: 700; }
+.vt .yrs { display: grid; grid-template-columns: repeat(3, auto); gap: .1rem .8rem; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.vt .yrs span em { font-style: normal; color: var(--mist); margin-right: .3em; }
+.vt .vt-note { margin: .35rem 0 0; font-size: 12px; color: var(--ink-2); }
+
+/* ── 放大檢視 ── */
+.lightbox { position: fixed; inset: 0; z-index: 80; background: color-mix(in srgb, var(--paper) 80%, black); display: grid; place-items: center; padding: clamp(.75rem, 3vw, 2.5rem); }
+.lightbox[hidden] { display: none !important; }
+.lightbox .stage { width: min(100%, 80rem); max-height: 92vh; overflow: auto; scrollbar-gutter: stable; background: var(--card); border: 1px solid var(--rule-hard); border-radius: calc(var(--radius) + 4px); padding: clamp(.9rem, .6rem + 1.2vw, 1.6rem); }
+.lightbox .stage .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 4.5rem var(--sp-3) 0; }
+.zoom-close { position: fixed; top: 1rem; right: 1rem; min-height: 44px; font-family: var(--mono); font-size: 13px; background: var(--card); color: var(--ink); border: 1px solid var(--rule-hard); border-radius: 999px; padding: .35rem 1rem; cursor: pointer; }
+.zoom-close:hover { border-color: var(--accent); }
+
+@media (max-width: 40rem) {
+  .zoom-btn { display: none; }
+  /* phone: name on its own line, bar gets the full width */
+  .brow, .baxis { grid-template-columns: minmax(0, 1fr); }
+  .baxis > span:first-child { display: none; }
+  .brow { min-height: 0; padding-block: .3rem .15rem; row-gap: .05rem; }
+  .bname { padding-left: 0; }
+  .bname small { display: inline; margin: 0 0 0 .5em; }
+  .bplot { height: 1.2rem; }
+  .bval { font-size: 12px; }
+}
+@media print {
+  .zoom-btn, .vt, .lightbox { display: none !important; }
+  figure.viz { border-color: #ccc; }
 }
 </style>
 
@@ -711,17 +745,17 @@ figure.chart > .tip {
 <article class="report">
 <p class="eyebrow">0050 × 圈外地板 · 年薪萬元 · 圖為主文</p>
 <h1 class="display">同一把尺上，才看得出誰被行情改寫</h1>
-<p class="lede">先看圖，表只在最後當查數。0050 的公司用證交所非主管中位數；批發零售、餐飲、醫療用主計總處總薪資。顏色依型態：藏青是高位科技、綠是 AI 爬坡、紅是暴起暴落、褐是 0050 內穩定圈、灰是圈外服務業。</p>
+<p class="lede">先看圖，表只在最後當查數。0050 的公司用證交所非主管中位數；批發零售、餐飲、醫療用主計總處總薪資。顏色依型態：藍是高位科技、橘是暴起暴落、綠是 AI 爬坡、琥珀是 0050 內穩定圈、粉是封測與 PCB、灰是圈外服務業。</p>
 <p class="byline">2020–2025。單位新台幣萬元。尺長統一，不截軸。</p>
 
-<div class="legend">
-<span><i class="sw-a"></i>高位科技／設計／代工</span>
-<span><i class="sw-b"></i>AI 供應鏈爬坡</span>
-<span><i class="sw-c"></i>航運暴起暴落</span>
-<span><i class="sw-d"></i>0050 內穩定圈</span>
-<span><i class="sw-e"></i>圈外服務業地板</span>
-
-</div>
+<ul class="keys lede-keys" aria-label="型態色">
+<li><i class="sw" style="background:var(--k-tech)"></i>高位科技／設計／代工</li>
+<li><i class="sw" style="background:var(--k-ship)"></i>航運暴起暴落</li>
+<li><i class="sw" style="background:var(--k-ai)"></i>AI 供應鏈爬坡</li>
+<li><i class="sw" style="background:var(--k-stable)"></i>0050 內穩定圈</li>
+<li><i class="sw" style="background:var(--k-pack)"></i>封測／PCB：股票進 0050，薪水貼地板</li>
+<li><i class="sw" style="background:var(--k-floor)"></i>圈外服務業地板</li>
+</ul>
 
 <h2>你的五年，是哪一種五年</h2>
 <p>行情改寫的不是「台灣勞工」，是少數公式。先認自己站在哪一種曲線上，再決定要不要換。下面六種，是這五年實際發生過的形狀。</p>
@@ -760,96 +794,42 @@ figure.chart > .tip {
 </div>
 
 <h2>疊在一起，差在哪</h2>
-<p>同一張圖、同一把尺（30–430 萬）。尖的是長榮，高位平走的是聯發科，逐年上台階的是台積，後半才翹的是廣達。貼在底線幾乎重疊的，是統一、批發零售、住宿餐飲——那不是畫錯，是五年真的長那樣。</p>
+<p>同一張圖、同一把尺（0–450 萬）。尖的是長榮，高位平走的是聯發科，逐年上台階的是台積，後半才翹的是廣達。貼在底線幾乎重疊的灰線，是統一、批發零售、住宿餐飲——那不是畫錯，是五年真的長那樣。</p>
 
-<figure class="chart wide">
-<span class="tip">點圖放大</span>
-<svg viewBox="0 0 720 368" role="img" aria-label="五年年薪疊圖" preserveAspectRatio="xMidYMid meet">
-  <g stroke="var(--rule)" stroke-width="1">
-    <line x1="70.0" y1="40" x2="620.0" y2="40"/>
-    <line x1="70.0" y1="110" x2="620.0" y2="110"/>
-    <line x1="70.0" y1="180" x2="620.0" y2="180"/>
-    <line x1="70.0" y1="250" x2="620.0" y2="250"/>
-    <line x1="70.0" y1="320" x2="620.0" y2="320"/>
-  </g>
-  <text class="axis" x="36" y="44" text-anchor="end">430</text>
-  <text class="axis" x="36" y="114" text-anchor="end">330</text>
-  <text class="axis" x="36" y="184" text-anchor="end">230</text>
-  <text class="axis" x="36" y="254" text-anchor="end">130</text>
-  <text class="axis" x="36" y="324" text-anchor="end">30</text>
-  <text class="axis" x="70.0" y="348" text-anchor="middle">2020</text> <text class="axis" x="180.0" y="348" text-anchor="middle">2021</text> <text class="axis" x="290.0" y="348" text-anchor="middle">2022</text> <text class="axis" x="400.0" y="348" text-anchor="middle">2023</text> <text class="axis" x="510.0" y="348" text-anchor="middle">2024</text> <text class="axis" x="620.0" y="348" text-anchor="middle">2025</text>
-  <polyline fill="none" stroke="var(--c)" stroke-width="2.4" points="70.0,240.9 180.0,107.2 290.0,46.3 400.0,242.3 510.0,171.6 620.0,214.3"/>
-  <polyline fill="none" stroke="var(--a)" stroke-width="2.6" points="70.0,156.2 180.0,61.7 290.0,78.5 400.0,124.7 510.0,100.2 620.0,92.5"/>
-  <polyline fill="none" stroke="var(--a)" stroke-width="2.4" points="70.0,213.6 180.0,211.5 290.0,170.2 400.0,183.5 510.0,155.5 620.0,119.8"/>
-  <polyline fill="none" stroke="var(--b)" stroke-width="2.2" points="70.0,263.3 180.0,259.1 290.0,255.6 400.0,250.7 510.0,236.7 620.0,220.6"/>
-  <polyline fill="none" stroke="var(--d)" stroke-width="2" points="70.0,238.1 180.0,237.4 290.0,235.3 400.0,236.7 510.0,231.1 620.0,225.5"/>
-  <polyline fill="none" stroke="var(--d)" stroke-width="1.8" stroke-dasharray="4 3" points="70.0,267.5 180.0,268.2 290.0,270.3 400.0,270.3 510.0,268.2 620.0,268.2"/>
-  <polyline fill="none" stroke="var(--e)" stroke-width="1.8" stroke-dasharray="3 3" points="70.0,299.7 180.0,300.4 290.0,299.7 400.0,298.3 510.0,295.5 620.0,294.1"/>
-  <polyline fill="none" stroke="var(--e)" stroke-width="1.8" points="70.0,312.3 180.0,311.6 290.0,310.9 400.0,309.5 510.0,308.8 620.0,308.1"/>
-  <polyline fill="none" stroke="var(--b)" stroke-width="2.3" stroke-dasharray="6 3" points="70.0,279.4 180.0,272.4 290.0,273.8 400.0,277.3 510.0,287.1 620.0,182.1"/>
-  <text class="lab" x="632" y="90">聯發科</text>
-  <text class="lab" x="632" y="122">台積</text>
-  <text class="lab" x="632" y="208">長榮</text>
-  <text class="lab" x="448" y="248">廣達</text>
-  <text class="lab" x="540" y="176">緯穎</text>
-  <text class="lab-dim" x="470" y="222">中華電</text>
-  <text class="lab-dim" x="632" y="271">統一</text>
-  <text class="lab-dim" x="632" y="297">零售</text>
-  <text class="lab-dim" x="632" y="312">餐飲</text>
-</svg>
-<figcaption>紅：長榮。粗藏青：聯發科。細藏青：台積。綠實線：廣達。綠虛線：緯穎（2025 跳起，人數口徑有斷點）。褐實線：中華電。褐虛線：統一。灰：批發零售、住宿餐飲。</figcaption>
+<figure class="viz wide">
+<div class="viz-head">
+<div><p class="title">五年年薪疊圖</p><p class="sub"><span>非主管中位數 · 萬元</span><span>縱軸 0–450</span></p></div>
+<button class="zoom-btn" type="button" data-zoom="overlay">放大</button>
+</div>
+<div class="plot" data-chart="overlay"></div>
+<ul class="keys" data-for="overlay">
+<li data-id="mtk"><i class="lnk" style="color:var(--k-tech)"></i>聯發科</li>
+<li data-id="tsmc"><i class="lnk" style="color:var(--k-tech)"></i>台積電</li>
+<li data-id="evg"><i class="lnk" style="color:var(--k-ship)"></i>長榮</li>
+<li data-id="qnt"><i class="lnk" style="color:var(--k-ai)"></i>廣達</li>
+<li data-id="wiw"><i class="lnk dash" style="color:var(--k-ai)"></i>緯穎（虛線段＝口徑斷點）</li>
+<li><i class="lnk" style="color:var(--k-floor)"></i>灰：中華電、統一、批發零售、住宿餐飲</li>
+</ul>
+<figcaption>上色的是五條故事線，灰線當背景。批發零售、住宿餐飲只到 2024。緯穎 2024→2025 用虛線：非主管申報人數 4,210→1,296，前後不是同一群人。滑過圖面可看當年每一家的數字。</figcaption>
 </figure>
 
-<p>行業之間的差，大過行業裡面的差。但同行業仍能差一截——所以再拆三張，只叠同一圈的公司。<span class="zoom-hint"> 點卡片放大</span></p>
+<p>行業之間的差，大過行業裡面的差。但同行業仍能差一截——所以再拆三張，只叠同一圈的公司。三張各自縮放縱軸，看的是圈內誰領先、誰停住。</p>
 
-<div class="spark-grid wide">
-<figure class="panel" tabindex="0" role="button" aria-label="放大半導體圈內"><span class="tip">點圖放大</span>
-<div class="top"><h4>半導體圈內</h4><span class="n">代工 · 設計 · 記憶體</span></div>
-<svg viewBox="0 40 740 250" aria-hidden="true">
-  <line x1="80" y1="280" x2="660" y2="280" stroke="var(--rule)"/>
-  <polyline fill="none" stroke="var(--a)" stroke-width="2.4" points="80,156.2 196,61.7 312,78.5 428,124.7 544,100.2 660,92.5"/>
-  <polyline fill="none" stroke="var(--a)" stroke-width="2.2" points="80,213.6 196,211.5 312,170.2 428,183.5 544,155.5 660,119.8"/>
-  <polyline fill="none" stroke="var(--a)" stroke-width="1.8" stroke-dasharray="4 3" points="80,221.3 196,210.8 312,189.8 428,159.0 544,161.8 660,160.4"/>
-  <polyline fill="none" stroke="var(--a)" stroke-width="1.6" opacity=".7" points="80,254.9 196,210.8 312,230.4 428,244.4 544,235.3 660,227.6"/>
-  <polyline fill="none" stroke="var(--a)" stroke-width="1.6" opacity=".55" points="80,266.1 196,260.5 312,224.8 428,230.4 544,228.3 660,229.7"/>
-  <text class="lab" x="668" y="92">聯發科</text>
-  <text class="lab" x="668" y="122">台積</text>
-  <text class="lab-dim" x="668" y="160">創意</text>
-  <text class="lab-dim" x="668" y="228">華邦／聯電</text>
-</svg>
-<p class="n">同是半導體，聯發科高峰碰到 399，聯電卡在 160。代工兩家：台積在上台階，聯電 2022 跳完就停。</p>
+<div class="trio wide">
+<figure class="viz">
+<div class="viz-head"><div><p class="title">半導體圈內</p><p class="sub"><span>代工 · 設計 · 記憶體</span><span>縱軸 100–400</span></p></div><button class="zoom-btn" type="button" data-zoom="semi">放大</button></div>
+<div class="plot" data-chart="semi"></div>
+<p class="pnote">同是半導體，聯發科高峰碰到 399，聯電卡在 160。代工兩家：台積在上台階，聯電 2022 跳完就停。</p>
 </figure>
-<figure class="panel" tabindex="0" role="button" aria-label="放大AI鏈圈內"><span class="tip">點圖放大</span>
-<div class="top"><h4>AI 鏈圈內</h4><span class="n">組裝 · 電源 · 散熱</span></div>
-<svg viewBox="0 170 740 140" aria-hidden="true">
-  <line x1="80" y1="300" x2="660" y2="300" stroke="var(--rule)"/>
-  <polyline fill="none" stroke="var(--b)" stroke-width="2.2" points="80,224.8 196,212.9 312,217.1 428,217.1 544,205.2 660,198.9"/>
-  <polyline fill="none" stroke="var(--b)" stroke-width="2.2" points="80,263.3 196,259.1 312,255.6 428,250.7 544,236.7 660,220.6"/>
-  <polyline fill="none" stroke="var(--b)" stroke-width="2" points="80,255.6 196,250.7 312,241.6 428,238.1 544,233.2 660,224.1"/>
-  <polyline fill="none" stroke="var(--b)" stroke-width="1.8" points="80,284.3 196,280.1 312,277.3 428,267.5 544,266.8 660,255.6"/>
-  <polyline fill="none" stroke="var(--b)" stroke-width="2.3" stroke-dasharray="6 3" points="80,279.4 196,272.4 312,273.8 428,277.3 544,287.1 660,182.1"/>
-  <text class="lab" x="668" y="198">鴻海</text>
-  <text class="lab" x="668" y="222">廣達</text>
-  <text class="lab-dim" x="500" y="228">台達</text>
-  <text class="lab-dim" x="668" y="256">奇鋐</text>
-  <text class="lab" x="575" y="178">緯穎</text>
-</svg>
-<p class="n">廣達、台達、奇鋐後段往上。緯穎 2025 虛線陡升到 227，但非主管申報人數從 4,210 縮到 1,296，和前面四年不是同一群人。</p>
+<figure class="viz">
+<div class="viz-head"><div><p class="title">AI 鏈圈內</p><p class="sub"><span>組裝 · 電源 · 散熱</span><span>縱軸 50–250</span></p></div><button class="zoom-btn" type="button" data-zoom="ai">放大</button></div>
+<div class="plot" data-chart="ai"></div>
+<p class="pnote">廣達、台達、奇鋐後段往上。緯穎 2025 虛線陡升到 227，但非主管申報人數從 4,210 縮到 1,296，和前面四年不是同一群人。</p>
 </figure>
-<figure class="panel" tabindex="0" role="button" aria-label="放大穩定圈與圈外"><span class="tip">點圖放大</span>
-<div class="top"><h4>穩定圈與圈外</h4><span class="n">電信 · 食品 · 零售 · 餐飲</span></div>
-<svg viewBox="0 210 740 120" aria-hidden="true">
-  <line x1="80" y1="320" x2="660" y2="320" stroke="var(--rule)"/>
-  <polyline fill="none" stroke="var(--d)" stroke-width="2.2" points="80,238.1 196,237.4 312,235.3 428,236.7 544,231.1 660,225.5"/>
-  <polyline fill="none" stroke="var(--d)" stroke-width="2" stroke-dasharray="4 3" points="80,267.5 196,268.2 312,270.3 428,270.3 544,268.2 660,268.2"/>
-  <polyline fill="none" stroke="var(--e)" stroke-width="2" points="80,299.7 196,300.4 312,299.7 428,298.3 544,295.5 660,294.1"/>
-  <polyline fill="none" stroke="var(--e)" stroke-width="2" opacity=".8" points="80,312.3 196,311.6 312,310.9 428,309.5 544,308.8 660,308.1"/>
-  <text class="lab" x="668" y="226">中華電</text>
-  <text class="lab-dim" x="668" y="268">統一</text>
-  <text class="lab-dim" x="668" y="294">零售</text>
-  <text class="lab-dim" x="668" y="312">餐飲</text>
-</svg>
-<p class="n">四條幾乎平行。差的是高度，不是斜率。這一種五年，故事不在年終，在你有沒有要換圈子。</p>
+<figure class="viz">
+<div class="viz-head"><div><p class="title">穩定圈與圈外</p><p class="sub"><span>電信 · 食品 · 零售 · 餐飲</span><span>縱軸 0–200</span></p></div><button class="zoom-btn" type="button" data-zoom="floor">放大</button></div>
+<div class="plot" data-chart="floor"></div>
+<p class="pnote">四條幾乎平行。差的是高度，不是斜率。這一種五年，故事不在年終，在你有沒有要換圈子。</p>
 </figure>
 </div>
 
@@ -857,303 +837,42 @@ figure.chart > .tip {
 
 <p>最長的條是聯發科 355 萬。灰條是台灣大多數受僱者實際活在的區間。尺的右端固定在 360 萬，沒有截短，所以餐飲那一截看起來很短——那就是真的很短。</p>
 
-<div class="board wide"><span class="tip">點圖放大</span>
-<div class="ghead"><h3>IC 設計／晶圓代工</h3><span>中位數 · 360 萬 = 滿格</span></div>
-<div class="scale"><span></span><div class="ticks"><span>0</span><span>90</span><span>180</span><span>270</span><span>360</span></div><span></span></div>
-<div class="row"><div class="name">聯發科<small>2454 · 設計</small></div><div class="track"><div class="fill a" style="width:98.6%"></div></div><div class="val">355</div></div>
-<div class="row"><div class="name">台積電<small>2330 · 代工</small></div><div class="track"><div class="fill a" style="width:87.8%"></div></div><div class="val">316</div></div>
-<div class="row"><div class="name">創意<small>3443 · ASIC</small></div><div class="track"><div class="fill a" style="width:71.7%"></div></div><div class="val">258</div></div>
-<div class="row"><div class="name">聯電<small>2303 · 成熟製程</small></div><div class="track"><div class="fill a" style="width:44.2%"></div></div><div class="val">159</div></div>
-
-<div class="ghead"><h3>記憶體／封測</h3><span>同一把尺</span></div>
-<div class="row"><div class="name">華邦電<small>2344</small></div><div class="track"><div class="fill a" style="width:45.0%"></div></div><div class="val">162</div></div>
-<div class="row"><div class="name">南亞科<small>2408</small></div><div class="track"><div class="fill a" style="width:37.8%"></div></div><div class="val">136</div></div>
-<div class="row"><div class="name">日月光<small>3711 · 5.6 萬人</small></div><div class="track"><div class="fill f" style="width:22.8%"></div></div><div class="val">82</div></div>
-
-<div class="ghead"><h3>伺服器／零組件 · AI 爬坡</h3><span>同一把尺</span></div>
-<div class="row"><div class="name">鴻海<small>2317 · 台灣主體</small></div><div class="track"><div class="fill b" style="width:56.4%"></div></div><div class="val">203</div></div>
-<div class="row"><div class="name">緯穎<small>6669 · 人數口徑變</small></div><div class="track"><div class="fill b" style="width:63.1%"></div></div><div class="val">227</div></div>
-<div class="row"><div class="name">廣達<small>2382</small></div><div class="track"><div class="fill b" style="width:47.8%"></div></div><div class="val">172</div></div>
-<div class="row"><div class="name">台達電<small>2308</small></div><div class="track"><div class="fill b" style="width:46.4%"></div></div><div class="val">167</div></div>
-<div class="row"><div class="name">奇鋐<small>3017 · 散熱</small></div><div class="track"><div class="fill b" style="width:33.9%"></div></div><div class="val">122</div></div>
-<div class="row"><div class="name">緯創<small>3231</small></div><div class="track"><div class="fill b" style="width:33.3%"></div></div><div class="val">120</div></div>
-<div class="row"><div class="name">智邦<small>2345 · 中位</small></div><div class="track"><div class="fill b" style="width:32.2%"></div></div><div class="val">116</div></div>
-<div class="row"><div class="name">台光電<small>2383</small></div><div class="track"><div class="fill b" style="width:27.0%"></div></div><div class="val">97</div></div>
-<div class="row"><div class="name">欣興<small>3037 · PCB</small></div><div class="track"><div class="fill f" style="width:19.4%"></div></div><div class="val">70</div></div>
-
-<div class="ghead"><h3>0050 內的穩定圈</h3><span>同一把尺</span></div>
-<div class="row"><div class="name">長榮<small>2603 · 已從高峰落下</small></div><div class="track"><div class="fill c" style="width:50.3%"></div></div><div class="val">181</div></div>
-<div class="row"><div class="name">中華電<small>2412</small></div><div class="track"><div class="fill d" style="width:45.8%"></div></div><div class="val">165</div></div>
-<div class="row"><div class="name">富邦金<small>2881</small></div><div class="track"><div class="fill d" style="width:38.1%"></div></div><div class="val">137</div></div>
-<div class="row"><div class="name">國泰金<small>2882</small></div><div class="track"><div class="fill d" style="width:37.5%"></div></div><div class="val">135</div></div>
-<div class="row"><div class="name">南亞<small>1303 · 塑膠</small></div><div class="track"><div class="fill d" style="width:32.2%"></div></div><div class="val">116</div></div>
-<div class="row"><div class="name">統一<small>1216 · 食品製造</small></div><div class="track"><div class="fill d" style="width:28.9%"></div></div><div class="val">104</div></div>
-<div class="row"><div class="name">大立光<small>3008</small></div><div class="track"><div class="fill d" style="width:25.0%"></div></div><div class="val">90</div></div>
-
-<div class="ghead"><h3>圈外地板 · 零售／餐飲／照顧</h3><span>同一把尺 · 灰條</span></div>
-<div class="row"><div class="name">統一超<small>2912 · 非主管中位</small></div><div class="track"><div class="fill e" style="width:25.3%"></div></div><div class="val">91</div></div>
-<div class="row"><div class="name">八方雲集<small>餐飲上市中位 2024</small></div><div class="track"><div class="fill e" style="width:20.8%"></div></div><div class="val">75</div></div>
-<div class="row"><div class="name">醫療全體<small>主計總處 2024</small></div><div class="track"><div class="fill e" style="width:23.1%"></div></div><div class="val">83</div></div>
-<div class="row"><div class="name">批發零售全體<small>主計總處 2024</small></div><div class="track"><div class="fill e" style="width:18.1%"></div></div><div class="val">65</div></div>
-<div class="row"><div class="name">王品<small>餐飲上市中位 2024</small></div><div class="track"><div class="fill e" style="width:16.1%"></div></div><div class="val">58</div></div>
-<div class="row"><div class="name">支援服務全體<small>保全／派遣 2024</small></div><div class="track"><div class="fill e" style="width:13.6%"></div></div><div class="val">49</div></div>
-<div class="row"><div class="name">住宿餐飲全體<small>主計總處 2024</small></div><div class="track"><div class="fill e" style="width:12.8%"></div></div><div class="val">46</div></div>
-</div>
+<figure class="viz wide board" aria-label="2025 年薪中位數看板">
+<div class="bgroup"><div class="ghead"><h3>IC 設計／晶圓代工</h3><span>中位數 · 萬元 · 尺 0–360</span></div><div class="baxis" aria-hidden="true"><span></span><div class="bticks"><span style="left:0%">0</span><span style="left:25%">90</span><span style="left:50%">180</span><span style="left:75%">270</span><span style="left:100%">360</span></div></div><div class="brow" data-id="mtk"><div class="bname">聯發科<small>2454 · 設計</small></div><div class="bplot"><div class="bar" style="--w:98.61%;--col:var(--k-tech)"></div><span class="bval" style="--w:98.61%">355</span></div></div><div class="brow" data-id="tsmc"><div class="bname">台積電<small>2330 · 代工</small></div><div class="bplot"><div class="bar" style="--w:87.78%;--col:var(--k-tech)"></div><span class="bval" style="--w:87.78%">316</span></div></div><div class="brow" data-id="guc"><div class="bname">創意<small>3443 · ASIC</small></div><div class="bplot"><div class="bar" style="--w:71.67%;--col:var(--k-tech)"></div><span class="bval" style="--w:71.67%">258</span></div></div><div class="brow" data-id="umc"><div class="bname">聯電<small>2303 · 成熟製程</small></div><div class="bplot"><div class="bar" style="--w:44.17%;--col:var(--k-tech)"></div><span class="bval" style="--w:44.17%">159</span></div></div></div><div class="bgroup"><div class="ghead"><h3>記憶體／封測</h3><span>同一把尺</span></div><div class="baxis" aria-hidden="true"><span></span><div class="bticks"><span style="left:0%">0</span><span style="left:25%">90</span><span style="left:50%">180</span><span style="left:75%">270</span><span style="left:100%">360</span></div></div><div class="brow" data-id="wb"><div class="bname">華邦電<small>2344</small></div><div class="bplot"><div class="bar" style="--w:45.00%;--col:var(--k-tech)"></div><span class="bval" style="--w:45.00%">162</span></div></div><div class="brow" data-id="nya"><div class="bname">南亞科<small>2408</small></div><div class="bplot"><div class="bar" style="--w:37.78%;--col:var(--k-tech)"></div><span class="bval" style="--w:37.78%">136</span></div></div><div class="brow" data-id="ase"><div class="bname">日月光<small>3711 · 5.6 萬人</small></div><div class="bplot"><div class="bar" style="--w:22.78%;--col:var(--k-pack)"></div><span class="bval" style="--w:22.78%">82</span></div></div></div><div class="bgroup"><div class="ghead"><h3>伺服器／零組件 · AI 爬坡</h3><span>同一把尺</span></div><div class="baxis" aria-hidden="true"><span></span><div class="bticks"><span style="left:0%">0</span><span style="left:25%">90</span><span style="left:50%">180</span><span style="left:75%">270</span><span style="left:100%">360</span></div></div><div class="brow" data-id="wiw"><div class="bname">緯穎<small>6669 · 人數口徑變</small></div><div class="bplot"><div class="bar" style="--w:63.06%;--col:var(--k-ai)"></div><span class="bval" style="--w:63.06%">227</span></div></div><div class="brow" data-id="hon"><div class="bname">鴻海<small>2317 · 台灣主體</small></div><div class="bplot"><div class="bar" style="--w:56.39%;--col:var(--k-ai)"></div><span class="bval" style="--w:56.39%">203</span></div></div><div class="brow" data-id="qnt"><div class="bname">廣達<small>2382</small></div><div class="bplot"><div class="bar" style="--w:47.78%;--col:var(--k-ai)"></div><span class="bval" style="--w:47.78%">172</span></div></div><div class="brow" data-id="dlt"><div class="bname">台達電<small>2308</small></div><div class="bplot"><div class="bar" style="--w:46.39%;--col:var(--k-ai)"></div><span class="bval" style="--w:46.39%">167</span></div></div><div class="brow" data-id="avc"><div class="bname">奇鋐<small>3017 · 散熱</small></div><div class="bplot"><div class="bar" style="--w:33.89%;--col:var(--k-ai)"></div><span class="bval" style="--w:33.89%">122</span></div></div><div class="brow"><div class="bname">緯創<small>3231</small></div><div class="bplot"><div class="bar" style="--w:33.33%;--col:var(--k-ai)"></div><span class="bval" style="--w:33.33%">120</span></div></div><div class="brow" data-id="acc"><div class="bname">智邦<small>2345 · 中位</small></div><div class="bplot"><div class="bar" style="--w:32.22%;--col:var(--k-ai)"></div><span class="bval" style="--w:32.22%">116</span></div></div><div class="brow" data-id="emc"><div class="bname">台光電<small>2383</small></div><div class="bplot"><div class="bar" style="--w:26.94%;--col:var(--k-ai)"></div><span class="bval" style="--w:26.94%">97</span></div></div><div class="brow" data-id="uni2"><div class="bname">欣興<small>3037 · PCB</small></div><div class="bplot"><div class="bar" style="--w:19.44%;--col:var(--k-pack)"></div><span class="bval" style="--w:19.44%">70</span></div></div></div><div class="bgroup"><div class="ghead"><h3>0050 內：航運與穩定圈</h3><span>同一把尺</span></div><div class="baxis" aria-hidden="true"><span></span><div class="bticks"><span style="left:0%">0</span><span style="left:25%">90</span><span style="left:50%">180</span><span style="left:75%">270</span><span style="left:100%">360</span></div></div><div class="brow" data-id="evg"><div class="bname">長榮<small>2603 · 已從高峰落下</small></div><div class="bplot"><div class="bar" style="--w:50.28%;--col:var(--k-ship)"></div><span class="bval" style="--w:50.28%">181</span></div></div><div class="brow" data-id="cht"><div class="bname">中華電<small>2412</small></div><div class="bplot"><div class="bar" style="--w:45.83%;--col:var(--k-stable)"></div><span class="bval" style="--w:45.83%">165</span></div></div><div class="brow" data-id="fub"><div class="bname">富邦金<small>2881</small></div><div class="bplot"><div class="bar" style="--w:38.06%;--col:var(--k-stable)"></div><span class="bval" style="--w:38.06%">137</span></div></div><div class="brow"><div class="bname">國泰金<small>2882</small></div><div class="bplot"><div class="bar" style="--w:37.50%;--col:var(--k-stable)"></div><span class="bval" style="--w:37.50%">135</span></div></div><div class="brow"><div class="bname">南亞<small>1303 · 塑膠</small></div><div class="bplot"><div class="bar" style="--w:32.22%;--col:var(--k-stable)"></div><span class="bval" style="--w:32.22%">116</span></div></div><div class="brow" data-id="uni"><div class="bname">統一<small>1216 · 食品製造</small></div><div class="bplot"><div class="bar" style="--w:28.89%;--col:var(--k-stable)"></div><span class="bval" style="--w:28.89%">104</span></div></div><div class="brow"><div class="bname">大立光<small>3008</small></div><div class="bplot"><div class="bar" style="--w:25.00%;--col:var(--k-stable)"></div><span class="bval" style="--w:25.00%">90</span></div></div></div><div class="bgroup"><div class="ghead"><h3>圈外地板 · 零售／餐飲／照顧</h3><span>同一把尺 · 灰條</span></div><div class="baxis" aria-hidden="true"><span></span><div class="bticks"><span style="left:0%">0</span><span style="left:25%">90</span><span style="left:50%">180</span><span style="left:75%">270</span><span style="left:100%">360</span></div></div><div class="brow" data-id="pcs"><div class="bname">統一超<small>2912 · 非主管中位</small></div><div class="bplot"><div class="bar" style="--w:25.28%;--col:var(--k-floor)"></div><span class="bval" style="--w:25.28%">91</span></div></div><div class="brow" data-id="med"><div class="bname">醫療全體<small>主計總處 2024</small></div><div class="bplot"><div class="bar" style="--w:23.06%;--col:var(--k-floor)"></div><span class="bval" style="--w:23.06%">83</span></div></div><div class="brow" data-id="bafang"><div class="bname">八方雲集<small>餐飲上市中位 2024</small></div><div class="bplot"><div class="bar" style="--w:20.83%;--col:var(--k-floor)"></div><span class="bval" style="--w:20.83%">75</span></div></div><div class="brow" data-id="retail"><div class="bname">批發零售全體<small>主計總處 2024</small></div><div class="bplot"><div class="bar" style="--w:18.06%;--col:var(--k-floor)"></div><span class="bval" style="--w:18.06%">65</span></div></div><div class="brow"><div class="bname">王品<small>餐飲上市中位 2024</small></div><div class="bplot"><div class="bar" style="--w:16.11%;--col:var(--k-floor)"></div><span class="bval" style="--w:16.11%">58</span></div></div><div class="brow"><div class="bname">支援服務全體<small>保全／派遣 2024</small></div><div class="bplot"><div class="bar" style="--w:13.61%;--col:var(--k-floor)"></div><span class="bval" style="--w:13.61%">49</span></div></div><div class="brow" data-id="food"><div class="bname">住宿餐飲全體<small>主計總處 2024</small></div><div class="bplot"><div class="bar" style="--w:12.78%;--col:var(--k-floor)"></div><span class="bval" style="--w:12.78%">46</span></div></div></div>
+</figure>
 
 <div class="note">
 <p>聯發科一條幾乎鋪滿。住宿餐飲全體只佔這把尺的八分之一。緯穎 2025 的 227 萬插在創意與鴻海之間，但同一列要先看人數：前一年 4,210 人、這一年 1,296 人，ESG 全球員工卻約 1.6 萬——中位數變的是「誰被算進去」。</p>
 </div>
 
 <h2>二、拆開看：每家一張小圖</h2>
-<p>叠圖看出形狀。小圖用來確認「這家是不是真的屬於那種五年」。縱軸各卡共用 50–430 萬；圈外改 30–140 萬。<span class="zoom-hint"> 點小圖放大</span></p>
+<p>叠圖看出形狀。小圖用來確認「這家是不是真的屬於那種五年」。0050 那一組共用 50–430 萬的縱軸，圈外改用 30–140 萬。滑過任一列可看逐年數字。</p>
 
-<p class="file-meta">0050 與科技衛星 · 縱軸 50–430 萬</p>
-<div class="spark-grid wide">
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>聯發科</h4><span class="delta up">264→355</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--a)" stroke-width="2.4" points="8,36.5 48,16.6 88,20.1 128,29.8 168,24.7 208,23.1"/><circle cx="208" cy="23.1" r="2.6" fill="var(--a)"/></svg>
-<p class="n">21 年 399 是峰 · 五年加總 1,782</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>台積電</h4><span class="delta up">182→316</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--a)" stroke-width="2.4" points="8,48.5 48,48.1 88,39.4 128,42.2 168,36.3 208,28.8"/><circle cx="208" cy="28.8" r="2.6" fill="var(--a)"/></svg>
-<p class="n">23 年只回到 225 · 斜率最好</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>長榮</h4><span class="delta up">143→181</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--c)" stroke-width="2.4" points="8,54.3 48,26.2 88,13.3 128,54.6 168,39.7 208,48.7"/><circle cx="208" cy="48.7" r="2.6" fill="var(--c)"/></svg>
-<p class="n">22 年 421 · 23 年摔回 141</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>創意</h4><span class="delta up">171→258</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--a)" stroke-width="2.4" points="8,50.2 48,48.0 88,43.5 128,37.1 168,37.6 208,37.4"/><circle cx="208" cy="37.4" r="2.6" fill="var(--a)"/></svg>
-<p class="n">23 年起站上 250 萬平台</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>廣達</h4><span class="delta up">111→172</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--b)" stroke-width="2.4" points="8,59.0 48,58.1 88,57.4 128,56.4 168,53.4 208,50.0"/><circle cx="208" cy="50.0" r="2.6" fill="var(--b)"/></svg>
-<p class="n">23 年後才陡 · AI 爬坡樣板</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>緯穎</h4><span class="delta up">88→227</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--b)" stroke-width="2.4" points="8,62.4 48,60.9 88,61.2 128,62.0 168,64.0 208,41.9"/><circle cx="208" cy="41.9" r="2.6" fill="var(--b)"/></svg>
-<p class="n">24 年 77 → 25 年 227 · 人數 4210→1296</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>台達電</h4><span class="delta up">122→167</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--b)" stroke-width="2.4" points="8,57.4 48,56.4 88,54.4 128,53.7 168,52.7 208,50.8"/><circle cx="208" cy="50.8" r="2.6" fill="var(--b)"/></svg>
-<p class="n">沒尖峰，每年往上墊</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>奇鋐</h4><span class="delta up">81→122</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--b)" stroke-width="2.4" points="8,63.4 48,62.5 88,62.0 128,59.9 168,59.8 208,57.4"/><circle cx="208" cy="57.4" r="2.6" fill="var(--b)"/></svg>
-<p class="n">散熱 · 五年 +51%</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>智邦</h4><span class="delta up">67→116</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--b)" stroke-width="2.4" points="8,65.5 48,64.6 88,61.7 128,60.9 168,58.4 208,58.3"/><circle cx="208" cy="58.3" r="2.6" fill="var(--b)"/></svg>
-<p class="n">中位仍遠低於平均 189</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>鴻海</h4><span class="delta up">166→203</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--b)" stroke-width="2.4" points="8,50.9 48,48.4 88,49.3 128,49.3 168,46.8 208,45.5"/><circle cx="208" cy="45.5" r="2.6" fill="var(--b)"/></svg>
-<p class="n">台灣主體 · 海外廠不是這條</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>華邦電</h4><span class="delta up">123→162</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--a)" stroke-width="2.4" points="8,57.2 48,48.0 88,52.1 128,55.0 168,53.1 208,51.5"/><circle cx="208" cy="51.5" r="2.6" fill="var(--a)"/></svg>
-<p class="n">21 年高峰 · 記憶體循環</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>南亞科</h4><span class="delta up">117→136</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--a)" stroke-width="2.4" points="8,58.1 48,55.0 88,55.5 128,59.9 168,59.0 208,55.3"/><circle cx="208" cy="55.3" r="2.6" fill="var(--a)"/></svg>
-<p class="n">23 年谷底 105 · 26 年還沒進表</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>聯電</h4><span class="delta up">107→159</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--a)" stroke-width="2.4" points="8,59.6 48,58.4 88,50.9 128,52.1 168,51.6 208,51.9"/><circle cx="208" cy="51.9" r="2.6" fill="var(--a)"/></svg>
-<p class="n">22 年跳完就停在 160</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>中華電</h4><span class="delta flat">147→165</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--d)" stroke-width="2.4" points="8,53.7 48,53.6 88,53.1 128,53.4 168,52.2 208,51.1"/><circle cx="208" cy="51.1" r="2.6" fill="var(--d)"/></svg>
-<p class="n">五年 +12% · 幾乎一條直線</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>富邦金</h4><span class="delta up">109→137</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--d)" stroke-width="2.4" points="8,59.3 48,58.6 88,59.6 128,58.3 168,56.4 208,55.2"/><circle cx="208" cy="55.2" r="2.6" fill="var(--d)"/></svg>
-<p class="n">緩升 · 無疫情尖峰</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>統一</h4><span class="delta dn">105→104</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--d)" stroke-width="2.4" points="8,59.9 48,60.0 88,60.5 128,60.5 168,60.0 208,60.0"/><circle cx="208" cy="60.0" r="2.6" fill="var(--d)"/></svg>
-<p class="n">食品製造 · 五年持平</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>日月光</h4><span class="delta up">67→82</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--f)" stroke-width="2.4" points="8,65.5 48,64.6 88,64.0 128,64.5 168,63.4 208,63.3"/><circle cx="208" cy="63.3" r="2.6" fill="var(--f)"/></svg>
-<p class="n">人數極大 · 中位貼近產線</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>台光電</h4><span class="delta up">69→97</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--b)" stroke-width="2.4" points="8,65.2 48,64.0 88,63.7 128,63.4 168,62.3 208,61.1"/><circle cx="208" cy="61.1" r="2.6" fill="var(--b)"/></svg>
-<p class="n">股價比年薪更 AI</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>欣興</h4><span class="delta flat">65→70</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--f)" stroke-width="2.4" points="8,65.8 48,65.2 88,63.6 128,65.2 168,65.2 208,65.1"/><circle cx="208" cy="65.1" r="2.6" fill="var(--f)"/></svg>
-<p class="n">22 年小高峰後回到原地</p>
-</figure>
-</div>
-
-<p class="file-meta" style="margin-top:1.6rem">圈外地板 · 縱軸改 30–140 萬，否則會看不見</p>
-<div class="spark-grid wide">
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>金融業全體</h4><span class="delta up">119→129</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--d)" stroke-width="2.4" points="48,22.7 88,21.7 128,23.2 168,17.6"/><circle cx="168" cy="17.6" r="2.6" fill="var(--d)"/></svg>
-<p class="n">主計總處總薪資 · 21–24</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>統一超</h4><span class="delta flat">91 附近</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--e)" stroke-width="2.4" points="168,36.9 208,36.9"/><circle cx="208" cy="36.9" r="2.6" fill="var(--e)"/></svg>
-<p class="n">非主管中位 24–25 年約 91</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>醫療全體</h4><span class="delta up">77→83</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--e)" stroke-width="2.4" points="48,44.0 88,42.5 128,41.5 168,41.0"/><circle cx="168" cy="41.0" r="2.6" fill="var(--e)"/></svg>
-<p class="n">照顧圈 · 緩升</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>批發零售全體</h4><span class="delta up">59→65</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--e)" stroke-width="2.4" points="8,53.2 48,53.7 88,53.2 128,52.2 168,50.2"/><circle cx="168" cy="50.2" r="2.6" fill="var(--e)"/></svg>
-<p class="n">五年約 +10%</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>八方雲集</h4><span class="delta flat">75</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><line x1="8" y1="45.1" x2="208" y2="45.1" stroke="var(--e)" stroke-width="2.4"/><circle cx="208" cy="45.1" r="2.6" fill="var(--e)"/></svg>
-<p class="n">餐飲上市中位天花板附近</p>
-</figure>
-<figure class="spark"><span class="tip">點圖放大</span>
-<div class="top"><h4>住宿餐飲全體</h4><span class="delta up">41→46</span></div>
-<svg viewBox="0 0 216 72" aria-hidden="true"><polyline fill="none" stroke="var(--e)" stroke-width="2.4" points="8,62.4 48,61.9 88,61.4 128,60.4 168,59.9"/><circle cx="168" cy="59.9" r="2.6" fill="var(--e)"/></svg>
-<p class="n">這才是門市與餐廳的五年</p>
-</figure>
-</div>
+<div class="table-scroll wide trend"><table><thead><tr><th>標的</th><th>走勢 2020–25</th><th class="num">起</th><th class="num">迄</th><th class="num">變化</th><th>註解</th></tr></thead><tbody><tr class="grp"><td colspan="6">0050 與科技衛星 · 依型態分組 · 走勢欄縱軸共用 50–430 萬</td></tr><tr data-id="mtk"><td><i class="sw" style="background:var(--k-tech)"></i>聯發科</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-tech)" d="M4.0,15.4L28.8,6.1L53.6,7.8L78.4,12.3L103.2,9.9L128.0,9.1"/><circle class="end" cx="128.0" cy="9.1" r="3.2" fill="var(--k-tech)"/></svg></td><td class="num">264</td><td class="num">355</td><td class="chg">+34%</td><td class="memo">21 年 399 是峰 · 五年加總 1,782</td></tr><tr data-id="tsmc"><td><i class="sw" style="background:var(--k-tech)"></i>台積電</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-tech)" d="M4.0,21.0L28.8,20.8L53.6,16.7L78.4,18.0L103.2,15.3L128.0,11.8"/><circle class="end" cx="128.0" cy="11.8" r="3.2" fill="var(--k-tech)"/></svg></td><td class="num">182</td><td class="num">316</td><td class="chg">+74%</td><td class="memo">23 年只回到 225 · 斜率最好</td></tr><tr data-id="guc"><td><i class="sw" style="background:var(--k-tech)"></i>創意</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-tech)" d="M4.0,21.7L28.8,20.7L53.6,18.6L78.4,15.6L103.2,15.9L128.0,15.8"/><circle class="end" cx="128.0" cy="15.8" r="3.2" fill="var(--k-tech)"/></svg></td><td class="num">171</td><td class="num">258</td><td class="chg">+51%</td><td class="memo">23 年起站上 250 萬平台</td></tr><tr data-id="wb"><td><i class="sw" style="background:var(--k-tech)"></i>華邦電</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-tech)" d="M4.0,25.0L28.8,20.7L53.6,22.6L78.4,24.0L103.2,23.1L128.0,22.3"/><circle class="end" cx="128.0" cy="22.3" r="3.2" fill="var(--k-tech)"/></svg></td><td class="num">123</td><td class="num">162</td><td class="chg">+32%</td><td class="memo">21 年高峰 · 記憶體循環</td></tr><tr data-id="umc"><td><i class="sw" style="background:var(--k-tech)"></i>聯電</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-tech)" d="M4.0,26.1L28.8,25.6L53.6,22.1L78.4,22.6L103.2,22.4L128.0,22.5"/><circle class="end" cx="128.0" cy="22.5" r="3.2" fill="var(--k-tech)"/></svg></td><td class="num">107</td><td class="num">159</td><td class="chg">+49%</td><td class="memo">22 年跳完就停在 160</td></tr><tr data-id="nya"><td><i class="sw" style="background:var(--k-tech)"></i>南亞科</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-tech)" d="M4.0,25.4L28.8,24.0L53.6,24.2L78.4,26.2L103.2,25.8L128.0,24.1"/><circle class="end" cx="128.0" cy="24.1" r="3.2" fill="var(--k-tech)"/></svg></td><td class="num">117</td><td class="num">136</td><td class="chg">+16%</td><td class="memo">23 年谷底 105 · 26 年還沒進表</td></tr><tr data-id="evg"><td><i class="sw" style="background:var(--k-ship)"></i>長榮</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-ship)" d="M4.0,23.6L28.8,10.6L53.6,4.6L78.4,23.8L103.2,16.9L128.0,21.0"/><circle class="end" cx="128.0" cy="21.0" r="3.2" fill="var(--k-ship)"/></svg></td><td class="num">143</td><td class="num">181</td><td class="chg">+27%</td><td class="memo">22 年 421 · 23 年摔回 141</td></tr><tr data-id="wiw"><td><i class="sw" style="background:var(--k-ai)"></i>緯穎</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-ai)" d="M4.0,27.4L28.8,26.7L53.6,26.9L78.4,27.2L103.2,28.2M128.0,17.9"/><path class="ln dash" stroke="var(--k-ai)" d="M103.2,28.2L128.0,17.9"/><circle class="end" cx="128.0" cy="17.9" r="3.2" fill="var(--k-ai)"/></svg></td><td class="num">88</td><td class="num">227</td><td class="chg">+158%</td><td class="memo">24 年 77 → 25 年 227 · 人數 4,210→1,296</td></tr><tr data-id="hon"><td><i class="sw" style="background:var(--k-ai)"></i>鴻海</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-ai)" d="M4.0,22.1L28.8,20.9L53.6,21.3L78.4,21.3L103.2,20.1L128.0,19.5"/><circle class="end" cx="128.0" cy="19.5" r="3.2" fill="var(--k-ai)"/></svg></td><td class="num">166</td><td class="num">203</td><td class="chg">+22%</td><td class="memo">台灣主體 · 海外廠不是這條</td></tr><tr data-id="qnt"><td><i class="sw" style="background:var(--k-ai)"></i>廣達</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-ai)" d="M4.0,25.8L28.8,25.4L53.6,25.1L78.4,24.6L103.2,23.2L128.0,21.7"/><circle class="end" cx="128.0" cy="21.7" r="3.2" fill="var(--k-ai)"/></svg></td><td class="num">111</td><td class="num">172</td><td class="chg">+55%</td><td class="memo">23 年後才陡 · AI 爬坡樣板</td></tr><tr data-id="dlt"><td><i class="sw" style="background:var(--k-ai)"></i>台達電</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-ai)" d="M4.0,25.1L28.8,24.6L53.6,23.7L78.4,23.4L103.2,22.9L128.0,22.0"/><circle class="end" cx="128.0" cy="22.0" r="3.2" fill="var(--k-ai)"/></svg></td><td class="num">122</td><td class="num">167</td><td class="chg">+37%</td><td class="memo">沒尖峰，每年往上墊</td></tr><tr data-id="avc"><td><i class="sw" style="background:var(--k-ai)"></i>奇鋐</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-ai)" d="M4.0,27.9L28.8,27.5L53.6,27.2L78.4,26.2L103.2,26.2L128.0,25.1"/><circle class="end" cx="128.0" cy="25.1" r="3.2" fill="var(--k-ai)"/></svg></td><td class="num">81</td><td class="num">122</td><td class="chg">+51%</td><td class="memo">散熱 · 五年 +51%</td></tr><tr data-id="acc"><td><i class="sw" style="background:var(--k-ai)"></i>智邦</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-ai)" d="M4.0,28.8L28.8,28.4L53.6,27.1L78.4,26.7L103.2,25.6L128.0,25.5"/><circle class="end" cx="128.0" cy="25.5" r="3.2" fill="var(--k-ai)"/></svg></td><td class="num">67</td><td class="num">116</td><td class="chg">+73%</td><td class="memo">中位仍遠低於平均 189</td></tr><tr data-id="emc"><td><i class="sw" style="background:var(--k-ai)"></i>台光電</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-ai)" d="M4.0,28.7L28.8,28.2L53.6,28.0L78.4,27.9L103.2,27.3L128.0,26.8"/><circle class="end" cx="128.0" cy="26.8" r="3.2" fill="var(--k-ai)"/></svg></td><td class="num">69</td><td class="num">97</td><td class="chg">+41%</td><td class="memo">股價比年薪更 AI</td></tr><tr data-id="cht"><td><i class="sw" style="background:var(--k-stable)"></i>中華電</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-stable)" d="M4.0,23.4L28.8,23.3L53.6,23.1L78.4,23.2L103.2,22.7L128.0,22.1"/><circle class="end" cx="128.0" cy="22.1" r="3.2" fill="var(--k-stable)"/></svg></td><td class="num">147</td><td class="num">165</td><td class="chg">+12%</td><td class="memo">五年 +12% · 幾乎一條直線</td></tr><tr data-id="fub"><td><i class="sw" style="background:var(--k-stable)"></i>富邦金</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-stable)" d="M4.0,26.0L28.8,25.6L53.6,26.1L78.4,25.5L103.2,24.6L128.0,24.0"/><circle class="end" cx="128.0" cy="24.0" r="3.2" fill="var(--k-stable)"/></svg></td><td class="num">109</td><td class="num">137</td><td class="chg">+26%</td><td class="memo">緩升 · 無疫情尖峰</td></tr><tr data-id="uni"><td><i class="sw" style="background:var(--k-stable)"></i>統一</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-stable)" d="M4.0,26.2L28.8,26.3L53.6,26.5L78.4,26.5L103.2,26.3L128.0,26.3"/><circle class="end" cx="128.0" cy="26.3" r="3.2" fill="var(--k-stable)"/></svg></td><td class="num">105</td><td class="num">104</td><td class="chg">−1%</td><td class="memo">食品製造 · 五年持平</td></tr><tr data-id="ase"><td><i class="sw" style="background:var(--k-pack)"></i>日月光</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-pack)" d="M4.0,28.8L28.8,28.4L53.6,28.2L78.4,28.4L103.2,27.9L128.0,27.8"/><circle class="end" cx="128.0" cy="27.8" r="3.2" fill="var(--k-pack)"/></svg></td><td class="num">67</td><td class="num">82</td><td class="chg">+22%</td><td class="memo">人數極大 · 中位貼近產線</td></tr><tr data-id="uni2"><td><i class="sw" style="background:var(--k-pack)"></i>欣興</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-pack)" d="M4.0,29.0L28.8,28.7L53.6,27.9L78.4,28.7L103.2,28.7L128.0,28.6"/><circle class="end" cx="128.0" cy="28.6" r="3.2" fill="var(--k-pack)"/></svg></td><td class="num">65</td><td class="num">70</td><td class="chg">+8%</td><td class="memo">22 年小高峰後回到原地</td></tr><tr class="grp"><td colspan="6">圈外地板 · 走勢欄縱軸改 30–140 萬，否則會看不見 · 起訖年份不一，標在數字下</td></tr><tr data-id="fin"><td><i class="sw" style="background:var(--k-stable)"></i>金融業全體</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-stable)" d="M28.8,9.0L53.6,8.5L78.4,9.2L103.2,6.6"/><circle class="end" cx="103.2" cy="6.6" r="3.2" fill="var(--k-stable)"/></svg></td><td class="num">119<small>2021</small></td><td class="num">129<small>2024</small></td><td class="chg">+8%</td><td class="memo">主計總處總薪資 · 21–24（中間年份依原圖描點，約略）</td></tr><tr data-id="pcs"><td><i class="sw" style="background:var(--k-floor)"></i>統一超</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-floor)" d="M103.2,15.6L128.0,15.6"/><circle class="end" cx="128.0" cy="15.6" r="3.2" fill="var(--k-floor)"/></svg></td><td class="num">91<small>2024</small></td><td class="num">91<small>2025</small></td><td class="chg">±0%</td><td class="memo">非主管中位 24–25 年約 91</td></tr><tr data-id="med"><td><i class="sw" style="background:var(--k-floor)"></i>醫療全體</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-floor)" d="M28.8,18.9L53.6,18.2L78.4,17.7L103.2,17.5"/><circle class="end" cx="103.2" cy="17.5" r="3.2" fill="var(--k-floor)"/></svg></td><td class="num">77<small>2021</small></td><td class="num">83<small>2024</small></td><td class="chg">+8%</td><td class="memo">照顧圈 · 緩升（中間年份依原圖描點，約略）</td></tr><tr data-id="bafang"><td><i class="sw" style="background:var(--k-floor)"></i>八方雲集</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-floor)" d="M103.2,19.4"/><circle class="end" cx="103.2" cy="19.4" r="3.2" fill="var(--k-floor)"/></svg></td><td class="num">—</td><td class="num">75<small>2024</small></td><td class="chg">—</td><td class="memo">餐飲上市中位天花板附近 · 只有 2024 一點</td></tr><tr data-id="retail"><td><i class="sw" style="background:var(--k-floor)"></i>批發零售全體</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-floor)" d="M4.0,23.1L28.8,23.4L53.6,23.1L78.4,22.7L103.2,21.7"/><circle class="end" cx="103.2" cy="21.7" r="3.2" fill="var(--k-floor)"/></svg></td><td class="num">59<small>2020</small></td><td class="num">65<small>2024</small></td><td class="chg">+10%</td><td class="memo">五年約 +10%</td></tr><tr data-id="food"><td><i class="sw" style="background:var(--k-floor)"></i>住宿餐飲全體</td><td class="spk"><svg viewBox="0 0 132 34" width="132" height="34" aria-hidden="true"><line class="base" x1="4" x2="128" y1="30" y2="30"/><path class="ln" stroke="var(--k-floor)" d="M4.0,27.4L28.8,27.2L53.6,26.9L78.4,26.5L103.2,26.2"/><circle class="end" cx="103.2" cy="26.2" r="3.2" fill="var(--k-floor)"/></svg></td><td class="num">41<small>2020</small></td><td class="num">46<small>2024</small></td><td class="chg">+12%</td><td class="memo">這才是門市與餐廳的五年</td></tr></tbody></table></div>
 
 <h2>三、2020 到 2025：誰被拉開</h2>
-<p>左柱是 2020（圈外行業用可取得的最早年），右柱是 2025 或最近一年。線往上是改寫，線平是通膨微幅。</p>
+<p>空心點是 2020（圈外行業用可取得的最早年），實心點是 2025 或最近一年。線愈長，五年被拉開愈多；兩點疊在一起，是通膨微幅。</p>
 
-<figure class="chart wide"><span class="tip">點圖放大</span>
-<svg viewBox="0 0 720 520" role="img" aria-label="2020與2025年薪對照">
-  <text class="axis" x="140" y="18">40</text>
-  <text class="axis" x="245" y="18">120</text>
-  <text class="axis" x="350" y="18">200</text>
-  <text class="axis" x="455" y="18">280</text>
-  <text class="axis" x="548" y="18">360 萬</text>
-  <line x1="140" y1="28" x2="140" y2="500" stroke="var(--rule)" />
-  <line x1="245" y1="28" x2="245" y2="500" stroke="var(--rule)" />
-  <line x1="350" y1="28" x2="350" y2="500" stroke="var(--rule)" />
-  <line x1="455" y1="28" x2="455" y2="500" stroke="var(--rule)" />
-  <line x1="560" y1="28" x2="560" y2="500" stroke="var(--rule)" />
-  <!-- y = 30 + rank*28, map value 40-360 to x offset from 140: (v-40)/320*420 -->
-  <!-- We'll use rank order by 2025 and draw slopes -->
-  <text class="axis" x="8" y="48">聯發科</text>
-  <line x1="434" y1="44" x2="553" y2="44" stroke="var(--a)" stroke-width="1.8"/>
-  <circle cx="434" cy="44" r="3" fill="var(--a)"/><circle cx="553" cy="44" r="3" fill="var(--a)"/>
-  <text class="axis" x="575" y="48">355</text>
-  <text class="axis" x="8" y="76">台積電</text>
-  <line x1="326" y1="72" x2="502" y2="72" stroke="var(--a)" stroke-width="1.8"/>
-  <circle cx="326" cy="72" r="3" fill="var(--a)"/><circle cx="502" cy="72" r="3" fill="var(--a)"/>
-  <text class="axis" x="575" y="76">316</text>
-  <text class="axis" x="8" y="104">創意</text>
-  <line x1="312" y1="100" x2="426" y2="100" stroke="var(--a)" stroke-width="1.8"/>
-  <circle cx="312" cy="100" r="3" fill="var(--a)"/><circle cx="426" cy="100" r="3" fill="var(--a)"/>
-  <text class="axis" x="575" y="104">258</text>
-  <text class="axis" x="8" y="132">鴻海</text>
-  <line x1="305" y1="128" x2="354" y2="128" stroke="var(--b)" stroke-width="1.8"/>
-  <circle cx="305" cy="128" r="3" fill="var(--b)"/><circle cx="354" cy="128" r="3" fill="var(--b)"/>
-  <text class="axis" x="575" y="132">203</text>
-  <text class="axis" x="8" y="160">長榮</text>
-  <line x1="275" y1="156" x2="325" y2="156" stroke="var(--c)" stroke-width="1.8"/>
-  <circle cx="275" cy="156" r="3" fill="var(--c)"/><circle cx="325" cy="156" r="3" fill="var(--c)"/>
-  <text class="axis" x="575" y="160">181</text>
-  <text class="axis" x="8" y="188">廣達</text>
-  <line x1="233" y1="184" x2="313" y2="184" stroke="var(--b)" stroke-width="1.8"/>
-  <circle cx="233" cy="184" r="3" fill="var(--b)"/><circle cx="313" cy="184" r="3" fill="var(--b)"/>
-  <text class="axis" x="575" y="188">172</text>
-  <text class="axis" x="8" y="216">台達電</text>
-  <line x1="248" y1="212" x2="307" y2="212" stroke="var(--b)" stroke-width="1.8"/>
-  <circle cx="248" cy="212" r="3" fill="var(--b)"/><circle cx="307" cy="212" r="3" fill="var(--b)"/>
-  <text class="axis" x="575" y="216">167</text>
-  <text class="axis" x="8" y="244">中華電</text>
-  <line x1="280" y1="240" x2="304" y2="240" stroke="var(--d)" stroke-width="1.8"/>
-  <circle cx="280" cy="240" r="3" fill="var(--d)"/><circle cx="304" cy="240" r="3" fill="var(--d)"/>
-  <text class="axis" x="575" y="244">165</text>
-  <text class="axis" x="8" y="272">華邦</text>
-  <line x1="249" y1="268" x2="300" y2="268" stroke="var(--a)" stroke-width="1.8"/>
-  <circle cx="249" cy="268" r="3" fill="var(--a)"/><circle cx="300" cy="268" r="3" fill="var(--a)"/>
-  <text class="axis" x="575" y="272">162</text>
-  <text class="axis" x="8" y="300">聯電</text>
-  <line x1="228" y1="296" x2="296" y2="296" stroke="var(--a)" stroke-width="1.8"/>
-  <circle cx="228" cy="296" r="3" fill="var(--a)"/><circle cx="296" cy="296" r="3" fill="var(--a)"/>
-  <text class="axis" x="575" y="300">159</text>
-  <text class="axis" x="8" y="328">富邦金</text>
-  <line x1="231" y1="324" x2="267" y2="324" stroke="var(--d)" stroke-width="1.8"/>
-  <circle cx="231" cy="324" r="3" fill="var(--d)"/><circle cx="267" cy="324" r="3" fill="var(--d)"/>
-  <text class="axis" x="575" y="328">137</text>
-  <text class="axis" x="8" y="356">奇鋐</text>
-  <line x1="194" y1="352" x2="248" y2="352" stroke="var(--b)" stroke-width="1.8"/>
-  <circle cx="194" cy="352" r="3" fill="var(--b)"/><circle cx="248" cy="352" r="3" fill="var(--b)"/>
-  <text class="axis" x="575" y="356">122</text>
-  <text class="axis" x="8" y="384">統一</text>
-  <line x1="225" y1="380" x2="224" y2="380" stroke="var(--d)" stroke-width="1.8"/>
-  <circle cx="225" cy="380" r="3" fill="var(--d)"/><circle cx="224" cy="380" r="3" fill="var(--d)"/>
-  <text class="axis" x="575" y="384">104</text>
-  <text class="axis" x="8" y="412">統一超</text>
-  <circle cx="207" cy="408" r="3" fill="var(--e)"/>
-  <text class="axis" x="575" y="412">91</text>
-  <text class="axis" x="8" y="440">欣興</text>
-  <line x1="173" y1="436" x2="179" y2="436" stroke="var(--f)" stroke-width="1.8"/>
-  <circle cx="173" cy="436" r="3" fill="var(--f)"/><circle cx="179" cy="436" r="3" fill="var(--f)"/>
-  <text class="axis" x="575" y="440">70</text>
-  <text class="axis" x="8" y="468">零售全體</text>
-  <line x1="165" y1="464" x2="173" y2="464" stroke="var(--e)" stroke-width="1.8"/>
-  <circle cx="165" cy="464" r="3" fill="var(--e)"/><circle cx="173" cy="464" r="3" fill="var(--e)"/>
-  <text class="axis" x="575" y="468">65</text>
-  <text class="axis" x="8" y="496">餐飲全體</text>
-  <line x1="141" y1="492" x2="148" y2="492" stroke="var(--e)" stroke-width="1.8"/>
-  <circle cx="141" cy="492" r="3" fill="var(--e)"/><circle cx="148" cy="492" r="3" fill="var(--e)"/>
-  <text class="axis" x="575" y="496">46</text>
-</svg>
-<figcaption>每條是一家公司：左點 2020 年薪、右點 2025 年薪，位置按同一把尺。線愈長，五年被拉開愈多。統一、零售、餐飲幾乎縮成一個點。長榮這張只看頭尾，中間 421 萬在上一節小圖。緯穎 2020→2025 是 88→227，線很長，但 2025 點的口徑與前四年不同。</figcaption>
+<figure class="viz wide">
+<div class="viz-head">
+<div><p class="title">2020 → 2025 年薪對照</p><p class="sub"><span>非主管中位數 · 萬元</span><span>依 2025 排序</span></p></div>
+<button class="zoom-btn" type="button" data-zoom="dumbbell">放大</button>
+</div>
+<ul class="keys">
+<li><i class="dotk open"></i>2020</li>
+<li><i class="dotk"></i>2025（標 ’24 者為最近一年）</li>
+<li><i class="lnk dash" style="color:var(--ink-2)"></i>口徑斷點</li>
+</ul>
+<div class="plot" data-chart="dumbbell" style="margin-top:.6rem"></div>
+<figcaption>每條是一家公司：左點 2020 年薪、右點 2025 年薪，位置按同一把尺。統一、零售、餐飲幾乎縮成一個點。長榮這張只看頭尾，中間 421 萬在上一節小圖。緯穎 88→227 線很長，但 2025 點的口徑與前四年不同，所以畫成虛線。統一超只有 2024–2025，只畫一點。</figcaption>
 </figure>
 
 <h2>四、五年總包：待著到底領了多少</h2>
 <p>2021–2025 中位數相加。這是「一個典型非主管這五年現金包」的近似，不是個人實際所得。圈外用行業總薪資四年加一筆近似。</p>
 
-<div class="board wide"><span class="tip">點圖放大</span>
-<div class="ghead"><h3>五年加總</h3><span>1,800 萬 = 滿格</span></div>
-<div class="scale"><span></span><div class="ticks"><span>0</span><span>450</span><span>900</span><span>1,350</span><span>1,800</span></div><span></span></div>
-<div class="row"><div class="name">聯發科</div><div class="track"><div class="fill a" style="width:99.0%"></div></div><div class="val">1,782</div></div>
-<div class="row"><div class="name">長榮</div><div class="track"><div class="fill c" style="width:73.2%"></div></div><div class="val">1,318</div></div>
-<div class="row"><div class="name">台積電</div><div class="track"><div class="fill a" style="width:68.6%"></div></div><div class="val">1,234</div></div>
-<div class="row"><div class="name">創意</div><div class="track"><div class="fill a" style="width:65.3%"></div></div><div class="val">1,175</div></div>
-<div class="row"><div class="name">鴻海</div><div class="track"><div class="fill b" style="width:51.8%"></div></div><div class="val">933</div></div>
-<div class="row"><div class="name">華邦電</div><div class="track"><div class="fill a" style="width:44.2%"></div></div><div class="val">795</div></div>
-<div class="row"><div class="name">中華電</div><div class="track"><div class="fill d" style="width:42.7%"></div></div><div class="val">769</div></div>
-<div class="row"><div class="name">聯電</div><div class="track"><div class="fill a" style="width:42.1%"></div></div><div class="val">758</div></div>
-<div class="row"><div class="name">台達電</div><div class="track"><div class="fill b" style="width:41.1%"></div></div><div class="val">739</div></div>
-<div class="row"><div class="name">廣達</div><div class="track"><div class="fill b" style="width:38.3%"></div></div><div class="val">689</div></div>
-<div class="row"><div class="name">緯穎</div><div class="track"><div class="fill b" style="width:32.7%"></div></div><div class="val">589</div></div>
-<div class="row"><div class="name">南亞科</div><div class="track"><div class="fill a" style="width:34.7%"></div></div><div class="val">625</div></div>
-<div class="row"><div class="name">富邦金</div><div class="track"><div class="fill d" style="width:33.5%"></div></div><div class="val">603</div></div>
-<div class="row"><div class="name">統一</div><div class="track"><div class="fill d" style="width:28.6%"></div></div><div class="val">514</div></div>
-<div class="row"><div class="name">奇鋐</div><div class="track"><div class="fill b" style="width:28.4%"></div></div><div class="val">511</div></div>
-<div class="row"><div class="name">醫療全體</div><div class="track"><div class="fill e" style="width:22.2%"></div></div><div class="val">~400</div></div>
-<div class="row"><div class="name">欣興</div><div class="track"><div class="fill f" style="width:19.8%"></div></div><div class="val">356</div></div>
-<div class="row"><div class="name">批發零售全體</div><div class="track"><div class="fill e" style="width:17.2%"></div></div><div class="val">~310</div></div>
-<div class="row"><div class="name">住宿餐飲全體</div><div class="track"><div class="fill e" style="width:12.2%"></div></div><div class="val">~220</div></div>
-</div>
+<figure class="viz wide board" aria-label="2021–2025 五年加總看板">
+<div class="bgroup"><div class="ghead"><h3>五年加總</h3><span>2021–2025 · 萬元 · 尺 0–1,800</span></div><div class="baxis" aria-hidden="true"><span></span><div class="bticks"><span style="left:0%">0</span><span style="left:25%">450</span><span style="left:50%">900</span><span style="left:75%">1,350</span><span style="left:100%">1,800</span></div></div><div class="brow" data-id="mtk"><div class="bname">聯發科</div><div class="bplot"><div class="bar" style="--w:99.00%;--col:var(--k-tech)"></div><span class="bval" style="--w:99.00%">1,782</span></div></div><div class="brow" data-id="evg"><div class="bname">長榮</div><div class="bplot"><div class="bar" style="--w:73.22%;--col:var(--k-ship)"></div><span class="bval" style="--w:73.22%">1,318</span></div></div><div class="brow" data-id="tsmc"><div class="bname">台積電</div><div class="bplot"><div class="bar" style="--w:68.56%;--col:var(--k-tech)"></div><span class="bval" style="--w:68.56%">1,234</span></div></div><div class="brow" data-id="guc"><div class="bname">創意</div><div class="bplot"><div class="bar" style="--w:65.28%;--col:var(--k-tech)"></div><span class="bval" style="--w:65.28%">1,175</span></div></div><div class="brow" data-id="hon"><div class="bname">鴻海</div><div class="bplot"><div class="bar" style="--w:51.83%;--col:var(--k-ai)"></div><span class="bval" style="--w:51.83%">933</span></div></div><div class="brow" data-id="wb"><div class="bname">華邦電</div><div class="bplot"><div class="bar" style="--w:44.17%;--col:var(--k-tech)"></div><span class="bval" style="--w:44.17%">795</span></div></div><div class="brow" data-id="cht"><div class="bname">中華電</div><div class="bplot"><div class="bar" style="--w:42.72%;--col:var(--k-stable)"></div><span class="bval" style="--w:42.72%">769</span></div></div><div class="brow" data-id="umc"><div class="bname">聯電</div><div class="bplot"><div class="bar" style="--w:42.11%;--col:var(--k-tech)"></div><span class="bval" style="--w:42.11%">758</span></div></div><div class="brow" data-id="dlt"><div class="bname">台達電</div><div class="bplot"><div class="bar" style="--w:41.06%;--col:var(--k-ai)"></div><span class="bval" style="--w:41.06%">739</span></div></div><div class="brow" data-id="qnt"><div class="bname">廣達</div><div class="bplot"><div class="bar" style="--w:38.28%;--col:var(--k-ai)"></div><span class="bval" style="--w:38.28%">689</span></div></div><div class="brow" data-id="nya"><div class="bname">南亞科</div><div class="bplot"><div class="bar" style="--w:34.72%;--col:var(--k-tech)"></div><span class="bval" style="--w:34.72%">625</span></div></div><div class="brow" data-id="fub"><div class="bname">富邦金</div><div class="bplot"><div class="bar" style="--w:33.50%;--col:var(--k-stable)"></div><span class="bval" style="--w:33.50%">603</span></div></div><div class="brow" data-id="wiw"><div class="bname">緯穎<small>25 年人數口徑變</small></div><div class="bplot"><div class="bar" style="--w:32.72%;--col:var(--k-ai)"></div><span class="bval" style="--w:32.72%">589</span></div></div><div class="brow" data-id="uni"><div class="bname">統一</div><div class="bplot"><div class="bar" style="--w:28.56%;--col:var(--k-stable)"></div><span class="bval" style="--w:28.56%">514</span></div></div><div class="brow" data-id="avc"><div class="bname">奇鋐</div><div class="bplot"><div class="bar" style="--w:28.39%;--col:var(--k-ai)"></div><span class="bval" style="--w:28.39%">511</span></div></div><div class="brow" data-id="acc"><div class="bname">智邦</div><div class="bplot"><div class="bar" style="--w:27.50%;--col:var(--k-ai)"></div><span class="bval" style="--w:27.50%">495</span></div></div><div class="brow" data-id="emc"><div class="bname">台光電</div><div class="bplot"><div class="bar" style="--w:23.44%;--col:var(--k-ai)"></div><span class="bval" style="--w:23.44%">422</span></div></div><div class="brow" data-id="med"><div class="bname">醫療全體<small>行業總薪資近似</small></div><div class="bplot"><div class="bar" style="--w:22.22%;--col:var(--k-floor)"></div><span class="bval" style="--w:22.22%">~400</span></div></div><div class="brow" data-id="ase"><div class="bname">日月光</div><div class="bplot"><div class="bar" style="--w:21.50%;--col:var(--k-pack)"></div><span class="bval" style="--w:21.50%">387</span></div></div><div class="brow" data-id="uni2"><div class="bname">欣興</div><div class="bplot"><div class="bar" style="--w:19.78%;--col:var(--k-pack)"></div><span class="bval" style="--w:19.78%">356</span></div></div><div class="brow" data-id="retail"><div class="bname">批發零售全體<small>行業總薪資近似</small></div><div class="bplot"><div class="bar" style="--w:17.22%;--col:var(--k-floor)"></div><span class="bval" style="--w:17.22%">~310</span></div></div><div class="brow" data-id="food"><div class="bname">住宿餐飲全體<small>行業總薪資近似</small></div><div class="bplot"><div class="bar" style="--w:12.22%;--col:var(--k-floor)"></div><span class="bval" style="--w:12.22%">~220</span></div></div><div class="baxis" aria-hidden="true"><span></span><div class="bticks"><span style="left:0%">0</span><span style="left:25%">450</span><span style="left:50%">900</span><span style="left:75%">1,350</span><span style="left:100%">1,800</span></div></div></div>
+</figure>
 
 <blockquote class="pull">聯發科五年 1,782 萬，住宿餐飲全體約 220 萬。差的是獲利分享公式，不是誰比較認真。</blockquote>
 
@@ -1196,49 +915,22 @@ figure.chart > .tip {
 </div>
 
 <h2>附錄：查數用</h2>
-<p>圖畫完才需要對數字。中位數，萬元。</p>
-<div class="table-scroll">
-<table>
-<thead>
-<tr><th>標的</th><th>2020</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th><th>五年加總</th></tr>
-</thead>
-<tbody>
-<tr><td>聯發科</td><td>264</td><td>399</td><td>375</td><td>309</td><td>344</td><td>355</td><td>1,782</td></tr>
-<tr><td>長榮</td><td>143</td><td>334</td><td>421</td><td>141</td><td>242</td><td>181</td><td>1,318</td></tr>
-<tr><td>台積電</td><td>182</td><td>185</td><td>244</td><td>225</td><td>265</td><td>316</td><td>1,234</td></tr>
-<tr><td>創意</td><td>171</td><td>186</td><td>216</td><td>260</td><td>256</td><td>258</td><td>1,175</td></tr>
-<tr><td>鴻海</td><td>166</td><td>183</td><td>177</td><td>177</td><td>194</td><td>203</td><td>933</td></tr>
-<tr><td>華邦電</td><td>123</td><td>186</td><td>158</td><td>138</td><td>151</td><td>162</td><td>795</td></tr>
-<tr><td>中華電</td><td>147</td><td>148</td><td>151</td><td>149</td><td>157</td><td>165</td><td>769</td></tr>
-<tr><td>聯電</td><td>107</td><td>115</td><td>166</td><td>158</td><td>161</td><td>159</td><td>758</td></tr>
-<tr><td>台達電</td><td>122</td><td>129</td><td>142</td><td>147</td><td>154</td><td>167</td><td>739</td></tr>
-<tr><td>廣達</td><td>111</td><td>117</td><td>122</td><td>129</td><td>149</td><td>172</td><td>689</td></tr>
-<tr><td>緯穎</td><td>88</td><td>98</td><td>96</td><td>91</td><td>77</td><td>227</td><td>589</td></tr>
-<tr><td>南亞科</td><td>117</td><td>138</td><td>135</td><td>105</td><td>111</td><td>136</td><td>625</td></tr>
-<tr><td>富邦金</td><td>109</td><td>114</td><td>107</td><td>116</td><td>129</td><td>137</td><td>603</td></tr>
-<tr><td>統一</td><td>105</td><td>104</td><td>101</td><td>101</td><td>104</td><td>104</td><td>514</td></tr>
-<tr><td>奇鋐</td><td>81</td><td>87</td><td>91</td><td>105</td><td>106</td><td>122</td><td>511</td></tr>
-<tr><td>智邦</td><td>67</td><td>73</td><td>93</td><td>98</td><td>115</td><td>116</td><td>495</td></tr>
-<tr><td>台光電</td><td>69</td><td>77</td><td>79</td><td>81</td><td>89</td><td>97</td><td>422</td></tr>
-<tr><td>日月光</td><td>67</td><td>73</td><td>77</td><td>74</td><td>81</td><td>82</td><td>387</td></tr>
-<tr><td>欣興</td><td>65</td><td>69</td><td>80</td><td>69</td><td>69</td><td>70</td><td>356</td></tr>
-<tr><td>統一超</td><td>—</td><td>—</td><td>—</td><td>—</td><td>91</td><td>91</td><td>—</td></tr>
-<tr><td>批發零售全體</td><td>59</td><td>58</td><td>59</td><td>61</td><td>65</td><td>—</td><td>~310</td></tr>
-<tr><td>住宿餐飲全體</td><td>41</td><td>42</td><td>43</td><td>45</td><td>46</td><td>—</td><td>~220</td></tr>
-</tbody>
-</table>
-</div>
+<p>圖畫完才需要對數字。中位數，萬元，依五年加總排序。</p>
+<div class="table-scroll data"><table><thead><tr><th>標的</th><th class="num">2020</th><th class="num">2021</th><th class="num">2022</th><th class="num">2023</th><th class="num">2024</th><th class="num">2025</th><th class="num">五年加總</th></tr></thead><tbody><tr><td>聯發科</td><td class="num">264</td><td class="num">399</td><td class="num">375</td><td class="num">309</td><td class="num">344</td><td class="num">355</td><td class="num">1,782</td></tr><tr><td>長榮</td><td class="num">143</td><td class="num">334</td><td class="num">421</td><td class="num">141</td><td class="num">242</td><td class="num">181</td><td class="num">1,318</td></tr><tr><td>台積電</td><td class="num">182</td><td class="num">185</td><td class="num">244</td><td class="num">225</td><td class="num">265</td><td class="num">316</td><td class="num">1,234</td></tr><tr><td>創意</td><td class="num">171</td><td class="num">186</td><td class="num">216</td><td class="num">260</td><td class="num">256</td><td class="num">258</td><td class="num">1,175</td></tr><tr><td>鴻海</td><td class="num">166</td><td class="num">183</td><td class="num">177</td><td class="num">177</td><td class="num">194</td><td class="num">203</td><td class="num">933</td></tr><tr><td>華邦電</td><td class="num">123</td><td class="num">186</td><td class="num">158</td><td class="num">138</td><td class="num">151</td><td class="num">162</td><td class="num">795</td></tr><tr><td>中華電</td><td class="num">147</td><td class="num">148</td><td class="num">151</td><td class="num">149</td><td class="num">157</td><td class="num">165</td><td class="num">769</td></tr><tr><td>聯電</td><td class="num">107</td><td class="num">115</td><td class="num">166</td><td class="num">158</td><td class="num">161</td><td class="num">159</td><td class="num">758</td></tr><tr><td>台達電</td><td class="num">122</td><td class="num">129</td><td class="num">142</td><td class="num">147</td><td class="num">154</td><td class="num">167</td><td class="num">739</td></tr><tr><td>廣達</td><td class="num">111</td><td class="num">117</td><td class="num">122</td><td class="num">129</td><td class="num">149</td><td class="num">172</td><td class="num">689</td></tr><tr><td>南亞科</td><td class="num">117</td><td class="num">138</td><td class="num">135</td><td class="num">105</td><td class="num">111</td><td class="num">136</td><td class="num">625</td></tr><tr><td>富邦金</td><td class="num">109</td><td class="num">114</td><td class="num">107</td><td class="num">116</td><td class="num">129</td><td class="num">137</td><td class="num">603</td></tr><tr><td>緯穎</td><td class="num">88</td><td class="num">98</td><td class="num">96</td><td class="num">91</td><td class="num">77</td><td class="num">227</td><td class="num">589</td></tr><tr><td>統一</td><td class="num">105</td><td class="num">104</td><td class="num">101</td><td class="num">101</td><td class="num">104</td><td class="num">104</td><td class="num">514</td></tr><tr><td>奇鋐</td><td class="num">81</td><td class="num">87</td><td class="num">91</td><td class="num">105</td><td class="num">106</td><td class="num">122</td><td class="num">511</td></tr><tr><td>智邦</td><td class="num">67</td><td class="num">73</td><td class="num">93</td><td class="num">98</td><td class="num">115</td><td class="num">116</td><td class="num">495</td></tr><tr><td>台光電</td><td class="num">69</td><td class="num">77</td><td class="num">79</td><td class="num">81</td><td class="num">89</td><td class="num">97</td><td class="num">422</td></tr><tr><td>日月光</td><td class="num">67</td><td class="num">73</td><td class="num">77</td><td class="num">74</td><td class="num">81</td><td class="num">82</td><td class="num">387</td></tr><tr><td>欣興</td><td class="num">65</td><td class="num">69</td><td class="num">80</td><td class="num">69</td><td class="num">69</td><td class="num">70</td><td class="num">356</td></tr><tr><td>統一超</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">91</td><td class="num">91</td><td class="num">—</td></tr><tr><td>批發零售全體</td><td class="num">59</td><td class="num">58</td><td class="num">59</td><td class="num">61</td><td class="num">65</td><td class="num">—</td><td class="num">~310</td></tr><tr><td>住宿餐飲全體</td><td class="num">41</td><td class="num">42</td><td class="num">43</td><td class="num">45</td><td class="num">46</td><td class="num">—</td><td class="num">~220</td></tr></tbody></table></div>
 
 <hr>
 <p class="file-meta">證交所非主管全時員工年薪；主計總處行業總薪資年平均×12；餐飲上市中位數 2024。緯穎已入圖：2025 非主管申報人數 4,210→1,296、中位 77→227，當斷點讀。美光 2026/9 獎酬尚未進年度欄。</p>
 </article>
 
-<div class="lightbox" id="zoom" hidden>
+<div class="vt" id="vt" hidden></div>
+<div class="lightbox" id="zoom" hidden role="dialog" aria-modal="true" aria-label="放大檢視">
   <button class="zoom-close" id="zoom-close" type="button">關閉</button>
   <div class="stage" id="zoom-stage"></div>
 </div>
+<script type="application/json" id="viz-data">{"rows": [{"id": "mtk", "name": "聯發科", "type": "tech", "v": [264, 399, 375, 309, 344, 355]}, {"id": "evg", "name": "長榮", "type": "ship", "v": [143, 334, 421, 141, 242, 181]}, {"id": "tsmc", "name": "台積電", "short": "台積", "type": "tech", "v": [182, 185, 244, 225, 265, 316]}, {"id": "guc", "name": "創意", "type": "tech", "v": [171, 186, 216, 260, 256, 258]}, {"id": "hon", "name": "鴻海", "type": "ai", "v": [166, 183, 177, 177, 194, 203]}, {"id": "wb", "name": "華邦電", "short": "華邦", "type": "tech", "v": [123, 186, 158, 138, 151, 162]}, {"id": "cht", "name": "中華電", "type": "stable", "v": [147, 148, 151, 149, 157, 165]}, {"id": "umc", "name": "聯電", "type": "tech", "v": [107, 115, 166, 158, 161, 159]}, {"id": "dlt", "name": "台達電", "short": "台達", "type": "ai", "v": [122, 129, 142, 147, 154, 167]}, {"id": "qnt", "name": "廣達", "type": "ai", "v": [111, 117, 122, 129, 149, 172]}, {"id": "nya", "name": "南亞科", "type": "tech", "v": [117, 138, 135, 105, 111, 136]}, {"id": "fub", "name": "富邦金", "type": "stable", "v": [109, 114, 107, 116, 129, 137]}, {"id": "wiw", "name": "緯穎", "type": "ai", "v": [88, 98, 96, 91, 77, 227], "brk": 5, "brkNote": "2025 非主管申報人數 4,210→1,296，口徑有斷點"}, {"id": "uni", "name": "統一", "type": "stable", "v": [105, 104, 101, 101, 104, 104]}, {"id": "avc", "name": "奇鋐", "type": "ai", "v": [81, 87, 91, 105, 106, 122]}, {"id": "acc", "name": "智邦", "type": "ai", "v": [67, 73, 93, 98, 115, 116]}, {"id": "emc", "name": "台光電", "type": "ai", "v": [69, 77, 79, 81, 89, 97]}, {"id": "ase", "name": "日月光", "type": "pack", "v": [67, 73, 77, 74, 81, 82]}, {"id": "uni2", "name": "欣興", "type": "pack", "v": [65, 69, 80, 69, 69, 70]}, {"id": "pcs", "name": "統一超", "type": "floor", "v": [null, null, null, null, 91, 91]}, {"id": "retail", "name": "批發零售全體", "short": "零售全體", "type": "floor", "v": [59, 58, 59, 61, 65, null]}, {"id": "food", "name": "住宿餐飲全體", "short": "餐飲全體", "type": "floor", "v": [41, 42, 43, 45, 46, null]}, {"id": "fin", "name": "金融業全體", "type": "stable", "v": [null, 119, 121, 118, 129, null], "approx": true}, {"id": "med", "name": "醫療全體", "type": "floor", "v": [null, 77, 80, 82, 83, null], "approx": true}, {"id": "bafang", "name": "八方雲集", "type": "floor", "v": [null, null, null, null, 75, null]}], "typeVar": {"tech": "var(--k-tech)", "ship": "var(--k-ship)", "ai": "var(--k-ai)", "stable": "var(--k-stable)", "pack": "var(--k-pack)", "floor": "var(--k-floor)"}, "dumbbell": ["mtk", "tsmc", "guc", "wiw", "hon", "evg", "qnt", "dlt", "cht", "wb", "umc", "fub", "nya", "avc", "acc", "uni", "emc", "pcs", "ase", "uni2", "retail", "food"]}</script>
 <script>
 (() => {
+  /* theme toggle — imitator floor item 5 */
   const root = document.documentElement, btn = document.getElementById('theme-toggle');
   let dark = matchMedia('(prefers-color-scheme: dark)').matches;
   btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
@@ -1247,38 +939,326 @@ figure.chart > .tip {
     btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
   });
 
+  const D = JSON.parse(document.getElementById('viz-data').textContent);
+  const BY = Object.fromEntries(D.rows.map(r => [r.id, r]));
+  const YEARS = [2020, 2021, 2022, 2023, 2024, 2025];
+  const COL = D.typeVar;
+  const NS = 'http://www.w3.org/2000/svg';
+  const fmt = v => (v == null ? '—' : v.toLocaleString('en-US'));
+  const el = (tag, attrs, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const txt = (parent, attrs, s) => { const t = el('text', attrs, parent); t.textContent = s; return t; };
+  const lastIdx = v => { for (let i = v.length - 1; i >= 0; i--) if (v[i] != null) return i; return -1; };
+  const firstIdx = v => v.findIndex(x => x != null);
+
+  /* ── tooltip ── */
+  const tip = document.getElementById('vt');
+  const showTip = (html, cx, cy) => {
+    tip.innerHTML = html; tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    let x = cx + 16, y = cy + 16;
+    if (x + r.width > innerWidth - 8) x = cx - 16 - r.width;
+    if (x < 8) x = 8;
+    if (y + r.height > innerHeight - 8) y = cy - 16 - r.height;
+    if (y < 8) y = 8;
+    tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+  };
+  const hideTip = () => { tip.hidden = true; };
+  const yearsGrid = r => '<div class="yrs">' + YEARS.map((y, i) =>
+    `<span><em>’${String(y).slice(2)}</em>${fmt(r.v[i])}</span>`).join('') + '</div>';
+  const rowTip = r => {
+    const note = r.brkNote ? `<p class="vt-note">${r.brkNote}</p>` : r.approx ? '<p class="vt-note">中間年份依原圖描點，約略</p>' : '';
+    return `<p class="vt-t"><i class="sw" style="background:${COL[r.type]};margin-right:.4em"></i>${r.name}</p>${yearsGrid(r)}${note}`;
+  };
+
+  /* ── label collision: spread labels, keep order, clamp to [lo, hi] ── */
+  const spread = (labs, gap, lo, hi) => {
+    labs.sort((a, b) => a.py - b.py);
+    labs.forEach(l => { l.ly = l.py; });
+    for (let k = 0; k < 60; k++) {
+      let moved = false;
+      for (let i = 1; i < labs.length; i++) {
+        const d = labs[i].ly - labs[i - 1].ly;
+        if (d < gap) { const s = (gap - d) / 2 + .01; labs[i].ly += s; labs[i - 1].ly -= s; moved = true; }
+      }
+      labs.forEach(l => { l.ly = Math.max(lo, Math.min(hi, l.ly)); });
+      if (!moved) break;
+    }
+    for (let i = 1; i < labs.length; i++) labs[i].ly = Math.max(labs[i].ly, labs[i - 1].ly + gap);
+    for (let i = labs.length - 2; i >= 0; i--) if (labs[i + 1].ly > hi) { labs[i + 1].ly = hi; labs[i].ly = Math.min(labs[i].ly, hi - gap); }
+    for (let i = labs.length - 2; i >= 0; i--) labs[i].ly = Math.min(labs[i].ly, labs[i + 1].ly - gap);
+  };
+
+  /* ── line charts ── */
+  const LINES = {
+    overlay: {
+      aria: '2020–2025 年薪中位數疊圖，聯發科、台積電、長榮、廣達、緯穎上色，其餘灰色背景',
+      domain: [0, 450], ticks: [0, 100, 200, 300, 400],
+      height: w => (w < 520 ? 320 : Math.round(Math.min(440, Math.max(340, w * 0.44)))),
+      series: [
+        { id: 'cht', label: '中華電', ctx: true }, { id: 'uni', label: '統一', ctx: true },
+        { id: 'retail', label: '零售', ctx: true }, { id: 'food', label: '餐飲', ctx: true },
+        { id: 'mtk', label: '聯發科' }, { id: 'tsmc', label: '台積' }, { id: 'evg', label: '長榮' },
+        { id: 'qnt', label: '廣達' }, { id: 'wiw', label: '緯穎' },
+      ],
+    },
+    semi: {
+      aria: '半導體圈內五家年薪走勢', domain: [100, 400], ticks: [100, 200, 300, 400],
+      height: w => Math.round(Math.min(270, Math.max(220, w * 0.7))),
+      series: [
+        { id: 'guc', label: '創意', dim: true }, { id: 'wb', label: '華邦', dim: true },
+        { id: 'mtk', label: '聯發科' }, { id: 'tsmc', label: '台積' }, { id: 'umc', label: '聯電' },
+      ],
+    },
+    ai: {
+      aria: 'AI 鏈圈內五家年薪走勢', domain: [50, 250], ticks: [50, 100, 150, 200, 250],
+      height: w => Math.round(Math.min(270, Math.max(220, w * 0.7))),
+      series: [
+        { id: 'hon', label: '鴻海', dim: true },
+        { id: 'qnt', label: '廣達' }, { id: 'dlt', label: '台達' }, { id: 'avc', label: '奇鋐' }, { id: 'wiw', label: '緯穎' },
+      ],
+    },
+    floor: {
+      aria: '穩定圈與圈外四條年薪走勢', domain: [0, 200], ticks: [0, 50, 100, 150, 200],
+      height: w => Math.round(Math.min(270, Math.max(220, w * 0.7))),
+      series: [
+        { id: 'cht', label: '中華電' }, { id: 'uni', label: '統一' },
+        { id: 'retail', label: '零售' }, { id: 'food', label: '餐飲' },
+      ],
+    },
+  };
+
+  function renderLine(host, key, big) {
+    const cfg = LINES[key];
+    const w = Math.floor(host.clientWidth);
+    if (w < 40) return;
+    const narrow = w < 520;
+    const h = big ? Math.round(Math.min(innerHeight * 0.68, Math.max(cfg.height(w), w * 0.5))) : cfg.height(w);
+    const m = { t: 12, r: narrow ? 50 : 62, b: 28, l: 38 };
+    const pw = w - m.l - m.r, ph = h - m.t - m.b;
+    const [d0, d1] = cfg.domain;
+    const X = i => m.l + (pw * i) / 5;
+    const Y = v => m.t + ph * (1 - (v - d0) / (d1 - d0));
+
+    host.replaceChildren();
+    const svg = el('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}`, role: 'img', 'aria-label': cfg.aria }, host);
+    const gAxis = el('g', {}, svg);
+    cfg.ticks.forEach(t => {
+      el('line', { x1: m.l, x2: m.l + pw, y1: Y(t), y2: Y(t), class: t === d0 ? 'base' : 'grid' }, gAxis);
+      txt(gAxis, { x: m.l - 8, y: Y(t) + 4, 'text-anchor': 'end', class: 'tick' }, t);
+    });
+    YEARS.forEach((yr, i) => txt(gAxis, { x: X(i), y: h - 8, 'text-anchor': 'middle', class: 'tick' }, narrow ? '’' + String(yr).slice(2) : yr));
+    const cross = el('line', { y1: m.t, y2: m.t + ph, class: 'cross', visibility: 'hidden' }, svg);
+
+    const items = cfg.series.map(s => {
+      const r = BY[s.id];
+      return { ...s, r, v: r.v, col: s.ctx ? COL.floor : COL[r.type] };
+    });
+    const gSer = el('g', {}, svg);
+    items.forEach(s => {
+      const g = el('g', { class: 'ser' + (s.ctx ? ' ctx' : '') + (s.dim ? ' dim' : ''), 'data-id': s.id }, gSer);
+      let d = '', pen = false;
+      s.v.forEach((val, i) => {
+        if (val == null) { pen = false; return; }
+        if (!pen || s.r.brk === i) { d += `M${X(i)},${Y(val)}`; pen = true; } else d += `L${X(i)},${Y(val)}`;
+      });
+      el('path', { d, class: 'ln', stroke: s.col }, g);
+      if (s.r.brk != null) {
+        const i = s.r.brk;
+        el('path', { d: `M${X(i - 1)},${Y(s.v[i - 1])}L${X(i)},${Y(s.v[i])}`, class: 'ln dash', stroke: s.col }, g);
+      }
+      const li = lastIdx(s.v);
+      el('circle', { cx: X(li), cy: Y(s.v[li]), r: s.ctx ? 3 : 4, fill: s.col, class: 'end' }, g);
+      s.li = li;
+    });
+
+    // labels: grouped by the x they hang off
+    const gLab = el('g', {}, svg);
+    const groups = {};
+    items.forEach(s => {
+      const atEnd = s.li === 5;
+      const key = atEnd ? 'end' : 'i' + s.li;
+      (groups[key] = groups[key] || []).push({ s, py: Y(s.v[s.li]), px: X(s.li), atEnd });
+    });
+    Object.values(groups).forEach(labs => {
+      spread(labs, 14.5, m.t + 4, m.t + ph);
+      labs.forEach(l => {
+        const g = el('g', { class: 'lg', 'data-id': l.s.id }, gLab);
+        const lx = l.atEnd ? m.l + pw + 12 : l.px + 12;
+        if (Math.abs(l.ly - l.py) > 2.5) {
+          el('path', { d: `M${l.px + 6},${l.py}L${lx - 3},${l.ly}`, class: 'leader' }, g);
+        }
+        txt(g, { x: lx, y: l.ly + 4, class: 'lab' + (l.s.ctx ? ' ctx' : '') + (l.s.dim ? ' dim' : '') }, l.s.label);
+      });
+    });
+
+    const hov = el('circle', { r: 5, class: 'hov', visibility: 'hidden' }, svg);
+    const hit = el('rect', { x: m.l - 14, y: 0, width: pw + 28, height: h, fill: 'transparent' }, svg);
+
+    const setActive = id => {
+      svg.classList.toggle('has-active', !!id);
+      svg.querySelectorAll('.ser, .lg').forEach(n => n.classList.toggle('on', n.dataset.id === id));
+    };
+    const clear = () => { setActive(null); cross.setAttribute('visibility', 'hidden'); hov.setAttribute('visibility', 'hidden'); hideTip(); };
+    const move = ev => {
+      const b = svg.getBoundingClientRect();
+      const px = ev.clientX - b.left, py = ev.clientY - b.top;
+      const i = Math.max(0, Math.min(5, Math.round(((px - m.l) / pw) * 5)));
+      let best = null, bd = Infinity;
+      items.forEach(s => { const v = s.v[i]; if (v == null) return; const dd = Math.abs(Y(v) - py); if (dd < bd) { bd = dd; best = s; } });
+      if (!best) { clear(); return; }
+      setActive(best.id);
+      cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.setAttribute('visibility', 'visible');
+      hov.setAttribute('cx', X(i)); hov.setAttribute('cy', Y(best.v[i])); hov.setAttribute('stroke', best.col); hov.setAttribute('visibility', 'visible');
+      const list = items.filter(s => s.v[i] != null).sort((a, b) => b.v[i] - a.v[i]).map(s =>
+        `<li class="${s.id === best.id ? 'on' : ''}"><i style="background:${s.col}"></i><span>${s.r.name}</span><b>${fmt(s.v[i])}</b></li>`).join('');
+      const note = best.r.brk === i && best.r.brkNote ? `<p class="vt-note">緯穎：${best.r.brkNote}</p>` : '';
+      showTip(`<p class="vt-h">${YEARS[i]} · 中位數 · 萬元</p><ul>${list}</ul>${note}`, ev.clientX, ev.clientY);
+    };
+    hit.addEventListener('pointermove', move);
+    hit.addEventListener('pointerdown', move);
+    hit.addEventListener('pointerleave', clear);
+    host._setActive = setActive;
+  }
+
+  /* ── dumbbell ── */
+  function renderDumbbell(host) {
+    const w = Math.floor(host.clientWidth);
+    if (w < 40) return;
+    const narrow = w < 520;
+    const ids = D.dumbbell;
+    const rowH = narrow ? 25 : 27;
+    const m = { t: 26, r: narrow ? 58 : 104, b: 6, l: narrow ? 66 : 110 };
+    const pw = w - m.l - m.r;
+    const h = m.t + ids.length * rowH + m.b;
+    const X = v => m.l + (pw * v) / 400;
+    host.replaceChildren();
+    const svg = el('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}`, role: 'img', 'aria-label': '2020 與 2025 年薪對照啞鈴圖' }, host);
+    const gBand = el('g', {}, svg);
+    const bands = ids.map((id, i) => el('rect', { x: 0, y: m.t + i * rowH, width: w, height: rowH, rx: 4, class: 'band' }, gBand));
+    [0, 100, 200, 300, 400].forEach(t => {
+      el('line', { x1: X(t), x2: X(t), y1: m.t - 4, y2: h - m.b, class: t === 0 ? 'base' : 'grid' }, svg);
+      txt(svg, { x: X(t), y: 14, 'text-anchor': 'middle', class: 'tick' }, t);
+    });
+    ids.forEach((id, i) => {
+      const r = BY[id], col = COL[r.type];
+      const cy = m.t + i * rowH + rowH / 2;
+      const fi = firstIdx(r.v), li = lastIdx(r.v);
+      const s = fi === 0 ? r.v[0] : null, e = r.v[li];
+      txt(svg, { x: m.l - 12, y: cy + 4, 'text-anchor': 'end', class: 'nm' }, narrow && r.short ? r.short : r.name);
+      const close = s != null && Math.abs(X(e) - X(s)) < 9;
+      if (s != null) el('line', { x1: X(s), x2: X(e), y1: cy, y2: cy, stroke: col, 'stroke-width': 2, class: r.brk != null ? 'dash' : '' }, svg);
+      if (s != null && !close) el('circle', { cx: X(s), cy, r: 4, stroke: col, class: 'open' }, svg);
+      el('circle', { cx: X(e), cy, r: 4.5, fill: col, class: 'fill' }, svg);
+      // two years on top of each other: ring around the dot reads as "same place"
+      if (close) el('circle', { cx: X(s), cy, r: 6.5, stroke: col, class: 'open', 'fill-opacity': 0 }, svg);
+      const t = txt(svg, { x: m.l + pw + 14, y: cy + 4, class: 'val' }, fmt(e) + (li < 5 ? `’${String(YEARS[li]).slice(2)}` : ''));
+      if (!narrow && s != null) {
+        const pct = Math.round(((e - s) / s) * 100);
+        const ts = el('tspan', { class: 'chg', dx: 8 }, t);
+        ts.textContent = (pct > 0 ? '+' : pct < 0 ? '−' : '±') + Math.abs(pct) + '%';
+      }
+    });
+    const hit = el('rect', { x: 0, y: m.t, width: w, height: ids.length * rowH, fill: 'transparent' }, svg);
+    let cur = -1;
+    const clear = () => { if (cur >= 0) bands[cur].classList.remove('on'); cur = -1; hideTip(); };
+    const move = ev => {
+      const b = svg.getBoundingClientRect();
+      const i = Math.floor((ev.clientY - b.top - m.t) / rowH);
+      if (i < 0 || i >= ids.length) { clear(); return; }
+      if (cur !== i) { if (cur >= 0) bands[cur].classList.remove('on'); bands[i].classList.add('on'); cur = i; }
+      const r = BY[ids[i]];
+      const fi = firstIdx(r.v), li = lastIdx(r.v);
+      const chg = fi === 0 ? `<p class="vt-note">${YEARS[fi]}→${YEARS[li]}：${fmt(r.v[fi])} → ${fmt(r.v[li])} 萬</p>` : '<p class="vt-note">只有 2024–2025 兩年</p>';
+      showTip(rowTip(r) + chg, ev.clientX, ev.clientY);
+    };
+    hit.addEventListener('pointermove', move);
+    hit.addEventListener('pointerdown', move);
+    hit.addEventListener('pointerleave', clear);
+  }
+
+  const RENDER = { overlay: renderLine, semi: renderLine, ai: renderLine, floor: renderLine, dumbbell: renderDumbbell };
+  const draw = (host, big) => RENDER[host.dataset.chart](host, host.dataset.chart, big);
+
+  const hosts = [...document.querySelectorAll('.plot[data-chart]')];
+  const lastW = new WeakMap();
+  /* Never draw inside the observer callback: drawing changes the host's
+     height, which queues a second notification in the same frame and Chrome
+     reports "ResizeObserver loop completed with undelivered notifications".
+     Collect targets, draw on the next frame, and only when the WIDTH changed. */
+  const pending = new Set();
+  let frame = 0;
+  const flush = () => {
+    frame = 0;
+    pending.forEach(host => {
+      if (!host.isConnected) return;
+      const wNow = Math.floor(host.clientWidth);
+      if (!wNow || lastW.get(host) === wNow) return;
+      lastW.set(host, wNow);
+      draw(host, host.closest('.stage'));
+    });
+    pending.clear();
+  };
+  const ro = new ResizeObserver(entries => {
+    entries.forEach(en => pending.add(en.target));
+    if (!frame) frame = requestAnimationFrame(flush);
+  });
+  hosts.forEach(h => ro.observe(h));
+
+  /* legend hover → highlight series */
+  document.querySelectorAll('.keys[data-for]').forEach(ul => {
+    const host = document.querySelector(`.plot[data-chart="${ul.dataset.for}"]`);
+    ul.querySelectorAll('li[data-id]').forEach(li => {
+      li.addEventListener('pointerenter', () => host._setActive && host._setActive(li.dataset.id));
+      li.addEventListener('pointerleave', () => host._setActive && host._setActive(null));
+    });
+  });
+
+  /* board + trend rows → tooltip */
+  document.querySelectorAll('.brow[data-id], .trend tr[data-id]').forEach(row => {
+    const r = BY[row.dataset.id];
+    if (!r) return;
+    const move = ev => { row.classList.add('on'); showTip(rowTip(r), ev.clientX, ev.clientY); };
+    row.addEventListener('pointermove', move);
+    row.addEventListener('pointerleave', () => { row.classList.remove('on'); hideTip(); });
+  });
+  addEventListener('scroll', hideTip, { passive: true });
+
+  /* zoom: re-render the chart at stage width, so text stays 12px */
   const box = document.getElementById('zoom');
   const stage = document.getElementById('zoom-stage');
   const closeBtn = document.getElementById('zoom-close');
-  const cards = document.querySelectorAll('figure.chart, figure.panel, figure.spark, div.board');
-
+  let opener = null;
   const close = () => {
-    box.hidden = true;
+    box.hidden = true; hideTip();
+    stage.querySelectorAll('.plot').forEach(p => ro.unobserve(p));
     stage.replaceChildren();
+    if (opener) opener.focus();
   };
-  const open = (el) => {
+  document.querySelectorAll('.zoom-btn').forEach(b => b.addEventListener('click', () => {
+    opener = b;
+    const fig = b.closest('figure');
     stage.replaceChildren();
-    const clone = el.cloneNode(true);
-    clone.removeAttribute('tabindex');
-    clone.removeAttribute('role');
-    clone.removeAttribute('aria-label');
-    stage.appendChild(clone);
+    const t = document.createElement('p'); t.className = 'title';
+    t.textContent = fig.querySelector('.viz-head .title').textContent; stage.appendChild(t);
+    const sub = fig.querySelector('.viz-head .sub');
+    if (sub) { const s = document.createElement('p'); s.className = 'file-meta'; s.textContent = [...sub.querySelectorAll('span')].map(x => x.textContent).join(' · ') || sub.textContent; stage.appendChild(s); }
+    const host = document.createElement('div'); host.className = 'plot'; host.dataset.chart = b.dataset.zoom;
+    stage.appendChild(host);
+    const keys = fig.querySelector('.keys'); if (keys) stage.appendChild(keys.cloneNode(true));
     box.hidden = false;
+    ro.observe(host);
     closeBtn.focus();
-  };
-
-  cards.forEach((el) => {
-    if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-    if (!el.getAttribute('role')) el.setAttribute('role', 'button');
-    el.addEventListener('click', () => open(el));
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(el); }
-    });
-  });
+  }));
   closeBtn.addEventListener('click', close);
-  box.addEventListener('click', (e) => { if (e.target === box) close(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) close(); });
+  box.addEventListener('click', e => { if (e.target === box) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !box.hidden) close(); });
 })();
+
 </script>
 </body>
 </html>
