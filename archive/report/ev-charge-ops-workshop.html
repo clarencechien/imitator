@@ -3,11 +3,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="imitator-style" content="v3">
-<meta name="imitator-register" content="現場工作坊講義 — 用 BPR 再造停車場與充電維運，再讓 DDD 開口">
+<meta name="imitator-register" content="七天自學工作坊主控台 — 學員用 Claude Code 當助教，從充電維運領域走到 MVP 上線">
 <meta name="imitator-reference" content="1994 年台灣企管顧問《企業流程再造工作坊》活頁講義第 3 單元">
 <meta name="imitator-paper" content="hsl(48 26% 94%)">
 <meta name="imitator-accent" content="hsl(16 68% 40%)">
-<title>先改流程，再讓領域開口 — 充電樁 × 停車場 × 中央派工教案</title>
+<title>EV Charge Ops 七天工作坊主控台</title>
+<meta name="description" content="七天自學工作坊：用 Claude Code 當助教，從充電樁維運領域訪談需求，走完 BPR、Event Storming、DDD、TDD、Event-Driven 到 MVP 上線。主控台單檔可搬移，教材與程式碼在 GitHub。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;600;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -669,470 +671,1192 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
   }
 }
 
+
+/* ========== 主控台專用元件（在活頁講義語域之上） ========== */
+
+/* 頂部設定列：學員一次設好 runtime 與名字，所有提示跟著變 */
+.setup {
+  display: grid; gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  align-items: end;
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: var(--sp-4); margin-block: var(--sp-5);
+}
+.setup label { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--mist); margin-bottom: .35em; }
+.setup input[type="text"] {
+  width: 100%; min-height: 44px; padding: .4rem .7rem; font: inherit; font-size: var(--fs-sm);
+  color: var(--ink); background: var(--paper); border: 1px solid var(--rule-hard); border-radius: 4px;
+}
+.setup .seg { margin-bottom: 0; }
+
+/* 七天進度條 */
+.days-bar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: var(--sp-4) 0 var(--sp-2); }
+.days-bar a {
+  display: block; text-align: center; text-decoration: none; min-height: 44px;
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .04em;
+  padding: .5em .2em; border: 1px solid var(--rule); border-radius: 4px; color: var(--ink-2); background: var(--card);
+}
+.days-bar a .pct { display: block; font-size: .75em; color: var(--mist); }
+.days-bar a.done { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--card)); }
+.days-bar a.part { border-color: var(--accent); }
+.progress-line { font-size: var(--fs-sm); color: var(--ink-2); }
+
+/* Day 區塊 */
+.day { border-top: 3px solid var(--ink); padding-top: var(--sp-4); margin-top: var(--sp-7); }
+.day-meta { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); margin-bottom: var(--sp-3); }
+.day-meta a { color: var(--accent); }
+
+.block { border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); padding: var(--sp-4) var(--sp-5); margin-block: var(--sp-4); }
+.block-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2); }
+.block-head strong { font-family: var(--disp); font-size: var(--fs-3); }
+.block-head .time { font-family: var(--mono); font-size: var(--fs-xs); color: var(--mist); letter-spacing: .06em; }
+.block ol, .block ul { margin-bottom: var(--sp-3); }
+.block > :last-child { margin-bottom: 0; }
+
+/* 提示卡：按鈕 → 複製 → 貼到 Claude Code */
+.prompt { border: 1px dashed var(--rule-hard); border-radius: 6px; padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; background: var(--paper); }
+.prompt .prompt-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-2); }
+.prompt .prompt-head .k { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.prompt pre { margin: var(--sp-3) 0 0; border-top-width: 1px; border-top-color: var(--rule); font-size: var(--fs-xs); white-space: pre-wrap; max-height: 16rem; overflow: auto; }
+.prompt details > summary { cursor: pointer; font-size: var(--fs-xs); color: var(--mist); min-height: 32px; display: flex; align-items: center; }
+.btn-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.copy-btn::before { content: "⧉ "; }
+.copy-btn.copied { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--card)); color: var(--ink); }
+
+/* 交付物核取清單 */
+.dod { list-style: none; padding: 0; margin: var(--sp-3) 0; }
+.dod li { display: flex; gap: .6em; align-items: flex-start; padding: .35em 0; border-bottom: 1px solid var(--rule); }
+.dod li:last-child { border-bottom: 0; }
+.dod input[type="checkbox"] { width: 1.2em; height: 1.2em; margin-top: .3em; accent-color: var(--accent); flex: none; }
+.dod code { font-size: .82em; }
+.dod label { cursor: pointer; }
+.dod .done { color: var(--mist); text-decoration: line-through; }
+
+/* 指令列（clone 等）*/
+.cmd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: var(--sp-2) 0; }
+.cmd code { flex: 1 1 16rem; padding: .5em .7em; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; font-size: var(--fs-xs); overflow-wrap: anywhere; }
+
+/* 規則產生器（GWT）*/
+.form { display: grid; gap: var(--sp-3); }
+.form label { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--mist); display: block; margin-bottom: .3em; }
+.form input[type="text"], .form textarea, .form select {
+  width: 100%; min-height: 44px; padding: .45rem .7rem; font: inherit; font-size: var(--fs-sm);
+  color: var(--ink); background: var(--paper); border: 1px solid var(--rule-hard); border-radius: 4px;
+}
+.form textarea { min-height: 4.5em; resize: vertical; }
+.form .two { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
+
+/* 圖庫 */
+.diagram { width: 100%; overflow-x: auto; margin: var(--sp-4) 0; }
+.diagram svg { display: block; width: 100%; min-width: 34rem; max-width: 46rem; height: auto; overflow: visible; font-family: var(--sans); }
+.diagram .box { fill: var(--card); stroke: var(--rule-hard); stroke-width: 1.2; }
+.diagram .box.core { stroke: var(--accent); stroke-width: 2; }
+.diagram .box.ext { stroke-dasharray: 4 3; }
+.diagram .zone { fill: var(--accent-soft); fill-opacity: .45; stroke: none; }
+.diagram .t { fill: var(--ink); font-size: 12px; }
+.diagram .t.b { font-weight: 700; font-size: 13px; }
+.diagram .t.s { fill: var(--mist); font-size: 10.5px; }
+.diagram .t.a { fill: var(--accent); font-size: 10.5px; font-family: var(--mono); }
+.diagram .ar { fill: none; stroke: var(--ink-2); stroke-width: 1.4; marker-end: url(#arr); }
+.diagram .ar.ev { stroke: var(--accent); stroke-dasharray: 5 3; marker-end: url(#arr-a); }
+.diagram .ar.bad { stroke: var(--critical); marker-end: url(#arr-x); }
+.diagram .st { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.2; }
+.diagram .st.hot { stroke: var(--critical); }
+.diagram .st.good { stroke: var(--good); }
+.gallery-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.gallery-pane { display: none; }
+.gallery-pane.on { display: block; }
+
+/* 排序題（事件排序）*/
+.order-list { list-style: none; padding: 0; margin: 0 0 var(--sp-3); display: grid; gap: var(--sp-2); }
+.order-list li { display: flex; align-items: center; gap: var(--sp-2); padding: .5em .7em; background: var(--paper); border: 1px solid var(--rule-hard); border-radius: 4px; font-size: var(--fs-sm); }
+.order-list li .mv { margin-left: auto; display: flex; gap: 4px; }
+.order-list li button { min-height: 36px; min-width: 36px; padding: 0 .5em; font: inherit; font-size: var(--fs-xs); background: var(--card); border: 1px solid var(--rule); border-radius: 4px; color: var(--ink); cursor: pointer; }
+.order-list li.ok { border-color: var(--good); }
+.order-list li.bad { border-color: var(--critical); }
+
+/* 配對題（事件 → 發布者）*/
+.match { display: grid; gap: var(--sp-2); }
+.match-row { display: grid; grid-template-columns: 1fr auto; gap: var(--sp-2); align-items: center; padding: .4em .6em; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); }
+.match-row code { font-size: .82em; }
+.match-row select { min-height: 40px; font: inherit; font-size: var(--fs-xs); padding: .3em .5em; border: 1px solid var(--rule-hard); border-radius: 4px; background: var(--card); color: var(--ink); }
+.match-row.ok { border-color: var(--good); }
+.match-row.bad { border-color: var(--critical); }
+
+/* FAQ */
+.faq details { border-bottom: 1px solid var(--rule); }
+.faq summary { cursor: pointer; font-weight: 680; padding: var(--sp-3) 0; min-height: 44px; list-style: none; display: flex; gap: .5em; align-items: baseline; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::before { content: "＋"; color: var(--accent); font-family: var(--mono); flex: none; }
+.faq details[open] summary::before { content: "－"; }
+.faq details > :not(summary) { padding-bottom: var(--sp-3); }
+
+/* 講師模式：隱藏學員專用區 */
+.instructor-only { display: none; }
+body.instructor .instructor-only { display: block; }
+.mode-toggle { position: fixed; top: 1rem; right: 9.5rem; z-index: 20; min-height: 44px; padding: .4rem .85rem; background: var(--card); color: var(--ink-2); border: 1px solid var(--rule); border-radius: var(--radius); font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer; }
+.mode-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .mode-toggle { top: auto; bottom: 1rem; right: 9.5rem; } }
+
+/* toast */
+.toast { position: fixed; left: 50%; bottom: 1.2rem; transform: translate(-50%, 1rem); opacity: 0; pointer-events: none;
+  background: var(--ink); color: var(--paper); font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .04em;
+  padding: .6em 1em; border-radius: 6px; z-index: 30; transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.sim-state { margin-bottom: var(--sp-3); }
+.kbd { font-family: var(--mono); font-size: .85em; border: 1px solid var(--rule-hard); border-bottom-width: 2px; border-radius: 3px; padding: 0 .35em; }
+.small { font-size: var(--fs-sm); color: var(--ink-2); }
+.wrap-pre { white-space: pre-wrap; }
 </style>
 <body>
-<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
 <div class="progress" aria-hidden="true"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+<button class="mode-toggle" id="mode-toggle" type="button" aria-pressed="false">mode · 學員</button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<article class="report">
-  <p class="eyebrow">工作坊講義 · EV CHARGE OPS · 12 小時</p>
-  <h1 class="display">先改流程，<br>再讓領域<em>開口</em></h1>
-  <p class="lede">這不是充電 App 的產品簡報。這是一份把「現地停車場 × 充電計費 × 總部維運派工」拆開再組回來的教案：企業流程再造找出該消失的交接，DDD 把流程變成可執行的需求，TDD 與 Event-Driven 讓需求活在程式裡。</p>
-  <p class="byline">教案 v1 · 對象：產品 / 分析 / 後端 / 場站主管 · 先讀完再進演練</p>
+<main class="report">
 
-  <nav class="wide toc" aria-label="單元目錄">
-    <a href="#u00">00 維度</a>
-    <a href="#u01">01 場域</a>
-    <a href="#u02">02 再造</a>
-    <a href="#u03">03 風暴</a>
-    <a href="#u04">04 戰略</a>
-    <a href="#u05">05 需求</a>
-    <a href="#u06">06 事件</a>
-    <a href="#u07">07 TDD</a>
-    <a href="#u08">08 劇本</a>
-    <a href="#u09">09 方法論</a>
-    <a href="#u10">10 評量</a>
-  </nav>
+<p class="eyebrow" style="margin-top:0">主控台 · EV CHARGE OPS · 7 DAYS · CLAUDE CODE AS TA</p>
+<h1 class="display">陌生領域，<br>七天走到 <em>MVP</em></h1>
+<p class="lede">這是一個自學工作坊的主控台。你會 clone 一個 repo，用 Claude Code 當助教，
+從充電樁 × 停車場 × 總部派工這個你沒做過的領域開始：訪談需求、流程再造、事件風暴、切 Bounded Context、
+用 TDD 寫聚合、用事件把邊界接起來，最後在自己的筆電把 MVP 跑起來，並把這一段 SDLC 帶回公司。</p>
+<p class="byline">教材 v2 · 對象：1–3 年工程師 · 不需要 EV 領域知識 · 需要一台有 Node 或 Python 的筆電 ·
+<a href="https://github.com/clarencechien/dddguide">github.com/clarencechien/dddguide</a></p>
 
-  <section id="u00">
-    <p class="eyebrow">00 · THREE AXES</p>
-    <h2>三件事不在同一層，所以才能疊在同一專案</h2>
-    <p>學員進場時最常見的誤解是把 TDD、DDD、Event-Driven 當成三個互相替代的架構選項。它們回答的問題不同，失敗的樣子也不同。</p>
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>名稱</th><th>它是什麼</th><th>它回答</th><th>放進本專案的位置</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>企業流程再造<span class="sub">BPR</span></td>
-            <td>方法論 · 先問「這步該不該存在」</td>
-            <td>誰為顧客創造價值？哪段交接只是部門牆？</td>
-            <td>場站值班、計費對帳、故障通報、總部派工</td>
-          </tr>
-          <tr>
-            <td>領域驅動設計<span class="sub">DDD</span></td>
-            <td>設計方法論 · 戰略 + 戰術</td>
-            <td>這個詞誰擁有？邊界在哪？不變條件是什麼？</td>
-            <td>停車會話、充電會話、帳單、工單、派工</td>
-          </tr>
-          <tr>
-            <td>事件驅動<span class="sub">EDA</span></td>
-            <td>架構風格 · 實作範式</td>
-            <td>事實如何跨邊界流動，而不把兩個系統鎖死？</td>
-            <td>場站 ↔ 帳務 ↔ 總部維運</td>
-          </tr>
-          <tr>
-            <td>測試驅動<span class="sub">TDD</span></td>
-            <td>開發實踐 · 過程</td>
-            <td>這條不變條件現在就能跑紅、轉綠、再重構嗎？</td>
-            <td>每個 Aggregate 與每個 Event Handler</td>
-          </tr>
-        </tbody>
-      </table>
+<nav class="toc" aria-label="目錄">
+  <a href="#how">00 用法</a>
+  <a href="#day1">D1 進場</a>
+  <a href="#day2">D2 風暴</a>
+  <a href="#day3">D3 戰略</a>
+  <a href="#day4">D4 TDD</a>
+  <a href="#day5">D5 事件</a>
+  <a href="#day6">D6 MVP</a>
+  <a href="#day7">D7 收尾</a>
+  <a href="#gallery">圖庫</a>
+  <a href="#faq">Q&amp;A</a>
+  <a href="#exam">評量</a>
+</nav>
+
+<section id="setup" aria-labelledby="setup-h">
+  <div class="setup">
+    <div>
+      <label for="stu-name">你的名字（分支名用）</label>
+      <input type="text" id="stu-name" placeholder="例如 amy" autocomplete="off" spellcheck="false">
     </div>
-    <p class="pull">流程再造決定什麼不該被自動化；DDD 決定什麼值得被模型化；事件決定邊界怎麼呼吸；TDD 決定模型明天還能不能改。</p>
-    <p>本教案的強迫順序不是口味，是因果：<span class="mark">沒有被再造過的流程，寫進 DDD 只會得到一個很精緻的舊組織圖。</span>沒有領域語言的事件，只會得到一個會飛的 Excel。</p>
-  </section>
-
-  <section id="u01">
-    <p class="eyebrow">01 · THE SITE</p>
-    <h2>先把現場講清楚，再准許畫方塊</h2>
-    <p>系統有兩層地理、三種錢、一條故障生命週期。任何後續模型若對不上這三句，就是在發明另一家公司。</p>
-    <div class="tiles stagger">
-      <div class="stat"><p class="label">現地 · SITE</p><p class="value">停車場 + 樁</p><p class="delta">閘門、車位、OCPP、值班室</p></div>
-      <div class="stat"><p class="label">總部 · HQ</p><p class="value">維運派工</p><p class="delta">資產、工單、技術員、備品</p></div>
-      <div class="stat"><p class="label">錢的種類</p><p class="value">三種</p><p class="delta">停車費 · 電費 · 維修成本</p></div>
-      <div class="stat"><p class="label">允許的中斷</p><p class="value">總部可掛</p><p class="delta">場站必須能獨自收車、充電、出帳草稿</p></div>
-    </div>
-    <h3>角色（進工作坊要坐在桌上的人）</h3>
-    <ul>
-      <li>場站值班長：管閘門、車位占用、客人糾紛、樁顯示異常。</li>
-      <li>充電營運：管費率時段、啟動授權、度數、異常中止。</li>
-      <li>帳務：管停車單與充電單要不要合併、發票、對帳、爭議。</li>
-      <li>總部調度：管哪一座樁掛了、誰去修、SLA、備品是否在車上。</li>
-      <li>技術員：只認工單上的樁編號、故障碼、是否可遠端重啟。</li>
-    </ul>
-    <div class="note">
-      <p class="head">本教案的產品假設</p>
-      <p>連鎖場站。每站既有既有停車場系統（LPR / 月票 / 臨停），又新上充電樁（OCPP 1.6/2.0.1）。總部要看全國樁健康度並派工。顧客可能是臨停車主，也可能是合約車隊。場站在專線中斷時仍要能放行與充電，對帳可事後補。</p>
-    </div>
-  </section>
-
-  <section id="u02">
-    <p class="eyebrow">02 · BPR</p>
-    <h2>企業流程再造：先刪交接，再談系統</h2>
-    <p>Hammer 的原意不是「把紙本搬上雲」。再造問的是：這一步是為顧客創造結果，還是為了部門之間互相證明自己做過？充電場站最貴的不是電，是<span class="mark">人在兩套系統之間當 API</span>。</p>
-
-    <h3>現況（As-Is）——值班長用身體串起來的流程</h3>
-    <ol>
-      <li>車子進閘，停車場系統開一張停車單。充電系統一無所知。</li>
-      <li>車主自行找有槍的車位。油車占充電位，靠巡邏與罰單。</li>
-      <li>插槍後，車主再開一個 App 或刷第二張卡。失敗就按對講機。</li>
-      <li>充電結束，充電系統出一張單；離場時停車場再出一張單。兩張對不上。</li>
-      <li>樁故障：值班長拍照、打電話、總部助理開 Excel。技術員到場才發現備品不對。</li>
-      <li>月底三個單位對帳，爭議單在 Line 群流轉。</li>
-    </ol>
-
-    <div class="lab wide" id="bpr-lab">
-      <div class="lab-head">
-        <span class="chip">演練 1</span>
-        <strong>切換 As-Is / To-Be</strong>
-        <span class="lab-hint">同一條顧客旅程，看哪些角色從鏈上消失</span>
-      </div>
-      <div class="seg" role="tablist" aria-label="流程版本">
-        <button type="button" class="seg-btn on" data-flow="as">As-Is 現況</button>
-        <button type="button" class="seg-btn" data-flow="to">To-Be 再造後</button>
-      </div>
-      <ol class="flow" id="flow-list"></ol>
-      <p class="flow-verdict" id="flow-verdict"></p>
-    </div>
-
-    <h3>再造原則（本專案只留四條）</h3>
-    <ol>
-      <li><strong>以結果為單位，不以部門為單位。</strong>顧客要的是「車能走、帳能清」，不是「兩個系統都有紀錄」。</li>
-      <li><strong>現場擁有完整的現場交易。</strong>進場、占位、充電、離場的進行中狀態，總部讀得到，但批不准卡住閘門。</li>
-      <li><strong>故障是一等公民流程，不是客服例外。</strong>樁說自己壞了，工單就該存在；電話只是備份通道。</li>
-      <li><strong>對帳是事後對齊，不是同步鎖。</strong>允許短暫的兩邊數字不一致，但每筆都要有因果事件可追溯。</li>
-    </ol>
-    <div class="note warn">
-      <p class="head">BPR 課後必做</p>
-      <p>用紅筆在 As-Is 上圈出「這一步只因為兩個系統不說話才存在」的活動。圈得到的，不准直接做成 microservice。先決定它該消失，還是該變成一個事件。</p>
-    </div>
-  </section>
-
-  <section id="u03">
-    <p class="eyebrow">03 · EVENT STORMING</p>
-    <h2>用事件風暴，把再造結果變成領域語言</h2>
-    <p>Event Storming 是 BPR 走到 DDD 的橋。牆上先只准貼「已經發生的事實」，不准先貼服務名稱。橘色是命令、黃色是事件、紫色是政策、粉紅色是聚合、藍色是角色。本單元不寫程式。</p>
-    <p class="mark">一句話檢驗：這張黃貼能不能被現場的人唸出來，而不需要解釋系統名詞？</p>
-
-    <div class="lab wide" id="storm-lab">
-      <div class="lab-head">
-        <span class="chip">演練 2</span>
-        <strong>點一張貼，看它在風暴裡是哪一種</strong>
-      </div>
-      <p class="lab-hint">先自己判斷，再翻面。分類錯了通常代表你把系統動作當成了領域事實。</p>
-      <div class="storm" id="storm-board"></div>
-      <p class="legend-line">
-        <span class="swatch s-cmd"></span>命令
-        <span class="swatch s-evt"></span>領域事件
-        <span class="swatch s-pol"></span>政策
-        <span class="swatch s-agg"></span>聚合
-        <span class="swatch s-act"></span>角色
-      </p>
-    </div>
-
-    <h3>這條場站時間線，是後面所有模型的骨架</h3>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>時間</th><th>事實（黃）</th><th>誰在乎</th><th>不該發生的耦合</th></tr></thead>
-        <tbody>
-          <tr><td class="nowrap">T0</td><td>車輛已辨識進場</td><td>停車、占位政策</td><td>此時就去打總部派工 API</td></tr>
-          <tr><td class="nowrap">T1</td><td>充電車位已占用</td><td>停車、充電</td><td>占用等同充電已開始</td></tr>
-          <tr><td class="nowrap">T2</td><td>連接器已插上</td><td>充電</td><td>插槍等同已授權扣款</td></tr>
-          <tr><td class="nowrap">T3</td><td>充電已授權開始</td><td>充電、帳務草稿</td><td>開始充電時鎖死停車費結算</td></tr>
-          <tr><td class="nowrap">T4</td><td>電量已計量</td><td>充電、帳務</td><td>每次 MeterValue 都開一張發票</td></tr>
-          <tr><td class="nowrap">T5</td><td>充電已結束</td><td>充電、帳務</td><td>結束時同步呼叫總部工單系統</td></tr>
-          <tr><td class="nowrap">T6</td><td>車輛已離場</td><td>停車、帳務</td><td>離場被充電未結束擋住且無法人工放行</td></tr>
-          <tr><td class="nowrap">F</td><td>充電器已申告故障</td><td>資產、派工</td><td>現場必須先打電話才產生工單</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section id="u04">
-    <p class="eyebrow">04 · STRATEGIC DDD</p>
-    <h2>戰略設計：邊界比類別重要</h2>
-    <p>連鎖場站最容易畫成一個「超級充電平台」Bounded Context。那是大泥球的學名。本專案預設五個上下文——不是因為微服務流行，是因為它們換語言、換生命週期、換一致性邊界。</p>
-
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>上下文</th><th>它說的話</th><th>一致性</th><th>獨立存活</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>場站停車<span class="sub">Parking</span></td>
-            <td>進場、車位、停車會話、放行</td>
-            <td>一輛車同一時間一個進行中停車會話</td>
-            <td>總部掛掉仍能開關閘</td>
-          </tr>
-          <tr>
-            <td>充電會話<span class="sub">Charging</span></td>
-            <td>連接器、授權、計量、中止原因</td>
-            <td>一個連接器同一時間一個進行中會話</td>
-            <td>OCPP 在場站；總部只訂閱結果</td>
-          </tr>
-          <tr>
-            <td>計費帳務<span class="sub">Billing</span></td>
-            <td>費率套用、帳單、發票、爭議</td>
-            <td>一張帳單的金額一旦開立就不可默默改</td>
-            <td>可延遲出帳，不可丟失事件</td>
-          </tr>
-          <tr>
-            <td>資產維運<span class="sub">AssetOps</span></td>
-            <td>樁、槍、韌體、健康、工單</td>
-            <td>一座樁同一時間一個進行中根因工單</td>
-            <td>總部主系統；場站只上報</td>
-          </tr>
-          <tr>
-            <td>調度派工<span class="sub">Dispatch</span></td>
-            <td>技術員、路線、SLA、備品預留</td>
-            <td>一張工單同一時間一個主責技術員</td>
-            <td>可離線執行，回報後再對齊</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>Context Map 上只准出現的關係</h3>
-    <ul>
-      <li>OCPP 對充電上下文是<strong>防腐層</strong>（ACL），不是領域模型。ChargePointStatus 不是 Ubiquitous Language。</li>
-      <li>停車與充電是<strong>伙伴 + 事件下游</strong>：停車知道「這格是充電格」，但不管電。</li>
-      <li>帳務對停車 / 充電是<strong>顧客—供應者</strong>：上游事件是契約，帳務不得回呼凍結會話。</li>
-      <li>資產維運對充電是<strong>遵奉者</strong>：接受 <code>ChargerFaulted</code> 的語意，不要求場站懂工單狀態機。</li>
-      <li>派工在維運內部，對外不發「技術員已出發」給顧客帳務。</li>
-    </ul>
-
-    <div class="lab wide" id="ctx-lab">
-      <div class="lab-head">
-        <span class="chip">演練 3</span>
-        <strong>這個概念該住在哪個上下文？</strong>
-      </div>
-      <p id="ctx-q" class="ctx-q"></p>
-      <div class="ctx-opts" id="ctx-opts"></div>
-      <p id="ctx-fb" class="ctx-fb"></p>
-      <button type="button" class="lab-btn" id="ctx-next">下一題</button>
-    </div>
-  </section>
-
-  <section id="u05">
-    <p class="eyebrow">05 · REQUIREMENTS FROM DDD</p>
-    <h2>DDD 如何「成為」需求，而不是補一章詞彙表</h2>
-    <p>許多團隊在規格書末頁貼上 Entity / Value Object 清單，以為那就是 DDD。本教案把需求寫成三種可驗收的句子：<strong>領域規則</strong>、<strong>跨上下文契約</strong>、<strong>例子</strong>。沒有例子的規則不准進 Sprint。</p>
-
-    <h3>Ubiquitous Language（節錄，進場第一天就要釘死）</h3>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>用語</th><th>是</th><th>不是</th></tr></thead>
-        <tbody>
-          <tr><td>停車會話</td><td>從進場到放行的一次占用契約</td><td>閘門硬體日誌</td></tr>
-          <tr><td>充電會話</td><td>從插槍授權到結束計量的一次能量交付</td><td>OCPP Transaction</td></tr>
-          <tr><td>連接器</td><td>一把槍的業務身份</td><td>Modbus 位址</td></tr>
-          <tr><td>帳單</td><td>對顧客的求償文件</td><td>MeterValue 陣列</td></tr>
-          <tr><td>工單</td><td>總部對一根故障的承諾</td><td>一通值班電話</td></tr>
-          <tr><td>故障申告</td><td>設備已聲明自己無法按契約供電</td><td>App 連不上的客訴</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>領域規則寫成可驗收需求（範例）</h3>
-    <pre><code>情境：進行中的充電會話不可被第二次 Start 覆寫
-既有：連接器 CP-A12-2 已有會話 S-991，狀態為 Charging
-當：同一連接器收到 StartCharging（任何 idTag）
-則：拒絕；原會話不變；發布 ChargingStartRejected(reason=ConnectorOccupied)
-
-情境：樁故障必須產生且只產生一張根因工單
-既有：樁 CP-A12 健康
-當：收到 ChargerFaulted(code=GroundFailure) 兩次，間隔 8 秒
-則：只開啟工單 WO-… 一張；第二次只附加「重複申告」紀錄
-
-情境：離場放行不依賴總部
-既有：總部連線中斷；停車費已預估
-當：值班長執行人工放行並留下原因
-則：閘門開啟；發布 ParkingManuallyReleased；帳務稍後對齊</code></pre>
-
-    <div class="note good">
-      <p class="head">需求的完成定義</p>
-      <p>一條規則進 Backlog 時必須同時帶：擁有它的 Bounded Context、觸發命令、成功時的領域事件、拒絕時的事件或錯誤、一個數字例子（度數、金額、時間）。缺一項就還是願望。</p>
-    </div>
-  </section>
-
-  <section id="u06">
-    <p class="eyebrow">06 · EVENT-DRIVEN DESIGN</p>
-    <h2>事件怎麼設計：場站能離線，總部能追因果</h2>
-    <p>Event-Driven 在本專案不是「全部丟進 Kafka」。它解決的是 BPR 留下的那條原則：<span class="mark">跨部門的事實用事件走，跨部門的鎖用原則禁止。</span></p>
-
-    <h3>兩種事件，不准混名</h3>
-    <div class="cols">
-      <div class="card">
-        <h3>Domain Event</h3>
-        <p>上下文內部的事實。用領域語言。可以同步、可以在同一交易裡收集。例如 <code>ChargingCompleted</code> 被同一個 Charging 應用服務拿去通知讀模型。</p>
-      </div>
-      <div class="card">
-        <h3>Integration Event</h3>
-        <p>跨上下文的契約。穩定、版本化、經過 Outbox、永遠非同步。例如 <code>charging.session.completed.v1</code> 給帳務與維運。</p>
+    <div>
+      <label>語言 / runtime</label>
+      <div class="seg" id="lang-seg">
+        <button type="button" class="seg-btn on" data-lang="node">Node / TypeScript</button>
+        <button type="button" class="seg-btn" data-lang="python">Python</button>
       </div>
     </div>
-
-    <h3>本專案的最小事件契約</h3>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>事件</th><th>發布者</th><th>訂閱者</th><th>備註</th></tr></thead>
-        <tbody>
-          <tr><td class="nowrap"><code>parking.vehicle_entered.v1</code></td><td>Parking</td><td>占位政策、可選充電預約</td><td>含 plate、siteId、lane</td></tr>
-          <tr><td class="nowrap"><code>charging.session.started.v1</code></td><td>Charging</td><td>Billing 草稿、Parking 占用確認</td><td>含 connectorId、idTag</td></tr>
-          <tr><td class="nowrap"><code>charging.session.completed.v1</code></td><td>Charging</td><td>Billing</td><td>含 Wh、起迄、中止原因</td></tr>
-          <tr><td class="nowrap"><code>parking.session.closed.v1</code></td><td>Parking</td><td>Billing</td><td>含時長、放行方式</td></tr>
-          <tr><td class="nowrap"><code>charging.charger.faulted.v1</code></td><td>Charging</td><td>AssetOps</td><td>含 faultCode、是否仍帶電</td></tr>
-          <tr><td class="nowrap"><code>ops.work_order.opened.v1</code></td><td>AssetOps</td><td>Dispatch、場站看板</td><td>場站只讀，不回寫狀態機</td></tr>
-          <tr><td class="nowrap"><code>ops.work_order.closed.v1</code></td><td>AssetOps</td><td>Charging 健康、SLA</td><td>關閉後才允許自動恢復「可售」</td></tr>
-        </tbody>
-      </table>
+    <div>
+      <label>進度</label>
+      <p class="progress-line" id="progress-line">尚未開始</p>
     </div>
+  </div>
+  <div class="days-bar" id="days-bar" aria-label="七天進度"></div>
+  <p class="small">設定與勾選只存在你這台瀏覽器（localStorage），不會上傳。清除瀏覽資料就會歸零；正式的交付物一律 commit 到 repo。</p>
+</section>
 
-    <h3>必須一起教的配套，否則 EDA 會爛</h3>
-    <ul>
-      <li><strong>Transactional Outbox：</strong>先寫聚合與 outbox 同一筆交易，再由 relay 發佈。禁止在領域物件裡直接打 broker。</li>
-      <li><strong>至少一次 + 冪等處理：</strong>帳務用 <code>sessionId</code> 當去重鍵；維運用 <code>chargerId + faultFingerprint</code> 去重。</li>
-      <li><strong>Saga / Process Manager 只放跨上下文政策：</strong>「故障 → 開單 → 派工 → 修復驗證 → 恢復可售」是政策，不是 Charging 聚合的私務。</li>
-      <li><strong>命令與事件分開：</strong>總部不能對場站發 <code>ForceStopSession</code> 當日常手段；緊急停權走明確的安全命令，並留下審計事件。</li>
-    </ul>
-    <div class="note critical">
-      <p class="head">反模式</p>
-      <p>把 OCPP 的 StatusNotification 原封不動當 Integration Event 廣播到全公司。下游會被協定細節綁死，換樁商就全炸。防腐層要先翻譯成「充電器已申告故障」。</p>
+<!-- ============================================================ 00 ============ -->
+<p class="eyebrow" id="how">00 · HOW IT WORKS</p>
+<h2>三個東西怎麼配合：repo、主控台、Claude Code</h2>
+<p>主控台不是教材本體，它是遙控器。教材、參考資料、起手式程式碼、助教 skills 全部在 repo 裡；
+主控台負責告訴你「現在做哪一步、按哪個按鈕、把什麼貼給 Claude Code」。這一頁可以放在任何靜態主機上，所有連結都指回 GitHub。</p>
+
+<div class="cols">
+  <div class="card">
+    <p class="eyebrow" style="margin-top:0">STEP 1 · CLONE</p>
+    <div class="cmd"><code id="cmd-clone">git clone https://github.com/clarencechien/dddguide.git &amp;&amp; cd dddguide</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-clone">複製</button></div>
+    <div class="cmd"><code id="cmd-branch">git checkout -b workshop/<span class="v-name">你的名字</span></code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-branch">複製</button></div>
+    <div class="cmd"><code id="cmd-cfg">printf 'LANG=<span class="v-lang">node</span>\n' &gt; workshop/.config</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-cfg">複製</button></div>
+    <p class="small">分支名與 <code>workshop/.config</code> 會讓助教知道你是誰、用哪個 runtime。</p>
+  </div>
+  <div class="card">
+    <p class="eyebrow" style="margin-top:0">STEP 2 · RUN TESTS</p>
+    <div class="cmd lang-node"><code id="cmd-test-node">cd starter/node &amp;&amp; npm install &amp;&amp; npm test</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-test-node">複製</button></div>
+    <div class="cmd lang-python"><code id="cmd-test-py">cd starter/python &amp;&amp; python -m venv .venv &amp;&amp; . .venv/bin/activate &amp;&amp; pip install -r requirements.txt &amp;&amp; pytest</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-test-py">複製</button></div>
+    <p class="small">看到 <strong>一個紅燈</strong>（R1）其他綠或 skip，就是對的。那個紅燈是 Day 4 的起點，現在不用修。</p>
+  </div>
+  <div class="card">
+    <p class="eyebrow" style="margin-top:0">STEP 3 · CLAUDE CODE</p>
+    <div class="cmd"><code id="cmd-claude">claude</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-claude">複製</button></div>
+    <p>在 repo 根目錄啟動，它會讀 <code>CLAUDE.md</code> 變成助教。第一句輸入：</p>
+    <div class="cmd"><code id="cmd-ta">/ta 我是新學員，今天 Day 1</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-ta">複製</button></div>
+    <p class="small">之後的循環：主控台按「複製提示」→ 貼到 Claude Code → 做事 → 產出放 <code>workshop/dayN/</code> → <code>/checkout dayN</code>。</p>
+  </div>
+</div>
+
+<div class="note">
+  <p class="head">助教的三條規矩（寫在 CLAUDE.md 與 skills 裡，你可以要求它遵守）</p>
+  <ol>
+    <li><strong>先問後答。</strong>它會用問題逼你自己推導。你說「我卡住超過 20 分鐘」它才會給參考解或指向 <code>solutions/</code>。</li>
+    <li><strong>沒有紅燈不准寫產品碼。</strong>Day 4–6 它會拒絕直接生成實作，直到你貼上失敗的測試輸出。</li>
+    <li><strong>通用語言優先。</strong>OCPP 的字不准進 domain；聚合裡不准有 I/O；事件先記錄再由 Outbox 發。</li>
+  </ol>
+</div>
+
+<div class="table-scroll"><table>
+<thead><tr><th>Day</th><th>主題</th><th>方法論</th><th>交付物（<code>workshop/dayN/</code>）</th><th>教材</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">Day 1</td><td>進場：領域入門、訪談、BPR</td><td>領域入門、利害關係人訪談、As-Is / To-Be</td><td><code>interviews.md</code> <code>as-is.md</code> <code>to-be.md</code></td><td><a data-doc="docs/days/day1.md">day1.md</a></td></tr>
+<tr><td class="nowrap">Day 2</td><td>事件風暴與通用語言</td><td>Event Storming、Glossary、Example Mapping</td><td><code>storm-board.md</code> <code>glossary.md</code> <code>rules.md</code></td><td><a data-doc="docs/days/day2.md">day2.md</a></td></tr>
+<tr><td class="nowrap">Day 3</td><td>戰略設計</td><td>Bounded Context、Context Map、C4、ADR</td><td><code>context-map.md</code> <code>c4.md</code> <code>adr/</code></td><td><a data-doc="docs/days/day3.md">day3.md</a></td></tr>
+<tr><td class="nowrap">Day 4</td><td>戰術設計 + TDD</td><td>Aggregate / VO / Domain Event、六角架構、紅綠重構</td><td><code>starter/&lt;lang&gt;/src/charging/**</code> 測試全綠</td><td><a data-doc="docs/days/day4.md">day4.md</a></td></tr>
+<tr><td class="nowrap">Day 5</td><td>應用層與事件驅動</td><td>Application Service、Outbox、Integration Event、冪等、Process Manager</td><td><code>src/{app,billing,assetops}</code> 測試全綠、<code>contracts/</code></td><td><a data-doc="docs/days/day5.md">day5.md</a></td></tr>
+<tr><td class="nowrap">Day 6</td><td>MVP 上線</td><td>HTTP API、OCPP 模擬器 + ACL、持久化、Docker、E2E</td><td>本機跑通 <code>scripts/e2e</code>、<code>README-mvp.md</code></td><td><a data-doc="docs/days/day6.md">day6.md</a></td></tr>
+<tr><td class="nowrap">Day 7</td><td>SDLC 收尾</td><td>Code Review、重構、CI、Backlog、Retro</td><td>PR + CI 綠、<code>retro.md</code>、<code>sprint-2-backlog.md</code></td><td><a data-doc="docs/days/day7.md">day7.md</a></td></tr>
+</tbody></table></div>
+
+<p>每天的節奏固定：<span class="chip">KICKOFF 15'</span> <span class="chip soft">BLOCK ×3 · 各 90'</span> <span class="chip soft">CHECK-OUT</span>。
+講師只負責 kickoff；Block 裡你和 Claude Code 一起做；Check-out 用 <code>/checkout dayN</code> 對照 <a data-doc="docs/rubric.md">rubric</a> 自評。
+落後了就做每一天的「最低可行版本」（在各 day 的教材末尾）。</p>
+
+<div class="instructor-only note warn">
+  <p class="head">講師模式已開啟</p>
+  <p>看 <a data-doc="docs/instructor.md">docs/instructor.md</a>：Day 1 開場 45 分鐘腳本、每日 kickoff 要點、常見誤解攔截表、七天砍成五天的取捨。
+  投影時建議只投主控台，教材讓學員自己在 repo 讀；你的工作是每天早上 15 分鐘把「為什麼今天做這個」講清楚，其餘交給助教。</p>
+</div>
+
+<!-- ============================================================ DAY 1 ============ -->
+<section class="day" id="day1" data-day="1">
+<p class="eyebrow" style="margin-top:0">DAY 1 · ENTRY</p>
+<h2>進場：從一個沒做過的領域開始問問題</h2>
+<p class="day-meta"><span>方法論：領域入門 · 利害關係人訪談 · BPR</span><a data-doc="docs/days/day1.md">教材 day1.md</a><a data-doc="docs/domain/ev-charging-primer.md">領域入門</a><a data-doc="docs/domain/stakeholders.md">五位角色</a></p>
+<p>你不需要懂充電樁。你需要的是在一個陌生領域裡，用對的問題把「人在兩套系統之間當 API」的地方問出來。今天不畫任何系統圖。</p>
+
+<div class="lab">
+  <div class="lab-head"><strong>今天結束你會拿到</strong><span class="lab-hint">勾選會存在瀏覽器；真正的驗收是 <code>/checkout day1</code></span></div>
+  <ul class="dod" data-dod="1">
+    <li><input type="checkbox" id="d1-0"><label for="d1-0">環境跑得起來：starter 測試一紅其餘綠；Claude Code 對 <code>/ta</code> 有反應</label></li>
+    <li><input type="checkbox" id="d1-1"><label for="d1-1"><code>workshop/day1/interviews.md</code>：五位角色的訪談紀錄，每位至少問出 3 個隱藏事實</label></li>
+    <li><input type="checkbox" id="d1-2"><label for="d1-2"><code>workshop/day1/as-is.md</code>：顧客旅程 As-Is，用紅筆（或 ~~刪除線~~）圈出「只因兩套系統不說話才存在」的步驟</label></li>
+    <li><input type="checkbox" id="d1-3"><label for="d1-3"><code>workshop/day1/to-be.md</code>：To-Be 四原則，每條附一個現場例子</label></li>
+    <li><input type="checkbox" id="d1-4"><label for="d1-4">commit 到 <code>workshop/<span class="v-name">你的名字</span></code> 分支</label></li>
+  </ul>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 1 · 環境與領域入門</strong><span class="time">90'</span></div>
+  <ol>
+    <li>完成上面 00 的三步。</li>
+    <li>讀 <a data-doc="docs/domain/ev-charging-primer.md">ev-charging-primer.md</a>（30 分鐘）：樁 / 槍 / kWh / 費率 / 總部派工 / 「場站要能在總部斷線時活著」。</li>
+    <li>讀完後用下面的提示，讓助教用問題檢查你有沒有真的懂。</li>
+  </ol>
+  <div class="prompt" data-prompt="d1b1"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 2 · 訪談五位角色</strong><span class="time">90'</span></div>
+  <p>Claude 會扮演一位角色，帶著隱藏事實。你要靠問題把事實挖出來——問「你們系統有什麼功能」挖不到；問「上次出事你人在哪、手上拿什麼」才挖得到。一位 10–15 分鐘，換人前它會告訴你問出了幾個關鍵事實。</p>
+  <div class="seg" id="persona-seg">
+    <button type="button" class="seg-btn on" data-persona="阿忠">阿忠 · 值班長</button>
+    <button type="button" class="seg-btn" data-persona="小美">小美 · 充電營運</button>
+    <button type="button" class="seg-btn" data-persona="老陳">老陳 · 帳務</button>
+    <button type="button" class="seg-btn" data-persona="Vicky">Vicky · 總部調度</button>
+    <button type="button" class="seg-btn" data-persona="阿豪">阿豪 · 技術員</button>
+  </div>
+  <div class="prompt" data-prompt="d1b2"></div>
+  <p class="small">把每位的紀錄寫進 <code>workshop/day1/interviews.md</code>（範本在 <code>workshop/day1/TEMPLATE.md</code>）。寫「他說了什麼」和「他其實在意什麼」兩欄。</p>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 3 · BPR：先刪交接，再談系統</strong><span class="time">90'</span></div>
+  <p>企業流程再造（BPR）問的不是「這步怎麼自動化」，是「這步該不該存在」。先看一個示範，再做你自己的版本。</p>
+
+  <div class="lab" id="bpr-lab">
+    <div class="lab-head"><strong>示範 · 切換 As-Is / To-Be</strong><span class="lab-hint">同一條顧客旅程，看哪些角色從鏈上消失</span></div>
+    <div class="seg">
+      <button type="button" class="seg-btn on" data-flow="as">As-Is 現況</button>
+      <button type="button" class="seg-btn" data-flow="to">To-Be 再造後</button>
     </div>
-  </section>
+    <ol class="flow" id="flow-list"></ol>
+    <p class="flow-verdict" id="flow-verdict"></p>
+  </div>
 
-  <section id="u07">
-    <p class="eyebrow">07 · TDD</p>
-    <h2>TDD：先讓規則紅掉，再准許寫產品程式</h2>
-    <p>TDD 不負責切上下文。它負責讓上一單元寫下的規則在儲存庫裡可執行。本專案採<strong>由內而外</strong>：先測純領域聚合，再測應用服務與 outbox，最後才測 OCPP 適配器。</p>
+  <p><strong>再造原則（本專案只留四條）</strong></p>
+  <ol>
+    <li><strong>以結果為單位，不以部門為單位。</strong>顧客要的是「車能走、帳能清」，不是「兩個系統都有紀錄」。</li>
+    <li><strong>現場擁有完整的現場交易。</strong>進場、占位、充電、離場的進行中狀態，總部讀得到，但批不准卡住閘門。</li>
+    <li><strong>故障是一等公民流程，不是客服例外。</strong>樁說自己壞了，工單就該存在；電話只是備份通道。</li>
+    <li><strong>對帳是事後對齊，不是同步鎖。</strong>允許短暫的兩邊數字不一致，但每筆都要有因果事件可追溯。</li>
+  </ol>
+  <div class="prompt" data-prompt="d1b3"></div>
+  <div class="note critical">
+    <p class="head">BPR 課後必做</p>
+    <p>用紅筆在 As-Is 上圈出「這一步只因為兩個系統不說話才存在」的活動。圈得到的，不准直接做成 microservice。先決定它該消失，還是該變成一個事件。</p>
+  </div>
+</div>
 
-    <div class="lab wide" id="tdd-lab">
-      <div class="lab-head">
-        <span class="chip">演練 4</span>
-        <strong>充電會話聚合 · 紅燈 → 綠燈</strong>
+<div class="block">
+  <div class="block-head"><strong>Check-out</strong><span class="time">15'</span></div>
+  <div class="quiz" data-quiz="q1"></div>
+  <div class="prompt" data-prompt="checkout1"></div>
+</div>
+</section>
+
+<!-- ============================================================ DAY 2 ============ -->
+<section class="day" id="day2" data-day="2">
+<p class="eyebrow" style="margin-top:0">DAY 2 · EVENT STORMING</p>
+<h2>用事件風暴，把再造結果變成領域語言</h2>
+<p class="day-meta"><span>方法論：Event Storming · Ubiquitous Language · Example Mapping</span><a data-doc="docs/days/day2.md">教材 day2.md</a><a data-doc="docs/references/event-storming.md">event-storming.md</a><a data-doc="docs/references/example-mapping.md">example-mapping.md</a></p>
+<p>Event Storming 是 BPR 走到 DDD 的橋。牆上先只准貼「已經發生的事實」，不准先貼服務名稱。你一個人，所以牆變成 Markdown 表格與 Mermaid，Claude 當引導者兼那個一直問「這真的是事實嗎」的人。</p>
+
+<div class="lab">
+  <div class="lab-head"><strong>今天結束你會拿到</strong></div>
+  <ul class="dod" data-dod="2">
+    <li><input type="checkbox" id="d2-0"><label for="d2-0"><code>workshop/day2/storm-board.md</code>：時間線 T0–T6 + 故障支線 F，含命令 / 政策 / 聚合候選 / 角色 / hotspot</label></li>
+    <li><input type="checkbox" id="d2-1"><label for="d2-1"><code>workshop/day2/glossary.md</code>：≥ 15 個用語，每個都有「是 / 不是」與擁有者</label></li>
+    <li><input type="checkbox" id="d2-2"><label for="d2-2"><code>workshop/day2/rules.md</code>：≥ 6 條 Given / When / Then，每條帶數字例子與拒絕事件</label></li>
+    <li><input type="checkbox" id="d2-3"><label for="d2-3"><code>/rules-check</code> 全部 ✅ 或 ⚠️，沒有 ❌</label></li>
+  </ul>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 1 · Big-picture：只貼事實</strong><span class="time">90'</span></div>
+  <div class="lab" id="storm-lab">
+    <div class="lab-head"><strong>熱身 · 點一張貼，看它在風暴裡是哪一種</strong><span class="lab-hint">先自己判斷，再翻面。分類錯了通常代表你把系統動作當成了領域事實。</span></div>
+    <div class="storm" id="storm-board"></div>
+    <p class="legend-line"><span><i class="swatch s-cmd"></i>命令</span><span><i class="swatch s-evt"></i>領域事件</span><span><i class="swatch s-pol"></i>政策</span><span><i class="swatch s-agg"></i>聚合</span><span><i class="swatch s-act"></i>角色</span></p>
+  </div>
+  <div class="lab" id="order-lab">
+    <div class="lab-head"><strong>熱身 · 把場站時間線排回正確順序</strong><span class="lab-hint">排好按檢查。排不出來代表領域入門要再讀一次。</span></div>
+    <ul class="order-list" id="order-list"></ul>
+    <div class="btn-row"><button type="button" class="lab-btn" id="order-check">檢查</button><button type="button" class="lab-btn ghost" id="order-shuffle">重洗</button><span class="lab-hint" id="order-fb"></span></div>
+  </div>
+  <div class="prompt" data-prompt="d2b1"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 2 · Process-level：命令、政策、聚合候選</strong><span class="time">90'</span></div>
+  <p>在每個黃貼前面放橘貼（誰下了什麼命令）、後面放紫貼（發生後系統自動反應的政策），把一群黃貼圈成粉紅（聚合候選）。這一輪最常見的錯：把 OCPP 訊息名當事件、把「呼叫 API」當政策。</p>
+  <div class="prompt" data-prompt="d2b2"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 3 · Example Mapping：規則要有例子才准進 Backlog</strong><span class="time">90'</span></div>
+  <p>用下面的產生器把一條規則寫成 Given / When / Then，它會幫你組出要貼給 <code>/rules-check</code> 的提示。一條規則的完成定義：擁有它的 Context、觸發命令、成功事件、拒絕事件、一個數字例子。缺一項就還是願望。</p>
+  <div class="lab" id="rule-lab">
+    <div class="lab-head"><strong>規則產生器</strong><span class="lab-hint">寫完會產生 Markdown，貼進 <code>workshop/day2/rules.md</code></span></div>
+    <div class="form">
+      <div class="two">
+        <div><label for="r-id">規則編號</label><input type="text" id="r-id" value="R1"></div>
+        <div><label for="r-ctx">擁有的 Context</label><select id="r-ctx"><option>Charging</option><option>Parking</option><option>Billing</option><option>AssetOps</option><option>Dispatch</option></select></div>
       </div>
-      <p class="tdd-phase" id="tdd-phase">RED</p>
-      <pre id="tdd-code"></pre>
-      <p id="tdd-note" class="tdd-note"></p>
-      <button type="button" class="lab-btn" id="tdd-next">下一步</button>
-    </div>
-
-    <h3>測試金字塔在這個專案的具體形狀</h3>
-    <ol>
-      <li><strong>大量：</strong>聚合與值物件。時間、Wh、費率計算、狀態機拒絕。</li>
-      <li><strong>中量：</strong>應用服務 + 假 repository + 假 outbox。驗證「交易成功才有事件」。</li>
-      <li><strong>少量：</strong>OCPP 契約測試、訊息契約測試（schema + 消費者示例）。</li>
-      <li><strong>極少：</strong>一條場站進場到出帳的穿越測試，用記憶體 bus，不連真實樁。</li>
-    </ol>
-    <p>Handler 的單元測試要證明三件事：重複事件不重複出帳、未知事件可略過、失敗可重試而不破壞聚合。</p>
-  </section>
-
-  <section id="u08">
-    <p class="eyebrow">08 · END-TO-END SCRIPT</p>
-    <h2>一條完整劇本：從閘門到派工</h2>
-    <p>把前面所有單元收成一場可逐步播放的因果。播放時注意：場站聚合先變，事件後飛，總部晚到也不准回寫場站進行中狀態。</p>
-
-    <div class="lab wide" id="sim-lab">
-      <div class="lab-head">
-        <span class="chip">演練 5</span>
-        <strong>播放一次真實午後</strong>
+      <div><label for="r-title">情境（一句話）</label><input type="text" id="r-title" placeholder="進行中的充電會話不可被第二次 Start 覆寫"></div>
+      <div><label for="r-given">Given 既有</label><textarea id="r-given" placeholder="連接器 CP-A12-2 已有會話 S-991，狀態為 Charging"></textarea></div>
+      <div><label for="r-when">When 當</label><textarea id="r-when" placeholder="同一連接器收到 StartCharging（任何 idTag）"></textarea></div>
+      <div><label for="r-then">Then 則</label><textarea id="r-then" placeholder="拒絕；原會話不變；發布 ChargingStartRejected(reason=ConnectorOccupied)"></textarea></div>
+      <div class="two">
+        <div><label for="r-cmd">觸發命令</label><input type="text" id="r-cmd" placeholder="StartCharging"></div>
+        <div><label for="r-ok">成功事件</label><input type="text" id="r-ok" placeholder="ChargingStarted"></div>
+        <div><label for="r-no">拒絕事件</label><input type="text" id="r-no" placeholder="ChargingStartRejected"></div>
+        <div><label for="r-num">數字例子</label><input type="text" id="r-num" placeholder="12.4 kWh · 14:04–14:31"></div>
       </div>
-      <div class="sim-toolbar">
-        <button type="button" class="lab-btn" id="sim-step">下一步</button>
-        <button type="button" class="lab-btn ghost" id="sim-reset">重來</button>
-        <span id="sim-cap" class="lab-hint"></span>
-      </div>
-      <ol class="sim-log" id="sim-log"></ol>
-      <div class="tiles" id="sim-state"></div>
+      <div class="btn-row"><button type="button" class="lab-btn" id="rule-gen">產生 Markdown</button><button type="button" class="lab-btn ghost copy-btn" data-copy="#rule-out">複製</button><button type="button" class="lab-btn ghost" id="rule-example">填入 R1 範例</button></div>
+      <pre id="rule-out" class="wrap-pre" aria-live="polite"></pre>
     </div>
+  </div>
+  <div class="prompt" data-prompt="d2b3"></div>
+</div>
 
-    <h3>教練在播放時要追問的三句</h3>
-    <ol>
-      <li>這一步如果總部沒收到，顧客能不能離場？</li>
-      <li>這一步如果重送一次，會不會開出第二張帳單或第二張工單？</li>
-      <li>這一步用的名字，值班長聽不聽得懂？</li>
-    </ol>
-  </section>
+<div class="block">
+  <div class="block-head"><strong>Check-out</strong><span class="time">15'</span></div>
+  <div class="quiz" data-quiz="q2"></div>
+  <div class="prompt" data-prompt="checkout2"></div>
+</div>
+</section>
 
-  <section id="u09">
-    <p class="eyebrow">09 · METHOD MAP</p>
-    <h2>應該補上的方法論與知識，以及它們出場的時機</h2>
-    <p>不要在第一天把工具箱倒在桌上。下面這張表是「何時才准許引入」。</p>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>方法 / 知識</th><th>何時用</th><th>本專案裡的樣子</th></tr></thead>
-        <tbody>
-          <tr><td>BPR / 價值流圖<span class="sub">Hammer, Rother</span></td><td>任何系統圖之前</td><td>刪掉值班長當 API 的步驟</td></tr>
-          <tr><td>Event Storming<span class="sub">Brandolini</span></td><td>BPR 後、寫故事前</td><td>場站時間線 T0–T6 + 故障</td></tr>
-          <tr><td>Example Mapping / BDD<span class="sub">Hill, North</span></td><td>把黃貼寫成 Backlog</td><td>規則 + 例子 + 問題卡</td></tr>
-          <tr><td>戰略 DDD<span class="sub">Evans, Tune &amp; Millett</span></td><td>風暴出現語言衝突時</td><td>五個上下文與關係</td></tr>
-          <tr><td>戰術 DDD<span class="sub">Vernon</span></td><td>開始寫領域模型</td><td>Session / WorkOrder 聚合</td></tr>
-          <tr><td>Hexagonal / ACL<span class="sub">Cockburn</span></td><td>碰到 OCPP、LPR、ERP</td><td>協定不得進入領域層</td></tr>
-          <tr><td>C4 Model<span class="sub">Brown</span></td><td>對外說明結構</td><td>系統圖，不是類別圖</td></tr>
-          <tr><td>CQRS（適度）</td><td>看板與計費查詢開始拖垮寫入</td><td>場站看板讀模型</td></tr>
-          <tr><td>Outbox / Inbox</td><td>第一個跨進程事件</td><td>場站發、總部收</td></tr>
-          <tr><td>Saga / Process Manager</td><td>故障修復跨越三個上下文</td><td>開單—派工—驗證—恢復</td></tr>
-          <tr><td>TDD / 契約測試<span class="sub">Beck, Pact 思想</span></td><td>聚合與事件契約穩定後</td><td>紅綠重構 + schema 示例</td></tr>
-          <tr><td>OCPP 1.6 / 2.0.1</td><td>充電適配器，不是領域課</td><td>只活在 ACL</td></tr>
-          <tr><td>費率與電業觀念</td><td>帳務上下文</td><td>尖離峰、服務費、度數精度</td></tr>
-        </tbody>
-      </table>
+<!-- ============================================================ DAY 3 ============ -->
+<section class="day" id="day3" data-day="3">
+<p class="eyebrow" style="margin-top:0">DAY 3 · STRATEGIC DDD</p>
+<h2>戰略設計：邊界比類別重要</h2>
+<p class="day-meta"><span>方法論：Bounded Context · Context Map · C4 · ADR</span><a data-doc="docs/days/day3.md">教材 day3.md</a><a data-doc="docs/references/ddd-strategic.md">ddd-strategic.md</a><a data-doc="docs/references/c4.md">c4.md</a><a data-doc="docs/references/adr.md">adr.md</a></p>
+<p>連鎖場站最容易畫成一個「超級充電平台」。那是大泥球的學名。今天你要從昨天的風暴裡，用三個問題找邊界：<strong>這個詞在這裡和那裡意思一樣嗎？生命週期一樣嗎？誰在總部斷線時還要活著？</strong>助教今天不會先告訴你答案有幾個 context。</p>
+
+<div class="lab">
+  <div class="lab-head"><strong>今天結束你會拿到</strong></div>
+  <ul class="dod" data-dod="3">
+    <li><input type="checkbox" id="d3-0"><label for="d3-0"><code>workshop/day3/context-map.md</code>：你的 context 清單、每個的不變條件、誰能離線、關係模式（ACL / Partnership / Customer-Supplier / Conformist），含 Mermaid</label></li>
+    <li><input type="checkbox" id="d3-1"><label for="d3-1"><code>workshop/day3/c4.md</code>：System Context + Container 兩張圖（場站節點 vs 總部節點）</label></li>
+    <li><input type="checkbox" id="d3-2"><label for="d3-2"><code>workshop/day3/adr/0001-bounded-contexts.md</code>、<code>0002-mvp1-scope.md</code></label></li>
+    <li><input type="checkbox" id="d3-3"><label for="d3-3">能用一句話說出 MVP1 為什麼是 Charging + 工單開立 + 帳單草稿，而不是全部</label></li>
+  </ul>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 1 · 找邊界</strong><span class="time">90'</span></div>
+  <div class="prompt" data-prompt="d3b1"></div>
+  <div class="lab" id="ctx-lab">
+    <div class="lab-head"><strong>自我測驗 · 這個概念該住在哪個上下文？</strong><span class="lab-hint">做完 Block 1 再來玩，否則等於偷看答案。</span></div>
+    <p class="ctx-q" id="ctx-q"></p>
+    <div class="ctx-opts" id="ctx-opts"></div>
+    <p class="ctx-fb" id="ctx-fb"></p>
+    <button type="button" class="lab-btn ghost" id="ctx-next">下一題</button>
+  </div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 2 · Context Map 與關係模式</strong><span class="time">90'</span></div>
+  <p>參考答案的 context map 在<a href="#gallery">圖庫</a>。做完自己的版本再比對；不一樣不等於錯，但每一條差異都要能說出理由。</p>
+  <div class="prompt" data-prompt="d3b2"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 3 · C4 與 ADR</strong><span class="time">90'</span></div>
+  <p>C4 只畫到 Container：場站節點（閘門 / LPR / 樁 / 場站服務 / 本地 DB / Outbox relay）與總部節點（維運服務 / DB / 看板）。不畫類別圖。ADR 記兩個決定：context 怎麼切、MVP1 為什麼是這個範圍。</p>
+  <div class="prompt" data-prompt="d3b3"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Check-out</strong><span class="time">15'</span></div>
+  <div class="quiz" data-quiz="q3"></div>
+  <div class="prompt" data-prompt="checkout3"></div>
+</div>
+</section>
+
+<!-- ============================================================ DAY 4 ============ -->
+<section class="day" id="day4" data-day="4">
+<p class="eyebrow" style="margin-top:0">DAY 4 · TACTICAL DDD + TDD</p>
+<h2>先讓規則紅掉，再准許寫產品程式</h2>
+<p class="day-meta"><span>方法論：Aggregate · Value Object · Domain Event · 六角架構 · 紅綠重構</span><a data-doc="docs/days/day4.md">教材 day4.md</a><a data-doc="docs/references/ddd-tactical.md">ddd-tactical.md</a><a data-doc="docs/references/tdd.md">tdd.md</a><a data-doc="docs/references/hexagonal.md">hexagonal.md</a></p>
+<p>今天開始碰程式。TDD 不負責切上下文，它負責讓 Day 2 寫下的規則在儲存庫裡可執行。順序是由內而外：先測純領域聚合，再測應用服務與 Outbox，最後才測 OCPP 適配器。<strong>助教會拒絕在沒有紅燈時給你實作。</strong></p>
+
+<div class="lab">
+  <div class="lab-head"><strong>今天結束你會拿到</strong></div>
+  <ul class="dod" data-dod="4">
+    <li><input type="checkbox" id="d4-0"><label for="d4-0"><code>starter/<span class="v-lang">node</span>/…/charging/domain/</code>：ChargingSession 聚合通過 R1–R4，每條規則一個測試名</label></li>
+    <li><input type="checkbox" id="d4-1"><label for="d4-1">值物件：Connector / IdTag / Energy（kWh 不是裸 number）</label></li>
+    <li><input type="checkbox" id="d4-2"><label for="d4-2">領域事件在聚合內記錄、用 <code>pullEvents()</code> 取出；聚合裡零 I/O</label></li>
+    <li><input type="checkbox" id="d4-3"><label for="d4-3">WorkOrder 聚合通過 R5（同樁同故障碼在開放期間只開一張）</label></li>
+    <li><input type="checkbox" id="d4-4"><label for="d4-4">Repository port + in-memory adapter；<code>/aggregate-review</code> 無 critical</label></li>
+  </ul>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 1 · 戰術建模與目錄</strong><span class="time">90'</span></div>
+  <p>先看六角架構在這個 starter 長什麼樣（<a href="#gallery">圖庫 · 六角</a>），再決定 ChargingSession 的狀態機、不變條件、事件。這一段先寫在紙上或 Markdown，不寫程式。</p>
+  <div class="prompt" data-prompt="d4b1"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 2 · 紅綠重構 R1 → R4</strong><span class="time">90'</span></div>
+  <div class="lab" id="tdd-lab">
+    <div class="lab-head"><strong>示範 · 充電會話聚合 · 紅燈 → 綠燈</strong><span class="lab-hint">看完就去做你自己的。示範是 TypeScript，Python 同構。</span></div>
+    <p class="tdd-phase" id="tdd-phase">RED</p>
+    <pre id="tdd-code"></pre>
+    <p class="tdd-note" id="tdd-note"></p>
+    <button type="button" class="lab-btn ghost" id="tdd-next">下一步</button>
+  </div>
+  <p>一次一條規則。命令列會這樣走：</p>
+  <div class="cmd lang-node"><code id="cmd-watch-node">cd starter/node &amp;&amp; npm run test:watch</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-watch-node">複製</button></div>
+  <div class="cmd lang-python"><code id="cmd-watch-py">cd starter/python &amp;&amp; . .venv/bin/activate &amp;&amp; pytest -x -q</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-watch-py">複製</button></div>
+  <div class="seg" id="rule-seg">
+    <button type="button" class="seg-btn on" data-rule="R1">R1 占用拒絕</button>
+    <button type="button" class="seg-btn" data-rule="R2">R2 未授權</button>
+    <button type="button" class="seg-btn" data-rule="R3">R3 計量單調</button>
+    <button type="button" class="seg-btn" data-rule="R4">R4 Stop 產能量</button>
+  </div>
+  <div class="prompt" data-prompt="d4b2"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 3 · WorkOrder 聚合與 R5、Repository port</strong><span class="time">90'</span></div>
+  <p>工單是總部對一根故障的承諾。R5 的難處不在程式，在「同一故障」怎麼定義：樁 + 故障碼 + 工單仍開放。</p>
+  <div class="prompt" data-prompt="d4b3"></div>
+  <div class="prompt" data-prompt="d4review"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Check-out</strong><span class="time">15'</span></div>
+  <div class="quiz" data-quiz="q4"></div>
+  <div class="prompt" data-prompt="checkout4"></div>
+</div>
+</section>
+
+<!-- ============================================================ DAY 5 ============ -->
+<section class="day" id="day5" data-day="5">
+<p class="eyebrow" style="margin-top:0">DAY 5 · EVENT-DRIVEN</p>
+<h2>事件怎麼設計：場站能離線，總部能追因果</h2>
+<p class="day-meta"><span>方法論：Application Service · Outbox · Integration Event · 冪等 · Process Manager</span><a data-doc="docs/days/day5.md">教材 day5.md</a><a data-doc="docs/references/eda.md">eda.md</a><a data-doc="contracts/README.md">contracts/</a></p>
+<p>Event-Driven 在本專案不是「全部丟進 Kafka」。它解決 BPR 留下的那條原則：<strong>跨部門的事實用事件走，跨部門的鎖用原則禁止。</strong>今天所有東西都跑在記憶體 bus 上；Day 6 才換真的持久化。</p>
+
+<div class="lab">
+  <div class="lab-head"><strong>今天結束你會拿到</strong></div>
+  <ul class="dod" data-dod="5">
+    <li><input type="checkbox" id="d5-0"><label for="d5-0">ChargingService：StartCharging / StopCharging / ReportMeterValue / ReportFault 四個命令處理器，聚合與 outbox 同一個工作單元寫入</label></li>
+    <li><input type="checkbox" id="d5-1"><label for="d5-1">Outbox relay 把領域事件翻成整合事件 v1（信封含 eventId / correlationId / causationId）</label></li>
+    <li><input type="checkbox" id="d5-2"><label for="d5-2">Billing 草稿消費者：同一 <code>sessionId</code> 重送不開第二張草稿（測試用 <code>redeliver</code> 證明）</label></li>
+    <li><input type="checkbox" id="d5-3"><label for="d5-3">FaultProcessManager：faulted → 開工單 → 派工 stub → 關單恢復可售</label></li>
+    <li><input type="checkbox" id="d5-4"><label for="d5-4"><code>/event-contract</code> 無 critical；沒有任何 OCPP 欄位名出現在整合事件</label></li>
+  </ul>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 1 · Application Service 與 Outbox</strong><span class="time">90'</span></div>
+  <p>兩種事件，不准混名：<strong>Domain Event</strong> 是上下文內部的事實，用領域語言；<strong>Integration Event</strong> 是跨上下文的契約，穩定、版本化、經過 Outbox、永遠非同步。聚合裡不得直接打 broker（R8）。</p>
+  <div class="prompt" data-prompt="d5b1"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 2 · 整合事件契約與冪等消費者</strong><span class="time">90'</span></div>
+  <div class="lab" id="match-lab">
+    <div class="lab-head"><strong>熱身 · 這個事件誰發布？</strong><span class="lab-hint">選完按檢查。發布者錯，代表邊界還沒切乾淨。</span></div>
+    <div class="match" id="match-list"></div>
+    <div class="btn-row" style="margin-top:var(--sp-3)"><button type="button" class="lab-btn" id="match-check">檢查</button><span class="lab-hint" id="match-fb"></span></div>
+  </div>
+  <p>去重鍵：Billing 用 <code>sessionId</code>；AssetOps 用 <code>chargerId + faultCode</code>（在工單開放期間）。至少一次投遞是常態，冪等是消費者的責任，不是 broker 的。</p>
+  <div class="prompt" data-prompt="d5b2"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 3 · Process Manager：故障到恢復可售</strong><span class="time">90'</span></div>
+  <p>「故障 → 開單 → 派工 → 修復驗證 → 恢復可售」是跨三個 context 的政策，不是 Charging 聚合的私務。狀態機在<a href="#gallery">圖庫 · 故障 Saga</a>。</p>
+  <div class="prompt" data-prompt="d5b3"></div>
+  <div class="note critical">
+    <p class="head">反模式</p>
+    <p>把 OCPP 的 StatusNotification 原封不動當 Integration Event 廣播到全公司。下游會被協定細節綁死，換樁商就全炸。防腐層要先翻譯成「充電器已申告故障」。</p>
+  </div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Check-out</strong><span class="time">15'</span></div>
+  <div class="quiz" data-quiz="q5"></div>
+  <div class="prompt" data-prompt="checkout5"></div>
+</div>
+</section>
+
+<!-- ============================================================ DAY 6 ============ -->
+<section class="day" id="day6" data-day="6">
+<p class="eyebrow" style="margin-top:0">DAY 6 · MVP</p>
+<h2>MVP 上線：API、模擬器、持久化、一條真實午後</h2>
+<p class="day-meta"><span>方法論：HTTP API · ACL · 持久化 · Docker · E2E</span><a data-doc="docs/days/day6.md">教材 day6.md</a><a data-doc="docs/domain/ocpp-primer.md">ocpp-primer.md</a><a data-doc="scripts/ocpp-sim/README.md">ocpp-sim</a><a data-doc="scripts/e2e/e2e.md">e2e</a></p>
+<p>今天把記憶體的東西接到外面：一個 HTTP API、一個假的 OCPP 樁（<code>scripts/ocpp-sim</code>）、一個 SQLite（零安裝）或 Postgres（<code>docker compose up -d</code>）。目標不是漂亮，是<strong>那條 14:02 → 18:18 的劇本能在你的筆電上從頭跑到尾</strong>。</p>
+
+<div class="lab">
+  <div class="lab-head"><strong>今天結束你會拿到</strong></div>
+  <ul class="dod" data-dod="6">
+    <li><input type="checkbox" id="d6-0"><label for="d6-0">HTTP API（<span class="lang-node">Fastify</span><span class="lang-python">FastAPI</span>）：start / stop / meter / fault / get session</label></li>
+    <li><input type="checkbox" id="d6-1"><label for="d6-1">OCPP ACL endpoint：<code>scripts/ocpp-sim --url</code> 打進來的訊息被翻成命令；domain 看不到 OCPP 字</label></li>
+    <li><input type="checkbox" id="d6-2"><label for="d6-2">持久化：SQLite 或 Postgres；Outbox relay 真的從表裡讀、發、標記 published_at</label></li>
+    <li><input type="checkbox" id="d6-3"><label for="d6-3"><code>scripts/e2e</code> 對你的 API 跑通整條劇本；日誌帶 eventId / correlationId</label></li>
+    <li><input type="checkbox" id="d6-4"><label for="d6-4"><code>workshop/day6/README-mvp.md</code>：怎麼跑、怎麼驗、已知限制；<code>/ship</code> 清單全過</label></li>
+  </ul>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 1 · HTTP API 與 OCPP 防腐層</strong><span class="time">90'</span></div>
+  <div class="cmd"><code id="cmd-sim">node scripts/ocpp-sim/sim.mjs</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-sim">複製</button></div>
+  <p class="small">先不帶 <code>--url</code>，看它吐出來的 OCPP 訊息長什麼樣；再決定 ACL 要把每一則翻成哪個命令。</p>
+  <div class="prompt" data-prompt="d6b1"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 2 · 持久化與 Outbox relay</strong><span class="time">90'</span></div>
+  <div class="cmd"><code id="cmd-pg">docker compose up -d &amp;&amp; docker compose ps</code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-pg">複製</button></div>
+  <p class="small">沒有 Docker 就用 SQLite，教材兩條路都有。表結構在 <a data-doc="docker/init.sql">docker/init.sql</a>：<code>charging_sessions</code>、<code>work_orders</code>、<code>outbox</code>。</p>
+  <div class="prompt" data-prompt="d6b2"></div>
+</div>
+
+<div class="block">
+  <div class="block-head"><strong>Block 3 · E2E 劇本與上線清單</strong><span class="time">90'</span></div>
+  <div class="lab" id="sim-lab">
+    <div class="lab-head"><strong>示範 · 播放一次真實午後</strong><span class="lab-hint">場站聚合先變，事件後飛，總部晚到也不准回寫場站進行中狀態。</span></div>
+    <div class="sim-toolbar">
+      <button type="button" class="lab-btn" id="sim-step">下一步</button>
+      <button type="button" class="lab-btn ghost" id="sim-reset">重來</button>
+      <span class="lab-hint" id="sim-cap">尚未開始</span>
     </div>
+    <div class="tiles sim-state" id="sim-state"></div>
+    <ol class="sim-log" id="sim-log"></ol>
+  </div>
+  <p>教練在播放時要追問的三句：這一步如果總部沒收到，顧客能不能離場？這一步如果重送一次，會不會開出第二張帳單或第二張工單？這一步用的名字，值班長聽不聽得懂？</p>
+  <div class="prompt" data-prompt="d6b3"></div>
+</div>
 
-    <h3>建議課表（12 小時，可拆兩天）</h3>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>時段</th><th>單元</th><th>產出</th></tr></thead>
-        <tbody>
-          <tr><td class="nowrap">0.5 h</td><td>00 維度校正</td><td>共同語言：方法論 / 設計 / 架構 / 實踐</td></tr>
-          <tr><td class="nowrap">1.0 h</td><td>01–02 場域 + BPR</td><td>As-Is 紅筆圖、To-Be 原則四條</td></tr>
-          <tr><td class="nowrap">2.0 h</td><td>03 事件風暴</td><td>一條時間線、一份衝突詞彙</td></tr>
-          <tr><td class="nowrap">1.5 h</td><td>04 戰略 DDD</td><td>Context Map 初稿</td></tr>
-          <tr><td class="nowrap">1.5 h</td><td>05 需求寫法</td><td>6–10 條帶例子的規則</td></tr>
-          <tr><td class="nowrap">1.5 h</td><td>06 事件契約</td><td>v1 事件清單 + Outbox 約定</td></tr>
-          <tr><td class="nowrap">2.0 h</td><td>07 TDD 現場寫</td><td>一個聚合的測試與實作</td></tr>
-          <tr><td class="nowrap">1.5 h</td><td>08 劇本連走 + 09–10</td><td>缺口清單、評量、下一個 Sprint 範圍</td></tr>
-        </tbody>
-      </table>
-    </div>
+<div class="block">
+  <div class="block-head"><strong>Check-out</strong><span class="time">15'</span></div>
+  <div class="quiz" data-quiz="q6"></div>
+  <div class="prompt" data-prompt="checkout6"></div>
+</div>
+</section>
 
-    <div class="note">
-      <p class="head">教練注意</p>
-      <p>現場主管講的「系統很慢」通常是流程在等人。工程師講的「我們需要 Kafka」通常是還沒收斂語言。兩邊都對，但出場順序不能反。</p>
-    </div>
-  </section>
+<!-- ============================================================ DAY 7 ============ -->
+<section class="day" id="day7" data-day="7">
+<p class="eyebrow" style="margin-top:0">DAY 7 · SDLC</p>
+<h2>收尾：Review、CI、Retro，然後帶回公司</h2>
+<p class="day-meta"><span>方法論：Code Review · 重構 · CI · Backlog · Retro</span><a data-doc="docs/days/day7.md">教材 day7.md</a><a data-doc="docs/references/sdlc.md">sdlc.md</a><a data-doc="docs/rubric.md">rubric.md</a></p>
+<p>MVP 跑起來不是結束。今天把它變成一個團隊能接手的東西：一次認真的 review、一條會跑測試的 CI、一份 Sprint 2 的 backlog、一份誠實的 retro。最後做評量，然後回答一個問題：<strong>回公司後第一個月，你要拿哪三件事去用？</strong></p>
 
-  <section id="u10">
-    <p class="eyebrow">10 · CHECK</p>
-    <h2>評量：過了才能宣布工作坊結束</h2>
-    <p>閉卷。選完立刻出對錯原因。目的不是分數，是把最容易帶出教室的誤解攔下來。</p>
-    <div class="lab wide" id="quiz-lab">
-      <div id="quiz-box"></div>
-      <p id="quiz-score" class="quiz-score"></p>
-    </div>
+<div class="lab">
+  <div class="lab-head"><strong>今天結束你會拿到</strong></div>
+  <ul class="dod" data-dod="7">
+    <li><input type="checkbox" id="d7-0"><label for="d7-0"><code>/review</code> 的發現全部處理（修掉或寫明為何不修）；重構後測試仍綠</label></li>
+    <li><input type="checkbox" id="d7-1"><label for="d7-1"><code>.github/workflows/ci.yml</code>：push / PR 跑你選的語言的測試；PR 上 CI 綠</label></li>
+    <li><input type="checkbox" id="d7-2"><label for="d7-2">PR 描述引用 ADR 與事件契約；<code>workshop/day7/sprint-2-backlog.md</code></label></li>
+    <li><input type="checkbox" id="d7-3"><label for="d7-3"><code>workshop/day7/retro.md</code>（Start / Stop / Continue）與 <code>takeaway.md</code>（帶回公司的 5 件事 + 30 天計畫）</label></li>
+    <li><input type="checkbox" id="d7-4"><label for="d7-4">主控台最終評量 ≥ 80%</label></li>
+  </ul>
+</div>
 
-    <h3>工作坊結束時，桌上必須留下的五份產物</h3>
-    <ol>
-      <li>一張被紅筆改過的 As-Is，以及四條 To-Be 原則。</li>
-      <li>一條事件時間線（含故障支線）。</li>
-      <li>一張 Context Map，標了誰能離線。</li>
-      <li>一份 v1 整合事件清單（含去重鍵）。</li>
-      <li>一個通過測試的聚合（充電會話或工單擇一）。</li>
-    </ol>
-    <p class="pull">若五份產物裡有系統名稱、沒有現場用語——這堂課失敗的是語言，不是架構。</p>
-  </section>
+<div class="block">
+  <div class="block-head"><strong>Block 1 · Review 與重構</strong><span class="time">90'</span></div>
+  <div class="prompt" data-prompt="d7b1"></div>
+</div>
+<div class="block">
+  <div class="block-head"><strong>Block 2 · CI 與 PR</strong><span class="time">90'</span></div>
+  <div class="cmd"><code id="cmd-push">git push -u origin workshop/<span class="v-name">你的名字</span></code><button type="button" class="lab-btn ghost copy-btn" data-copy="#cmd-push">複製</button></div>
+  <p class="small">如果你是 fork 到自己的 GitHub，PR 開在你的 fork；如果講師給了你這個 repo 的權限，PR 開到 <code>main</code> 但標題加 <code>[workshop]</code>，講師不會 merge，只會 review。</p>
+  <div class="prompt" data-prompt="d7b2"></div>
+</div>
+<div class="block">
+  <div class="block-head"><strong>Block 3 · Retro、Backlog、帶回公司</strong><span class="time">90'</span></div>
+  <div class="prompt" data-prompt="d7b3"></div>
+  <div class="prompt" data-prompt="d7take"></div>
+</div>
+<div class="block">
+  <div class="block-head"><strong>Check-out</strong><span class="time">15'</span></div>
+  <div class="quiz" data-quiz="q7"></div>
+  <div class="prompt" data-prompt="checkout7"></div>
+  <p>然後到<a href="#exam">最終評量</a>。</p>
+</div>
+</section>
 
-  <footer class="end">
-    <p class="byline">講義可課堂投影、可當 Sprint 0 的共同文本。現場規則以你們的費率與電業契約為準，本篇的數字只是例子。</p>
-  </footer>
-</article>
+<!-- ============================================================ GALLERY ============ -->
+<p class="eyebrow" id="gallery">GALLERY · DIAGRAMS</p>
+<h2>圖庫：參考架構圖與設計圖</h2>
+<p>這些是「參考解」，不是「標準答案」。Day 3 之前不要看 context map；Day 4 之前不要看六角；每一張的 Mermaid 原始碼都在 <a data-doc="docs/diagrams/README.md">docs/diagrams/</a>，你可以改成自己的版本貼進交付物。</p>
+
+<div class="gallery-tabs seg" id="gallery-tabs">
+  <button type="button" class="seg-btn on" data-pane="g-ctx">Context Map</button>
+  <button type="button" class="seg-btn" data-pane="g-c4">C4 Container</button>
+  <button type="button" class="seg-btn" data-pane="g-hex">六角架構</button>
+  <button type="button" class="seg-btn" data-pane="g-outbox">Outbox 流程</button>
+  <button type="button" class="seg-btn" data-pane="g-saga">故障 Saga</button>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker>
+    <marker id="arr-x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker>
+  </defs>
+</svg>
+
+<figure class="gallery-pane on" id="g-ctx">
+  <p class="title">Context Map · 五個上下文與它們的關係</p>
+  <p class="subtitle">實線 = 同步 / 命令；虛線 = 事件（經 Outbox，非同步）。銅橙框 = 核心域。</p>
+  <div class="diagram"><svg viewBox="0 0 640 360" role="img" aria-label="Context map：OCPP 經 ACL 進 Charging；Parking 與 Charging 為伙伴；Charging 與 Parking 以事件供應 Billing；Charging 以事件供應 AssetOps（遵奉者）；AssetOps 內部驅動 Dispatch">
+    <rect class="box ext" x="245" y="14" width="150" height="44" rx="6"/>
+    <text class="t b" x="320" y="33" text-anchor="middle">OCPP 樁 / CSMS</text>
+    <text class="t s" x="320" y="49" text-anchor="middle">外部協定 · 不是通用語言</text>
+
+    <rect class="box" x="30" y="110" width="160" height="70" rx="6"/>
+    <text class="t b" x="110" y="134" text-anchor="middle">Parking 場站停車</text>
+    <text class="t s" x="110" y="151" text-anchor="middle">進場 · 車位 · 停車會話 · 放行</text>
+    <text class="t s" x="110" y="166" text-anchor="middle">總部掛掉仍能開關閘</text>
+
+    <rect class="box core" x="240" y="110" width="160" height="70" rx="6"/>
+    <text class="t b" x="320" y="134" text-anchor="middle">Charging 充電會話</text>
+    <text class="t s" x="320" y="151" text-anchor="middle">連接器 · 授權 · 計量 · 中止</text>
+    <text class="t a" x="320" y="167" text-anchor="middle">CORE · MVP1</text>
+
+    <rect class="box" x="450" y="110" width="160" height="70" rx="6"/>
+    <text class="t b" x="530" y="134" text-anchor="middle">AssetOps 資產維運</text>
+    <text class="t s" x="530" y="151" text-anchor="middle">樁 · 健康 · 工單</text>
+    <text class="t a" x="530" y="167" text-anchor="middle">SUPPORTING · 工單開立進 MVP1</text>
+
+    <rect class="box" x="135" y="260" width="160" height="70" rx="6"/>
+    <text class="t b" x="215" y="284" text-anchor="middle">Billing 計費帳務</text>
+    <text class="t s" x="215" y="301" text-anchor="middle">費率 · 帳單 · 發票 · 爭議</text>
+    <text class="t a" x="215" y="317" text-anchor="middle">草稿帳單進 MVP1</text>
+
+    <rect class="box" x="450" y="260" width="160" height="70" rx="6"/>
+    <text class="t b" x="530" y="284" text-anchor="middle">Dispatch 調度派工</text>
+    <text class="t s" x="530" y="301" text-anchor="middle">技術員 · 路線 · SLA · 備品</text>
+    <text class="t s" x="530" y="317" text-anchor="middle">MVP1 只做 stub</text>
+
+    <path class="ar" d="M320 58 L320 108"/>
+    <text class="t a" x="330" y="86">ACL 防腐層</text>
+
+    <path class="ar" d="M190 145 L238 145"/>
+    <path class="ar" d="M240 135 L192 135"/>
+    <text class="t a" x="215" y="100" text-anchor="middle">Partnership</text>
+
+    <path class="ar ev" d="M400 135 L448 135"/>
+    <path class="ar ev" d="M450 160 L402 160"/>
+    <text class="t a" x="424" y="100" text-anchor="middle">Conformist</text>
+    <text class="t s" x="424" y="196" text-anchor="middle">→ charger.faulted</text>
+    <text class="t s" x="424" y="210" text-anchor="middle">← work_order.closed</text>
+
+    <path class="ar ev" d="M110 180 L110 230 L180 258"/>
+    <path class="ar ev" d="M320 180 L320 230 L250 258"/>
+    <text class="t a" x="215" y="222" text-anchor="middle">Customer–Supplier</text>
+    <text class="t s" x="215" y="238" text-anchor="middle">session.started/completed · session.closed</text>
+
+    <path class="ar" d="M530 180 L530 258"/>
+    <text class="t a" x="522" y="222" text-anchor="end">work_order.opened</text>
+    <text class="t s" x="522" y="236" text-anchor="end">內部 · 不出總部</text>
+  </svg></div>
+  <figcaption>帳務不得回呼凍結會話；總部不得對場站進行中狀態回寫；派工不對顧客帳務發「技術員已出發」。</figcaption>
+</figure>
+
+<figure class="gallery-pane" id="g-c4">
+  <p class="title">C4 · Container 圖：場站節點與總部節點</p>
+  <p class="subtitle">場站在專線中斷時仍能進場、充電、放行；事件在本地 Outbox 排隊，連線恢復再送。</p>
+  <div class="diagram"><svg viewBox="0 0 640 400" role="img" aria-label="C4 container：場站節點有閘門/LPR、充電樁、場站服務、本地資料庫、Outbox relay；總部節點有維運服務、帳務服務、資料庫、看板；relay 以事件連到總部">
+    <rect class="zone" x="10" y="10" width="330" height="380" rx="8"/>
+    <text class="t a" x="24" y="30">SITE · 場站節點（每站一套）</text>
+    <rect class="zone" x="360" y="10" width="270" height="380" rx="8"/>
+    <text class="t a" x="374" y="30">HQ · 總部節點</text>
+
+    <rect class="box ext" x="24" y="50" width="130" height="46" rx="6"/>
+    <text class="t b" x="89" y="70" text-anchor="middle">閘門 / LPR</text>
+    <text class="t s" x="89" y="86" text-anchor="middle">既有停車場系統</text>
+    <rect class="box ext" x="186" y="50" width="130" height="46" rx="6"/>
+    <text class="t b" x="251" y="70" text-anchor="middle">充電樁 ×N</text>
+    <text class="t s" x="251" y="86" text-anchor="middle">OCPP 1.6J / 2.0.1（工作坊用模擬器）</text>
+
+    <rect class="box core" x="24" y="140" width="292" height="96" rx="6"/>
+    <text class="t b" x="170" y="162" text-anchor="middle">場站服務 Site Service</text>
+    <text class="t s" x="170" y="180" text-anchor="middle">HTTP API · OCPP ACL · Parking + Charging 上下文</text>
+    <text class="t s" x="170" y="196" text-anchor="middle">Node (Fastify) 或 Python (FastAPI)</text>
+    <text class="t a" x="170" y="222" text-anchor="middle">Day 4–6 你寫的東西住這裡</text>
+
+    <rect class="box" x="24" y="280" width="130" height="50" rx="6"/>
+    <text class="t b" x="89" y="301" text-anchor="middle">本地 DB</text>
+    <text class="t s" x="89" y="318" text-anchor="middle">SQLite / Postgres · 含 outbox 表</text>
+    <rect class="box" x="186" y="280" width="130" height="50" rx="6"/>
+    <text class="t b" x="251" y="301" text-anchor="middle">Outbox Relay</text>
+    <text class="t s" x="251" y="318" text-anchor="middle">讀 outbox → 發整合事件</text>
+
+    <path class="ar" d="M89 96 L89 138"/>
+    <text class="t s" x="95" y="120">plate, lane</text>
+    <path class="ar" d="M251 96 L251 138"/>
+    <text class="t s" x="257" y="120">OCPP JSON</text>
+    <path class="ar" d="M89 236 L89 278"/>
+    <path class="ar" d="M251 236 L251 278"/>
+    <path class="ar" d="M154 305 L184 305"/>
+
+    <rect class="box" x="374" y="140" width="240" height="60" rx="6"/>
+    <text class="t b" x="494" y="162" text-anchor="middle">維運服務 Ops Service</text>
+    <text class="t s" x="494" y="180" text-anchor="middle">AssetOps + Dispatch · 工單 · 派工</text>
+    <rect class="box" x="374" y="220" width="240" height="46" rx="6"/>
+    <text class="t b" x="494" y="240" text-anchor="middle">帳務服務 Billing Service</text>
+    <text class="t s" x="494" y="256" text-anchor="middle">草稿 → 帳單 · 冪等消費者</text>
+    <rect class="box" x="374" y="290" width="110" height="46" rx="6"/>
+    <text class="t b" x="429" y="310" text-anchor="middle">HQ DB</text>
+    <rect class="box" x="504" y="290" width="110" height="46" rx="6"/>
+    <text class="t b" x="559" y="310" text-anchor="middle">看板 / 報表</text>
+    <text class="t s" x="559" y="326" text-anchor="middle">讀模型</text>
+
+    <path class="ar ev" d="M316 305 L346 305 L346 190 L372 190"/>
+    <path class="ar ev" d="M346 243 L372 243"/>
+    <path class="ar ev" d="M372 152 L318 152"/>
+    <text class="t s" x="345" y="144" text-anchor="middle">closed → 可售</text>
+    <text class="t a" x="336" y="360" text-anchor="middle">整合事件 v1 · 至少一次</text>
+    <text class="t s" x="336" y="376" text-anchor="middle">斷線時在 outbox 排隊</text>
+    <path class="ar" d="M494 200 L494 218"/>
+    <path class="ar" d="M429 266 L429 288"/>
+    <path class="ar" d="M559 266 L559 288"/>
+  </svg></div>
+  <figcaption>總部可以掛，場站不能。這條原則決定了誰擁有 outbox、誰只是訂閱者。</figcaption>
+</figure>
+
+<figure class="gallery-pane" id="g-hex">
+  <p class="title">六角架構 · starter 的目錄就是這張圖</p>
+  <p class="subtitle">依賴方向永遠朝內。domain 不 import application；application 不 import adapters。</p>
+  <div class="diagram"><svg viewBox="0 0 640 360" role="img" aria-label="六角架構：中心是 domain（聚合、值物件、領域事件），外圈 application（命令處理器、ports、outbox 介面），最外層左側 driving adapters（HTTP、OCPP ACL、e2e 腳本、測試），右側 driven adapters（repository SQLite/Postgres、outbox relay、clock）">
+    <polygon class="box" points="320,40 470,120 470,240 320,320 170,240 170,120"/>
+    <polygon class="box core" points="320,90 420,145 420,215 320,270 220,215 220,145"/>
+    <text class="t b" x="320" y="165" text-anchor="middle">domain/</text>
+    <text class="t s" x="320" y="183" text-anchor="middle">ChargingSession · WorkOrder</text>
+    <text class="t s" x="320" y="198" text-anchor="middle">Connector · IdTag · Energy</text>
+    <text class="t s" x="320" y="213" text-anchor="middle">events · errors · 零 I/O</text>
+    <text class="t b" x="320" y="66" text-anchor="middle">application/</text>
+    <text class="t s" x="320" y="82" text-anchor="middle">ChargingService · commands · ports</text>
+    <text class="t s" x="320" y="300" text-anchor="middle">FaultProcessManager · Outbox port</text>
+
+    <rect class="box" x="10" y="70" width="130" height="40" rx="6"/>
+    <text class="t b" x="75" y="88" text-anchor="middle">adapters/http</text>
+    <text class="t s" x="75" y="103" text-anchor="middle">Fastify / FastAPI</text>
+    <rect class="box" x="10" y="130" width="130" height="40" rx="6"/>
+    <text class="t b" x="75" y="148" text-anchor="middle">adapters/ocpp</text>
+    <text class="t s" x="75" y="163" text-anchor="middle">OcppAcl · 翻譯，不轉發</text>
+    <rect class="box" x="10" y="190" width="130" height="40" rx="6"/>
+    <text class="t b" x="75" y="208" text-anchor="middle">scripts/e2e</text>
+    <text class="t s" x="75" y="223" text-anchor="middle">劇本驅動</text>
+    <rect class="box" x="10" y="250" width="130" height="40" rx="6"/>
+    <text class="t b" x="75" y="268" text-anchor="middle">test/</text>
+    <text class="t s" x="75" y="283" text-anchor="middle">直接打 domain 與 application</text>
+    <text class="t a" x="75" y="52" text-anchor="middle">DRIVING · 誰叫我</text>
+
+    <rect class="box" x="494" y="70" width="140" height="40" rx="6"/>
+    <text class="t b" x="565" y="88" text-anchor="middle">adapters/persistence</text>
+    <text class="t s" x="565" y="103" text-anchor="middle">InMemory → SQLite / PG</text>
+    <rect class="box" x="494" y="130" width="140" height="40" rx="6"/>
+    <text class="t b" x="565" y="148" text-anchor="middle">shared/Outbox</text>
+    <text class="t s" x="565" y="163" text-anchor="middle">同交易寫入 · relay 發送</text>
+    <rect class="box" x="494" y="190" width="140" height="40" rx="6"/>
+    <text class="t b" x="565" y="208" text-anchor="middle">shared/EventBus</text>
+    <text class="t s" x="565" y="223" text-anchor="middle">InMemory · redeliver()</text>
+    <rect class="box" x="494" y="250" width="140" height="40" rx="6"/>
+    <text class="t b" x="565" y="268" text-anchor="middle">shared/Clock</text>
+    <text class="t s" x="565" y="283" text-anchor="middle">測試可控時間</text>
+    <text class="t a" x="565" y="52" text-anchor="middle">DRIVEN · 我叫誰</text>
+
+    <path class="ar" d="M140 90 L200 120"/>
+    <path class="ar" d="M140 150 L172 160"/>
+    <path class="ar" d="M140 210 L172 200"/>
+    <path class="ar" d="M140 270 L200 240"/>
+    <path class="ar" d="M470 120 L498 90"/>
+    <path class="ar" d="M468 160 L498 150"/>
+    <path class="ar" d="M468 200 L498 210"/>
+    <path class="ar" d="M470 240 L498 270"/>
+    <text class="t s" x="320" y="348" text-anchor="middle">右側：application 定義 port，adapter 實作它；程式碼依賴仍然朝內。</text>
+  </svg></div>
+  <figcaption>OCPP 的字只准活在 adapters/ocpp。測試發現 domain 事件裡出現 <code>idTag</code> 以外的 OCPP 欄位名，就是 ACL 漏了。</figcaption>
+</figure>
+
+<figure class="gallery-pane" id="g-outbox">
+  <p class="title">Transactional Outbox · 事件怎麼從聚合走到別的上下文</p>
+  <p class="subtitle">聚合只記錄；應用服務在同一交易寫聚合與 outbox；relay 事後發；消費者冪等。</p>
+  <div class="diagram"><svg viewBox="0 0 640 250" role="img" aria-label="Outbox 流程：命令進入應用服務，交易內同時寫聚合狀態與 outbox 列；relay 讀 outbox 發到 bus；Billing 與 AssetOps 消費者以去重鍵冪等處理；聚合直接打 broker 被標為禁止">
+    <rect class="box" x="10" y="90" width="90" height="46" rx="6"/>
+    <text class="t b" x="55" y="110" text-anchor="middle">Command</text>
+    <text class="t s" x="55" y="126" text-anchor="middle">StopCharging</text>
+
+    <rect class="box" x="130" y="90" width="110" height="46" rx="6"/>
+    <text class="t b" x="185" y="110" text-anchor="middle">App Service</text>
+    <text class="t s" x="185" y="126" text-anchor="middle">載入 · 呼叫 · 儲存</text>
+
+    <rect class="zone" x="264" y="40" width="140" height="150" rx="8"/>
+    <text class="t a" x="334" y="58" text-anchor="middle">同一交易 TX</text>
+    <rect class="box core" x="278" y="70" width="112" height="46" rx="6"/>
+    <text class="t b" x="334" y="90" text-anchor="middle">Aggregate</text>
+    <text class="t s" x="334" y="106" text-anchor="middle">pullEvents()</text>
+    <rect class="box" x="278" y="130" width="112" height="46" rx="6"/>
+    <text class="t b" x="334" y="150" text-anchor="middle">outbox 表</text>
+    <text class="t s" x="334" y="166" text-anchor="middle">id · type · payload</text>
+
+    <rect class="box" x="430" y="90" width="80" height="46" rx="6"/>
+    <text class="t b" x="470" y="110" text-anchor="middle">Relay</text>
+    <text class="t s" x="470" y="126" text-anchor="middle">至少一次</text>
+
+    <rect class="box" x="532" y="50" width="104" height="46" rx="6"/>
+    <text class="t b" x="585" y="70" text-anchor="middle">Billing</text>
+    <text class="t s" x="585" y="86" text-anchor="middle">去重 sessionId</text>
+    <rect class="box" x="532" y="130" width="104" height="46" rx="6"/>
+    <text class="t b" x="585" y="150" text-anchor="middle">AssetOps</text>
+    <text class="t s" x="585" y="166" text-anchor="middle">去重 charger+code</text>
+
+    <path class="ar" d="M100 113 L128 113"/>
+    <path class="ar" d="M240 105 L276 95"/>
+    <path class="ar" d="M240 120 L276 150"/>
+    <path class="ar ev" d="M390 153 L428 120"/>
+    <path class="ar ev" d="M510 105 L538 78"/>
+    <path class="ar ev" d="M510 120 L538 150"/>
+
+    <path class="ar" d="M334 116 L334 128"/>
+    <path class="ar bad" d="M390 82 L470 30 L584 30 L584 48"/>
+    <text class="t s" x="470" y="22" text-anchor="middle" style="fill:var(--critical)">✗ 聚合直接打 broker / 消費者（R8 禁止）</text>
+    <text class="t s" x="320" y="225" text-anchor="middle">重送同一事件 → 消費者要證明：不開第二張草稿、不開第二張工單、未知事件可略過。</text>
+  </svg></div>
+  <figcaption>信封：eventId · type · version · occurredAt · producer · correlationId · causationId · payload。</figcaption>
+</figure>
+
+<figure class="gallery-pane" id="g-saga">
+  <p class="title">故障 Saga · 從申告到恢復可售</p>
+  <p class="subtitle">這是跨 Charging / AssetOps / Dispatch 的政策，住在 Process Manager，不住在任何一個聚合裡。</p>
+  <div class="diagram"><svg viewBox="0 0 640 230" role="img" aria-label="故障狀態機：可售 → 已申告故障 → 工單開放 → 已派工 → 修復待驗 → 可售；在工單開放期間的重複申告只附加紀錄">
+    <rect class="st good" x="5" y="90" width="110" height="46" rx="23"/>
+    <text class="t b" x="60" y="117" text-anchor="middle">可售</text>
+    <rect class="st hot" x="135" y="90" width="110" height="46" rx="23"/>
+    <text class="t b" x="190" y="110" text-anchor="middle">已申告</text>
+    <text class="t s" x="190" y="126" text-anchor="middle">ChargerFaulted</text>
+    <rect class="st" x="265" y="90" width="110" height="46" rx="23"/>
+    <text class="t b" x="320" y="110" text-anchor="middle">工單開放</text>
+    <text class="t s" x="320" y="126" text-anchor="middle">WO-2208</text>
+    <rect class="st" x="395" y="90" width="110" height="46" rx="23"/>
+    <text class="t b" x="450" y="110" text-anchor="middle">已派工</text>
+    <text class="t s" x="450" y="126" text-anchor="middle">TECH-HAO · SLA 4h</text>
+    <rect class="st" x="525" y="90" width="110" height="46" rx="23"/>
+    <text class="t b" x="580" y="110" text-anchor="middle">修復待驗</text>
+    <text class="t s" x="580" y="126" text-anchor="middle">closed(outcome)</text>
+
+    <path class="ar" d="M115 113 L133 113"/>
+    <path class="ar" d="M245 113 L263 113"/>
+    <path class="ar" d="M375 113 L393 113"/>
+    <path class="ar" d="M505 113 L523 113"/>
+    <path class="ar ev" d="M580 136 L580 180 L60 180 L60 138"/>
+    <text class="t a" x="320" y="198" text-anchor="middle">ops.work_order.closed.v1 → Charging 才准自動恢復「可售」</text>
+
+    <path class="ar" d="M300 90 C 280 50, 360 50, 340 90"/>
+    <text class="t s" x="320" y="44" text-anchor="middle">同樁同碼再申告 → 只附加「重複申告」（R5）</text>
+    <text class="t s" x="60" y="72" text-anchor="middle">18:10 GroundFailure</text>
+    <text class="t s" x="450" y="72" text-anchor="middle">18:18 帶通訊模組出發</text>
+  </svg></div>
+  <figcaption>總部不得對場站發 ForceStopSession 當日常手段；緊急停權走明確的安全命令並留審計事件。</figcaption>
+</figure>
+
+<!-- ============================================================ FAQ ============ -->
+<p class="eyebrow" id="faq">Q&amp;A</p>
+<h2>常見問題：學員最常卡的 16 件事</h2>
+<p>這些答案也在助教腦裡（<code>docs/</code> 與 skills）。這裡先擋掉最常見的，讓你把和 Claude 的對話留給真正的問題。</p>
+<div class="faq" id="faq-list">
+<details><summary>我完全不懂充電樁，會不會學不到 DDD？</summary><p>不會，這正是設計。DDD 最重要的技能是「在陌生領域用問題建立語言」；如果你已經懂領域，Day 1–2 就變成默寫。先讀 <a data-doc="docs/domain/ev-charging-primer.md">領域入門</a> 30 分鐘就夠開始訪談。</p></details>
+<details><summary>TDD、DDD、Event-Driven 是三選一嗎？</summary><p>不是，它們不在同一層。BPR 決定什麼不該被自動化；DDD 決定什麼值得被模型化；事件決定邊界怎麼呼吸；TDD 決定模型明天還能不能改。順序是因果不是口味：沒有再造過的流程寫進 DDD，只會得到一個很精緻的舊組織圖。</p></details>
+<details><summary>為什麼 Day 1 不能先畫系統圖？</summary><p>因為你會把「值班長打電話給總部」畫成一個 API。BPR 的工作是先決定那通電話該消失還是該變成一個事件，畫圖只會把它保存下來。</p></details>
+<details><summary>Claude 一直問我問題不給答案，怎麼辦？</summary><p>那是 <code>CLAUDE.md</code> 規定的。你可以說「我卡住超過 20 分鐘了，給我最小提示」，它會給提示或指向 <code>solutions/</code>。直接要完整答案在 Day 4–6 會被拒絕，因為那會跳過紅燈。</p></details>
+<details><summary>Event Storming 一個人怎麼做？</summary><p>牆變成 Markdown 表格，便利貼變成表格列，Claude 當那個一直問「這真的是已經發生的事實嗎」的引導者。<code>/storm</code> 會產出 <code>storm-board.md</code> 與 Mermaid 時間線。少了團隊的碰撞，所以要用訪談紀錄補：每一張黃貼都要能對回某位角色說過的話。</p></details>
+<details><summary>「充電已開始」和「StartTransaction」差在哪？</summary><p>前者是領域事實，值班長聽得懂；後者是 OCPP 訊息，是協定細節。防腐層（ACL）負責把後者翻成前者。如果你的整合事件裡出現 <code>transactionId</code>、<code>meterStart</code> 這種字，就是 ACL 漏了。</p></details>
+<details><summary>Bounded Context 一定要五個嗎？</summary><p>不一定。參考解是五個，因為它們換語言、換生命週期、換一致性邊界。你切成四個或六個都可以，但每條邊界要能用「這個詞在兩邊意思不同 / 誰要離線活著 / 不變條件不同」之一說明。<code>/context-map</code> 會挑戰你，不會直接判錯。</p></details>
+<details><summary>Aggregate 要多大？</summary><p>Vernon 的四條：一個交易只改一個聚合、用 ID 參照其他聚合、聚合小、其他聚合用最終一致。ChargingSession 只管一把槍的一次會話；它不知道帳單，也不知道工單。</p></details>
+<details><summary>領域事件為什麼不能直接 publish？</summary><p>因為交易可能回滾，事件卻已經飛出去了。聚合只 <code>record()</code>，應用服務在同一交易把聚合與 outbox 一起寫，relay 事後發。這就是 R8。</p></details>
+<details><summary>至少一次投遞會重複，誰負責？</summary><p>消費者。Billing 用 <code>sessionId</code> 去重、AssetOps 用 <code>chargerId + faultCode</code>。Day 5 的測試會用 <code>redeliver()</code> 把同一事件送兩次，證明不會開第二張草稿或工單。</p></details>
+<details><summary>沒有 Docker 能走完嗎？</summary><p>能。Day 6 預設 SQLite，零安裝；Postgres 是選配。其他六天完全不需要 Docker。</p></details>
+<details><summary>Node 和 Python 選哪個？</summary><p>選你公司在用的那個，因為目標是帶回去。兩邊的 starter、solutions、e2e 腳本同構。不要中途換。</p></details>
+<details><summary>我落後一天了怎麼辦？</summary><p>每天教材末尾有「如果你落後了」的最低可行版本。優先順序：Day 2 的規則、Day 4 的聚合、Day 6 的 e2e。Day 3 的 C4 與 Day 7 的 CI 可以壓縮。</p></details>
+<details><summary>solutions/ 可以看嗎？</summary><p>可以，但規則是卡住 20 分鐘再看，而且看完要關掉自己重寫。它是參考解不是標準解；你的聚合比它多一個值物件或少一個事件，只要測試名對得上規則，就是對的。</p></details>
+<details><summary>這個主控台可以放到別的地方嗎？</summary><p>可以。它是單一 HTML，沒有建置、沒有後端、沒有第三方 JS。上傳到 imitator、GitHub Pages、任何靜態主機都行；所有連結指回 <a href="https://github.com/clarencechien/dddguide">GitHub repo</a>。你的勾選只存在自己瀏覽器。</p></details>
+<details><summary>回公司後第一件事該做什麼？</summary><p>不是導入 DDD。是找一條你們自己的「人當 API」的流程，做一次一小時的 Event Storming，寫三條帶例子的規則。<code>/takeaway</code> 會幫你排出 30 天計畫。</p></details>
+</div>
+
+<!-- ============================================================ EXAM ============ -->
+<p class="eyebrow" id="exam">FINAL CHECK</p>
+<h2>最終評量：過了才能宣布工作坊結束</h2>
+<p>閉卷。選完立刻出對錯原因。目的不是分數，是把最容易帶出教室的誤解攔下來。≥ 80% 為通過；答完按「產生評量報告」，貼給 <code>/checkout day7</code>。</p>
+<div class="lab" id="quiz-lab">
+  <div class="lab-head"><strong>評量</strong><span class="quiz-score" id="quiz-score">尚未作答</span></div>
+  <div id="quiz-box"></div>
+  <div class="btn-row" style="margin-top:var(--sp-4)"><button type="button" class="lab-btn" id="report-gen">產生評量報告</button><button type="button" class="lab-btn ghost copy-btn" data-copy="#report-out">複製</button><button type="button" class="lab-btn ghost" id="quiz-reset">重做</button></div>
+  <pre id="report-out" class="wrap-pre" aria-live="polite"></pre>
+</div>
+
+<h3>工作坊結束時，repo 裡必須留下的七份產物</h3>
+<ol>
+  <li>一張被紅筆改過的 As-Is，以及四條 To-Be 原則。</li>
+  <li>一條事件時間線（含故障支線）與 ≥ 6 條帶例子的規則。</li>
+  <li>一張 Context Map，標了誰能離線；兩份 ADR。</li>
+  <li>通過 R1–R5 的兩個聚合，事件從聚合裡拉出來。</li>
+  <li>一份 v1 整合事件清單（含去重鍵）與冪等消費者的測試。</li>
+  <li>一條在你筆電上從 14:02 跑到 18:18 的 E2E 劇本。</li>
+  <li>一條綠的 CI、一份 retro、一份 30 天計畫。</li>
+</ol>
+<p class="pull">若七份產物裡有系統名稱、沒有現場用語——這堂課失敗的是語言，不是架構。</p>
+
+<p class="end">教材與程式碼：<a href="https://github.com/clarencechien/dddguide">github.com/clarencechien/dddguide</a> · 主控台單檔可搬移 · 現場規則以你們的費率與電業契約為準，本篇的數字只是例子。</p>
+</main>
 
 <script>
-/* ========== 互動程式（無第三方、無 storage；狀態只活在變數裡） ========== */
+/* ========== 主控台程式（無第三方、無網路；狀態存 localStorage，讀寫都包 try/catch） ========== */
 (() => {
-  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+'use strict';
+const REPO = 'https://github.com/clarencechien/dddguide';
+const BLOB = REPO + '/blob/main/';
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
+
+/* ---------- storage ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('ddd:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('ddd:' + k, JSON.stringify(v)); } catch (e) { /* private window / sandbox */ } }
+};
+
+/* ---------- toast ---------- */
+const toastEl = $('#toast'); let toastT;
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1600); }
+
+/* ---------- clipboard ---------- */
+function copyText(text, btn) {
+  const done = () => { toast('已複製，貼到 Claude Code'); if (btn) { btn.classList.add('copied'); setTimeout(() => btn.classList.remove('copied'), 1400); } };
+  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, () => fallback()); } else { fallback(); }
+  function fallback() {
+    const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.top = '-1000px';
+    document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('無法自動複製，請手動選取'); } document.body.removeChild(ta);
+  }
+}
+
+/* ---------- theme / mode ---------- */
+{
+  const root = document.documentElement, btn = $('#theme-toggle');
   let dark = matchMedia('(prefers-color-scheme: dark)').matches;
   btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
-  btn.addEventListener('click', () => {
-    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
-    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
-    btn.setAttribute('aria-pressed', 'true');
-  });
-})();
+  btn.addEventListener('click', () => { dark = !dark; root.dataset.theme = dark ? 'dark' : 'light'; btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true'); });
+  const mode = $('#mode-toggle');
+  let instr = store.get('instructor', false);
+  const paintMode = () => { document.body.classList.toggle('instructor', instr); mode.textContent = 'mode · ' + (instr ? '講師' : '學員'); mode.setAttribute('aria-pressed', String(instr)); };
+  mode.addEventListener('click', () => { instr = !instr; store.set('instructor', instr); paintMode(); });
+  paintMode();
+}
 
-(() => {
+/* ---------- doc links ---------- */
+$$('a[data-doc]').forEach(a => { a.href = BLOB + a.dataset.doc; a.target = '_blank'; a.rel = 'noopener'; });
+
+/* ---------- settings: name + lang ---------- */
+const settings = { name: store.get('name', ''), lang: store.get('lang', 'node'), persona: '阿忠', rule: 'R1' };
+const nameIn = $('#stu-name');
+nameIn.value = settings.name;
+nameIn.addEventListener('input', () => { settings.name = nameIn.value.trim(); store.set('name', settings.name); paintSettings(); });
+$$('#lang-seg .seg-btn').forEach(b => b.addEventListener('click', () => { settings.lang = b.dataset.lang; store.set('lang', settings.lang); paintSettings(); }));
+function paintSettings() {
+  const name = settings.name || '你的名字';
+  $$('.v-name').forEach(e => e.textContent = name);
+  $$('.v-lang').forEach(e => e.textContent = settings.lang);
+  $$('#lang-seg .seg-btn').forEach(b => b.classList.toggle('on', b.dataset.lang === settings.lang));
+  $$('.lang-node').forEach(e => e.style.display = settings.lang === 'node' ? '' : 'none');
+  $$('.lang-python').forEach(e => e.style.display = settings.lang === 'python' ? '' : 'none');
+  renderPrompts();
+}
+
+/* ---------- copy buttons for commands / arbitrary targets ---------- */
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('.copy-btn[data-copy]'); if (!b) return;
+  const t = $(b.dataset.copy); if (!t) return;
+  copyText(t.textContent.trim(), b);
+});
+
+/* ---------- prompts ---------- */
+const L = () => settings.lang === 'node'
+  ? { lang: 'node', label: 'Node / TypeScript', dir: 'starter/node', test: 'cd starter/node && npm test', watch: 'cd starter/node && npm run test:watch', http: 'Fastify' }
+  : { lang: 'python', label: 'Python', dir: 'starter/python', test: 'cd starter/python && pytest -q', watch: 'cd starter/python && pytest -x -q', http: 'FastAPI' };
+const N = () => settings.name || '（你的名字）';
+const RULES = {
+  R1: 'R1 連接器占用時拒絕第二次 Start；發布 ChargingStartRejected(reason=ConnectorOccupied)，原會話不變。',
+  R2: 'R2 未授權憑證不得開始充電；發布 ChargingStartRejected(reason=Unauthorized)。',
+  R3: 'R3 計量值單調遞增；倒退的 MeterValue 拒絕並記錄 MeterValueRejected。',
+  R4: 'R4 只有 Charging 狀態可 Stop；Stop 產生 ChargingCompleted(energyWh = 最後計量 − 起始計量)。'
+};
+const PROMPTS = {
+  d1b1: { k: 'Day 1 · Block 1', t: () => `/ta 我是 ${N()}，Day 1 Block 1。我用 ${L().label}，已經 clone 了 repo、跑過 ${L().test}（看到 R1 一個紅燈）。
+我剛讀完 docs/domain/ev-charging-primer.md。請不要講課，請用 5 個問題檢查我有沒有真的懂：樁與槍的差別、kW 與 kWh、三種錢、場站在總部斷線時必須還能做什麼、故障生命週期。我答錯的地方再指回教材段落。最後告訴我 Block 2 的第一步。` },
+  d1b2: { k: 'Day 1 · Block 2 · 訪談', t: () => `/interview ${settings.persona}
+你現在是 ${settings.persona}，請完全用他/她的口吻回答，不要跳出角色。我是來做需求訪談的工程師，對充電樁一無所知。我會問你問題，請只回答我問到的；我沒問到的隱藏事實不要主動說。
+每 5–8 輪告訴我「你目前問出了幾個關鍵事實」，並問我要不要換人。結束時給我 debrief：我漏掉哪些事實、什麼問題能問出來。` },
+  d1b3: { k: 'Day 1 · Block 3 · BPR', t: () => `/bpr-review
+我把五位角色的訪談紀錄寫在 workshop/day1/interviews.md，As-Is 顧客旅程寫在 workshop/day1/as-is.md，To-Be 四原則寫在 workshop/day1/to-be.md。
+請讀這三個檔案，然後：(1) 用問題挑戰我圈出來的「人當 API」的步驟——有沒有漏圈、有沒有圈錯；(2) 檢查每一條 To-Be 原則是否對應到 As-Is 的某個具體交接，沒有對應的請要我補；(3) 不要幫我改寫，只給我要修的清單。` },
+  checkout1: { k: 'Day 1 · Check-out', t: () => `/checkout day1
+請對照 docs/rubric.md 檢查 workshop/day1/ 的 interviews.md、as-is.md、to-be.md。用表格給我每一項的狀態與最小修正；通過的話用兩句話預告 Day 2。` },
+  d2b1: { k: 'Day 2 · Block 1 · Big-picture', t: () => `/storm
+我要做 big-picture Event Storming。來源是 workshop/day1/interviews.md 與 as-is.md。規則：只准貼「已經發生的事實」，過去式、領域語言、值班長聽得懂。
+請不要先給我時間線；先要我列出 10–15 個事件，然後逐一挑戰哪些其實是系統動作（例如「呼叫總部 API」）或 OCPP 訊息名。挑戰完再幫我排成時間線 T0–T6 與故障支線 F，標出 hotspots，輸出成 workshop/day2/storm-board.md 的格式（表格 + Mermaid）。` },
+  d2b2: { k: 'Day 2 · Block 2 · Process-level', t: () => `/storm process
+基於 workshop/day2/storm-board.md 的時間線，進入 process-level：每個事件前面補命令（誰下的）、後面補政策（發生後系統自動做什麼），把黃貼圈成聚合候選，標角色。
+請一次處理一個事件，先問我我的判斷再給意見。特別攔截：把 OCPP 訊息當事件、把「呼叫 API」當政策、把角色當 class。完成後更新 storm-board.md，並把出現的所有用語整理進 workshop/day2/glossary.md（是 / 不是 / 擁有者）。` },
+  d2b3: { k: 'Day 2 · Block 3 · 規則驗收', t: () => `/rules-check
+workshop/day2/rules.md 裡有我寫的 Given/When/Then 規則。每條的完成定義：擁有它的 Context、觸發命令、成功事件、拒絕事件或錯誤、一個數字例子。
+請逐條評 ✅ / ⚠️ / ❌ 並給修正提示，不要幫我重寫。少於 6 條就告訴我還缺哪些領域規則值得寫（可參考 docs/curriculum.md 的 R1–R8，但要我自己寫）。` },
+  checkout2: { k: 'Day 2 · Check-out', t: () => `/checkout day2
+請對照 docs/rubric.md 檢查 workshop/day2/ 的 storm-board.md、glossary.md、rules.md。表格給狀態與最小修正；通過的話預告 Day 3，但不要先告訴我 context 應該有幾個。` },
+  d3b1: { k: 'Day 3 · Block 1 · 找邊界', t: () => `/context-map
+我要從 workshop/day2/storm-board.md 與 glossary.md 推導 Bounded Context。請先不要告訴我答案有幾個 context。
+請用三個問題引導我：哪些詞在不同地方意思不同？哪些東西的生命週期不同？總部斷線時誰必須還活著？我會提出我的切法，你再用一致性不變條件挑戰每一條邊界。最後幫我把結論寫成 workshop/day3/context-map.md 的骨架（我自己填）。` },
+  d3b2: { k: 'Day 3 · Block 2 · 關係模式', t: () => `/context-map relations
+workshop/day3/context-map.md 裡是我的 context 清單。請幫我為每一對有互動的 context 選關係模式：ACL、Partnership、Customer-Supplier、Conformist、Separate Ways。每一條先問我的選擇與理由，再給意見。
+然後產出 Mermaid context map，並和 docs/curriculum.md §1.4 的參考解比對：列出差異，每條差異說明「可辯護」或「建議調整」，不要說我錯。` },
+  d3b3: { k: 'Day 3 · Block 3 · C4 + ADR', t: () => `/c4
+請根據 workshop/day3/context-map.md 幫我產出 C4 System Context 與 Container 兩張 Mermaid 圖，寫進 workshop/day3/c4.md。Container 層要分「場站節點」與「總部節點」，並標出斷線時哪些容器要能獨立運作。不畫類別圖。
+接著 /adr：建立 workshop/day3/adr/0001-bounded-contexts.md 與 0002-mvp1-scope.md 的範本，Context / Decision / Consequences 由我填，你只審查。MVP1 範圍請要我自己說出為什麼是 Charging + 工單開立 + 帳單草稿。` },
+  checkout3: { k: 'Day 3 · Check-out', t: () => `/checkout day3
+請對照 docs/rubric.md 檢查 workshop/day3/ 的 context-map.md、c4.md、adr/。表格給狀態與最小修正；通過的話預告 Day 4，並提醒我明天開始助教會拒絕在沒有紅燈時寫產品碼。` },
+  d4b1: { k: 'Day 4 · Block 1 · 戰術建模', t: () => `/aggregate-review plan
+我用 ${L().label}，程式在 ${L().dir}。我要設計 ChargingSession 聚合，先不寫程式。
+請用問題引導我在 workshop/day4/model.md 寫出：狀態機（Idle / Charging / Completed / Faulted）、不變條件（對應 workshop/day2/rules.md 的 R1–R4）、命令、成功 / 拒絕事件、值物件（Connector、IdTag、Energy）。每個決定先問我，再指出 docs/references/ddd-tactical.md 的對應段落。聚合裡不得有任何 I/O，請在我的設計裡找出違反的地方。` },
+  d4b2: { k: 'Day 4 · Block 2 · TDD', t: () => `/tdd ${settings.rule}
+我用 ${L().label}，測試指令 ${L().watch}。規則：${RULES[settings.rule]}
+請嚴格照紅綠重構：(1) 你只提一個測試名稱（用規則當名字），(2) 我寫或同意測試，(3) 我跑測試並貼紅燈輸出給你，(4) 你才准給最小實作，(5) 綠燈，(6) 重構建議。我沒貼紅燈輸出之前，不要給任何產品碼。事件請在聚合內記錄、用 pullEvents 取出。` },
+  d4b3: { k: 'Day 4 · Block 3 · WorkOrder + R5', t: () => `/tdd R5
+我用 ${L().label}，程式在 ${L().dir}。規則 R5：同一樁同一故障碼在工單開放期間重複申告，只保留一張根因工單；第二次附加「重複申告」紀錄。
+先問我「同一故障」的定義是什麼（樁？故障碼？時間窗？工單狀態？），我回答後再走紅綠重構。做完 R5，再引導我定義 ChargingSessionRepository port 並用 in-memory adapter 實作，測試不得碰任何真實 I/O。` },
+  d4review: { k: 'Day 4 · 聚合審查', t: () => `/aggregate-review
+請審查 ${L().dir} 裡 charging/domain 與 assetops/domain 的聚合：不變條件是否對得上 R1–R5、聚合大小、事件是否在聚合內記錄且由 pullEvents 取出、有無任何 I/O / broker / HTTP / DB 依賴、值物件是否有驗證、測試名稱是否用規則命名。輸出 severity / 位置 / 問題 / 為什麼 / 修法 的表格，引用規則編號或參考文件。` },
+  checkout4: { k: 'Day 4 · Check-out', t: () => `/checkout day4
+請跑 ${L().test} 並讀輸出，對照 docs/rubric.md 檢查 Day 4：R1–R5 測試是否全綠且以規則命名、聚合零 I/O、值物件、repository port。表格給狀態與最小修正；通過的話預告 Day 5 的 Outbox。` },
+  d5b1: { k: 'Day 5 · Block 1 · Application Service + Outbox', t: () => `/tdd R8
+我用 ${L().label}，程式在 ${L().dir}。今天做應用層：ChargingService 的四個命令處理器 StartCharging / StopCharging / ReportMeterValue / ReportFault。規則 R8：聚合內不得直接發送到 broker；事件先記錄在聚合，交易成功後由 Outbox relay 發布。
+第一個紅燈請幫我選：「交易成功才有 outbox 記錄；聚合拋錯時 outbox 為空」。之後每一個命令處理器一個紅燈。in-memory 的 Outbox 與 EventBus 在 shared/ 已有 port，請先要我讀它們。` },
+  d5b2: { k: 'Day 5 · Block 2 · 契約與冪等', t: () => `/event-contract
+請讀 contracts/ 的 schema 與範例，以及 ${L().dir} 裡我的 Outbox relay。我要把領域事件翻成整合事件 v1（charging.session.started.v1、charging.session.completed.v1、charging.charger.faulted.v1），信封含 eventId / type / version / occurredAt / producer / correlationId / causationId / payload。
+審查：命名、版本、信封、有沒有 OCPP 欄位名漏進 payload。然後 /tdd 引導我寫 BillingDraftConsumer 的紅燈：「同一 sessionId 用 redeliver 送兩次，只有一張草稿」。` },
+  d5b3: { k: 'Day 5 · Block 3 · Process Manager', t: () => `/tdd R5-saga
+我用 ${L().label}。我要寫 FaultProcessManager：訂閱 charging.charger.faulted.v1 → 開 WorkOrder（R5 去重鍵 chargerId + faultCode）→ 發 ops.work_order.opened.v1 → Dispatch stub 指派 → 關單 → 發 ops.work_order.closed.v1 → Charging 才准恢復可售。
+先問我這個政策為什麼不能住在 ChargingSession 或 WorkOrder 聚合裡。然後一個狀態一個紅燈，並要求「重送 faulted 事件不開第二張工單」的測試。` },
+  checkout5: { k: 'Day 5 · Check-out', t: () => `/checkout day5
+請跑 ${L().test}，對照 docs/rubric.md 檢查 Day 5：四個命令處理器、outbox 同交易、整合事件信封、Billing 消費者冪等（redeliver 測試）、FaultProcessManager、contracts 對得上。表格給狀態與最小修正；通過的話預告 Day 6 要接 HTTP、模擬器與持久化。` },
+  d6b1: { k: 'Day 6 · Block 1 · API + ACL', t: () => `/ship api
+我用 ${L().label}（HTTP 用 ${L().http}）。請先要我跑 node scripts/ocpp-sim/sim.mjs 看模擬器吐出的 OCPP 訊息，然後引導我：(1) 在 adapters/ocpp 的 OcppAcl 把 StatusNotification / StartTransaction / MeterValues / StopTransaction 翻成 Day 5 的命令，(2) 開一個接收模擬器 POST 的 endpoint，(3) 開 start / stop / meter / fault / get session 的 HTTP endpoints 給 e2e 用。
+每一段先寫一個 adapter 層的測試（可用假的 ChargingService）。domain 不准出現 OCPP 的字。` },
+  d6b2: { k: 'Day 6 · Block 2 · 持久化', t: () => `/ship persistence
+我用 ${L().label}。請先問我要 SQLite（預設、零安裝）還是 Postgres（docker compose up -d，表在 docker/init.sql）。然後引導我把 ChargingSessionRepository 與 Outbox 從 in-memory 換成真的 adapter，並寫一個 relay：讀 outbox 未發布列 → 發到 bus → 標記 published_at。
+測試策略：domain / application 測試完全不變（這是六角架構的意義）；adapter 測試對真 DB 跑一小組。請在我動手前先要我說出「哪些測試不該因為換 DB 而改」。` },
+  d6b3: { k: 'Day 6 · Block 3 · E2E + 上線清單', t: () => `/ship e2e
+請讀 scripts/e2e/e2e.md 的劇本（14:02 進場 → 14:04 插槍 S-991 → 14:31 12.4 kWh 結束 → 14:33 離場、總部斷線 → 14:40 帳單 → 18:10 GroundFailure ×2 → WO-2208 → 18:18 派工）。引導我改寫 scripts/e2e/run 讓它打我的 HTTP API 與模擬器，每一步後印出 Parking / Charging / Billing / Ops 四欄狀態。
+跑通後走上線清單：docker build、日誌帶 eventId / correlationId、README-mvp.md 的怎麼跑 / 怎麼驗 / 已知限制。每一項要我貼指令輸出你才打勾。` },
+  checkout6: { k: 'Day 6 · Check-out', t: () => `/checkout day6
+請對照 docs/rubric.md 檢查 Day 6：HTTP API、OCPP ACL、持久化與 relay、scripts/e2e 跑通（要我貼輸出）、workshop/day6/README-mvp.md。表格給狀態與最小修正；通過的話預告 Day 7 的 review 與 CI。` },
+  d7b1: { k: 'Day 7 · Block 1 · Review', t: () => `/review
+請對 ${L().dir} 做一次完整 code review：DDD（聚合邊界、值物件、事件命名對得上 glossary）、六角（依賴方向、OCPP 字有沒有漏進 domain）、EDA（outbox、冪等、信封）、測試品質（規則命名、沒有測實作細節、沒有 sleep）。輸出 severity / 位置 / 問題 / 為什麼 / 修法 表格。我會一條一條處理，修不了的我會寫理由；你不要直接改我的程式。` },
+  d7b2: { k: 'Day 7 · Block 2 · CI + PR', t: () => `/ta Day 7 Block 2
+我用 ${L().label}，分支 workshop/${N()}。請引導我寫 .github/workflows/ci.yml：push 與 pull_request 觸發、只跑 ${L().dir} 的測試、快取依賴。先要我自己寫初稿再審。
+然後幫我用 docs/references/sdlc.md 的格式擬 PR 描述骨架：目的、範圍（連到 workshop/day3/adr/）、事件契約（連到 contracts/）、怎麼驗證（scripts/e2e）、已知限制。內容由我填。` },
+  d7b3: { k: 'Day 7 · Block 3 · Retro + Backlog', t: () => `/retro
+請帶我做 Start / Stop / Continue 的 retro，寫進 workshop/day7/retro.md；一次問一題，不要一次丟整張表。然後幫我把 Sprint 2 backlog 整理進 workshop/day7/sprint-2-backlog.md：Billing 合併出帳（R7）、Dispatch 真實作、Parking 真整合、R6 人工放行——每一條都要有擁有的 context、觸發命令、成功 / 拒絕事件、數字例子，否則不准進 backlog。` },
+  d7take: { k: 'Day 7 · 帶回公司', t: () => `/takeaway
+我在一家（請問我：公司規模、我的角色、我們現在最痛的流程）。請根據我七天的交付物（workshop/day1–7）幫我寫 workshop/day7/takeaway.md：「帶回公司的 5 件事」，每件都要對應到我這七天實際做過的產物；以及 30 天行動計畫，第一週只做一件事：找一條我們自己的「人當 API」流程，做一小時 Event Storming，寫三條帶例子的規則。` },
+  checkout7: { k: 'Day 7 · Check-out', t: () => `/checkout day7
+請對照 docs/rubric.md 檢查 Day 7：review 發現處理狀況、ci.yml 與 PR、retro.md、sprint-2-backlog.md、takeaway.md。我會貼上主控台的評量報告。表格給狀態；全部通過就用三句話總結我這七天帶走了什麼。` }
+};
+function renderPrompts() {
+  $$('.prompt[data-prompt]').forEach(box => {
+    const p = PROMPTS[box.dataset.prompt]; if (!p) return;
+    const text = p.t();
+    box.replaceChildren();
+    const head = document.createElement('div'); head.className = 'prompt-head';
+    const k = document.createElement('span'); k.className = 'k'; k.textContent = '貼給 Claude Code · ' + p.k;
+    const row = document.createElement('div'); row.className = 'btn-row';
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'lab-btn copy-btn'; btn.textContent = '複製提示';
+    btn.addEventListener('click', () => copyText(text, btn));
+    row.appendChild(btn);
+    head.appendChild(k); head.appendChild(row);
+    const det = document.createElement('details');
+    const sum = document.createElement('summary'); sum.textContent = '看提示內容';
+    const pre = document.createElement('pre'); pre.textContent = text;
+    det.appendChild(sum); det.appendChild(pre);
+    box.appendChild(head); box.appendChild(det);
+  });
+}
+$$('#persona-seg .seg-btn').forEach(b => b.addEventListener('click', () => { $$('#persona-seg .seg-btn').forEach(x => x.classList.remove('on')); b.classList.add('on'); settings.persona = b.dataset.persona; renderPrompts(); }));
+$$('#rule-seg .seg-btn').forEach(b => b.addEventListener('click', () => { $$('#rule-seg .seg-btn').forEach(x => x.classList.remove('on')); b.classList.add('on'); settings.rule = b.dataset.rule; renderPrompts(); }));
+
+/* ---------- DoD checklists + progress ---------- */
+const dodState = store.get('dod', {});
+function paintProgress() {
+  const bar = $('#days-bar'); bar.replaceChildren();
+  let total = 0, doneAll = 0, current = null;
+  for (let d = 1; d <= 7; d++) {
+    const boxes = $$(`.dod[data-dod="${d}"] input`);
+    const done = boxes.filter(b => b.checked).length;
+    total += boxes.length; doneAll += done;
+    const a = document.createElement('a'); a.href = '#day' + d;
+    a.innerHTML = `D${d}<span class="pct">${done}/${boxes.length}</span>`;
+    if (boxes.length && done === boxes.length) a.classList.add('done'); else if (done) a.classList.add('part');
+    if (current === null && done < boxes.length) current = d;
+    bar.appendChild(a);
+  }
+  $('#progress-line').textContent = doneAll === 0 ? '尚未開始' : (doneAll === total ? '七天交付物全部勾完。去做最終評量。' : `已完成 ${doneAll} / ${total} 項 · 目前在 Day ${current}`);
+}
+$$('.dod input[type="checkbox"]').forEach(cb => {
+  cb.checked = !!dodState[cb.id];
+  cb.nextElementSibling.classList.toggle('done', cb.checked);
+  cb.addEventListener('change', () => { dodState[cb.id] = cb.checked; store.set('dod', dodState); cb.nextElementSibling.classList.toggle('done', cb.checked); paintProgress(); });
+});
+
+/* ---------- Day 1: As-Is / To-Be ---------- */
+{
   const asIs = [
     { t: 'LPR 辨識進場，停車場開單', gone: false },
     { t: '值班長對講機指引充電車位', gone: true },
@@ -1142,39 +1866,25 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
     { t: '月底三方在群組對帳', gone: true }
   ];
   const toBe = [
-    { t: '進場事件同時告訴占位政策：這是可充電會話的候選', gone: false },
-    { t: '插槍 + 既有憑證（月票 / 車隊 / 臨停預授權）啟動充電', gone: false },
-    { t: '充電結束與停車結束各自發布完成事件', gone: false },
-    { t: '帳務依契約合併或分拆出帳，爭議綁事件序號', gone: false },
-    { t: '故障申告直接開啟工單並進入派工政策', gone: false },
-    { t: '值班長只處理例外放行，不再當系統接頭', gone: false }
+    { t: '進場事件同時告訴占位政策：這是可充電會話的候選' },
+    { t: '插槍 + 既有憑證（月票 / 車隊 / 臨停預授權）啟動充電' },
+    { t: '充電結束與停車結束各自發布完成事件' },
+    { t: '帳務依契約合併或分拆出帳，爭議綁事件序號' },
+    { t: '故障申告直接開啟工單並進入派工政策' },
+    { t: '值班長只處理例外放行，不再當系統接頭' }
   ];
-  const list = document.getElementById('flow-list');
-  const verdict = document.getElementById('flow-verdict');
+  const list = $('#flow-list'), verdict = $('#flow-verdict');
   function render(which) {
-    const rows = which === 'to' ? toBe : asIs;
     list.replaceChildren();
-    rows.forEach((r) => {
-      const li = document.createElement('li');
-      li.textContent = r.t;
-      if (r.gone) li.className = 'gone';
-      list.appendChild(li);
-    });
-    verdict.textContent = which === 'to'
-      ? 'To-Be 刪掉的不是功能，是「人在兩套系統之間證明自己做過」的步驟。'
-      : 'As-Is 的每一段電話與第二個 App，都是未來不該被微服務保存的交接。';
+    (which === 'to' ? toBe : asIs).forEach(r => { const li = document.createElement('li'); li.textContent = r.t; if (r.gone) li.className = 'gone'; list.appendChild(li); });
+    verdict.textContent = which === 'to' ? 'To-Be 刪掉的不是功能，是「人在兩套系統之間證明自己做過」的步驟。' : 'As-Is 的每一段電話與第二個 App，都是未來不該被微服務保存的交接。';
   }
   render('as');
-  document.querySelectorAll('#bpr-lab .seg-btn').forEach((b) => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('#bpr-lab .seg-btn').forEach((x) => x.classList.remove('on'));
-      b.classList.add('on');
-      render(b.getAttribute('data-flow'));
-    });
-  });
-})();
+  $$('#bpr-lab .seg-btn').forEach(b => b.addEventListener('click', () => { $$('#bpr-lab .seg-btn').forEach(x => x.classList.remove('on')); b.classList.add('on'); render(b.dataset.flow); }));
+}
 
-(() => {
+/* ---------- Day 2: storm cards ---------- */
+{
   const cards = [
     { text: '開始充電', type: 'cmd', label: '命令', why: '是有人下的意圖，尚未成為事實。' },
     { text: '充電已開始', type: 'evt', label: '領域事件', why: '已經發生。帳務與看板只准認這句。' },
@@ -1183,274 +1893,265 @@ button, summary { transition: transform var(--dur-fast) var(--ease-out); }
     { text: '場站值班長', type: 'act', label: '角色', why: '能下人工放行，不是一個 class。' },
     { text: '充電器已申告故障', type: 'evt', label: '領域事件', why: '翻譯過的事實；不是 OCPP StatusNotification。' },
     { text: '套用尖峰費率', type: 'cmd', label: '命令', why: '帳務上下文的意圖，由完成事件觸發政策後發出。' },
-    { text: '工單', type: 'agg', label: '聚合', why: '總部對一根故障的承諾，擁有自己的狀態機。' }
+    { text: '工單', type: 'agg', label: '聚合', why: '總部對一根故障的承諾，擁有自己的狀態機。' },
+    { text: '呼叫總部派工 API', type: 'cmd', label: '不是任何一種', why: '這是系統動作，不是領域事實也不是領域命令。它應該被翻成「故障已申告」這個事件與「開工單」這個政策。' },
+    { text: '收到 StatusNotification(Faulted)', type: 'cmd', label: '不是任何一種', why: 'OCPP 訊息名。防腐層翻譯成「充電器已申告故障」之前，它不准上牆。' }
   ];
-  const board = document.getElementById('storm-board');
-  cards.forEach((c) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'evt-card';
-    const k = document.createElement('p');
-    k.className = 'kicker';
-    k.textContent = '點擊翻面';
-    const p = document.createElement('p');
-    p.textContent = c.text;
-    b.appendChild(k);
-    b.appendChild(p);
-    b.addEventListener('click', () => {
-      const open = b.classList.toggle('open');
-      b.classList.toggle(c.type, open);
-      k.textContent = open ? c.label : '點擊翻面';
-      p.textContent = open ? (c.text + ' — ' + c.why) : c.text;
-    });
+  const board = $('#storm-board');
+  cards.forEach(c => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'evt-card';
+    const k = document.createElement('p'); k.className = 'kicker'; k.textContent = '點擊翻面';
+    const p = document.createElement('p'); p.textContent = c.text;
+    b.append(k, p);
+    b.addEventListener('click', () => { const open = b.classList.toggle('open'); b.classList.toggle(c.type, open); k.textContent = open ? c.label : '點擊翻面'; p.textContent = open ? (c.text + ' — ' + c.why) : c.text; });
     board.appendChild(b);
   });
-})();
+}
 
-(() => {
+/* ---------- Day 2: timeline ordering ---------- */
+{
+  const correct = ['車輛已辨識進場', '充電車位已占用', '連接器已插上', '充電已授權開始', '電量已計量', '充電已結束', '車輛已離場'];
+  const list = $('#order-list'), fb = $('#order-fb');
+  let items = [];
+  function shuffle() { items = correct.slice(); for (let i = items.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; } if (items.join() === correct.join()) items.reverse(); paint(); fb.textContent = ''; }
+  function paint() {
+    list.replaceChildren();
+    items.forEach((t, i) => {
+      const li = document.createElement('li'); li.textContent = t;
+      const mv = document.createElement('span'); mv.className = 'mv';
+      const up = document.createElement('button'); up.type = 'button'; up.textContent = '↑'; up.setAttribute('aria-label', '上移'); up.disabled = i === 0;
+      const dn = document.createElement('button'); dn.type = 'button'; dn.textContent = '↓'; dn.setAttribute('aria-label', '下移'); dn.disabled = i === items.length - 1;
+      up.addEventListener('click', () => { [items[i - 1], items[i]] = [items[i], items[i - 1]]; paint(); });
+      dn.addEventListener('click', () => { [items[i + 1], items[i]] = [items[i], items[i + 1]]; paint(); });
+      mv.append(up, dn); li.appendChild(mv); list.appendChild(li);
+    });
+  }
+  $('#order-check').addEventListener('click', () => {
+    let ok = 0; [...list.children].forEach((li, i) => { const good = items[i] === correct[i]; li.classList.toggle('ok', good); li.classList.toggle('bad', !good); if (good) ok++; });
+    fb.textContent = ok === correct.length ? '正確。注意 T1 占用 ≠ 充電已開始，T2 插槍 ≠ 已授權。' : `對了 ${ok} / ${correct.length}。提示：占用、插槍、授權是三件不同的事實。`;
+  });
+  $('#order-shuffle').addEventListener('click', shuffle);
+  shuffle();
+}
+
+/* ---------- Day 2: rule generator ---------- */
+{
+  const f = id => $('#' + id).value.trim();
+  const out = $('#rule-out');
+  $('#rule-gen').addEventListener('click', () => {
+    const miss = [];
+    if (!f('r-title')) miss.push('情境'); if (!f('r-given')) miss.push('Given'); if (!f('r-when')) miss.push('When'); if (!f('r-then')) miss.push('Then');
+    if (!f('r-cmd')) miss.push('觸發命令'); if (!f('r-ok')) miss.push('成功事件'); if (!f('r-no')) miss.push('拒絕事件'); if (!f('r-num')) miss.push('數字例子');
+    out.textContent = `## ${f('r-id')} · ${f('r-title') || '（情境）'}
+
+- 擁有的 Context：${f('r-ctx')}
+- 觸發命令：${f('r-cmd') || '—'}
+- 成功事件：${f('r-ok') || '—'}
+- 拒絕事件 / 錯誤：${f('r-no') || '—'}
+- 數字例子：${f('r-num') || '—'}
+
+\`\`\`gherkin
+情境：${f('r-title') || '（情境）'}
+既有：${f('r-given') || '…'}
+當：${f('r-when') || '…'}
+則：${f('r-then') || '…'}
+\`\`\`
+` + (miss.length ? `\n<!-- 缺：${miss.join('、')}。缺一項就還是願望，補完再貼 /rules-check -->\n` : '');
+    toast(miss.length ? `還缺 ${miss.length} 項` : 'Markdown 已產生');
+  });
+  $('#rule-example').addEventListener('click', () => {
+    $('#r-id').value = 'R1'; $('#r-ctx').value = 'Charging';
+    $('#r-title').value = '進行中的充電會話不可被第二次 Start 覆寫';
+    $('#r-given').value = '連接器 CP-A12-2 已有會話 S-991，狀態為 Charging';
+    $('#r-when').value = '同一連接器收到 StartCharging（任何 idTag）';
+    $('#r-then').value = '拒絕；原會話不變；發布 ChargingStartRejected(reason=ConnectorOccupied)';
+    $('#r-cmd').value = 'StartCharging'; $('#r-ok').value = 'ChargingStarted'; $('#r-no').value = 'ChargingStartRejected'; $('#r-num').value = 'S-991 於 14:04 啟動；14:06 第二個 TAG 嘗試 Start → 拒絕';
+    $('#rule-gen').click();
+  });
+}
+
+/* ---------- Day 3: context quiz ---------- */
+{
   const qs = [
     { q: '「這把槍現在能不能再開始一次充電？」', a: 'Charging', why: '連接器占用是充電會話的不變條件。' },
     { q: '「這輛車能不能離場、停車費怎麼算？」', a: 'Parking', why: '放行與停車時長不該問電量。' },
     { q: '「這張發票要不要把電費和停車費印在一起？」', a: 'Billing', why: '合併是帳務契約，不是場站狀態機。' },
     { q: '「誰今天去修 A12，車上有沒有那塊通訊模組？」', a: 'Dispatch', why: '路線與備品是派工語言。' },
     { q: '「這座樁是資產編號哪一筆、上一次韌體是誰推的？」', a: 'AssetOps', why: '身份與健康履歷屬於維運。' },
-    { q: '「OCPP 的 StatusNotification 要寫進哪個聚合？」', a: 'Charging', why: '哪裡都不寫原文。ACL 先譯成領域事件，再由充電上下文吸收。這裡選充電，是因為翻譯後的事實由它發布。' }
+    { q: '「OCPP 的 StatusNotification 要寫進哪個聚合？」', a: 'Charging', why: '哪裡都不寫原文。ACL 先譯成領域事件，再由充電上下文吸收。這裡選充電，是因為翻譯後的事實由它發布。' },
+    { q: '「總部斷線了，值班長要放這輛車走。」', a: 'Parking', why: 'R6：人工放行是停車上下文的命令，事後才對帳。' },
+    { q: '「工單關了，這根樁什麼時候恢復可售？」', a: 'Charging', why: '恢復可售是充電上下文的狀態；它訂閱 work_order.closed，而不是被總部回寫。' }
   ];
   const names = ['Parking', 'Charging', 'Billing', 'AssetOps', 'Dispatch'];
-  let i = 0;
-  const qEl = document.getElementById('ctx-q');
-  const opts = document.getElementById('ctx-opts');
-  const fb = document.getElementById('ctx-fb');
+  let i = 0; const qEl = $('#ctx-q'), opts = $('#ctx-opts'), fb = $('#ctx-fb');
   function show() {
-    const item = qs[i];
-    qEl.textContent = (i + 1) + ' / ' + qs.length + '　' + item.q;
-    fb.textContent = '';
-    opts.replaceChildren();
-    names.forEach((n) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'opt-btn';
-      b.textContent = n;
-      b.addEventListener('click', () => {
-        [...opts.children].forEach((x) => { x.classList.remove('ok', 'bad'); x.disabled = true; });
-        const ok = n === item.a;
-        b.classList.add(ok ? 'ok' : 'bad');
-        [...opts.children].forEach((x) => { if (x.textContent === item.a) x.classList.add('ok'); });
-        fb.textContent = (ok ? '正確。' : ('應為 ' + item.a + '。')) + ' ' + item.why;
-      });
-      opts.appendChild(b);
-    });
+    const item = qs[i]; qEl.textContent = `${i + 1} / ${qs.length}　${item.q}`; fb.textContent = ''; opts.replaceChildren();
+    names.forEach(n => { const b = document.createElement('button'); b.type = 'button'; b.className = 'opt-btn'; b.textContent = n;
+      b.addEventListener('click', () => { [...opts.children].forEach(x => { x.classList.remove('ok', 'bad'); x.disabled = true; }); const ok = n === item.a; b.classList.add(ok ? 'ok' : 'bad'); [...opts.children].forEach(x => { if (x.textContent === item.a) x.classList.add('ok'); }); fb.textContent = (ok ? '正確。' : ('應為 ' + item.a + '。')) + ' ' + item.why; });
+      opts.appendChild(b); });
   }
-  document.getElementById('ctx-next').addEventListener('click', () => {
-    i = (i + 1) % qs.length;
-    show();
-  });
+  $('#ctx-next').addEventListener('click', () => { i = (i + 1) % qs.length; show(); });
   show();
-})();
+}
 
-(() => {
+/* ---------- Day 4: TDD stepper ---------- */
+{
   const steps = [
-    {
-      phase: 'RED',
-      code: 'test("occupied connector rejects a second start", () => {\n  const s = Session.start(connector, token, clock.now());\n  const again = () => s.start(token2, clock.now());\n  expect(again).toThrow(ConnectorOccupied);\n});',
-      note: '測試先寫。現在沒有 Session.start，編譯失敗或斷言失敗都算紅。'
-    },
-    {
-      phase: 'GREEN',
-      code: 'start(token, at) {\n  if (this.status !== "Idle") throw new ConnectorOccupied();\n  this.status = "Charging";\n  this.events.push(new ChargingStarted(...));\n}',
-      note: '只寫讓測試綠的最小實作。還不要抽政策、不要打 broker。'
-    },
-    {
-      phase: 'RED',
-      code: 'test("second start records ChargingStartRejected", () => {\n  session.start(token2, clock.now());\n  expect(session.pullEvents())\n    .toContainEqual(expect.objectContaining({ type: "ChargingStartRejected" }));\n});',
-      note: '拒絕也是事實。下一個紅燈逼你不要只用例外吞掉業務上可觀察的結果。'
-    },
-    {
-      phase: 'GREEN',
-      code: 'start(token, at) {\n  if (this.status !== "Idle") {\n    this.events.push(new ChargingStartRejected(this.id, "ConnectorOccupied"));\n    return;\n  }\n  ...\n}',
-      note: '用領域事件表達拒絕，應用層再決定 HTTP 409 或 OCPP CallError。'
-    },
-    {
-      phase: 'REFACTOR',
-      code: 'ensureIdle() {\n  if (this.status !== "Idle") {\n    this.record(new ChargingStartRejected(...));\n    return false;\n  }\n  return true;\n}',
-      note: '綠了才重構。測試不准在這一輪改語意。Outbox 仍然不出現在聚合裡。'
-    }
+    { phase: 'RED', code: 'test("R1 occupied connector rejects a second start", () => {\n  const s = ChargingSession.start(connector, tag, clock.now());\n  s.start(tag2, clock.now());\n  expect(s.pullEvents()).toContainEqual(\n    expect.objectContaining({ type: "ChargingStartRejected", reason: "ConnectorOccupied" }));\n  expect(s.status).toBe("Charging");\n});', note: '測試先寫，名字就是規則。現在沒有 ChargingSession.start，編譯失敗或斷言失敗都算紅。跑一次，把紅燈輸出貼給助教。' },
+    { phase: 'GREEN', code: 'start(tag, at) {\n  if (this.status !== "Idle") {\n    this.record(new ChargingStartRejected(this.id, "ConnectorOccupied", at));\n    return;\n  }\n  this.status = "Charging";\n  this.record(new ChargingStarted(this.id, this.connector, tag, at));\n}', note: '只寫讓測試綠的最小實作。拒絕也是事實：用領域事件表達，應用層再決定 HTTP 409 或 OCPP CallError。還不要抽政策、不要打 broker。' },
+    { phase: 'RED', code: 'test("R3 meter value must not go backwards", () => {\n  const s = chargingSessionAt(14_04, { meterStartWh: 1000 });\n  s.reportMeter(1500, t(14_10));\n  s.reportMeter(1400, t(14_11));\n  expect(s.pullEvents().map(e => e.type))\n    .toEqual(["EnergyMetered", "MeterValueRejected"]);\n});', note: '下一條規則、下一個紅燈。注意測試只看事件與狀態，不看內部欄位；那是你之後可以重構的自由。' },
+    { phase: 'GREEN', code: 'reportMeter(wh, at) {\n  if (wh < this.lastMeterWh) {\n    this.record(new MeterValueRejected(this.id, wh, this.lastMeterWh, at));\n    return;\n  }\n  this.lastMeterWh = wh;\n  this.record(new EnergyMetered(this.id, wh, at));\n}', note: 'Wh 還是裸 number。綠了之後才有資格說：這裡該有一個 Energy 值物件。' },
+    { phase: 'REFACTOR', code: 'private ensure(status: Status, rejectWith: () => DomainEvent): boolean {\n  if (this.status === status) return true;\n  this.record(rejectWith());\n  return false;\n}\n// start / stop / reportMeter 都改用 ensure；Wh 換成 Energy.ofWh()', note: '綠了才重構。這一輪測試不准改語意。Outbox 仍然不出現在聚合裡——那是 Day 5 應用層的事。' }
   ];
-  let i = 0;
-  const phase = document.getElementById('tdd-phase');
-  const code = document.getElementById('tdd-code');
-  const note = document.getElementById('tdd-note');
-  function show() {
-    const s = steps[i];
-    phase.textContent = s.phase + '  ·  ' + (i + 1) + '/' + steps.length;
-    code.textContent = s.code;
-    note.textContent = s.note;
-  }
-  document.getElementById('tdd-next').addEventListener('click', () => {
-    i = (i + 1) % steps.length;
-    show();
-  });
+  let i = 0; const phase = $('#tdd-phase'), code = $('#tdd-code'), note = $('#tdd-note');
+  const show = () => { const s = steps[i]; phase.textContent = `${s.phase}  ·  ${i + 1}/${steps.length}`; code.textContent = s.code; note.textContent = s.note; };
+  $('#tdd-next').addEventListener('click', () => { i = (i + 1) % steps.length; show(); });
   show();
-})();
+}
 
-(() => {
-  const script = [
-    { log: '14:02  車牌入閘。Parking 開啟停車會話 P-441。', evt: 'parking.vehicle_entered.v1', st: { parking: '進行中 P-441', charging: 'Idle', billing: '無', ops: '靜默' } },
-    { log: '14:03  車停進 A12。占用被記錄，仍未充電。', evt: '—', st: { parking: '占用 A12', charging: 'Idle', billing: '無', ops: '靜默' } },
-    { log: '14:04  插槍，月票憑證授權。Charging 開啟 S-991。', evt: 'charging.session.started.v1', st: { parking: '占用 A12', charging: 'S-991 Charging', billing: '草稿已開', ops: '靜默' } },
-    { log: '14:31  計量 12.4 kWh 後正常結束。', evt: 'charging.session.completed.v1', st: { parking: '占用 A12', charging: 'Completed', billing: '電費待出帳', ops: '靜默' } },
-    { log: '14:33  離場放行。總部此時斷線，閘門仍開。', evt: 'parking.session.closed.v1', st: { parking: '已關閉', charging: 'Completed', billing: '兩筆事件待對齊', ops: '靜默' } },
-    { log: '14:40  連線恢復。Billing 依契約合併出帳。', evt: 'billing.invoice.issued.v1', st: { parking: '已關閉', charging: 'Completed', billing: 'INV-778 已開立', ops: '靜默' } },
-    { log: '18:10  A12 申告接地故障。Charging 只發布事實。', evt: 'charging.charger.faulted.v1', st: { parking: 'A12 仍可停車政策另議', charging: 'Faulted', billing: 'INV-778', ops: '收到申告' } },
-    { log: '18:10  AssetOps 開出唯一根因工單 WO-2208。', evt: 'ops.work_order.opened.v1', st: { parking: '—', charging: 'Faulted', billing: 'INV-778', ops: 'WO-2208 待派' } },
-    { log: '18:18  Dispatch 指派技術員連同通訊模組。', evt: 'ops.technician.assigned.v1', st: { parking: '—', charging: 'Faulted', billing: 'INV-778', ops: '在途 · SLA 4h' } }
+/* ---------- Day 5: event → publisher matching ---------- */
+{
+  const rows = [
+    { e: 'parking.vehicle_entered.v1', a: 'Parking' },
+    { e: 'charging.session.started.v1', a: 'Charging' },
+    { e: 'charging.session.completed.v1', a: 'Charging' },
+    { e: 'parking.session.closed.v1', a: 'Parking' },
+    { e: 'charging.charger.faulted.v1', a: 'Charging' },
+    { e: 'ops.work_order.opened.v1', a: 'AssetOps' },
+    { e: 'ops.work_order.closed.v1', a: 'AssetOps' }
   ];
-  let i = -1;
-  const log = document.getElementById('sim-log');
-  const cap = document.getElementById('sim-cap');
-  const state = document.getElementById('sim-state');
-  function paint(st) {
-    state.replaceChildren();
-    Object.keys(st).forEach((k) => {
-      const d = document.createElement('div');
-      d.className = 'stat';
-      const lab = document.createElement('p');
-      lab.className = 'label';
-      lab.textContent = k;
-      const val = document.createElement('p');
-      val.className = 'value';
-      val.style.fontSize = '1.05rem';
-      val.textContent = st[k];
-      d.appendChild(lab);
-      d.appendChild(val);
-      state.appendChild(d);
-    });
-  }
-  function step() {
-    if (i >= script.length - 1) return;
-    i += 1;
-    const s = script[i];
-    const li = document.createElement('li');
-    const text = document.createTextNode(s.log + '  ');
-    const code = document.createElement('span');
-    code.className = 'evt-name';
-    code.textContent = s.evt;
-    li.appendChild(text);
-    li.appendChild(code);
-    log.appendChild(li);
-    paint(s.st);
-    cap.textContent = (i + 1) + ' / ' + script.length;
-  }
-  function reset() {
-    i = -1;
-    log.replaceChildren();
-    state.replaceChildren();
-    cap.textContent = '尚未開始';
-  }
-  document.getElementById('sim-step').addEventListener('click', step);
-  document.getElementById('sim-reset').addEventListener('click', reset);
-  reset();
-})();
-
-(() => {
-  const qs = [
-    {
-      q: 'TDD、DDD、Event-Driven 在本專案裡的正確關係是？',
-      opts: [
-        '三選一：先選架構再決定要不要測試',
-        '同一層的三種框架，可以互相替換',
-        '不同維度：DDD 建模、EDA 跨邊界流動、TDD 讓規則可執行',
-        '先上 Kafka，再用 DDD 補文件'
-      ],
-      a: 2
-    },
-    {
-      q: '為什麼 BPR 必須在 DDD 之前？',
-      opts: [
-        '因為顧問費比較貴',
-        '避免把「人當 API」的交接精緻地模型化',
-        '因為 Event Storming 規定如此',
-        '因為總部系統一定要先重寫'
-      ],
-      a: 1
-    },
-    {
-      q: 'OCPP StatusNotification 應該？',
-      opts: [
-        '直接當成 Integration Event 廣播',
-        '寫進 Billing 聚合以便對帳',
-        '在 ACL 譯成領域事實，再由擁有者發布',
-        '存進 Dispatch，方便技術員看原文'
-      ],
-      a: 2
-    },
-    {
-      q: '場站與總部同時斷線時，哪件事必須仍能完成？',
-      opts: [
-        '開出發票字軌',
-        '指派技術員路線',
-        '進場、充電進行中狀態、必要時人工放行',
-        '全國健康度看板刷新'
-      ],
-      a: 2
-    },
-    {
-      q: '同一故障申告兩次，正確行為是？',
-      opts: [
-        '開兩張工單以便統計',
-        '第二張覆蓋第一張金額',
-        '只保留一張根因工單，第二次當重複申告',
-        '打電話問值班長要哪一張'
-      ],
-      a: 2
-    },
-    {
-      q: '聚合裡可以直接 new KafkaProducer() 嗎？',
-      opts: [
-        '可以，只要包在 Domain Service',
-        '不行。聚合只記錄事件；Outbox 在應用交易裡',
-        '可以，這叫 Event-Driven DDD',
-        '不行，應該改成 REST 同步呼叫總部'
-      ],
-      a: 1
-    }
-  ];
-  const box = document.getElementById('quiz-box');
-  const scoreEl = document.getElementById('quiz-score');
-  const answers = [];
-  qs.forEach((item, qi) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'quiz-item';
-    const h = document.createElement('p');
-    h.className = 'quiz-q';
-    h.textContent = (qi + 1) + '. ' + item.q;
-    const list = document.createElement('div');
-    list.className = 'quiz-opts';
-    item.opts.forEach((t, oi) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'quiz-btn';
-      b.textContent = t;
-      b.addEventListener('click', () => {
-        answers[qi] = oi;
-        [...list.children].forEach((x, j) => {
-          x.disabled = true;
-          x.classList.remove('ok', 'bad');
-          if (j === item.a) x.classList.add('ok');
-          if (j === oi && oi !== item.a) x.classList.add('bad');
-        });
-        const right = answers.filter((v, i) => v === qs[i].a).length;
-        const done = answers.filter((v) => v !== undefined).length;
-        scoreEl.textContent = '已答 ' + done + ' / ' + qs.length + '　目前答對 ' + right;
-      });
-      list.appendChild(b);
-    });
-    wrap.appendChild(h);
-    wrap.appendChild(list);
-    box.appendChild(wrap);
+  const names = ['—', 'Parking', 'Charging', 'Billing', 'AssetOps', 'Dispatch', 'OCPP 樁'];
+  const list = $('#match-list'), fb = $('#match-fb');
+  rows.forEach(r => {
+    const div = document.createElement('div'); div.className = 'match-row';
+    const c = document.createElement('code'); c.textContent = r.e;
+    const sel = document.createElement('select'); sel.setAttribute('aria-label', r.e + ' 的發布者');
+    names.forEach(n => { const o = document.createElement('option'); o.textContent = n; sel.appendChild(o); });
+    div.append(c, sel); list.appendChild(div);
   });
-})();
+  $('#match-check').addEventListener('click', () => {
+    let ok = 0; [...list.children].forEach((div, i) => { const good = div.querySelector('select').value === rows[i].a; div.classList.toggle('ok', good); div.classList.toggle('bad', !good); if (good) ok++; });
+    fb.textContent = ok === rows.length ? '全對。注意 faulted 由 Charging 發（翻譯後的事實），不是 OCPP 樁也不是 AssetOps。' : `對了 ${ok} / ${rows.length}。提示：發布者是「擁有那個事實」的 context，不是「最先知道」的系統。`;
+  });
+}
 
+/* ---------- Day 6: simulator ---------- */
+{
+  const script = [
+    { log: '14:02  車牌 ABC-1234 入閘。Parking 開啟停車會話 P-441。', evt: 'parking.vehicle_entered.v1', st: { Parking: '進行中 P-441', Charging: 'Idle', Billing: '無', Ops: '靜默' } },
+    { log: '14:03  車停進 A12。占用被記錄，仍未充電。', evt: '—', st: { Parking: '占用 A12', Charging: 'Idle', Billing: '無', Ops: '靜默' } },
+    { log: '14:04  插槍 CP-A12-2，月票憑證 TAG-MONTHLY-77 授權。Charging 開啟 S-991。', evt: 'charging.session.started.v1', st: { Parking: '占用 A12', Charging: 'S-991 Charging', Billing: '草稿已開', Ops: '靜默' } },
+    { log: '14:31  計量 12.4 kWh 後正常結束。', evt: 'charging.session.completed.v1', st: { Parking: '占用 A12', Charging: 'Completed', Billing: '電費待出帳', Ops: '靜默' } },
+    { log: '14:33  離場放行。總部此時斷線，閘門仍開；事件在 outbox 排隊。', evt: 'parking.session.closed.v1', st: { Parking: '已關閉', Charging: 'Completed', Billing: '兩筆事件待對齊', Ops: '靜默' } },
+    { log: '14:40  連線恢復，relay 補送。Billing 依契約合併出帳。', evt: 'billing.invoice.issued.v1', st: { Parking: '已關閉', Charging: 'Completed', Billing: 'INV-778 已開立', Ops: '靜默' } },
+    { log: '18:10  A12 申告接地故障（GroundFailure）。Charging 只發布事實。', evt: 'charging.charger.faulted.v1', st: { Parking: 'A12 仍可停車，政策另議', Charging: 'Faulted', Billing: 'INV-778', Ops: '收到申告' } },
+    { log: '18:10  8 秒後同一故障再申告一次。AssetOps 只附加「重複申告」，仍只有 WO-2208。', evt: 'ops.work_order.opened.v1', st: { Parking: '—', Charging: 'Faulted', Billing: 'INV-778', Ops: 'WO-2208 待派（重複 ×1）' } },
+    { log: '18:18  Dispatch 指派技術員 TECH-HAO，連同通訊模組。', evt: 'ops.technician.assigned.v1', st: { Parking: '—', Charging: 'Faulted', Billing: 'INV-778', Ops: '在途 · SLA 4h' } }
+  ];
+  let i = -1; const log = $('#sim-log'), cap = $('#sim-cap'), state = $('#sim-state');
+  function paint(st) { state.replaceChildren(); Object.keys(st).forEach(k => { const d = document.createElement('div'); d.className = 'stat'; const lab = document.createElement('p'); lab.className = 'label'; lab.textContent = k; const val = document.createElement('p'); val.className = 'value'; val.style.fontSize = '1.05rem'; val.textContent = st[k]; d.append(lab, val); state.appendChild(d); }); }
+  function step() { if (i >= script.length - 1) return; i += 1; const s = script[i]; const li = document.createElement('li'); li.appendChild(document.createTextNode(s.log + '  ')); const code = document.createElement('span'); code.className = 'evt-name'; code.textContent = s.evt; li.appendChild(code); log.appendChild(li); paint(s.st); cap.textContent = `${i + 1} / ${script.length}`; }
+  function reset() { i = -1; log.replaceChildren(); state.replaceChildren(); cap.textContent = '尚未開始'; }
+  $('#sim-step').addEventListener('click', step); $('#sim-reset').addEventListener('click', reset); reset();
+}
+
+/* ---------- gallery tabs ---------- */
+$$('#gallery-tabs .seg-btn').forEach(b => b.addEventListener('click', () => { $$('#gallery-tabs .seg-btn').forEach(x => x.classList.remove('on')); b.classList.add('on'); $$('.gallery-pane').forEach(p => p.classList.toggle('on', p.id === b.dataset.pane)); }));
+
+/* ---------- per-day check-out quizzes + final exam ---------- */
+const DAYQ = {
+  q1: [
+    { q: 'BPR 問的第一個問題是？', opts: ['這一步怎麼自動化', '這一步該不該存在', '這一步要用哪個服務', '這一步誰負責'], a: 1 },
+    { q: '訪談時最能挖出隱藏事實的問題是？', opts: ['你們系統有哪些功能？', '你們想要什麼？', '上次出事你人在哪、手上拿什麼？', '你覺得 DDD 怎麼樣？'], a: 2 },
+    { q: '「值班長打電話請總部開工單」在 To-Be 應該？', opts: ['做成一個 REST API', '保留，電話比較快', '消失，故障申告直接開工單，電話是備援', '改成 Line 機器人'], a: 2 }
+  ],
+  q2: [
+    { q: '哪一張可以當黃貼（領域事件）？', opts: ['呼叫總部派工 API', 'StatusNotification(Faulted)', '充電器已申告故障', '開始充電'], a: 2 },
+    { q: '一條規則進 Backlog 的完成定義缺了什麼就還是願望？', opts: ['UML 圖', '數字例子與拒絕事件', 'Jira 票號', '估點'], a: 1 },
+    { q: 'T1「充電車位已占用」與 T3「充電已授權開始」是？', opts: ['同一件事', '兩個不同的事實，中間隔著插槍與授權', 'T1 可以省略', 'T3 由 Parking 發'], a: 1 }
+  ],
+  q3: [
+    { q: '找 Bounded Context 邊界最有力的線索是？', opts: ['團隊人數', '同一個詞在兩邊意思不同', '資料表數量', '微服務數量'], a: 1 },
+    { q: 'Charging 對 AssetOps 的關係是？', opts: ['共享核心', '遵奉者：AssetOps 接受 ChargerFaulted 語意', '各走各的', 'AssetOps 回寫 Charging 狀態'], a: 1 },
+    { q: 'MVP1 為什麼不做 Dispatch？', opts: ['不重要', '它是支援域且可用 stub 驗證流程；核心域 Charging 先跑通', '技術員不會用', '沒有 Docker'], a: 1 }
+  ],
+  q4: [
+    { q: '聚合裡可以直接 new KafkaProducer() 嗎？', opts: ['可以，包在 Domain Service', '不行。聚合只記錄事件；Outbox 在應用交易裡', '可以，這叫 Event-Driven DDD', '不行，應改成 REST 同步呼叫總部'], a: 1 },
+    { q: 'R1 的拒絕該怎麼表達？', opts: ['throw 一個字串', '回傳 false', '記錄 ChargingStartRejected 領域事件，應用層決定 409', '直接改狀態成 Faulted'], a: 2 },
+    { q: 'TDD 的正確順序是？', opts: ['寫實作 → 補測試 → 重構', '紅 → 綠 → 重構，一次一條規則', '先重構再測', '先寫 mock 再寫聚合'], a: 1 }
+  ],
+  q5: [
+    { q: 'Domain Event 與 Integration Event 的差別？', opts: ['名字長短', '前者上下文內部、可同步；後者跨上下文契約、版本化、經 Outbox、非同步', '沒有差別', '前者用 Kafka、後者用 REST'], a: 1 },
+    { q: '同一故障申告兩次，正確行為是？', opts: ['開兩張工單以便統計', '第二張覆蓋第一張', '只保留一張根因工單，第二次當重複申告', '打電話問值班長'], a: 2 },
+    { q: '「故障 → 開單 → 派工 → 驗證 → 恢復可售」該住在哪？', opts: ['ChargingSession 聚合', 'WorkOrder 聚合', 'Process Manager（跨上下文政策）', 'OCPP ACL'], a: 2 }
+  ],
+  q6: [
+    { q: '場站與總部斷線時，哪件事必須仍能完成？', opts: ['開出發票字軌', '指派技術員路線', '進場、充電進行中狀態、必要時人工放行', '全國健康度看板刷新'], a: 2 },
+    { q: '把 in-memory repository 換成 SQLite 後，哪些測試不該改？', opts: ['全部要改', 'domain 與 application 的測試', '只有 e2e', 'adapter 測試'], a: 1 },
+    { q: 'OCPP StatusNotification 應該？', opts: ['直接當 Integration Event 廣播', '寫進 Billing 聚合', '在 ACL 譯成領域事實，再由擁有者發布', '存進 Dispatch'], a: 2 }
+  ],
+  q7: [
+    { q: 'CI 在這個 SDLC 裡的角色是？', opts: ['部署', '每次 push / PR 自動跑規則測試，讓 PR 有客觀的綠', '取代 review', '產生文件'], a: 1 },
+    { q: 'Sprint 2 的 backlog 項目要有什麼才准進？', opts: ['估點', '擁有的 context、命令、成功 / 拒絕事件、數字例子', '負責人', 'UI 草圖'], a: 1 },
+    { q: '回公司第一個月最該做的是？', opts: ['導入 Kafka', '把所有系統改成微服務', '找一條「人當 API」的流程做一小時 Event Storming、寫三條帶例子的規則', '買 DDD 的書給全部門'], a: 2 }
+  ]
+};
+const quizState = store.get('quiz', {});
+function buildQuiz(container, key, items, onChange) {
+  container.replaceChildren();
+  const ans = quizState[key] || (quizState[key] = []);
+  items.forEach((item, qi) => {
+    const wrap = document.createElement('div'); wrap.className = 'quiz-item';
+    const h = document.createElement('p'); h.className = 'quiz-q'; h.textContent = `${qi + 1}. ${item.q}`;
+    const list = document.createElement('div'); list.className = 'quiz-opts';
+    const paintRow = (oi) => { [...list.children].forEach((x, j) => { x.disabled = true; x.classList.remove('ok', 'bad'); if (j === item.a) x.classList.add('ok'); if (j === oi && oi !== item.a) x.classList.add('bad'); }); };
+    item.opts.forEach((t, oi) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'quiz-btn'; b.textContent = t;
+      b.addEventListener('click', () => { ans[qi] = oi; store.set('quiz', quizState); paintRow(oi); onChange(); }); list.appendChild(b); });
+    wrap.append(h, list); container.appendChild(wrap);
+    if (ans[qi] !== undefined) paintRow(ans[qi]);
+  });
+  onChange();
+}
+function score(key, items) { const ans = quizState[key] || []; const done = ans.filter(v => v !== undefined).length; const right = ans.filter((v, i) => v === items[i].a).length; return { done, right, total: items.length }; }
+$$('.quiz[data-quiz]').forEach(c => {
+  const key = c.dataset.quiz, items = DAYQ[key];
+  const head = document.createElement('p'); head.className = 'quiz-score';
+  const box = document.createElement('div');
+  c.append(head, box);
+  buildQuiz(box, key, items, () => { const s = score(key, items); head.textContent = s.done === 0 ? `Check-out 小測 · ${s.total} 題` : `已答 ${s.done} / ${s.total}　答對 ${s.right}`; });
+});
+
+const EXAM = [
+  { q: 'TDD、DDD、Event-Driven 在本專案裡的正確關係是？', opts: ['三選一：先選架構再決定要不要測試', '同一層的三種框架，可以互相替換', '不同維度：DDD 建模、EDA 跨邊界流動、TDD 讓規則可執行', '先上 Kafka，再用 DDD 補文件'], a: 2 },
+  { q: '為什麼 BPR 必須在 DDD 之前？', opts: ['因為顧問費比較貴', '避免把「人當 API」的交接精緻地模型化', '因為 Event Storming 規定如此', '因為總部系統一定要先重寫'], a: 1 },
+  { q: 'OCPP StatusNotification 應該？', opts: ['直接當成 Integration Event 廣播', '寫進 Billing 聚合以便對帳', '在 ACL 譯成領域事實，再由擁有者發布', '存進 Dispatch，方便技術員看原文'], a: 2 },
+  { q: '場站與總部同時斷線時，哪件事必須仍能完成？', opts: ['開出發票字軌', '指派技術員路線', '進場、充電進行中狀態、必要時人工放行', '全國健康度看板刷新'], a: 2 },
+  { q: '同一故障申告兩次，正確行為是？', opts: ['開兩張工單以便統計', '第二張覆蓋第一張金額', '只保留一張根因工單，第二次當重複申告', '打電話問值班長要哪一張'], a: 2 },
+  { q: '聚合裡可以直接 new KafkaProducer() 嗎？', opts: ['可以，只要包在 Domain Service', '不行。聚合只記錄事件；Outbox 在應用交易裡', '可以，這叫 Event-Driven DDD', '不行，應該改成 REST 同步呼叫總部'], a: 1 },
+  { q: '至少一次投遞造成重複，誰負責？', opts: ['Broker 設 exactly-once', '消費者用去重鍵冪等處理', '發布者重試前先查', '不會重複'], a: 1 },
+  { q: '一條領域規則進 Backlog 時必須帶什麼？', opts: ['類別圖', '擁有它的 Context、觸發命令、成功事件、拒絕事件、數字例子', 'API 規格', '資料表結構'], a: 1 },
+  { q: '換掉持久化（in-memory → SQLite）時，六角架構保證什麼？', opts: ['不用寫 adapter 測試', 'domain 與 application 測試一行不改', 'e2e 自動通過', '效能一樣'], a: 1 },
+  { q: '帳單開立後發現金額錯了，正確做法？', opts: ['直接 UPDATE 金額', '刪掉重開', '發 InvoiceAdjusted 新事件，原帳單不變', '請帳務手動改 Excel'], a: 2 }
+];
+const examBox = $('#quiz-box'), examScore = $('#quiz-score');
+function examPaint() { const s = score('exam', EXAM); examScore.textContent = s.done === 0 ? '尚未作答' : `已答 ${s.done} / ${s.total}　答對 ${s.right}　${s.done === s.total ? (s.right / s.total >= .8 ? '· 通過' : '· 未達 80%，回去看錯的那幾題的原因') : ''}`; }
+buildQuiz(examBox, 'exam', EXAM, examPaint);
+$('#quiz-reset').addEventListener('click', () => { quizState.exam = []; store.set('quiz', quizState); buildQuiz(examBox, 'exam', EXAM, examPaint); $('#report-out').textContent = ''; });
+$('#report-gen').addEventListener('click', () => {
+  const lines = [`# 工作坊評量報告 · ${settings.name || '（未填名字）'} · ${settings.lang}`, '', '## 交付物自評'];
+  for (let d = 1; d <= 7; d++) { const boxes = $$(`.dod[data-dod="${d}"] input`); const done = boxes.filter(b => b.checked).length; lines.push(`- Day ${d}: ${done}/${boxes.length}` + boxes.filter(b => !b.checked).map(b => `\n  - [ ] ${b.nextElementSibling.textContent.trim()}`).join('')); }
+  lines.push('', '## Check-out 小測');
+  Object.keys(DAYQ).forEach((k, i) => { const s = score(k, DAYQ[k]); lines.push(`- Day ${i + 1}: ${s.right}/${s.total}`); });
+  const e = score('exam', EXAM); lines.push('', `## 最終評量：${e.right}/${e.total}（${Math.round(e.right / e.total * 100)}%）${e.done < e.total ? '· 尚未答完' : (e.right / e.total >= .8 ? '· 通過' : '· 未通過')}`);
+  const wrong = EXAM.map((it, i) => (quizState.exam || [])[i] !== undefined && quizState.exam[i] !== it.a ? `- ${it.q}` : null).filter(Boolean);
+  if (wrong.length) lines.push('', '答錯：', ...wrong);
+  lines.push('', '（由主控台產生，貼給 /checkout day7）');
+  $('#report-out').textContent = lines.join('\n'); toast('報告已產生');
+});
+
+/* ---------- boot ---------- */
+paintSettings();
+paintProgress();
+})();
 </script>
-</body>
 </html>
