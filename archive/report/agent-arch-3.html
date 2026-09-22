@@ -573,7 +573,7 @@ td .sub { font-family: var(--mono); }
 <p class="eyebrow">架構筆記 · Agent vs Workflow · VOL.3 · 2026-09</p>
 <h1 class="display">你早就在用<br><em>harness</em> 了——<br>買哪一層、<br>刻哪一層</h1>
 <p class="lede">「別人都有 framework 了，我還要自己手刻嗎？」這一篇的答案是：問錯層了。Workflow、agent、harness 是三個問題不是三個產品，值得買的只有一層——而你現在跑的那套東西，已經是它。</p>
-<p class="byline">研究稿 2026-09-21 · 接 VOL.1《它們不會報錯，它們會成功》、VOL.2《第一百次，要比第一次聰明》 · 事實標 L1–L4 來源階梯，判讀另框 · 版本號皆為查閱當日 PyPI／官方頁所示</p>
+<p class="byline">研究稿 2026-09-22 · 接 VOL.1《它們不會報錯，它們會成功》、VOL.2《第一百次，要比第一次聰明》 · 事實標 L1–L4 來源階梯，判讀另框 · 版本號皆為查閱當日 PyPI／官方頁所示</p>
 
 <section>
 <p class="eyebrow">00 · 前情</p>
@@ -628,31 +628,30 @@ td .sub { font-family: var(--mono); }
 <section>
 <p class="eyebrow">03 · 比價單</p>
 <h2>殼的功能表，與三條鎖定軸</h2>
-<p>下面這張表是本篇的比價單。最後一欄是「自製」——不是自己寫一個 harness，而是把 Claude Code 當殼、外面只包 cron 與 md 的那套做法（第 04 節拆開講）。表內每格皆取自各家官方文件，查閱日 2026-09-21；標「未見」者為本次未在文件中找到，不代表不存在。</p>
+<p>下面這張表是本篇的比價單。最後一欄是「自製」——不是自己寫一個 harness，而是把 Claude Code 當殼、外面只包 cron 與 md 的那套做法（第 04 節拆開講）。Microsoft Agent Framework 一起列：它跟 ADK 是同一級的東西——雲廠商的一級框架、三層齊備、任意模型——差別只在 harness 那層 MAF 打包成一顆、ADK 是零件散裝。表內每格皆取自各家官方文件，查閱日 2026-09-22；標「未見」者為本次未在文件中找到，不代表不存在。</p>
 
 <div class="table-scroll">
 <table>
-<thead><tr><th>能力</th><th>Claude Agent SDK</th><th>OpenAI Agents SDK<br><span class="sub">0.22.3 · MIT</span></th><th>LangGraph<br><span class="sub">1.2.11 · MIT</span></th><th>Google ADK<br><span class="sub">2.9.2 · Apache-2.0</span></th><th class="self">自製<br><span class="sub">cron + claude -p + md + git</span></th></tr></thead>
+<thead><tr><th>能力</th><th>Claude Agent SDK</th><th>OpenAI Agents SDK<br><span class="sub">0.22.3 · MIT</span></th><th>LangGraph<br><span class="sub">1.2.12 · MIT</span></th><th>Google ADK<br><span class="sub">2.9.2 · Apache-2.0</span></th><th>MAF harness<br><span class="sub">agent-framework 1.19.0 · MIT</span></th><th class="self">自製<br><span class="sub">cron + claude -p + md + git</span></th></tr></thead>
 <tbody>
-<tr><td>迴圈上限</td><td><code>max_turns</code>、<code>max_budget_usd</code>；預設皆無上限</td><td><code>max_turns</code>，超過拋 <code>MaxTurnsExceeded</code></td><td><code>recursion_limit</code> 預設 1000 個 super-step</td><td>1.x <code>LoopAgent(max_iterations)</code>；2.0 圖形版寫法未見</td><td class="self"><code>--max-turns</code>；成本在 JSON 輸出可讀</td></tr>
-<tr><td>人審／中斷</td><td>hooks（PreToolUse 等）＋六種權限模式＋<code>canUseTool</code> 回呼</td><td>工具 <code>needs_approval</code> → <code>RunResult.interruptions</code> → 序列化 → approve → 續跑</td><td><code>interrupt()</code>＋<code>Command(resume=)</code>，須配 checkpointer；<strong>恢復時節點從頭重跑</strong></td><td>2.0 有 pause/resume 工具授權流程<span class="src">L4</span>；resume 文件明言工具可能重複執行</td><td class="self"><code>--permission-mode</code>、<code>--allowedTools</code>；人審在 draft/ 路徑外面做</td></tr>
-<tr><td>跨 session 續跑</td><td>sessions（jsonl；continue／resume／fork）；文件建議「不要依賴 resume，把結果當應用狀態傳入新 session」</td><td><code>RunState</code> 序列化；<code>cancel(mode="after_turn")</code> 後可恢復</td><td>checkpointer（InMemory／Sqlite／Postgres）＋ <code>thread_id</code>；time travel</td><td><code>ResumabilityConfig</code>；至少一次語意</td><td class="self">狀態在 md，續跑靠 git；沒有「程式恢復」這件事，重跑就是了</td></tr>
-<tr><td>context 壓縮</td><td>自動 compaction，送 <code>compact_boundary</code>；<code>PreCompact</code> hook 可先封存</td><td><code>OpenAIResponsesCompactionSession</code>——綁 OpenAI 端點</td><td>summarization middleware（1.1 起依 model profile 觸發）</td><td><code>CompactionRequestProcessor</code>：token 型／滑動視窗</td><td class="self">Claude Code 的 compaction；跨次的壓縮由人做，寫進 md</td></tr>
-<tr><td>規劃／todo</td><td>內建 TaskCreate／TaskUpdate 工具</td><td>未見獨立原語</td><td>在 <code>deepagents</code>（<code>TodoListMiddleware</code>）</td><td>未見</td><td class="self">Claude Code 內建；跨次的計畫在 md</td></tr>
-<tr><td>追蹤</td><td>每個 result 帶 <code>total_cost_usd</code>、<code>usage</code>、<code>num_turns</code></td><td>預設送 OpenAI Traces（ZDR 組織不可用）；可改送 30+ 供應商</td><td>LangSmith：Developer 免費 1 席、5k base traces／月、14 天保留；自架需 Enterprise</td><td>未見明確原語</td><td class="self">JSON 輸出的 cost／turns 自己落檔</td></tr>
-<tr><td>沙箱</td><td>內建 Bash 等工具；Managed Agents 提供託管沙箱</td><td>七家沙箱供應商</td><td><code>deepagents</code> 有沙箱 shell／QuickJS</td><td>未見</td><td class="self">跑在哪台就是哪台的沙箱</td></tr>
-<tr><td>記憶</td><td>Auto memory（<code>~/.claude/projects/&lt;p&gt;/memory/</code>，可關）；Managed Agents 有 memory store</td><td>Sessions：SQLite／Redis／Mongo／Dapr…</td><td>自架 checkpointer</td><td>本地 <code>InMemoryMemoryService</code>；Memory Bank／RAG 綁 Vertex</td><td class="self">md＋git，人讀得懂</td></tr>
-<tr><td>模型</td><td><strong>僅 Claude</strong>——官方明示不支援經 gateway 路由到非 Claude 模型</td><td>任意 OpenAI-compatible 端點；LiteLLM 為 best-effort beta；非 OpenAI 模型的 structured output 與 Responses API 常不可用</td><td>任意</td><td>任意（Gemini 最順）</td><td class="self"><strong>僅 Claude</strong></td></tr>
-<tr><td>授權</td><td>Anthropic Commercial Terms</td><td>MIT</td><td>MIT</td><td>Apache 2.0</td><td class="self">CLI 授權條款；殼不是你的</td></tr>
+<tr><td>迴圈上限</td><td><code>max_turns</code>、<code>max_budget_usd</code>；預設皆無上限</td><td><code>max_turns</code>，超過拋 <code>MaxTurnsExceeded</code></td><td><code>recursion_limit</code> 預設 1000 個 super-step</td><td>1.x <code>LoopAgent(max_iterations)</code>；2.0 圖形版寫法未見</td><td>函式呼叫迭代上限；harness looping：<code>loop_max_iterations</code>＋<code>loop_should_continue</code>（實驗性）</td><td class="self"><code>--max-turns</code>；成本在 JSON 輸出可讀</td></tr>
+<tr><td>人審／中斷</td><td>hooks（PreToolUse 等）＋六種權限模式＋<code>canUseTool</code> 回呼</td><td>工具 <code>needs_approval</code> → <code>RunResult.interruptions</code> → 序列化 → approve → 續跑</td><td><code>interrupt()</code>＋<code>Command(resume=)</code>，須配 checkpointer；<strong>恢復時節點從頭重跑</strong></td><td>2.0 有 pause/resume 工具授權流程<span class="src">L4</span>；resume 文件明言工具可能重複執行</td><td>工具核准內建，含常設核准與自動核准規則；shell 工具預設 <code>always_require</code></td><td class="self"><code>--permission-mode</code>、<code>--allowedTools</code>；人審在 draft/ 路徑外面做</td></tr>
+<tr><td>跨 session 續跑</td><td>sessions（jsonl；continue／resume／fork）；文件建議「不要依賴 resume，把結果當應用狀態傳入新 session」</td><td><code>RunState</code> 序列化；<code>cancel(mode="after_turn")</code> 後可恢復</td><td>checkpointer（InMemory／Sqlite／Postgres）＋ <code>thread_id</code>；time travel</td><td><code>ResumabilityConfig</code>；至少一次語意</td><td><code>AgentSession.to_dict()/from_dict()</code> 帶 plan、todo、history；每次模型呼叫後由 <code>HistoryProvider</code> 存檔供崩潰復原</td><td class="self">狀態在 md，續跑靠 git；沒有「程式恢復」這件事，重跑就是了</td></tr>
+<tr><td>context 壓縮</td><td>自動 compaction，送 <code>compact_boundary</code>；<code>PreCompact</code> hook 可先封存</td><td><code>OpenAIResponsesCompactionSession</code>——綁 OpenAI 端點</td><td>summarization middleware（1.1 起依 model profile 觸發）</td><td><code>CompactionRequestProcessor</code>：token 型／滑動視窗</td><td>內建；預設以 4 字元≈1 token 估算，非 OpenAI 模型要傳 <code>tokenizer=</code></td><td class="self">Claude Code 的 compaction；跨次的壓縮由人做，寫進 md</td></tr>
+<tr><td>規劃／todo</td><td>內建 TaskCreate／TaskUpdate 工具</td><td>未見獨立原語</td><td>在 <code>deepagents</code>（<code>TodoListMiddleware</code>）</td><td>未見</td><td>內建 <code>TodoProvider</code>＋plan/execute 模式；<code>TodoFileStore</code> 可落本機檔案</td><td class="self">Claude Code 內建；跨次的計畫在 md</td></tr>
+<tr><td>追蹤</td><td>每個 result 帶 <code>total_cost_usd</code>、<code>usage</code>、<code>num_turns</code></td><td>預設送 OpenAI Traces（ZDR 組織不可用）；可改送 30+ 供應商</td><td>LangSmith：Developer 免費 1 席、5k base traces／月、14 天保留；自架需 Enterprise；或 <code>LANGSMITH_OTEL_ONLY</code> 送任意 OTLP</td><td>OTel 內建，標準 <code>OTEL_EXPORTER_OTLP_*</code> 環境變數即送任意 collector</td><td>OTel 內建，<code>configure_otel_providers()</code> 讀標準 <code>OTEL_EXPORTER_OTLP_ENDPOINT</code></td><td class="self">JSON 輸出的 cost／turns 自己落檔</td></tr>
+<tr><td>沙箱</td><td>內建 Bash 等工具；Managed Agents 提供託管沙箱</td><td>七家沙箱供應商</td><td><code>deepagents</code>：官方沙箱全為雲端服務；離線只有無隔離的 <code>LocalShellBackend</code></td><td>未見</td><td><code>agent-framework-tools</code>（pre-release）：<code>LocalShellTool</code>（非沙箱）、<code>DockerShellTool</code></td><td class="self">跑在哪台就是哪台的沙箱</td></tr>
+<tr><td>記憶</td><td>Auto memory（<code>~/.claude/projects/&lt;p&gt;/memory/</code>，可關）；Managed Agents 有 memory store</td><td>Sessions：SQLite／Redis／Mongo／Dapr…</td><td>checkpointer（thread 內）＋ <code>PostgresStore</code>（跨 thread）</td><td>本地 <code>InMemoryMemoryService</code>；Memory Bank／RAG 綁 Vertex</td><td>file memory：<code>FileSystemAgentFileStore</code>，預設 <code>./agent-file-memory</code></td><td class="self">md＋git，人讀得懂</td></tr>
+<tr><td>模型</td><td><strong>僅 Claude</strong>——官方明示不支援經 gateway 路由到非 Claude 模型</td><td>任意 OpenAI-compatible 端點；LiteLLM 為 best-effort beta；非 OpenAI 模型的 structured output 與 Responses API 常不可用</td><td>任意</td><td>任意（Gemini 最順）</td><td>任意 client：<code>OpenAIChatClient(base_url=)</code>、官方 Ollama／Foundry Local client（pre-release）</td><td class="self"><strong>僅 Claude</strong></td></tr>
+<tr><td>授權</td><td>Anthropic Commercial Terms</td><td>MIT</td><td>MIT</td><td>Apache 2.0</td><td>MIT</td><td class="self">CLI 授權條款；殼不是你的</td></tr>
 </tbody>
 </table>
 </div>
-<p class="field">Microsoft Agent Framework Python 套件 <code>agent-framework</code> 1.19.0（2026-09-18，MIT，Python ≥3.10）本篇只當三分法的來源，不列入比價。</p>
 
 <div class="verdict">
 <p>表裡真正分出高下的不是功能——大家都有 loop 上限、都有 HITL、都有 compaction——而是<strong>三條鎖定軸</strong>：</p>
 <ol>
-<li><strong>模型軸</strong>：Claude SDK 只跑 Claude；OpenAI SDK 能接別家但 structured output 與 tracing 都會掉功能；LangGraph、ADK 任意。</li>
+<li><strong>模型軸</strong>：Claude SDK 只跑 Claude；OpenAI SDK 能接別家但 structured output 與 tracing 都會掉功能；LangGraph、ADK、MAF 任意。</li>
 <li><strong>平台軸</strong>：追蹤（OpenAI Traces、LangSmith）、記憶（Vertex Memory Bank、Managed Agents memory store）、compaction 端點（OpenAI）——每一項都是一條回不去的路。</li>
 <li><strong>狀態軸</strong>：狀態在檔案／git（人讀得到）還是在 checkpointer DB（只有程式讀得到）。</li>
 </ol>
@@ -732,13 +731,53 @@ td .sub { font-family: var(--mono); }
 
 <div class="verdict">
 <ol>
-<li><strong>模型軸</strong>：Claude Agent SDK 官方不支援非 Claude 模型。若地端模型是硬需求，Claude SDK 直接出局；OpenAI SDK 能接 OpenAI-compatible 端點，但 structured output 常不可用——而 CELL B 的契約正靠它——所以也只能算半個選項；剩 LangGraph 與 ADK，加上不列入比價但任意 client 的 MAF。</li>
-<li><strong>平台軸</strong>：OpenAI Traces 預設上雲且 ZDR 不可用；LangSmith 自架需 Enterprise；Vertex Memory Bank 綁 GCP。地端只剩 <strong>OpenTelemetry</strong>——MAF 內建，OpenAI SDK 可改送，LangGraph 與 ADK 需自己接。</li>
+<li><strong>模型軸</strong>：Claude Agent SDK 官方不支援非 Claude 模型。若地端模型是硬需求，Claude SDK 直接出局；OpenAI SDK 能接 OpenAI-compatible 端點，但 structured output 常不可用——而 CELL B 的契約正靠它——所以也只能算半個選項；剩 LangGraph、ADK、MAF 三家。</li>
+<li><strong>平台軸</strong>：OpenAI Traces 預設上雲且 ZDR 不可用；LangSmith 自架需 Enterprise；Vertex Memory Bank 綁 GCP。地端只剩 <strong>OpenTelemetry</strong>——三家都有，差在要不要自己接線。</li>
 <li><strong>狀態軸</strong>：事件檢討本來就要人審與回寫，狀態應在 md／git／物件儲存這類檔案，不在框架 DB。</li>
 </ol>
 <p>事件檢討是 VOL.1 Case 02 的原型：CELL D 拆成 B 兩段。工廠版的特殊處是<strong>量測涵蓋率</strong>（VOL.2 RULE 03）：產線裝置的資料面（log、metrics、事件）遠大於儀表板面，Unknown-Known 帶的探索才有價值；預算解不了沒埋點的問題。</p>
 <p>給工廠的殼規格，不指名框架：模型可換（地端／雲端雙跑）、OTel 追蹤、HITL 走既有審批（工單系統）、狀態落地端檔案、每次執行產出可 diff 的 manifest、副作用節點冪等。用這張規格去挑，不是用「哪家 GA 了」去挑。</p>
-<p><strong>暫定推薦</strong>：地端模型確定為硬需求時，優先評估兩條——<em>MAF Python harness</em>（任意 client、OTel 內建、常設核准規則，且公司環境本來就有 Azure 額度）與 <em>LangGraph＋自架 Postgres checkpointer</em>（MIT、狀態可自控，但要吃前面 L4 那三條的除錯成本與冪等要求）。Claude SDK 留給雲端可用的專案。這一段是判讀，等第 07 節的 diff 跑完再定案。</p>
+</div>
+
+<h3>地端比價：三家各要自己補什麼</h3>
+<p>第 03 節比的是功能有沒有；這張比的是<strong>純地端、無雲端帳號</strong>時，每一格要自己補多少。三欄都取自官方文件與官方套件頁，查閱日 2026-09-22；社群踩雷另標 L4，放在表後。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>地端要補的</th><th>MAF harness<br><span class="sub">agent-framework 1.19.0</span></th><th>LangGraph＋deepagents<br><span class="sub">1.2.12＋0.7.16</span></th><th>Google ADK<br><span class="sub">2.9.2</span></th></tr></thead>
+<tbody>
+<tr><td>換地端模型</td><td><code>OpenAIChatClient(base_url=)</code> 指 vLLM／LM Studio；官方 <code>OllamaChatClient</code>、<code>FoundryLocalClient</code>（皆 pre-release）。要加 <code>disable_web_search=True</code>（harness 預設自動掛 web search）、傳 <code>tokenizer=</code></td><td><code>ChatOpenAI(base_url=)</code>／<code>init_chat_model(..., base_url=)</code>／<code>langchain-ollama</code>。structured output 地端一律走 <code>ToolStrategy</code>，建議明示；vLLM 端要開 <code>--enable-auto-tool-choice --tool-call-parser</code>（Qwen3 有 <code>qwen3_xml</code>）</td><td><code>LiteLlm(model="ollama_chat/…")</code>——文件明令用 <code>ollama_chat/</code> 不用 <code>ollama/</code>，否則「無限工具迴圈、忽略前文」；vLLM 走 <code>openai/</code>＋<code>api_base</code>。<code>output_schema</code> 與 tools 同用「only supported by specific models, including Gemini 3.0」，其他「may not work reliably」</td></tr>
+<tr><td>對話歷史落地</td><td>預設 <code>InMemoryHistoryProvider</code>；<code>RedisHistoryProvider</code>（<code>agent-framework-redis</code>，pre-release，地端 Redis 可）；<strong>Postgres／SQLite 要自寫 <code>HistoryProvider</code></strong>——兩個方法 <code>get_messages</code>／<code>save_messages</code>，官方有 <code>DatabaseHistoryProvider</code> 示範；<code>agent-framework-postgres</code> 只有向量庫。整個 session 可 <code>to_dict()</code> 落檔</td><td><code>PostgresSaver</code>（production）、<code>SqliteSaver</code>（文件稱 demo 級）、Redis（需 RedisJSON＋RediSearch）；首次必呼叫 <code>.setup()</code>；自建連線需 <code>autocommit=True</code>；1.0.10 前 msgpack 反序列化有 CVE，自訂物件要進 allowlist</td><td><code>DatabaseSessionService</code>（<code>google-adk[db]</code>；SQLite／Postgres／MySQL）；<strong>必須 async 驅動</strong>：<code>sqlite+aiosqlite://</code>、<code>postgresql+asyncpg://</code>；1.22 與 2.0 各改過一次 schema，pickle→JSON「cannot be done in place」</td></tr>
+<tr><td>todo／plan 落地</td><td><code>TodoProvider(store=TodoFileStore("./todo-state"))</code> 本機檔案</td><td>在 graph state，跟 checkpointer 走</td><td>未見</td></tr>
+<tr><td>檔案／file memory</td><td><code>FileSystemAgentFileStore(Path)</code>，預設 <code>./agent-file-memory</code>；<code>file_access_store=</code> 為實驗性</td><td><code>FilesystemBackend(root_dir, virtual_mode=True)</code>——文件明言不設 <code>virtual_mode</code> 則「無任何安全性」；<code>StoreBackend</code>／<code>CompositeBackend</code> 可把 <code>/memories/</code> 路由到 Store</td><td><code>FileArtifactService</code>（1.19 起）；未配置 artifact service 時 <code>save_artifact</code> 直接 <code>ValueError</code></td></tr>
+<tr><td>跨 session 記憶</td><td>file memory＋自訂 <code>AgentFileStore</code>（blob 型可自寫）</td><td><code>PostgresStore</code>（可選 pgvector）</td><td><strong>官方無地端持久化實作</strong>；自實作 <code>BaseMemoryService</code>（<code>add_session_to_memory</code>、<code>search_memory</code>）或用社群 adk-redis</td></tr>
+<tr><td>HITL 與冪等</td><td>工具核准內建；shell 預設 <code>approval_mode="always_require"</code>，關閉需 <code>acknowledge_unsafe=True</code></td><td><code>interrupt()</code>；文件原文「the runtime restarts the entire node from the beginning」；interrupt 前的副作用須冪等</td><td><code>ResumabilityConfig</code>，工具至少執行一次；與 <code>DatabaseSessionService</code> 併用的相容性文件未明示；Web UI／CLI 不支援 resume</td></tr>
+<tr><td>追蹤到地端 collector</td><td><code>configure_otel_providers()</code> 讀 <code>OTEL_EXPORTER_OTLP_ENDPOINT</code>；自架 Aspire dashboard 或任一 OTLP gRPC；<code>ENABLE_SENSITIVE_DATA</code> 預設 false</td><td><code>LANGSMITH_OTEL_ENABLED=true</code>＋<code>LANGSMITH_OTEL_ONLY=true</code> 送任意 OTLP，不經 LangSmith；或 Langfuse／Phoenix 自架（OpenInference instrumentor）</td><td>標準 <code>OTEL_EXPORTER_OTLP_*</code> 環境變數；<code>--otel_to_cloud</code> 只給 Cloud Trace；Phoenix 自架有官方整合頁</td></tr>
+<tr><td>shell／沙箱</td><td><code>agent-framework-tools</code>（pre-release）：<code>LocalShellTool</code> 非沙箱、<code>DockerShellTool</code>；併用 harness 發 <code>ExperimentalWarning</code></td><td>官方沙箱八家全為雲端服務；離線只有無隔離的 <code>LocalShellBackend</code>；內建 Docker sandbox 需求仍 open，社群有 <code>deepagents-docker</code></td><td>未見</td></tr>
+<tr><td>離線做不到的</td><td>hosted tools（code interpreter、file search、hosted MCP）在 Ollama／Foundry Local client 不支援</td><td>LangSmith 自架為 Enterprise add-on；deepagents 雲端沙箱</td><td><code>adk eval</code> 的 LLM-judge 類、<code>safety_v1</code>、<code>multi_turn_*</code> 需 Vertex；Memory Bank；<code>--otel_to_cloud</code></td></tr>
+<tr><td>成熟度</td><td>core stable；harness 2026-07-22 釋出；background agents、file access、looping、shell 四項實驗性；Ollama／Foundry Local／Redis／tools 套件皆 pre-release</td><td>core 1.0 起承諾不破壞相容；<strong>deepagents 0.7.x 標 Beta</strong>，近月每週多發</td><td>2.0 大改（範本代理棄用、Event 重寫）；DB schema 三次變動；Ollama 無限迴圈 issue 自 2025 起反覆出現</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note warn">
+<p class="head">出發前的雷區——社群回報，L4</p>
+<ul>
+<li><strong>MAF</strong>：OpenAI-compatible 供應商在 tool call 後續請求丟失 <code>reasoning_content</code>，reasoning 模型的 tool loop 直接失敗（issue #8382，2026-09-15，修正 PR 中）——地端 Qwen3 這類模型要先驗這條。<code>RedisHistoryProvider</code> 的 key 忽略 <code>source_id</code>，同 session 兩個 provider 會互相覆寫（#7471）。</li>
+<li><strong>LangGraph</strong>：Postgres checkpointer 無內建 TTL，社群回報 <code>checkpoint_blobs</code> 一週 56 MB，要自己排程清理或只在 supervisor graph 掛 checkpointer。vLLM＋Qwen2-VL＋<code>ToolStrategy</code> 回 400 的 issue（#35758）仍 open。本地模型的 tool arguments 有回巢狀 dict 而非 JSON 字串的案例，deepagents 內建 filesystem 工具對本地模型不穩。</li>
+<li><strong>ADK</strong>：升 2.0 順序必須是「先補 <code>input_transcription</code>／<code>output_transcription</code> 欄位 → 改 async URL → 部署」，反了就「health check 200、每回合 500」。<code>adk migrate session</code> 在 1.22.1 反而要同步驅動 URL（#4176）。<code>FileArtifactService</code> 2.8.0 有 user_id 含 <code>/</code> 的路徑穿越問題（#7067），地端要自己清洗 user_id。</li>
+<li><strong>三家共用</strong>：vLLM 的 tool parser 要對模型；Llama 3 不支援平行 tool call；許多模型要自訂 chat template。這層不在任何框架裡，在你的推論伺服器。</li>
+</ul>
+</div>
+
+<div class="verdict">
+<p>比完之後，「MAF 文件沒寫狀態存哪」這句要收回：harness 概念頁沒寫，但 session、context-providers、planning-and-todos 三頁寫得很清楚——history 走 <code>HistoryProvider</code>、todo 走 <code>TodoFileStore</code>、file memory 走 <code>FileSystemAgentFileStore</code>，全部可以落本機檔案，唯一缺的是現成的 Postgres／SQLite history provider。</p>
+<p>三家地端的手工量與可信度，分開排：</p>
+<ul>
+<li><strong>殼的手工量</strong>：MAF 最少（一顆包完，補一個 history provider 約兩個方法）；ADK 次之（session 用 DB service，但記憶層整個自寫）；LangGraph 最多（checkpointer＋store＋summarization＋deepagents 四件自己組）。</li>
+<li><strong>地端可信度</strong>：LangGraph 最高（core 承諾相容、Postgres 路徑最多人走過）；ADK 次之（可行，但三次 DB schema 變動是實打實的雷）；MAF 最低——不是不能，是 harness 兩個月大、周邊套件全在 pre-release，路上沒人走過 vLLM 這條。</li>
+</ul>
+<p><strong>修正後的暫定推薦</strong>：第 07 節的 scope 是 CELL B，workflow 自己寫、殼很薄，所以框架差異被壓到最小；W4 換殼的候選維持 <em>MAF</em> 與 <em>LangGraph</em> 兩條，ADK 排第三——記憶層自寫加上 DB 遷移史，在地端的性價比輸給前兩者。真正決定勝負的是上面那條「三家共用」：地端模型經 OpenAI-compatible 端點的 tool calling 與 JSON schema 品質，W2 用薄殼先量，量出來再談 W4 換誰。Claude SDK 留給雲端可用的專案。</p>
 </div>
 </section>
 
@@ -784,7 +823,7 @@ td .sub { font-family: var(--mono); }
 <section>
 <p class="eyebrow">來源 · SOURCES</p>
 <h2>來源階梯</h2>
-<p class="field">L1 官方文件／PyPI／changelog · L2 官方部落格 · L3 第三方媒體／論文 · L4 個人文章。查閱日皆為 2026-09-21；官方文件頁不標日期者以查閱日計。</p>
+<p class="field">L1 官方文件／PyPI／changelog · L2 官方部落格 · L3 第三方媒體／論文 · L4 個人文章與 issue。查閱日 2026-09-21／22；官方文件頁不標日期者以查閱日計。</p>
 <h3>L1</h3>
 <ul class="sources">
 <li>Claude Agent SDK：agent loop、hooks、permissions、structured outputs、sessions、headless、llm-gateway — code.claude.com/docs/en/agent-sdk/…、/headless、/llm-gateway</li>
@@ -792,7 +831,9 @@ td .sub { font-family: var(--mono); }
 <li>OpenAI Agents SDK：release（版本政策）、running_agents、human_in_the_loop、sessions、tracing、models — openai.github.io/openai-agents-python/…；PyPI openai-agents 0.22.3（2026-09-17）</li>
 <li>LangGraph：graph-api、durable-execution、interrupts、changelog；deepagents overview — docs.langchain.com/oss/python/…；PyPI langgraph 1.2.11（2026-08-11）；LangSmith pricing — langchain.com/pricing</li>
 <li>Google ADK：2.0、graphs、workflow-agents、runtime/resume、context/compaction、sessions/memory、deploy — adk.dev/…；PyPI google-adk 2.9.2（2026-09-18）</li>
-<li>Microsoft Agent Framework harness concepts — learn.microsoft.com/en-us/agent-framework/concepts/harness；PyPI agent-framework 1.19.0（2026-09-18）</li>
+<li>Microsoft Agent Framework：concepts/harness、concepts/agents/conversations/session、…/context-providers、…/compaction、agents/planning-and-todos、agents/observability、agents/providers/ollama、…/foundry-local、agents/tools/web-search、integrations/…/shell-tools、agents/background-agents、workflows/checkpoints、Python API 參考 OpenAIChatClient — learn.microsoft.com/en-us/agent-framework/…；PyPI agent-framework 1.19.0（2026-09-18）、agent-framework-redis 1.0.0b260910、agent-framework-postgres 1.0.0a260910；repo python/samples/02-agents/harness/</li>
+<li>LangGraph 地端：langchain/models、langchain/structured-output、langgraph/persistence、langgraph/interrupts、deepagents/backends、deepagents/sandboxes、langsmith/trace-with-opentelemetry、langsmith/self-hosted — docs.langchain.com；PyPI langgraph 1.2.12（2026-09-21）、deepagents 0.7.16（2026-09-21，Beta）、langgraph-checkpoint-postgres 3.1.2、langgraph-checkpoint-sqlite 3.1.1、langgraph-checkpoint-redis 0.5.2；GHSA-g48c-2wqr-h844（2026-03-05）；vLLM docs/features/tool_calling.md</li>
+<li>ADK 地端：agents/models/litellm、…/ollama、…/vllm、agents/llm-agents（output_schema）、sessions/session、sessions/memory、runtime/resume、observability/traces、…/logging、…/metrics、artifacts、deploy、evaluate/criteria、integrations/phoenix — adk.dev</li>
 <li>Terminal-Bench about — tbench.ai/about（2025-05-19）</li>
 </ul>
 <h3>L2</h3>
@@ -819,12 +860,14 @@ td .sub { font-family: var(--mono); }
 <li>dev.to, OpenAI Agents SDK 0.13 to 0.17: three breaking changes（2026-07-03）</li>
 <li>dev.to, Upgrading Google ADK to 2.0 on a Cloud SQL Postgres backend（頁面日期與 2.0 時程矛盾，年份未驗證）；Building AI agents with ADK, 2026 edition v2（2026-07-26）</li>
 <li>AlphaSignal, A closer look at harness engineering（2026-04-21）</li>
+<li>GitHub issues — microsoft/agent-framework #8382（reasoning_content）、#7471（Redis provider key）、#8181（FileCheckpointStorage）、#3437、#1772；langchain-ai/langchain #35758；langchain-ai/langgraph #8702；langchain-ai/deepagents #3128、#958；google/adk-python #3637、#3681、#4176、#4366、#7004、#7067</li>
+<li>tadeodonegana.com, Scaling LangGraph Postgres checkpointer（2026-04-28）；wayneyuhanhsiao.wordpress.com, deepagents with local models（2026-04-06）；markaicode.com, air-gapped AI agents（2026-05-29，更新 2026-09-12）；redis-developer/adk-redis；Medium, pgvector memory service for ADK（2026-01-08）；neoteric.no, Agent Framework harness crash recovery（2026-08-08）</li>
 </ul>
 <h3>未驗證</h3>
 <ul class="sources">
-<li>ADK 2.0 圖形工作流的迴圈上限寫法；ADK 內建追蹤／guardrails／沙箱原語。</li>
-<li>OpenAI Agents SDK 是否有獨立的規劃／待辦原語。</li>
-<li>OpenAI Agents SDK 0.20–0.22 各版 GitHub Releases 的年份（摘要工具顯示異常）。</li>
+<li>ADK 2.0 圖形工作流的迴圈上限寫法；ADK 內建 guardrails／沙箱原語；<code>ResumabilityConfig</code> 與 <code>DatabaseSessionService</code> 併用的官方保證。</li>
+<li>OpenAI Agents SDK 是否有獨立的規劃／待辦原語；0.20–0.22 各版 GitHub Releases 的年份。</li>
+<li>MAF harness＋vLLM 的完整地端部署紀錄（官方與社群皆未找到）；deepagents 對 LangGraph 的 OpenLLMetry 支援。</li>
 </ul>
 </section>
 
