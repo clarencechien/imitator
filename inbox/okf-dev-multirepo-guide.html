@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="取扱說明書 — 讓新手 30 分鐘裝好一個 Claude Code 會被提醒的知識庫">
+<meta name="imitator-reference" content="1980 年代日本家電取扱說明書的「使い方」頁 — 圈號步驟、零件表、注意框、故障對照表">
+<meta name="imitator-paper" content="hsl(46 24% 95%)">
+<meta name="imitator-accent" content="hsl(232 48% 40%)">
+<title>不是叫它記得，是讓它被提醒 — OKF 多 repo 知識庫使用說明</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700&family=Noto+Sans+TC:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  取扱說明書 — 讀者是第一次接 hook 的人，要在 30 分鐘內把一個知識庫裝起來並看到它動。
+   REFERENCE: 1980 年代日本家電取扱說明書的「使い方」頁 — 圈號步驟、零件表、一個「注意」框、最後一頁的故障對照表。
+   PAPER:     微黃的道林紙，家電說明書用的那種 — hsl(46 24% 95%)。
+   VOICE:     單一特色色「群青」只給步驟號、小標與連結；粗黑體（Archivo + Noto Sans）標題；等寬體做檔名與確認行。
+   NOT:       白皮書。沒有結論段、沒有金句牆；每一節都是「做什麼、貼什麼、怎麼確認」。
+   RECENT:    unavailable */
+:root {
+  --paper: hsl(46 24% 95%);
+  --card: hsl(46 30% 98%);
+  --ink: hsl(46 12% 12%);
+  --ink-2: hsl(46 8% 30%);
+  --mist: hsl(46 6% 42%);
+  --rule: hsl(46 16% 84%);
+  --rule-hard: hsl(46 14% 70%);
+  --gunjo: hsl(232 48% 40%);          /* 群青：說明書的唯一特色色 */
+  --accent: var(--gunjo);
+  --accent-soft: hsl(232 40% 92%);
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --disp: "Archivo", "Noto Sans TC", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --fs-display: clamp(2.4rem, 1.3rem + 4.6vw, 4.6rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(46 12% 9%); --card: hsl(46 10% 12%);
+    --ink: hsl(46 16% 90%); --ink-2: hsl(46 10% 72%); --mist: hsl(46 6% 58%);
+    --rule: hsl(46 8% 22%); --rule-hard: hsl(46 8% 34%);
+    --gunjo: hsl(232 60% 74%); --accent-soft: hsl(232 30% 22%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(46 12% 9%); --card: hsl(46 10% 12%);
+  --ink: hsl(46 16% 90%); --ink-2: hsl(46 10% 72%); --mist: hsl(46 6% 58%);
+  --rule: hsl(46 8% 22%); --rule-hard: hsl(46 8% 34%);
+  --gunjo: hsl(232 60% 74%); --accent-soft: hsl(232 30% 22%);
+}
+
+/* 說明書的圈號步驟 */
+ol.steps { list-style: none; padding: 0; counter-reset: step; }
+ol.steps > li { counter-increment: step; position: relative; padding-left: 3.1rem; margin-block: var(--sp-5); }
+ol.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: .1em;
+  width: 2.1rem; height: 2.1rem; border: 2px solid var(--accent); border-radius: 50%;
+  color: var(--accent); font: 700 1rem/2.05rem var(--disp); text-align: center;
+}
+ol.steps > li > strong:first-child { display: block; font-family: var(--disp); font-size: var(--fs-3); margin-bottom: var(--sp-2); }
+.check { font-family: var(--mono); font-size: var(--fs-sm); color: var(--ink-2); border-left: 3px solid var(--accent); padding: .35em .8em; margin-top: var(--sp-3); background: var(--card); }
+.check::before { content: "確認 → "; color: var(--accent); font-weight: 500; }
+pre { font-family: var(--mono); white-space: pre; tab-size: 2; }   /* 底盤的 pre 不設字型，這裡補上 */
+.parts td:first-child { font-family: var(--mono); font-size: var(--fs-sm); }
+.who { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .04em; color: var(--mist); }
+.diagram text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
+.diagram .lab { font-family: var(--mono); font-size: 11px; fill: var(--accent); }
+.diagram .box { fill: var(--card); stroke: var(--rule-hard); stroke-width: 1.2; }
+.diagram .hub { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+.diagram .arr { stroke: var(--ink-2); stroke-width: 1.4; fill: none; marker-end: url(#ah); }
+.diagram .dim { fill: var(--mist); }
+.bad, .good-ex { border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-4); background: var(--card); }
+.bad { border-left: 4px solid var(--critical); }
+.good-ex { border-left: 4px solid var(--good); }
+.bad .head, .good-ex .head { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); margin-bottom: var(--sp-2); }
+.bad pre, .good-ex pre { margin: 0; }
+</style>
+
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<header>
+  <p class="eyebrow">OKF 知識庫 · 情境一 · 使用說明</p>
+  <h1 class="display">不是叫它記得，<br>是讓它<em>被提醒</em></h1>
+  <p class="lede">一份 30 分鐘就能跑起來的跨專案知識庫：Claude Code 在你的任何一個 repo 工作時，會在正要踩坑的那一刻收到以前的教訓。這一頁是說明書；零件和程式都在 <code>okf-dev-multirepo.md</code>。</p>
+  <p class="byline">適用 Claude Code · 需要 python3 / git / rg · 2026-09</p>
+</header>
+
+<section>
+  <p class="eyebrow">§0 · 使用前</p>
+  <h2>它是什麼、不是什麼</h2>
+  <p>你會建一個叫 <code>~/knowledge</code> 的 git repo，裡面放幾種 markdown 檔。每個檔案開頭有一小段像表格的資料（作者、標籤、觸發字），後面是正文。這種寫法叫 <strong>OKF</strong>（Open Knowledge Format），Google 在 2026 年 6 月公開的約定，它就只是「markdown 加檔頭」，沒有軟體要裝。</p>
+  <p>接著你會讓 Claude Code 在四個時刻自動跑幾支小程式，這些程式叫 <strong>hook</strong>：開工時、你打字時、它要動手前、它收工前。程式做的事只有一件：拿當下的文字去比對你寫過的教訓，比對到就塞給它看。</p>
+  <p class="mark">重點在「塞給它看」。它不用自己想起來要查，是環境把教訓推到它眼前。</p>
+  <div class="cols">
+    <div class="card">
+      <p class="who">它是</p>
+      <p>一個你自己維護、放在 git 裡的教訓庫，用最普通的 markdown 寫，任何編輯器都能開。</p>
+    </div>
+    <div class="card">
+      <p class="who">它不是</p>
+      <p>不是向量資料庫，不是 wiki，也不是 Claude Code 內建的記憶。它不需要伺服器；壞了 <code>git log</code> 就能查回來。</p>
+    </div>
+  </div>
+  <div class="note warn">
+    <p class="head">注意</p>
+    <p>這套只有在你願意<strong>每週花 15 分鐘審草稿</strong>時才會活。不審，三週後它就是一堆沒人看的檔案。安裝之前先決定這 15 分鐘排在哪一天。</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">§1 · 原理</p>
+  <h2>為什麼寫下來了還是會重踩</h2>
+  <p>「明明記錄過，它卻沒去看」其實是四個不同的故障，每一個都對應到手冊裡的一個零件。先看懂這張表，後面每一步在做什麼就都說得通。</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>故障</th><th>發生在哪</th><th>用哪個零件修</th></tr></thead>
+      <tbody>
+        <tr><td class="nowrap">沒去查</td><td>它覺得自己會，直接做了。這段靠提醒它「先查」幾乎沒用。</td><td>hook 主動推送（§3）</td></tr>
+        <tr><td class="nowrap">查了對不上</td><td>教訓是照「原因」寫的，但踩坑當下看到的是「症狀」，字不一樣。</td><td>triggers 只寫字面（§5）</td></tr>
+        <tr><td class="nowrap">看到但沒理</td><td>推給它了，但那是一段筆記不是一條規則，它讀完照樣做自己的。</td><td>升格成 rules/ 或直接擋（§7）</td></tr>
+        <tr><td class="nowrap">寫得不能用</td><td>教訓是事後敘述，沒有「當 X 時不要 Y 改 Z」這一句。</td><td>lesson 模板 + 每週 compact（§5、§6）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">§2 · 零件表</p>
+  <h2>資料夾裡每一個東西是做什麼的</h2>
+  <p>把 markdown 的 Part B 依下面的位置放好。「誰改」那一欄是重點：標「你」的檔案只有你能改，標「Claude」的檔案它會自己寫，標「腳本」的檔案永遠不要手改。</p>
+<pre>~/knowledge/
+├── CLAUDE.md            工作規範
+├── index.md             自動產生
+├── log.md               變更史
+├── rules/               硬規則
+├── lessons/
+│   ├── _inbox/          草稿
+│   └── *.md             審過的教訓
+├── projects/&lt;repo&gt;/     專案現況 + ADR
+├── references/          外部材料鏡像
+├── templates/           模板
+├── hooks/               四支 hook
+├── scripts/             腳本
+└── .okf/                暫存記號（gitignore）</pre>
+  <div class="table-scroll parts">
+    <table>
+      <thead><tr><th>檔案</th><th>作用</th><th>誰改</th><th>對應 md 章節</th></tr></thead>
+      <tbody>
+        <tr><td>CLAUDE.md</td><td>Claude Code 進這個 repo 時的工作規範：什麼不准做、lesson 要長什麼樣</td><td class="nowrap">你</td><td>B1</td></tr>
+        <tr><td>rules/*.md</td><td>硬規則。每次開工都會被整段塞給它，所以要少，十條以內</td><td class="nowrap">你</td><td>B6 rule.md</td></tr>
+        <tr><td>lessons/*.md</td><td>審過的教訓。有 triggers，命中才會被推送</td><td class="nowrap">你 + Claude</td><td>B6 lesson.md</td></tr>
+        <tr><td>lessons/_inbox/</td><td>它收工時丟的草稿。你每週審完才會移出去</td><td class="nowrap">Claude</td><td>B7</td></tr>
+        <tr><td>projects/&lt;repo&gt;/</td><td>每個專案一頁現況 + 決策記錄（ADR）</td><td class="nowrap">你</td><td>B6 overview / adr</td></tr>
+        <tr><td>hooks/*.sh</td><td>四支小程式，Claude Code 在四個時刻呼叫</td><td class="nowrap">腳本</td><td>B4</td></tr>
+        <tr><td>scripts/*.py</td><td>比對 triggers、檢查格式、產 index</td><td class="nowrap">腳本</td><td>B5</td></tr>
+        <tr><td>index.md</td><td>目錄，<code>build_index.py</code> 自動產生。手改會被覆蓋</td><td class="nowrap">腳本</td><td>B5</td></tr>
+        <tr><td>log.md</td><td>給人看的變更史，每週 compact 加一行</td><td class="nowrap">你</td><td>A5</td></tr>
+        <tr><td>.okf/</td><td>hook 的暫存記號，加進 .gitignore</td><td class="nowrap">腳本</td><td>B4 stop.sh</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">§3 · 運作</p>
+  <h2>四個時刻、一個迴圈</h2>
+  <p>讀取有三層，寫入只有一條路。虛線以上是每次 session 自動發生的，虛線以下是每週你動手的。</p>
+  <figure class="wide reveal">
+    <p class="title">知識怎麼進去、怎麼出來</p>
+    <svg class="diagram" viewBox="0 0 640 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三層讀取與一個寫入迴圈的流程圖">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+      <!-- 讀取層 -->
+      <text class="lab" x="20" y="24">讀取 · 每次 session 自動</text>
+      <rect class="box" x="20" y="36" width="170" height="54" rx="6"/>
+      <text x="32" y="58" font-weight="700">rules/</text>
+      <text class="dim" x="32" y="76">硬規則，整段塞</text>
+      <rect class="box" x="235" y="36" width="170" height="54" rx="6"/>
+      <text x="247" y="58" font-weight="700">lessons/</text>
+      <text class="dim" x="247" y="76">命中 triggers 才給</text>
+      <rect class="box" x="450" y="36" width="170" height="54" rx="6"/>
+      <text x="462" y="58" font-weight="700">index / grep</text>
+      <text class="dim" x="462" y="76">它自己找（可關）</text>
+      <text class="lab" x="20" y="112">SessionStart</text>
+      <text class="lab" x="235" y="112">UserPromptSubmit · PreToolUse</text>
+      <text class="lab" x="450" y="112">rg</text>
+      <path class="arr" d="M105 118 L105 150 L300 150 L300 168"/>
+      <path class="arr" d="M320 118 L320 168"/>
+      <path class="arr" d="M535 118 L535 150 L340 150 L340 168"/>
+      <!-- hub -->
+      <rect class="hub" x="170" y="170" width="300" height="52" rx="8"/>
+      <text x="320" y="192" text-anchor="middle" font-weight="700">Claude Code 在你的專案裡工作</text>
+      <text class="dim" x="320" y="210" text-anchor="middle">任何 repo，CLAUDE.md 只多一段</text>
+      <!-- 寫入 -->
+      <path class="arr" d="M320 224 L320 262"/>
+      <text class="lab" x="330" y="248">Stop hook：收工前被問一次</text>
+      <rect class="box" x="235" y="264" width="170" height="50" rx="6"/>
+      <text x="247" y="285" font-weight="700">lessons/_inbox/</text>
+      <text class="dim" x="247" y="302">草稿，未審</text>
+      <line x1="20" y1="336" x2="620" y2="336" stroke="var(--rule-hard)" stroke-dasharray="5 5"/>
+      <text class="lab" x="20" y="356">寫入 · 每週 15 分鐘，你動手</text>
+      <path class="arr" d="M320 316 L320 372"/>
+      <text class="lab" x="330" y="366">compact：強模型改寫，你審</text>
+      <rect class="box" x="235" y="374" width="170" height="44" rx="6"/>
+      <text x="247" y="400" font-weight="700">lessons/  ← verified</text>
+      <path class="arr" d="M235 396 L105 396 L105 96"/>
+      <text class="lab" x="112" y="392" text-anchor="start">重踩兩次 → 升格</text>
+    </svg>
+    <figcaption>rules 是無條件給；lessons 是有條件給；inbox 到 lessons 之間一定經過人。</figcaption>
+  </figure>
+  <p>四支 hook 各做一件事，記住它們的名字，後面排錯會用到：</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>時刻</th><th>hook 檔</th><th>做什麼</th></tr></thead>
+      <tbody>
+        <tr><td class="nowrap">開工</td><td><code>session-start.sh</code></td><td>把 rules/ 每條的那句祈使句印出來，Claude Code 會把它當成 context 的一部分</td></tr>
+        <tr><td class="nowrap">你打字</td><td><code>prompt-submit.sh</code></td><td>拿你這句話去比對 lessons 的 triggers，命中的塞進去</td></tr>
+        <tr><td class="nowrap">它要動手</td><td><code>pre-tool.sh</code></td><td>拿它要跑的指令或要改的檔名去比對；命中 <code>enforce: block</code> 的規則就直接擋下</td></tr>
+        <tr><td class="nowrap">收工</td><td><code>stop.sh</code></td><td>每個 session 擋一次，問它「有沒有踩坑」，有就寫草稿到 _inbox/，沒有回 NO-LESSON</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">§4 · 安裝</p>
+  <h2>30 分鐘，六步</h2>
+  <p>每一步都有「確認」行，沒過就不要往下。步驟裡提到的檔案內容全部在 markdown 的 Part B，這裡只講順序和怎麼驗。</p>
+  <ol class="steps">
+    <li>
+      <strong>建 repo，放零件</strong>
+      <p>開終端機：<code>git init ~/knowledge</code>。照 §2 的位置建資料夾，把 Part B 的 B1、B4、B5、B6 各節內容存成對應檔案，然後 <code>chmod +x ~/knowledge/hooks/*.sh</code>。在 <code>.gitignore</code> 加一行 <code>.okf/</code>。</p>
+      <p class="check">python3 ~/knowledge/scripts/validate.py 印出 0 個 ERR（WARN 可以有）</p>
+    </li>
+    <li>
+      <strong>把專案接上</strong>
+      <p>挑一個你常用的專案。在它的 <code>CLAUDE.md</code> 末尾貼上 B2 那一段；把 B3 的 <code>settings.json</code> 合併進該專案的 <code>.claude/settings.json</code>。裡面的 <code>OKF_HOME</code> 改成你的絕對路徑，不要留 <code>~</code>。</p>
+      <p class="check">cat .claude/settings.json 能看到四個 hook 事件，路徑都是絕對路徑</p>
+    </li>
+    <li>
+      <strong>手寫三條教訓</strong>
+      <p>用 <code>templates/lesson.md</code> 寫三條你最近真的踩過的坑，存到 <code>lessons/</code>。<strong>只寫三條</strong>。寫法見 §5，關鍵是 triggers 要有你當時真的看到的那串字。</p>
+      <p class="check">validate 對這三份沒有 ERR；build_index.py 跑完 lessons/index.md 列出三條</p>
+    </li>
+    <li>
+      <strong>看它有沒有被提醒</strong>
+      <p>在那個專案開 Claude Code。第一句話之前，你應該看到 hook 印出的「[OKF] 硬規則」（如果 rules/ 是空的，這行不會出現，正常）。接著故意打一句話，裡面含有某條 lesson 的 trigger 原文。</p>
+      <p class="check">回覆前出現「[OKF] 命中 1 條相關規則/教訓」和那條的第一段</p>
+    </li>
+    <li>
+      <strong>看它有沒有被問</strong>
+      <p>隨便請它做一件小事，然後讓它結束。Stop hook 會擋一次，它會回你「有踩坑就寫草稿、沒有就 NO-LESSON」。</p>
+      <p class="check">它回了 NO-LESSON，或 lessons/_inbox/ 多了一個檔</p>
+    </li>
+    <li>
+      <strong>commit，排定每週那 15 分鐘</strong>
+      <p><code>git add -A && git commit -m "okf: day 1"</code>。然後在行事曆上放一個每週的提醒，內容就寫「審 _inbox」。</p>
+      <p class="check">git log 有第一筆；行事曆有下週的提醒</p>
+    </li>
+  </ol>
+  <div class="note">
+    <p class="head">如果 hook 沒有反應</p>
+    <p>先別改程式。九成是三件事之一：檔案沒有執行權限、<code>settings.json</code> 裡的路徑寫了 <code>~</code>、或你的 Claude Code 版本還不支援 <code>additionalContext</code>。對照表在 §8。</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">§5 · 寫法</p>
+  <h2>一條能被用到的教訓長什麼樣</h2>
+  <p>同一件事，兩種寫法。左邊是人習慣的寫法，右邊是 hook 抓得到、Claude Code 照得了的寫法。差別不在文筆，在兩個地方：<strong>triggers 是不是它當下真的會看到的字</strong>，<strong>第一段是不是一句可以照做的話</strong>。</p>
+  <div class="cols">
+    <div class="bad">
+      <p class="head">寫成這樣不會被用到</p>
+<pre>---
+type: Lesson
+title: Modal 效能問題
+tags: [modal]
+triggers:
+  - "效能"
+---
+# 經過
+上次 deploy 到 Modal 之後
+第一次呼叫很慢，等很久
+才回，後來發現是冷啟動，
+之後就先預熱了。</pre>
+    </div>
+    <div class="good-ex">
+      <p class="head">寫成這樣才會</p>
+<pre>---
+type: Lesson
+title: Modal L4 冷啟動導致首次呼叫逾時
+description: deploy 前先預熱
+tags: [modal, gpu, deploy, jevlike]
+triggers:
+  - "modal deploy"
+  - "container did not start"
+  - "infra/modal_*.py"
+status: draft
+sources:
+  - id: handoff
+    resource: /references/jevlike/handoff-v3.md
+---
+# 當你要 deploy Modal L4 任務時
+不要直接呼叫，先跑一次 warmup。[^handoff]
+
+# 經過
+（不超過十行）</pre>
+    </div>
+  </div>
+  <p>三條規矩，validate 會幫你抓：</p>
+  <ul>
+    <li><strong>triggers 至少兩條，只准四種東西</strong>：指令片段、錯誤訊息原文、檔案路徑（可以用 <code>*</code>）、library 名。「效能」「設定錯誤」這類詞永遠不會命中，因為踩坑當下螢幕上不會出現這兩個字。</li>
+    <li><strong>正文第一個標題以「# 當」開頭</strong>，第一段是「不要 …，改 …」。這是 hook 真正推送出去的那幾行；經過寫在後面，推送時不帶。</li>
+    <li><strong>sources 至少一條</strong>，指向 repo 裡的檔案或一個網址。沒有來源的教訓一年後你自己也不會信。</li>
+  </ul>
+  <p class="pull">踩坑當下它看到的是症狀，不是原因。triggers 要寫症狀。</p>
+</section>
+
+<section>
+  <p class="eyebrow">§6 · 保養</p>
+  <h2>每週 15 分鐘做什麼</h2>
+  <ol class="steps">
+    <li><strong>看 inbox</strong><p><code>ls ~/knowledge/lessons/_inbox/</code>。每一份三選一：跟既有的是同一件事就合併、新坑就留、廢話就刪。</p></li>
+    <li><strong>讓它 compact</strong><p>在 <code>~/knowledge</code> 目錄開 Claude Code，貼 B7 那段指令。它會補 triggers、去重、把敘述改寫成祈使句，然後把 validate 的結果貼給你。它不會 commit，也不准加 verified。</p></li>
+    <li><strong>你審</strong><p>只看兩件事：triggers 是不是字面？第一段能不能照做？不行就退回。通過的加一行 <code>verified: { by: human:你的名字, at: 時間 }</code>，從 inbox 移到 lessons/。</p></li>
+    <li><strong>收尾</strong><p><code>validate</code>、<code>build_index</code>、在 log.md 今天的日期下加一行、commit。</p></li>
+  </ol>
+  <div class="note good">
+    <p class="head">一個好的訊號</p>
+    <p>inbox 裡大部分草稿是 NO-LESSON 或被你刪掉。這代表 Stop hook 在問、它有在答、而且你沒有把垃圾放進去。教訓少而準，比多而雜有用得多。</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">§7 · 升格</p>
+  <h2>什麼時候一條教訓該變成規則</h2>
+  <p>唯一要記的判準是「重踩幾次」。</p>
+  <div class="tiles stagger">
+    <div class="stat"><div class="value">1</div><div class="label">重踩一次 → 改 triggers，通常是漏了症狀原文</div></div>
+    <div class="stat"><div class="value">2</div><div class="label">重踩兩次 → 搬進 rules/，或加 enforce: block 讓 hook 直接擋</div></div>
+    <div class="stat"><div class="value">10</div><div class="label">rules/ 超過十條 → 有東西該變成 test 或 lint，不該是規則</div></div>
+  </div>
+  <p>每個月看一次四個數字：本月踩的坑裡有幾個是 lessons 已經有的（重踩率）；被推送的教訓裡有幾條真的改變了它的行為（翻 transcript 抽幾份就好）；inbox 最舊的草稿幾天了；validate 有幾條 stale 和 draft。任何一個在變差，先修你的紀律，再修格式。</p>
+</section>
+
+<section>
+  <p class="eyebrow">§8 · 故障對照</p>
+  <h2>沒動作？先查這裡</h2>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>症狀</th><th>最可能的原因</th><th>怎麼修</th></tr></thead>
+      <tbody>
+        <tr><td>開工時沒有「[OKF] 硬規則」</td><td>rules/ 是空的（正常）；或 hook 沒執行權限</td><td><code>chmod +x hooks/*.sh</code>；在終端機直接跑 <code>hooks/session-start.sh</code> 看有沒有輸出</td></tr>
+        <tr><td>打了 trigger 原文也沒有命中</td><td>triggers 跟你打的字大小寫或空白不同；或 lesson 是 deprecated</td><td>在終端機跑 <code>python3 scripts/okf_match.py --text "你那句話"</code>，直接看比對結果</td></tr>
+        <tr><td>PreToolUse 有印東西但它沒理</td><td>你的 Claude Code 版本不支援 additionalContext，輸出只給你看</td><td>把注入交給 UserPromptSubmit（已經有），PreToolUse 只留 block；行為退化但仍成立</td></tr>
+        <tr><td>Stop hook 每次都擋、擋不完</td><td>.okf/ 目錄寫不進去，記號沒存到</td><td>確認 OKF_HOME 是絕對路徑、目錄可寫；看 <code>.okf/</code> 裡有沒有 lesson-checked-* 檔</td></tr>
+        <tr><td>settings.json 裡 $OKF_HOME 沒展開</td><td>該版本的 command 欄位不做變數展開</td><td>四個 command 全部改成絕對路徑</td></tr>
+        <tr><td>validate 說「body 第一段不是 # 當」</td><td>檔案開頭有空行或用了別的標題</td><td>正文第一行就是 <code># 當 …時</code>，前面不留任何東西</td></tr>
+        <tr><td>index.md 被改回去了</td><td>你手改了它，build_index 每次會重產</td><td>不要改 index.md；要加描述改該檔案的 description 欄位</td></tr>
+        <tr><td>它不停地讀 lessons 全文，很慢</td><td>OKF_INJECT_MODE=full 給了路徑，它每條都去開</td><td>改 <code>OKF_INJECT_MODE=rule</code>、<code>OKF_TOPK=3</code>；弱模型一律這樣設</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">§9 · 換機型</p>
+  <h2>不是 Claude Code、不是大模型的時候</h2>
+  <p>骨架不變，只調三個旋鈕。<strong>弱模型</strong>（OpenCode 接 Qwen、Gemma 之類）：<code>OKF_TOPK=3</code>、<code>OKF_INJECT_MODE=rule</code>、並且當作第三層 grep 不存在，它逛不動。每週 compact 仍然用強模型做，那是離線的事，跟線上用什麼模型無關。<strong>沒有 pre-tool 事件的 harness</strong>：注入全部交給打字那一刻，pre-tool 只留 block；再沒有就寫一支 wrapper 在組 prompt 時呼叫 <code>okf_match.py</code>。<strong>Codex</strong>：CLAUDE.md 換成 AGENTS.md，其餘一樣。</p>
+</section>
+
+<section>
+  <p class="eyebrow">§10 · 接下來</p>
+  <h2>拿 markdown 往下走</h2>
+  <p>這一頁到此為止。打開 <code>okf-dev-multirepo.md</code>，你需要的順序是：</p>
+  <ol>
+    <li><strong>B1 → B6</strong>：先把檔案放齊（§4 第一步）。B5 的 <code>okf_fm.py</code> 是其他腳本共用的，要先放。</li>
+    <li><strong>B2、B3</strong>：接上第一個專案（§4 第二步）。</li>
+    <li><strong>B6 lesson.md</strong>：寫三條（§5）。</li>
+    <li><strong>B7</strong>：下週日才用得到，先不用看。</li>
+    <li><strong>A5 到 A8</strong>：跑一個月之後再回來讀，那時候你才會有問題要問它。</li>
+  </ol>
+  <p>情境二（Line Manager 的每日 snapshot 與 RCA）用的是同一套骨架，多了「數字只能來自受檢計算」這一條紀律，在 <code>okf-line-manager-rca.md</code>。等這一套在你自己的專案上跑順了再看它。</p>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
