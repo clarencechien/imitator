@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="計分板 — 加分工具每加一個功能就在帳單上扣一分，讀者是用 AI 寫工具的非本科作者">
+<meta name="imitator-reference" content="1980 年代台灣三聯式繳費單的粉紅複寫聯：欄位框、藍色複寫字、逾期章">
+<meta name="imitator-paper" content="hsl(352 42% 95%)">
+<meta name="imitator-accent" content="hsl(228 58% 38%)">
+<title>一次加分的代價</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  計分板 — 加分工具每加一個功能就在帳單上扣一分，讀者是用 AI 寫工具的非本科作者。
+   REFERENCE: 1980 年代台灣三聯式繳費單的粉紅複寫聯 — 欄位框、藍色複寫字、一枚逾期章。
+   PAPER:     複寫聯單的粉紅第二聯 — hsl(352 42% 95%)。
+   VOICE:     複寫藍當唯一強調色；壓縮的 Plex Condensed 標題像表單欄名；等寬字做欄位標籤。
+   NOT:       儀表板。數字是證據，帳單欄位只出現一次。
+   RECENT:    unavailable（沒有 imitator token）。 */
+:root {
+  --paper: hsl(352 42% 95%);
+  --card: hsl(352 50% 98%);
+  --ink: hsl(230 30% 14%);
+  --ink-2: hsl(230 18% 30%);
+  --mist: hsl(350 10% 40%);
+  --rule: hsl(352 25% 86%);
+  --rule-hard: hsl(352 22% 72%);
+  --accent: hsl(228 58% 38%);      /* 複寫紙藍 */
+  --accent-soft: hsl(228 50% 90%);
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
+  --serif: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --radius: 3px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(350 14% 9%); --card: hsl(350 12% 12%);
+    --ink: hsl(350 20% 92%); --ink-2: hsl(350 10% 75%); --mist: hsl(350 8% 62%);
+    --rule: hsl(350 10% 20%); --rule-hard: hsl(350 10% 30%);
+    --accent: hsl(226 70% 76%); --accent-soft: hsl(228 30% 22%);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(350 14% 9%); --card: hsl(350 12% 12%);
+  --ink: hsl(350 20% 92%); --ink-2: hsl(350 10% 75%); --mist: hsl(350 8% 62%);
+  --rule: hsl(350 10% 20%); --rule-hard: hsl(350 10% 30%);
+  --accent: hsl(226 70% 76%); --accent-soft: hsl(228 30% 22%);
+  color-scheme: dark;
+}
+body { background: var(--paper); color: var(--ink); }
+.display { letter-spacing: -.01em; }
+
+/* 繳費單欄位框 */
+.slip { border: 1.5px solid var(--accent); background: var(--card); margin-block: var(--sp-6); }
+.slip-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-2);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--accent);
+  border-bottom: 1.5px solid var(--accent); padding: var(--sp-2) var(--sp-4); }
+.slip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+.slip-grid > div { min-width: 0; padding: var(--sp-3) var(--sp-4); border-right: 1px dashed var(--rule-hard); border-bottom: 1px dashed var(--rule-hard);
+  display: flex; flex-direction: column; gap: var(--sp-1); }
+.slip-grid .k { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+.slip-grid .v { font-family: var(--mono); color: var(--accent); overflow-wrap: anywhere; }
+.slip-grid .amount { grid-column: 1 / -1; border-right: 0; border-bottom: 0; }
+.slip-grid .amount .hero { color: var(--accent); margin: 0; }
+.stamp { border: 2px solid var(--accent); color: var(--accent); padding: .1em .6em; transform: rotate(-4deg); display: inline-block; font-weight: 500; }
+/* C4 圖 */
+.dg svg text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
+.dg .t { font-weight: 700; }
+.dg .s { fill: var(--mist); font-size: 11px; }
+.dg .box { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.2; }
+.dg .ext { fill: none; stroke: var(--mist); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.dg .hotbox { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.dg .ln { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
+.dg .hot { stroke: var(--accent); stroke-width: 2.6; fill: none; }
+.dg .lab { fill: var(--ink-2); font-size: 11px; }
+.dg .labhot { fill: var(--accent); font-size: 11px; font-weight: 700; }
+.dg .m-ink { color: var(--ink-2); }
+.dg .m-hot { color: var(--accent); }
+ul.sources { font-size: var(--fs-sm); }
+ol.tldr { padding-left: 1.4em; }
+ol.tldr li { margin-bottom: var(--sp-3); }
+table.score td.num { font-family: var(--mono); font-weight: 500; color: var(--accent); }
+</style>
+<body>
+<div class="progress" aria-hidden="true"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<p class="eyebrow">事故調查 · VIBE CODING 的雲端帳單 · 2026-10</p>
+<h1 class="display">每加一分，<br>就<em>扣一分</em></h1>
+<p class="lede">一位國小老師用 AI 做了一個「加分」工具，每月 5.4 萬人在用，雲端帳單一個月 NT$2,854。他的產品機制是加分，但每加一個功能、技術選型就錯一項，帳單上就扣一分。這份報告用同一張計分板，把加分和扣分並排看。</p>
+<p class="byline">案例：方方老師「FunClass 翻課星球」· 依據：公開網頁、前端程式、GitHub 公開 repo、作者貼文、帳單截圖 · 未登入、未碰雲端資料</p>
+
+<section>
+<p class="eyebrow">TL;DR</p>
+<h2>三句話</h2>
+<ol class="tldr">
+<li><strong>錢不是 Cloudflare 收的。</strong>workers.dev 只負責送網頁；NT$2,854 幾乎全是 Firebase Realtime Database 的下載流量。</li>
+<li><strong>扣分的那一步只有一個：</strong>把「整班壓成一塊」的備份格式，直接拿來當即時廣播的格式。老師加一分，全班 30 台裝置各自重新下載整塊。按位元組計費的資料庫，這樣做大約貴 400 倍。</li>
+<li><strong>最短的修法不用搬家：</strong>多開一個只放即時數字的小節點給學生端監聽，整塊改成開艙讀一次。估計下載量從每天 1.2 GB 降到 0.1–0.3 GB，回到免費額度內。</li>
+</ol>
+</section>
+
+<div class="slip wide reveal" aria-label="帳單摘要">
+  <div class="slip-head"><span>繳費通知 · 第二聯（存根）</span><span class="stamp">超出免費額度</span></div>
+  <div class="slip-grid">
+    <div><span class="k">專案</span><span class="v">classhubgame</span></div>
+    <div><span class="k">方案</span><span class="v">Firebase Blaze（隨用隨付）</span></div>
+    <div><span class="k">帳單期間</span><span class="v nowrap">2026-09-01 – 09-30</span></div>
+    <div class="amount"><span class="k">專案費用</span><span class="hero">NT$2,854</span></div>
+  </div>
+</div>
+
+<div class="tiles wide stagger">
+  <div class="stat"><p class="label">月活躍使用者（含匿名）</p><div class="value">5.4 萬</div><p class="delta">9 月一路線性上升</p></div>
+  <div class="stat"><p class="label">單日活躍最高</p><div class="value">4,052</div><p class="delta">週末掉到 1,200 左右</p></div>
+  <div class="stat"><p class="label">RTDB 單日下載</p><div class="value">1.2 GB</div><p class="delta">免費額度約 360 MB／日</p></div>
+  <div class="stat"><p class="label">Firestore 讀取／日</p><div class="value">34</div><p class="delta">不到免費額度 0.1%</p></div>
+</div>
+
+<section>
+<p class="eyebrow">01 · 計分板</p>
+<h2>加分欄和扣分欄，同一張表</h2>
+<p>左欄是作者做對的事，右欄是同一個時期做錯的技術決定。每一列都是一個功能被加進來的時刻。這張表就是整份報告的主軸，後面的章節只是把每一列攤開。</p>
+
+<div class="table-scroll">
+<table class="score">
+<thead><tr><th>時間</th><th>＋1 · 做對的</th><th>－1 · 選錯的</th><th class="num">淨分</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2025-10</td><td>先做出老師自己要用的加分工具，資料正規化存進 Firestore。</td><td>—</td><td class="num">+1</td></tr>
+<tr><td class="nowrap">2026-05</td><td>資料改為本機優先，雲端只當備份；整班壓成一份文件、每天限存 3 次。按次計費的 Firestore 這樣做很省。</td><td>—</td><td class="num">+1</td></tr>
+<tr><td class="nowrap">2026-05</td><td>加學生遊戲艙：掃 QR 進艙，加分變代幣，寵物、轉蛋、Boss 戰。使用者從老師變成全班。</td><td>同步層改用按位元組計費的 Realtime Database，卻沿用整班壓縮塊，每台學生裝置常駐監聽整塊。</td><td class="num">−1</td></tr>
+<tr><td class="nowrap">2026-05</td><td>所有學生操作走 Cloud Functions 判定，防作弊。</td><td>每個操作都多一次函式呼叫和一次資料庫往返；學生每台用匿名登入，月活躍衝到 5.4 萬。</td><td class="num">0</td></tr>
+<tr><td class="nowrap">2026 夏</td><td>發現一天燒 300 多元，做了底層改造；分數加緩衝、寫入加冷卻、內容沒變不重發。</td><td>修的是「發布頻率」，沒有修「每次發布的大小」。</td><td class="num">0</td></tr>
+<tr><td class="nowrap">2026-09</td><td>自己找到「拆開存」的方向，開始試行。</td><td>只對一個帳號開放；正式環境仍是整塊廣播。</td><td class="num">0</td></tr>
+<tr><td class="nowrap">全程</td><td>工具完全免費、不鎖功能、伺服器費自付。</td><td>贊助收入連一週伺服器費都不夠；寫給 AI 的技能規定「新手沒問成本就不教定價」，所以沒人在選型時問過單位成本。</td><td class="num">−1</td></tr>
+</tbody>
+</table>
+</div>
+
+<p class="pull">功能一直在加分，架構一直在扣分。產品的加分機制設計得很好；少的是一個會在每次選型時扣分的機制。</p>
+</section>
+
+<section>
+<p class="eyebrow">02 · 現況架構</p>
+<h2>三張圖看懂錢從哪裡流出去</h2>
+<p>C4 模型由外往內三層：L0 是誰在用、依賴哪些外部服務；L1 是系統由哪幾個部分組成；L2 是一次加分在程式裡經過哪些元件。藍色粗線是花錢的那條路。</p>
+<figure class="wide reveal">
+<p class="title">L0 · 系統情境</p>
+<p class="subtitle">老師管理班級，學生用自己的裝置進遊戲艙；FunClass 只依賴三個外部服務。</p>
+<div class="chart dg">
+<svg viewBox="0 0 640 220" role="img" aria-label="L0 系統情境：老師與學生使用 FunClass，FunClass 依賴 Google 帳號、QR 圖片服務與 unpkg CDN">
+<defs>
+<marker id="a0" class="m-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+</defs>
+<rect class="box" x="20" y="30" width="140" height="56" rx="3"/>
+<text class="t" x="90" y="54" text-anchor="middle">老師</text>
+<text class="s" x="90" y="73" text-anchor="middle">Google 帳號登入</text>
+<rect class="box" x="20" y="134" width="140" height="56" rx="3"/>
+<text class="t" x="90" y="158" text-anchor="middle">學生（每班約 30 人）</text>
+<text class="s" x="90" y="177" text-anchor="middle">掃 QR、匿名登入</text>
+<rect class="hotbox" x="250" y="60" width="160" height="100" rx="3"/>
+<text class="t" x="330" y="102" text-anchor="middle">FunClass 翻課星球</text>
+<text class="s" x="330" y="122" text-anchor="middle">班級工作台＋學生遊戲艙</text>
+<rect class="ext" x="490" y="20" width="130" height="44" rx="3"/>
+<text x="555" y="40" text-anchor="middle">Google 帳號</text>
+<text class="s" x="555" y="56" text-anchor="middle">老師登入</text>
+<rect class="ext" x="490" y="88" width="130" height="44" rx="3"/>
+<text x="555" y="108" text-anchor="middle">QR 圖片服務</text>
+<text class="s" x="555" y="124" text-anchor="middle">api.qrserver.com</text>
+<rect class="ext" x="490" y="156" width="130" height="44" rx="3"/>
+<text x="555" y="176" text-anchor="middle">unpkg CDN</text>
+<text class="s" x="555" y="192" text-anchor="middle">React 18</text>
+<line class="ln" x1="160" y1="58" x2="248" y2="90" marker-end="url(#a0)"/>
+<text class="lab" x="200" y="52" text-anchor="middle">建班、加分</text>
+<line class="ln" x1="160" y1="162" x2="248" y2="130" marker-end="url(#a0)"/>
+<text class="lab" x="208" y="180" text-anchor="middle">養寵物、看排行</text>
+<line class="ln" x1="410" y1="80" x2="488" y2="44" marker-end="url(#a0)"/>
+<line class="ln" x1="410" y1="110" x2="488" y2="110" marker-end="url(#a0)"/>
+<line class="ln" x1="410" y1="140" x2="488" y2="176" marker-end="url(#a0)"/>
+</svg>
+</div>
+<figcaption>虛線框是外部服務。網址雖然掛在 workers.dev，但在這一層看不到 Cloudflare：它只是把網頁送出去的地方，不是後端。</figcaption>
+</figure>
+
+<figure class="wide reveal">
+<p class="title">L1 · 容器</p>
+<p class="subtitle">後端幾乎都在 Firebase。老師把整班壓縮塊寫進 Realtime Database，每台學生裝置各自監聽同一塊。</p>
+<div class="chart dg">
+<svg viewBox="0 0 640 400" role="img" aria-label="L1 容器：老師工作台寫整班壓縮塊到 Realtime Database，約 30 台學生遊戲艙各自監聽整塊；學生操作經過 Cloud Functions；Cloudflare Worker 只送靜態檔">
+<defs>
+<marker id="a1" class="m-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+<marker id="h1" class="m-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+</defs>
+<rect class="box" x="20" y="40" width="170" height="80" rx="3"/>
+<text class="t" x="105" y="66" text-anchor="middle">老師工作台（瀏覽器）</text>
+<text class="s" x="105" y="86" text-anchor="middle">React 18 · IndexedDB</text>
+<text class="s" x="105" y="104" text-anchor="middle">資料先存本機</text>
+<rect class="box" x="20" y="230" width="170" height="80" rx="3"/>
+<rect class="box" x="26" y="224" width="170" height="80" rx="3" opacity=".5"/>
+<rect class="box" x="20" y="230" width="170" height="80" rx="3"/>
+<text class="t" x="105" y="256" text-anchor="middle">學生遊戲艙（瀏覽器）</text>
+<text class="s" x="105" y="276" text-anchor="middle">每台各自連線</text>
+<text class="s" x="105" y="294" text-anchor="middle">一班約 30 台</text>
+<rect class="box" x="20" y="344" width="170" height="44" rx="3"/>
+<text x="105" y="364" text-anchor="middle">Cloudflare Worker</text>
+<text class="s" x="105" y="380" text-anchor="middle">只送網頁與圖檔</text>
+<line class="ln" x1="105" y1="344" x2="105" y2="312" marker-end="url(#a1)"/>
+<rect class="ext" x="430" y="10" width="200" height="380" rx="3"/>
+<text class="s" x="440" y="28">Firebase · classhubgame</text>
+<rect class="box" x="450" y="40" width="160" height="48" rx="3"/>
+<text x="530" y="60" text-anchor="middle">Auth</text>
+<text class="s" x="530" y="77" text-anchor="middle">Google＋匿名</text>
+<rect class="hotbox" x="450" y="110" width="160" height="80" rx="3"/>
+<text class="t" x="530" y="136" text-anchor="middle">Realtime Database</text>
+<text class="s" x="530" y="156" text-anchor="middle">classPublic/{班級}</text>
+<text class="s" x="530" y="174" text-anchor="middle">＝整班壓縮塊</text>
+<rect class="box" x="450" y="230" width="160" height="56" rx="3"/>
+<text x="530" y="254" text-anchor="middle">Cloud Functions</text>
+<text class="s" x="530" y="272" text-anchor="middle">18 個 callable</text>
+<rect class="box" x="450" y="310" width="160" height="56" rx="3"/>
+<text x="530" y="334" text-anchor="middle">Firestore</text>
+<text class="s" x="530" y="352" text-anchor="middle">舊版與每日備份</text>
+<line class="hot" x1="190" y1="80" x2="448" y2="130" marker-end="url(#h1)"/>
+<text class="labhot" x="320" y="88" text-anchor="middle">分數一變就重寫整塊</text>
+<line class="hot" x1="448" y1="172" x2="192" y2="258" marker-end="url(#h1)"/>
+<text class="labhot" x="300" y="196" text-anchor="middle">onValue：整塊 × 30 台</text>
+<line class="ln" x1="190" y1="292" x2="448" y2="262" marker-end="url(#a1)"/>
+<text class="lab" x="320" y="300" text-anchor="middle">抽蛋、戰鬥、簽到</text>
+<line class="ln" x1="530" y1="230" x2="530" y2="192" marker-end="url(#a1)"/>
+<text class="lab" x="538" y="215">讀寫學生狀態</text>
+</svg>
+</div>
+<figcaption>Firestore 一天只被讀 34 次，可以忽略；Auth 給老師和學生登入用。帳單幾乎都落在中間那個藍框的下載流量。</figcaption>
+</figure>
+
+<figure class="wide reveal">
+<p class="title">L2 · 元件：一次「7 號 +1 分」走過的路</p>
+<p class="subtitle">分數有緩衝、內容沒變不會重新發布，這些都做對了；但只要有變，送出去的就是整塊。</p>
+<div class="chart dg">
+<svg viewBox="0 0 640 170" role="img" aria-label="L2 元件：加分經過分數緩衝、壓縮與指紋、發布器，寫進 classPublic 整塊，再由每台學生艙解壓整塊後畫出排行與寵物">
+<defs>
+<marker id="a2" class="m-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+<marker id="h2" class="m-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+</defs>
+<rect class="box" x="10" y="40" width="90" height="56" rx="3"/>
+<text class="t" x="55" y="64" text-anchor="middle">加分按鈕</text>
+<text class="s" x="55" y="82" text-anchor="middle">老師端</text>
+<rect class="box" x="125" y="40" width="100" height="56" rx="3"/>
+<text x="175" y="64" text-anchor="middle">分數緩衝</text>
+<text class="s" x="175" y="82" text-anchor="middle">合併連續點擊</text>
+<rect class="box" x="250" y="40" width="110" height="56" rx="3"/>
+<text x="305" y="64" text-anchor="middle">壓縮＋指紋</text>
+<text class="s" x="305" y="82" text-anchor="middle">整班 → gzip</text>
+<rect class="hotbox" x="385" y="40" width="110" height="56" rx="3"/>
+<text class="t" x="440" y="64" text-anchor="middle">classPublic</text>
+<text class="s" x="440" y="82" text-anchor="middle">整塊（示意 40 KB）</text>
+<rect class="box" x="530" y="34" width="100" height="56" rx="3" opacity=".5"/>
+<rect class="box" x="524" y="40" width="100" height="56" rx="3"/>
+<text x="574" y="64" text-anchor="middle">學生艙 × 30</text>
+<text class="s" x="574" y="82" text-anchor="middle">解壓整塊再畫</text>
+<line class="ln" x1="100" y1="68" x2="123" y2="68" marker-end="url(#a2)"/>
+<line class="ln" x1="225" y1="68" x2="248" y2="68" marker-end="url(#a2)"/>
+<line class="hot" x1="360" y1="68" x2="383" y2="68" marker-end="url(#h2)"/>
+<line class="hot" x1="495" y1="68" x2="522" y2="68" marker-end="url(#h2)"/>
+<text class="lab" x="305" y="122" text-anchor="middle">指紋相同才跳過；寫入冷卻 5 秒</text>
+<text class="labhot" x="508" y="122" text-anchor="middle">每台各下載一次整塊</text>
+<text class="lab" x="320" y="152" text-anchor="middle">一次加分 ≈ 40 KB × 30 台 ≈ 1.2 MB（示意）</text>
+</svg>
+</div>
+<figcaption>元件名稱對應線上程式：teacher-score-buffer、class-document-codec、firebase-cloud 的發布函式。在手機上，圖可以左右捲動。</figcaption>
+</figure>
+
+</section>
+
+<section>
+<p class="eyebrow">03 · 扣分的那一步</p>
+<h2>同一招，換了計費單位就從省錢變燒錢</h2>
+<p>兩個資料庫的計費方式不同，決定了同一個技巧的命運：</p>
+<ul>
+<li><strong>Firestore 按「次」計費。</strong>讀一份文件算一次，不管多大。整班壓成一份文件，讀一次拿到全部，越壓越省。第二代這樣做完全正確。</li>
+<li><strong>Realtime Database 按「位元組」計費。</strong>下載多少 GB 付多少，約每 GB 1 美元。它只能比對 JSON 節點的差異，一段 base64 字串改一個字元，整段都算新的。</li>
+</ul>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>一次「7 號 +1 分」</th><th class="num">送出的資料</th><th class="num">× 監聽裝置</th><th class="num">總下載</th></tr></thead>
+<tbody>
+<tr><td>整班壓縮塊（現況）<span class="sub">classPublic/{classId}</span></td><td class="num nowrap">約 40 KB</td><td class="num">30</td><td class="num nowrap">約 1.2 MB</td></tr>
+<tr><td>拆成每人一個節點<span class="sub">students/07/score</span></td><td class="num nowrap">約 100 B</td><td class="num">30</td><td class="num nowrap">約 3 KB</td></tr>
+</tbody>
+</table>
+</div>
+<p>整塊大小是假設值，線上實際大小沒辦法在未登入時量到。但帳單上的 1.2 GB／日反推，約等於每天重新下載整塊 3 萬次；以每天 3,000 多位學生算，每人約 10 次，大致就是「開艙一次，加上班上每次有人加分」。</p>
+
+<div class="note warn">
+<p class="head">AI 為什麼沒提醒他</p>
+<p>作者寫給 Codex 的技能 <code>build-firebase-cloudflare-app</code> 有一條：使用者是新手、沒提到成本時，選不用付費的路線，而且<strong>不要教定價</strong>。本意是不嚇跑新手，結果是 agent 選資料庫、設計同步格式時，沒有人回頭問「每多一位學生要多付多少」。agent 預設優先讓功能動起來；單位成本不在它會檢查的項目裡。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">04 · 把分加回來</p>
+<h2>先走最短的路：A1 冷熱分離</h2>
+<p>不動資料模型，整塊壓縮資料照舊，只把「需要即時跳動的數字」抽出來另外走一條小路：</p>
+<ol>
+<li><strong>新增小節點 <code>classLive/{班級}</code></strong>：只放每人的能力值和代幣，一般 JSON，不壓縮。老師加分時順手更新這一格。RTDB 只會把變動的那一格推給監聽者。</li>
+<li><strong>學生艙改監聽 <code>classLive</code></strong>；整塊改成開艙時 <code>get()</code> 讀一次，不再常駐監聽。</li>
+<li><strong>整塊加版本號</strong>：學生端把整塊留在本機，開艙時先比對版本，有變才下載。他已經有 <code>classPublicMeta</code> 這個節點了。</li>
+<li><strong>整塊的發布改成節流</strong>：名單或設定改了、每隔幾分鐘、或老師按「下課」時才發布。</li>
+</ol>
+<figure class="wide reveal">
+<p class="title">現況 vs A1：差別只在藍色那條路</p>
+<p class="subtitle">A1 多了一個小節點，學生端從「常駐監聽整塊」改成「監聽小節點、開艙才讀整塊」。</p>
+<div class="chart dg">
+<svg viewBox="0 -8 640 328" role="img" aria-label="現況：加分後整塊發布，30 台學生艙各下載整塊。A1：加分只更新 classLive 的一格並推送差異，整塊只在節流後發布，學生開艙時讀一次">
+<defs>
+<marker id="a3" class="m-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+<marker id="h3" class="m-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+</defs>
+<text class="t" x="10" y="20">現況</text>
+<rect class="box" x="10" y="34" width="90" height="48" rx="3"/>
+<text x="55" y="63" text-anchor="middle">加分</text>
+<rect class="box" x="125" y="34" width="100" height="48" rx="3"/>
+<text x="175" y="63" text-anchor="middle">分數緩衝</text>
+<rect class="box" x="250" y="34" width="110" height="48" rx="3"/>
+<text x="305" y="63" text-anchor="middle">壓縮整班</text>
+<rect class="box" x="385" y="34" width="110" height="48" rx="3"/>
+<text x="440" y="63" text-anchor="middle">classPublic 整塊</text>
+<rect class="box" x="524" y="34" width="106" height="48" rx="3"/>
+<text x="577" y="63" text-anchor="middle">學生艙 × 30</text>
+<line class="ln" x1="100" y1="58" x2="123" y2="58" marker-end="url(#a3)"/>
+<line class="ln" x1="225" y1="58" x2="248" y2="58" marker-end="url(#a3)"/>
+<line class="ln" x1="360" y1="58" x2="383" y2="58" marker-end="url(#a3)"/>
+<line class="ln" x1="495" y1="58" x2="522" y2="58" marker-end="url(#a3)"/>
+<text class="lab" x="510" y="104" text-anchor="middle">每次加分：整塊 × 30</text>
+
+<line class="grid" x1="10" y1="124" x2="630" y2="124"/>
+
+<text class="t" x="10" y="148">A1</text>
+<rect class="box" x="10" y="190" width="90" height="48" rx="3"/>
+<text x="55" y="219" text-anchor="middle">加分</text>
+<rect class="box" x="125" y="190" width="100" height="48" rx="3"/>
+<text x="175" y="219" text-anchor="middle">分數緩衝</text>
+<rect class="hotbox" x="300" y="158" width="150" height="48" rx="3"/>
+<text class="t" x="375" y="179" text-anchor="middle">classLive（新增）</text>
+<text class="s" x="375" y="196" text-anchor="middle">{ s07: 111 } 一般 JSON</text>
+<rect class="box" x="250" y="250" width="110" height="48" rx="3"/>
+<text x="305" y="270" text-anchor="middle">壓縮整班</text>
+<text class="s" x="305" y="287" text-anchor="middle">節流後才發布</text>
+<rect class="box" x="385" y="250" width="110" height="48" rx="3"/>
+<text x="440" y="270" text-anchor="middle">classPublic 整塊</text>
+<text class="s" x="440" y="287" text-anchor="middle">附版本號</text>
+<rect class="box" x="524" y="190" width="106" height="48" rx="3"/>
+<text x="577" y="219" text-anchor="middle">學生艙 × 30</text>
+<line class="ln" x1="100" y1="214" x2="123" y2="214" marker-end="url(#a3)"/>
+<line class="hot" x1="225" y1="206" x2="298" y2="186" marker-end="url(#h3)"/>
+<line class="ln" x1="225" y1="226" x2="250" y2="262" marker-end="url(#a3)"/>
+<line class="ln" x1="360" y1="274" x2="383" y2="274" marker-end="url(#a3)"/>
+<line class="hot" x1="450" y1="186" x2="522" y2="206" marker-end="url(#h3)"/>
+<text class="labhot" x="488" y="150" text-anchor="middle">只推差異 ~100 B × 30</text>
+<line class="ln" x1="495" y1="268" x2="540" y2="240" marker-end="url(#a3)"/>
+<text class="lab" x="560" y="268">開艙時 get()</text>
+<text class="lab" x="560" y="284">版本變了才讀</text>
+</svg>
+</div>
+<figcaption>老師端多一次寫入（一格數字），學生端換一個監聽路徑，整塊發布加一個計時器。資料格式、備份、Cloud Functions 都不用動。</figcaption>
+</figure>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th></th><th>現況</th><th>A1（估算）</th></tr></thead>
+<tbody>
+<tr><td>每次加分推送的資料</td><td>整塊 × 30 台</td><td>一格（約 100 B）× 30 台</td></tr>
+<tr><td>整塊被下載的時機</td><td>開艙＋每次分數變動</td><td>只有開艙，而且版本變了才下載</td></tr>
+<tr><td>RTDB 下載量／日</td><td class="nowrap">1.2 GB（帳單實測）</td><td class="nowrap">約 0.1–0.3 GB</td></tr>
+<tr><td>對照免費額度（約 360 MB／日）</td><td>超出約 3 倍</td><td>落在額度內</td></tr>
+<tr><td>改動範圍</td><td>—</td><td>多 1 個寫入、換 1 個監聽、加 1 個節流計時器；不搬資料</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>其他四條路</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>做法</th><th>怎麼做</th><th>放棄什麼</th><th class="num">估計月費</th></tr></thead>
+<tbody>
+<tr><td>A · 全面拆資料<span class="sub">留在 Firebase</span></td><td>每位學生一個節點、排行榜一個節點，學生只監聽自己的和排行榜。接近他正在試行的 split-storage，但要改整個資料模型和既有資料。</td><td>幾乎不用放棄什麼</td><td class="num nowrap">NT$0–300</td></tr>
+<tr><td>B · Firestore 小文件<span class="sub">按次計費</span></td><td>每人一份文件、排行榜一份，<code>onSnapshot</code> 只掛這兩個。每次變動算 30 次讀取，跟大小無關；估每天約 60 萬次，超過免費 5 萬次。</td><td>要重寫同步層</td><td class="num nowrap">約 NT$200–350</td></tr>
+<tr><td>C · Cloudflare Durable Objects<span class="sub">一班一個房間</span></td><td>每班一個 DO，WebSocket 加 hibernation 推差異；狀態存 DO 的 SQLite，備份進 D1，寵物圖當靜態檔。流出流量不收費。免費方案就能跑，但超過額度會直接報錯，上課中斷比多付錢糟；建議付每月 US$5 換掉硬上限。</td><td>重寫後端；登入改房間代碼加簽章 token</td><td class="num nowrap">NT$0 或 US$5 起</td></tr>
+<tr><td>D · 不做即時</td><td>學生艙開啟時讀一次自己的資料，不常駐監聽；排行榜由老師在教室投影。</td><td>學生裝置上的即時跳分</td><td class="num nowrap">NT$0</td></tr>
+</tbody>
+</table>
+</div>
+<p>只能做一件事就做 A1。規模再大一個數量級，或想讓費用完全不隨人數成長，再考慮 C。</p>
+</section>
+
+<section>
+<p class="eyebrow">05 · 鎚子與釘子</p>
+<h2>換到 Cloudflare 不是重點，別只有一把鎚子才是</h2>
+<p>這份報告前面算了 Cloudflare 的帳，很容易讀成「Firebase 不好，搬去 Cloudflare 就對了」。這個結論是錯的，而且錯的方式跟作者當初一樣。</p>
+<p>作者的技能裡寫死了一條預設路線：點子進來，Firebase 當後端，Cloudflare 送前端。所以不管加什麼功能，答案都是 Firebase。遊戲艙需要即時同步，Firebase 有 Realtime Database，就用它；格式是現成的壓縮塊，就沿用。<span class="mark">每一步都是「手上有什麼就用什麼」，沒有一步是「這個問題的計費單位是什麼」。</span>如果他當初的鎚子是 Cloudflare，一樣會有另一種釘子：Durable Object 忘了 hibernation，掛一整天的房間照樣能燒掉上百美元。</p>
+<p>所以綁定本身不是問題。Firebase 的 SDK 綁得很深，Durable Objects 的程式模型也綁得很深，兩邊換過去都是重寫。該省思的是另一件事：</p>
+<ul>
+<li><strong>選型的單位是「功能」，不是「專案」。</strong>備份和即時廣播是兩個功能，計費單位不同，可以用同一家，但不該用同一個格式。</li>
+<li><strong>每個新功能上線前，各算一次「使用者多十倍，這一項多幾倍」。</strong>線性成長的項目要先想誰付錢，再決定要不要做。</li>
+<li><strong>把會隨人數成長的部分留在可以換的位置。</strong>作者的本機優先設計其實很好：資料在瀏覽器裡，雲端只是同步層。同步層如果是薄的，換資料庫就只是換一個模組；他現在換不動，是因為壓縮塊格式、Cloud Functions、匿名登入三件事綁在一起。</li>
+</ul>
+<p>回到計分板：每加一個功能，就有一次選型。選型沒有扣分機制，最後扣的就是帳單。</p>
+</section>
+
+<section>
+<p class="eyebrow">06 · 變現</p>
+<h2>先把成本降到零，再談收入</h2>
+<p>作者說過，訂閱和贊助的收入連一週伺服器費都付不起。一個月 NT$2,854 靠小額贊助本來就很難打平；先把成本壓到每月 US$5 以下，用愛發電才撐得住，之後的收入才是收入。</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>方式</th><th>怎麼做</th><th>門檻與風險</th></tr></thead>
+<tbody>
+<tr><td>1 · 老師端 freemium</td><td>本機版永久免費；真正花雲端錢的學生遊戲艙改成付費或限班級數。例如每年 NT$990，300 位老師付費約 NT$30 萬／年。</td><td>付費功能得是老師離不開的那一塊；要有個人可申請的金流。</td></tr>
+<tr><td>2 · 學校與縣市授權</td><td>縣市用「推動中小學數位學習精進方案」經費統一採購教學軟體；屏東縣 114 年度清單就有 PaGamO、加分吧、LoiLoNote。也可申請上架教育部「校園數位內容與教學軟體」選購平台。</td><td>要成立公司或工作室，並符合未成年學生的個資與資安要求。門檻最高，金額也最大。</td></tr>
+<tr><td>3 · 研習與課程</td><td>作者已有「FunFun.AI」品牌和公開的 Codex 技能，適合開「老師用 AI 做工具」的研習。這張帳單本身就是教材。</td><td>收入跟著作者的時間走，但最快能開始。</td></tr>
+<tr><td>4 · 出版社或平台合作</td><td>授權給教科書出版社或既有班級經營平台。</td><td>Classcraft 在 2023 年被 HMH 收購，2024 年 6 月原版停止服務。合約要寫清楚原產品是否繼續維運。</td></tr>
+<tr><td>5 · 家長端加值</td><td>參考 ClassDojo：老師學生免費，家長訂閱 ClassDojo Plus（每月 US$4.99），學校另買授權。</td><td>台灣家長付費加上轉蛋機制容易引發爭議，排最後。</td></tr>
+</tbody>
+</table>
+</div>
+<div class="note">
+<p class="head">不建議的方向</p>
+<p>不要讓學生花錢買轉蛋、寵物或道具，也不要放廣告。使用者是小學生，學校和家長的反彈會大於收入；一旦被教育局列為不宜使用，免費用戶也會跟著流失。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">07 · 給用 AI 寫工具的人</p>
+<h2>把扣分機制裝進流程</h2>
+<p>下次讓 AI 加「即時同步」「多人連線」之前，要求它先回答三個問題，答不出來就不准動手：</p>
+<ol>
+<li><strong>計費單位是什麼？</strong>按次、按位元組、按人頭，還是按秒。同一個技巧換了單位，結果可能相反。</li>
+<li><strong>使用者做一個動作，幾台裝置各下載多少？</strong>扇出數乘每次資料量，就是帳單成長的速度。</li>
+<li><strong>使用者變成 100 倍，帳單變幾倍？</strong>線性成長就要先想誰付錢。</li>
+</ol>
+<p>自己寫 agent 技能的人，可以把這三題寫成一道關卡：加入任何即時或多人功能前，agent 必須寫出計費單位、估 10 倍和 100 倍時的月費，再讓使用者決定。這就是作者的加分機制少掉的那一半：功能加一分，選型答不出來就扣一分。</p>
+</section>
+
+<section>
+<p class="eyebrow">附 · 證據與限制</p>
+<h2>哪些是看到的，哪些是推的</h2>
+<ul>
+<li><strong>直接看到的：</strong>帳單與用量截圖；GitHub 上三代程式碼；線上前端裡的 RTDB 路徑、整班壓縮塊的寫法、內容指紋判斷、寫入冷卻、18 個 Cloud Functions 名稱，以及 <code>rtdb-cost-p2</code>、<code>split-storage</code> 的版本標記。</li>
+<li><strong>推論：</strong>整塊大小（文中用 40 KB 示意）、費用在 RTDB、Cloud Functions、Auth 之間怎麼分（截圖下半部被截掉）、匿名登入是否已按人頭計費。</li>
+<li><strong>沒做的：</strong>沒有登入、沒有讀寫任何雲端資料，也沒有測量真實流量。</li>
+</ul>
+<p class="byline">資料來源</p>
+<ul class="sources">
+<li><a href="https://github.com/chunsheng612/CLASSROOMHUB">GitHub · CLASSROOMHUB（簡約版原始碼）</a></li>
+<li><a href="https://github.com/chunsheng612/class-powerhouse-2.0-Google-firebase">GitHub · class-powerhouse-2.0（早期 Firestore 版）</a></li>
+<li><a href="https://github.com/chunsheng612/build-firebase-cloudflare-app">GitHub · build-firebase-cloudflare-app（Codex 技能）</a></li>
+<li><a href="https://flipedu.parenting.com.tw/article/011036">翻轉教育 · FunClass 教師系統使用說明</a></li>
+<li><a href="https://firebase.google.com/docs/database/usage/billing">Firebase · Realtime Database 計費說明</a></li>
+<li><a href="https://developers.cloudflare.com/durable-objects/platform/pricing/">Cloudflare · Durable Objects 定價</a></li>
+<li><a href="https://developers.cloudflare.com/workers/platform/pricing/">Cloudflare · Workers 定價</a></li>
+<li><a href="https://www.clps.ptc.edu.tw/uploads/1765158793932GWGiuzHp.pdf">屏東縣 · 114 年數位學習精進方案軟體研習計畫</a></li>
+<li><a href="https://www.sdc.org.tw/">校園數位內容與教學軟體選購平台</a></li>
+<li><a href="https://www.hmhco.com/about-us/press-releases/hmh-launches-immersive-and-dynamic-learning-experience-with-hmh-classcraft">HMH · HMH Classcraft 發布（原版 2024-06-30 停止）</a></li>
+<li><a href="https://vator.tv/2024-08-23-how-does-classdojo-make-money/">Vator · How does ClassDojo make money</a></li>
+</ul>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
