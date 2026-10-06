@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="分類機說明書 — Jev 是一台只會分的機器，它的價值在把可列舉和不可列舉的邊界做成一個可量的棄答率">
+<meta name="imitator-reference" content="1960 年代 IBM 082 卡片分類機的操作手冊 — 口袋編號、一次只讀一欄、永遠留一個 reject 口袋">
+<meta name="imitator-paper" content="hsl(14 40% 94%)">
+<meta name="imitator-accent" content="hsl(178 58% 23%)">
+<title>它很會分，但它不會想 — Jev 在 agent workflow 裡的位置</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  分類機說明書 — Jev 是一台只會分的機器：一次讀一欄、把卡片丟進編號的口袋、永遠留一個 reject 口袋。
+              這篇要說清楚它是什麼、不是什麼、哪些題能進機器、哪些不能，然後把它放回 workflow / agent / 人的 cascade 裡。
+   REFERENCE: 1960 年代 IBM 082 card sorter 的操作手冊 — 粗線圖解、口袋編號 0–9 加 R、一次只讀一欄；
+              條列式的「本機不做的事」那一頁。
+   PAPER:     用來標示例外批次的淡紅色打孔卡（5081 卡的 salmon 版）— hsl(14 40% 94%)。
+              選它是因為這篇從頭到尾在講「例外要掉到哪裡去」。
+   VOICE:     機殼的深青綠只給口袋編號、標題裡的那個字、連結；Plex Condensed 做標題的拉丁半邊，中文落到 Noto。
+              等寬體做 PASS 編號和表格裡的機讀欄。
+   NOT:       儀表板、不是模型評測報告；沒有一張圖是裝飾，數字全來自 gb10-typed-decisions 與外部評測。
+   RECENT:    unavailable（無 token）。已知本系列 VOL.3 用 paper 50° / accent 216°，手動避開：14° 與 50° 差 36°，178° 與 216° 差 38°。 */
+
+:root {
+  /* PAPER: 淡紅色打孔卡 — 暖紅底，不是奶油 */
+  --paper: hsl(14 40% 94%);
+  --card: hsl(14 45% 97%);
+  --ink: hsl(14 18% 12%);
+  --ink-2: hsl(14 12% 30%);
+  --mist: hsl(14 9% 44%);
+  --rule: hsl(14 24% 84%);
+  --rule-hard: hsl(14 20% 70%);
+  /* ACCENT: 分類機機殼的深青綠 — 口袋編號的顏色 */
+  --accent: hsl(178 58% 23%);
+  --accent-soft: hsl(178 30% 87%);
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(14 18% 8%);
+    --card: hsl(14 16% 11%);
+    --ink: hsl(14 22% 90%);
+    --ink-2: hsl(14 14% 74%);
+    --mist: hsl(14 10% 60%);
+    --rule: hsl(14 12% 20%);
+    --rule-hard: hsl(14 12% 32%);
+    --accent: hsl(176 45% 62%);
+    --accent-soft: hsl(178 30% 17%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(14 18% 8%);
+  --card: hsl(14 16% 11%);
+  --ink: hsl(14 22% 90%);
+  --ink-2: hsl(14 14% 74%);
+  --mist: hsl(14 10% 60%);
+  --rule: hsl(14 12% 20%);
+  --rule-hard: hsl(14 12% 32%);
+  --accent: hsl(176 45% 62%);
+  --accent-soft: hsl(178 30% 17%);
+}
+
+/* 已知坑：底盤的 pre 沒設 font-family */
+pre { font-family: var(--mono); }
+
+/* 本篇的裝置：是／不是 兩欄、口袋清單、cascade 圖 */
+.pockets { list-style: none; padding: 0; margin: 0; }
+.pockets > li { padding: var(--sp-2) 0; border-top: 1px solid var(--rule); display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: var(--sp-2); min-width: 0; }
+.pockets > li:last-child { border-bottom: 1px solid var(--rule); }
+.pockets > li + li { margin-top: 0; }
+.pockets .no { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--accent); padding-top: .35em; min-width: 0; }
+.pockets .no.reject { color: var(--mist); }
+.pockets p { margin: 0; min-width: 0; }
+.cols > .card h3 { margin-top: 0; }
+.card .head { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; color: var(--accent); margin: 0 0 var(--sp-2); }
+.card .head.neg { color: var(--mist); }
+.cascade .chart svg { max-width: 44rem; }
+.cascade text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+.cascade text.mono { font-family: var(--mono); fill: var(--accent); letter-spacing: .06em; }
+.cascade text.dim { fill: var(--mist); }
+.cascade .box { fill: var(--card); stroke: var(--rule-hard); stroke-width: 1; }
+.cascade .box.code { stroke: var(--mist); stroke-dasharray: 3 3; }
+.cascade .out { fill: var(--accent-soft); stroke: none; }
+.cascade .arrow { stroke: var(--rule-hard); stroke-width: 1.5; fill: none; }
+.cascade .arrow.loop { stroke: var(--accent); }
+.cascade .head { fill: var(--accent); }
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+  <p class="eyebrow">架構筆記 · AGENT VS WORKFLOW · VOL.4 · 2026-10</p>
+  <h1 class="display">它很會分，<br>但它不會<em>想</em></h1>
+  <p class="lede">Jev 式 typed decision 在 agent workflow 裡該放哪一段？答案不是「每個節點都用」，也不是「拿它來找 unknown unknown」。它是一台一次讀一欄、把卡片丟進編號口袋的分類機——這篇把它是什麼、不是什麼、哪些題能進機器、哪些不能說清楚，然後把它放回 workflow、agent loop 和人的 cascade 裡。</p>
+  <p class="byline">接回 VOL.2 的四象限與 gb10-typed-decisions 的十題實驗 · 外部評測取自 2026-09 至 10 月的 Jev 社群資料</p>
+
+  <p class="eyebrow">PASS 0 · 讀法</p>
+  <h2>一句話的主軸</h2>
+  <p><span class="mark">Jev 是一個只會比對的節點，不是會思考的流程；它的價值不在它多懂，而在它把「哪些事已經可列舉」和「哪些事還不能」這條線畫清楚，讓 workflow、agent loop 和人各就各位。</span></p>
+  <p>這篇的每一段都在服務這句話。<span class="chip">接回 VOL.2</span> 四象限是用來決定「這個情境該用 workflow、agent loop 還是埋點」的；<span class="chip">接回 gb10</span> 十題實驗是用來決定「決定好之後，某幾個節點能不能用 Jev 實作」的。兩者是上下層，不是替代關係——這是整篇最常被弄反的地方。</p>
+
+  <p class="eyebrow">PASS 1 · 它是什麼，不是什麼</p>
+  <h2>一台很會讀題的比對機</h2>
+
+  <div class="cols">
+    <div class="card reveal">
+      <p class="head">IS · 它是</p>
+      <p>一台比對機。你給它輸入文字和一組選項，它只輸出一個字母，你讀那個字母的機率分佈。分佈只有三個來源：輸入文字、題目與選項怎麼寫、模型的預訓練先驗。它量的是「輸入和選項描述之間有多像」，用的尺是預訓練裡的知識。</p>
+      <p>零標註能跑，是因為語言和教科書知識底模早就有了。你的 200–500 筆標記從頭到尾沒碰到模型，只用來把「它說 95%」對應成「實際 82%」那張校準表。</p>
+      <p>規則住在 prompt 裡，不在權重裡。改規則是編輯文字，不是重新訓練。</p>
+    </div>
+    <div class="card reveal">
+      <p class="head neg">IS NOT · 它不是</p>
+      <p>不是 oracle：它只知道你放進 prompt 的事加上先驗，不知道你不知道的事。不懂你們廠：教科書 SPC 它有，你們對某台機「抖」的定義它沒有。</p>
+      <p>不會新增選項：分支永遠是人畫的，Jev 只在既有分支裡選。機率不是證據量：輸入沒訊號時它照樣吐一個由先驗和選項位置決定的分佈，而且照樣 99%。</p>
+      <p>不會拒答，除非你給它一個「無法判斷」的選項。不能解釋。擋不住注入。</p>
+    </div>
+  </div>
+
+  <p class="pull">猜和讀從外面看長得一樣，差別只有校準之後才看得見。</p>
+
+  <p>86% 到 95% 那一跳是最好的例子。SPC 處置這題在你把廠內規則寫進選項文字之前，模型用的是世界通用的 SPC 常識，和你們的規則對不上，所以自信地錯；寫進去之後，它做的事從「判斷」退化成「對照」——拿輸入去比對 prompt 裡的規則。傳統 ML 要從標記裡把規則學出來，LLM 是規則給它、它負責套。這就是它「懂」的全部：讀出三種已知——輸入裡寫明的、選項文字裡定義的、它預訓練裡本來就有的。</p>
+
+  <h3>外面的 Jev 和你的 jevlike 差在哪</h3>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>面向</th><th>TypeSafe Jev<span class="sub">2026-09-15 發表</span></th><th>jevlike<span class="sub">gb10 實驗</span></th></tr></thead>
+      <tbody>
+        <tr><td>讀 logit 這個技巧</td><td class="wrap">同一件事。社群用 25 行 Python 加 0.6B Qwen 就重現了</td><td class="wrap">同一件事，Gemma 4 26B 讀單一字母機率</td></tr>
+        <tr><td>校準怎麼來</td><td class="wrap">用 RLCD 訓練進權重，宣稱 0.83 就是 83% 對；但沒公開 reliability diagram 或 ECE</td><td class="wrap">事後校準：200–500 筆真實資料重算門檻</td></tr>
+        <tr><td>模型</td><td class="wrap">4B 級（開源重現版 Lev 是 Qwen3.5-4B + LoRA）</td><td class="wrap">26B 零標註；E2B / E4B 做階梯對照</td></tr>
+        <tr><td>部署</td><td class="wrap">只在雲端，資料外送，64k 輸入上限</td><td class="wrap">全地端，GB10</td></tr>
+        <tr><td>底模能力</td><td class="wrap" colspan="2">LLM2Jev 論文：凍結的 Qwen3.5-4B 零標註在 JevBench 81.4%，和社群訓練版打平。能力本來就在底模裡，訓練補的是分佈不是能力——這等於替零標註路線背書</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="eyebrow">PASS 2 · 題目是什麼，不是什麼</p>
+  <h2>哪些卡片能進機器</h2>
+
+  <p>一題要成為 Jev 題，五個條件要一起成立。缺任何一個，卡片就不該進這台機器。</p>
+  <ul class="pockets stagger">
+    <li><span class="no">01</span><p>選項現在就能全列出來，而且幾個月內穩定。列不出來的不是 Jev 題，是候選生成或探索。</p></li>
+    <li><span class="no">02</span><p>答案是標籤，不是數字也不是解釋。數字走公式，解釋走生成，只有標籤走 Jev。</p></li>
+    <li><span class="no">03</span><p>邊界可數，或至少改寫之後可數。不可數的要分辨是「規則沒寫清楚」（改寫，變回 Known Known）還是「真的要看證據才知道」（Known Unknown，Jev 只做排序）。</p></li>
+    <li><span class="no">04</span><p>頻率高到每天百次以上。百次以下的決策讓人做比校準門檻便宜。</p></li>
+    <li><span class="no">05</span><p>低信心時有人接，接完會回寫。接不住的不該上自動化。</p></li>
+  </ul>
+
+  <h3>四種不是 Jev 題的題</h3>
+  <p>數字題交公式——產能異常公式 100% 對模型 93%，而 SPC 規則對數值序列本來就是可計算的，Western Electric rules 不需要語言模型。申論題交生成。邊界模糊的先改寫再進來，改寫前的 SPC 和警報緊急度其實是 Known Unknown 偽裝成 Known Known。最後一種最容易漏：<span class="mark">從線索到輸入要跳兩步以上、中間那一步需要你們領域知識才接得上的題。</span>規則說「黏度走勢像鋼板在乾就選 C」，模型得先知道黏度和乾掉的物理關係才能把兩邊接上；這段不在先驗裡時，prompt 裡的線索就只是 token，它會退回字面相似度——輸入裡哪個詞和哪個選項的詞長得像——然後照樣給你 99%。</p>
+
+  <h3>十題回頭看</h3>
+  <p>用這五個條件和四種例外反推 gb10 的十題，七強三弱的分佈不是巧合。</p>
+  <div class="table-scroll wide">
+    <table>
+      <thead><tr><th>題</th><th>輸入</th><th class="num">選項</th><th class="num">零標註</th><th>為什麼強／弱</th><th>模型</th></tr></thead>
+      <tbody>
+        <tr><td>工單派遣單位</td><td>工單文本</td><td class="num">4</td><td class="num">100%</td><td class="wrap">可列舉、標籤、邊界清楚、高頻</td><td class="nowrap">E2B 夠</td></tr>
+        <tr><td>是否升級通知</td><td>警報／工單</td><td class="num">2</td><td class="num">100%</td><td class="wrap">同上</td><td class="nowrap">E2B 夠</td></tr>
+        <tr><td>訊息意圖分類</td><td>文本</td><td class="num">10</td><td class="num">100%</td><td class="wrap">十個選項也不是問題，可列舉就行</td><td class="nowrap">E2B 夠</td></tr>
+        <tr><td>停工原因</td><td>工單記錄</td><td class="num">3</td><td class="num">99%</td><td class="wrap">同上</td><td class="nowrap">E2B 夠</td></tr>
+        <tr><td>是否派工程師</td><td>狀況描述</td><td class="num">2</td><td class="num">99%</td><td class="wrap">一跳就到，但要讀脈絡</td><td class="nowrap">26B</td></tr>
+        <tr><td>警報問題類型</td><td>警報內容</td><td class="num">5</td><td class="num">98%</td><td class="wrap">同上</td><td class="nowrap">26B</td></tr>
+        <tr><td>不良根源站位</td><td>製程資訊</td><td class="num">6</td><td class="num">98%</td><td class="wrap">同上，製程知識在先驗裡</td><td class="nowrap">26B</td></tr>
+        <tr><td>產能異常判定</td><td>數字序列</td><td class="num">2</td><td class="num">93%</td><td class="wrap">數字題，公式 100%，不該進模型</td><td class="nowrap">公式</td></tr>
+        <tr><td>SPC 處置方式</td><td>管制圖數據</td><td class="num">4</td><td class="num">86→95%</td><td class="wrap">邊界模糊，改寫後變 Known Known；數值部分該先算</td><td class="nowrap">程式 + 26B</td></tr>
+        <tr><td>警報緊急度</td><td>狀況細節</td><td class="num">3</td><td class="num">82→90%</td><td class="wrap">相鄰等級邊界模糊，20% 隨選項順序翻答案</td><td class="nowrap">拆題 + 26B</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="byline">零標註準確率取自 gb10-typed-decisions；模型欄是階梯實驗的判讀，「E2B 夠」指小模型即 ≥95%，「26B」指 26B 比 E4B 高 6–13%。</p>
+
+  <h3>A/B/C/D 為什麼降了一兩個量級，代價是什麼</h3>
+  <p>輸出空間從無界縮到四個，「說得頭頭是道但錯」整類失敗消失。你不批改過程，所以路徑錯答案對也算對——小模型在 chain-of-thought 裡常把自己講歪，讀機率反而避開採樣雜訊。比對是這類模型最強的動作，申論是最弱的。代價是對錯只剩一個數字，答對的理由和答錯的理由你都看不到，所以校準不可省；而順序敏感是「懂」只到字面相似度為止的直接證據——真的懂的東西，不會因為選項從 B 搬到 C 就改答案。</p>
+
+  <p class="eyebrow">PASS 3 · 它補了 LLM 哪裡</p>
+  <h2>五件補得到的，六件補不到的</h2>
+
+  <p>拿它跟「直接叫 LLM 生成」比，而不是跟 fine-tuned BERT 或 rule engine 比——後者才是它真正的同類，而且有標記資料的地方它們仍有競爭力。</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>LLM 的不足</th><th>Jev 怎麼補</th><th>但是</th></tr></thead>
+      <tbody>
+        <tr><td>格式幻覺<span class="sub">發明不存在的工具或選項</span></td><td class="wrap">永遠在 schema 內</td><td class="wrap">「不能給無效值」不等於「不會給錯值」</td></tr>
+        <tr><td>慢、貴</td><td class="wrap">不生成 token、多題平行。社群實測中位數快 7 倍省 30 倍</td><td class="wrap">不是官方的 193 倍與 444 倍；你量到的 2.4 倍落在 2–20 倍區間裡</td></tr>
+        <tr><td>信心不可量化<span class="sub">「我很確定」是文字</span></td><td class="wrap">可校準、可設門檻、可進稽核紀錄的數字。RLHF 已知會傷校準，這是 Jev 存在的理由</td><td class="wrap">校準是對分佈的性質，不是對模型的；公平硬幣它答 0.92，骰子 1/6 它答 83%</td></tr>
+        <tr><td>冷啟動<span class="sub">傳統 ML 標 100 筆還不到 90%</span></td><td class="wrap">零筆或 25 筆就能上，因為 ML 那 100 筆有一半花在學語言</td><td class="wrap">標記累積到兩千筆後，強題上小分類器大概追得上</td></tr>
+        <tr><td>規則改不動<span class="sub">改規則要重訓</span></td><td class="wrap">規則在 prompt，邊界改了明天生效——棘輪便宜</td><td class="wrap">這才是它贏 ML 的地方，不是「比 ML 懂」</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>它沒補的六件：解釋、算術、日期排序、矛盾處理、字面閱讀、對抗輸入。TypeSafe 自己列的九個失敗模式裡就有這些，Check Point 的注入測試九種攻擊組合全破，「untrusted」標籤沒用，唯一有效的防禦是推理能力。這六件剛好都是「該在程式層做」的事，所以不是缺陷，是分工。</p>
+
+  <p class="eyebrow">PASS 4 · CASCADE</p>
+  <h2>一路往下掉，掉到哪層就是哪個象限</h2>
+
+  <p>先拆一個誤區：象限不是入口能預測的。「資料有沒有」是查你的 tag 目錄，「知不知道該問什麼」是查你有沒有對應的 template，兩者都相對於系統現況定義，不在輸入訊息裡。出一題「這屬於哪個象限 A/B/C/D」，模型沒有你的 template 清單和埋點目錄，只能從語感猜，而且 99% 猜。Agent vs flow 同理是設計期的決定，runtime 只需要知道「命中哪一條現成的 flow」。</p>
+
+  <p class="pull">象限不是預測出來的，是輸入掉到哪一層、由那一層定義的。</p>
+
+  <figure class="cascade wide reveal">
+    <p class="title">前門不是一題四選，是五層的 cascade</p>
+    <p class="subtitle">每一層的棄答往下掉；最底層的人處理完回寫，改上面的選項清單。</p>
+<div class="chart">
+<svg viewBox="0 0 640 540" role="img" aria-label="五層 cascade：L0 程式切訊息算數值，L1 Jev 分已知 case 得到 Known Known 走 workflow，L2 Jev 分 playbook 家族得到 Known Unknown 走候選排序加人確認，L3 程式查資料目錄得到 Unknown Known 走有界探索 agent loop，L4 埋點需求單即 Unknown Unknown；人處理完回寫到 L1 與 L2。">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--rule-hard)"/>
+    </marker>
+    <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <rect class="box code" x="70" y="20" width="230" height="56" rx="2"/>
+  <text class="mono" x="84" y="42">L0 · 程式</text>
+  <text x="84" y="62">切訊息、算數值（SPC、UPH、閾值）</text>
+  <text class="dim" x="360" y="52">不可能掉過，必經</text>
+
+  <line class="arrow" x1="185" y1="76" x2="185" y2="110" marker-end="url(#ah)"/>
+
+  <rect class="box" x="70" y="112" width="230" height="56" rx="2"/>
+  <text class="mono" x="84" y="134">L1 · JEV</text>
+  <text x="84" y="154">這是哪一個已知 case？N + 無法判斷</text>
+  <line class="arrow" x1="300" y1="140" x2="358" y2="140" marker-end="url(#ah)"/>
+  <rect class="out" x="360" y="112" width="250" height="56" rx="2"/>
+  <text class="mono" x="374" y="134">KNOWN KNOWN</text>
+  <text x="374" y="154">workflow（template）</text>
+
+  <line class="arrow" x1="185" y1="168" x2="185" y2="202" marker-end="url(#ah)"/>
+  <text class="dim" x="196" y="190">棄答</text>
+
+  <rect class="box" x="70" y="204" width="230" height="56" rx="2"/>
+  <text class="mono" x="84" y="226">L2 · JEV</text>
+  <text x="84" y="246">這個症狀屬於哪個 playbook？M + 無法判斷</text>
+  <line class="arrow" x1="300" y1="232" x2="358" y2="232" marker-end="url(#ah)"/>
+  <rect class="out" x="360" y="204" width="250" height="56" rx="2"/>
+  <text class="mono" x="374" y="226">KNOWN UNKNOWN</text>
+  <text x="374" y="246">候選生成 → Jev 排序 → 人確認</text>
+
+  <line class="arrow" x1="185" y1="260" x2="185" y2="294" marker-end="url(#ah)"/>
+  <text class="dim" x="196" y="282">棄答</text>
+
+  <rect class="box code" x="70" y="296" width="230" height="56" rx="2"/>
+  <text class="mono" x="84" y="318">L3 · 程式查目錄</text>
+  <text x="84" y="338">相關機台／站位／時段有沒有資料？</text>
+  <line class="arrow" x1="300" y1="324" x2="358" y2="324" marker-end="url(#ah)"/>
+  <rect class="out" x="360" y="296" width="250" height="56" rx="2"/>
+  <text class="mono" x="374" y="318">UNKNOWN KNOWN</text>
+  <text x="374" y="338">有界探索 agent loop，Jev 當裁判</text>
+
+  <line class="arrow" x1="185" y1="352" x2="185" y2="386" marker-end="url(#ah)"/>
+  <text class="dim" x="196" y="374">沒資料</text>
+
+  <rect class="box code" x="70" y="388" width="230" height="56" rx="2"/>
+  <text class="mono" x="84" y="410">L4 · 人／資本支出</text>
+  <text x="84" y="430">埋點需求單，不進任何 LLM</text>
+  <rect class="out" x="360" y="388" width="250" height="56" rx="2"/>
+  <text class="mono" x="374" y="410">UNKNOWN UNKNOWN</text>
+  <text x="374" y="430">終態，只會以「探索到預算用完」出現</text>
+
+  <path class="arrow loop" d="M185 444 L185 480 L36 480 L36 140 L62 140" marker-end="url(#ah2)"/>
+  <path class="arrow loop" d="M36 232 L62 232" marker-end="url(#ah2)"/>
+  <text class="mono" x="200" y="484">回寫 · RATCHET</text>
+  <text x="200" y="504">每筆棄答由人處理完，回溯補標：現有 template X／新 template／</text>
+  <text x="200" y="522">新 playbook／要先埋點 — 直接改 L1、L2 的選項清單</text>
+</svg>
+</div>
+    <figcaption>Jev 只出現在 L1、L2 和 L3 的裁判位置。L0 和 L3 是程式，L4 是人。</figcaption>
+  </figure>
+
+  <div class="table-scroll wide">
+    <table>
+      <thead><tr><th class="nowrap">層</th><th>做什麼</th><th>誰做</th><th>答得出來就是</th><th>答不出來</th></tr></thead>
+      <tbody>
+        <tr><td class="nowrap">L0</td><td class="wrap">切訊息、算數值（SPC 規則、UPH、閾值）</td><td class="nowrap">程式</td><td class="wrap">—</td><td class="wrap">不可能，必經</td></tr>
+        <tr><td class="nowrap">L1</td><td class="wrap">「這是哪一個已知 case」：N 個 template + 無法判斷，校準門檻</td><td class="nowrap">Jev</td><td class="wrap">Known Known → workflow</td><td class="wrap">掉 L2</td></tr>
+        <tr><td class="nowrap">L2</td><td class="wrap">「這個症狀屬於哪個 playbook 家族」：M 類 + 無法判斷</td><td class="nowrap">Jev</td><td class="wrap">Known Unknown → 候選生成 → Jev 排序（打折）→ 人確認</td><td class="wrap">掉 L3</td></tr>
+        <tr><td class="nowrap">L3</td><td class="wrap">「相關機台／站位／時段有沒有資料」</td><td class="nowrap">程式查目錄</td><td class="wrap">Unknown Known → 有界探索 agent loop，Jev 當每步裁判與停止條件</td><td class="wrap">掉 L4</td></tr>
+        <tr><td class="nowrap">L4</td><td class="wrap">埋點需求單，不進任何 LLM</td><td class="nowrap">人／資本支出</td><td class="wrap">Unknown Unknown</td><td class="wrap">終態</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Playbook 是什麼：兩種 agent loop 的差別</h3>
+  <p>L2 的 playbook 不是某個 agent 的設定檔，是「一個症狀家族的假設清單」：每個假設配一條可查的證據（查哪個 tag、看哪段時間、比哪個閾值）。它屬於 Known Unknown——假設空間已經列舉，只是不知道這次是哪一個——所以執行它的東西更像 workflow：照清單逐一取證、Jev 把證據對假設排序、人確認。它是一個<span class="mark">已知的 loop</span>：迭代的對象是一張人寫好的清單，步數有限，每步做什麼事先定好。</p>
+  <p>L3 的探索 agent loop 是另一種：沒有清單，只有資料。生成模型負責提出下一個查詢或假設，程式去跑，Jev 裁判「這條線索值不值得追／該停了嗎」，預算用完就停。它是一個<span class="mark">有界的 loop</span>：迭代的對象是 agent 自己生出來的查詢，上界是預算不是清單。兩種 loop 的分野就是四象限的那條橫軸——假設空間列得出來，用已知的 loop；列不出來但資料在，用有界的 loop。探索 loop 找到的東西經人確認後寫成 playbook，就從 L3 搬到 L2，這也是棘輪的一種。</p>
+
+  <h3>棘輪：標籤是回溯出來的</h3>
+  <p>L1、L2 的標籤不用人想，從歷史工單反推：每張已處理的工單當時走的是哪個 template、哪個 playbook，就是標籤，和校準門檻用的是同一批資料。棄答那一側的標籤則是回溯的：每一筆 needs_human 被人處理完之後才補標「其實是現有 template X（模型漏判）」、「是新 template（Known Unknown 轉成 Known Known）」、「是新 playbook」或「要先加埋點」。這四種回溯標籤就是 VOL.2 的棘輪——它們不只是訓練資料，而是直接改 L1、L2 的選項清單。所以象限標籤本來就會過期，做一份靜態標註集是錯的；正確的指標是前門棄答率隨時間下降，<span class="mark">那條下降曲線就是「第 100 次與第 1 次的差」。</span></p>
+
+  <h3>第二條 cascade：模型階梯，和上面那條正交</h3>
+  <p>同一個節點，先 rule engine，再 E2B（派遣單位、升級、意圖、停工原因四題夠用），再 26B（派工程師、警報類型、根源站位、SPC、緊急度明顯強），26B 不確定才升人。你已經量化了 E2B 到 26B 那段有 6–13% 的差距所以成立；之後想加「26B 不確定就丟 Qwen 122B」這一層要先量——Janus 測過 Jev 接大模型的階梯，一個資料集有效，另一個一樣準但貴三倍。階梯不是預設有用的。</p>
+
+  <h3>節點 Jev 化的正確理解</h3>
+  <p>Workflow 裡原本的 if/else，條件判斷換成校準過的機率，這是「強化版 if/else」沒錯；但分支結構還是人畫的。<span class="mark">Jev 從不新增選項，只有棘輪會。</span>所以 Jev 不是 workflow 的替代，是 workflow 能吃模糊文字輸入的原因。</p>
+
+  <h3>從社群搬來、要改一下才能用的四個模式</h3>
+  <ul class="pockets">
+    <li><span class="no">拆題</span><p>Composite scoring：把「警報緊急度三級」拆成影響範圍、是否持續惡化、有無備援幾個 yes/no 各問，權重寫在程式裡不寫在 prompt 裡。弱題拆成數個強題，合成留給程式——這就是「把跳數壓回一步」的具體形式。</p></li>
+    <li><span class="no">先取再判</span><p>Retrieve-then-judge：塞無關內容準確率會掉（context rot）。對應你「多則訊息要在程式層先切」，也就是 L0 存在的理由。</p></li>
+    <li><span class="no">排序打折</span><p>排序研究裡 53 列同時卡在 0.99 打平、batch size 一改閘門就翻。L2 的 Jev 排序只在機率有明顯落差時可信，高信心區段的相對順序不拿來做決定。</p></li>
+    <li><span class="no">當特徵</span><p>標記累積到一定量後，Jev 的機率向量加 rule engine 的數值特徵，餵一個小分類器，可能比單靠任何一邊穩。Jev 負責冷啟動，不必負責終局。</p></li>
+  </ul>
+
+  <p class="eyebrow">PASS 5 · 綜效</p>
+  <h2>四個東西各自不夠</h2>
+  <p>Workflow 沒有 Jev 吃不了模糊輸入，只能處理結構化欄位；Jev 沒有 workflow 就會被要求回答它不該答的題——數字、申論、多跳。Agent loop 沒有 Jev 當裁判，每一步要花生成模型的錢去判斷「這條線索值不值得追」；Jev 沒有 agent loop 就只能在已列舉的空間裡打轉，永遠碰不到 Unknown Known。校準門檻是 Jev 和人之間的門，沒有它自動化會自信地派錯工；人沒有棘輪回寫，整套就是 VOL.2 說的「很貴的一次性函式」。</p>
+  <p>所以綜效不是「每個節點都用 Jev」，而是 <span class="mark">Jev 把「可列舉」和「不可列舉」的邊界實作成一個可量測的棄答率</span>，讓 workflow 接前者、agent 接後者、人接剩下的，而且邊界每週往外推一點。外面的社群用例集中在客服分流、內容審核、文件分類、agent 的工具選擇與 RAG 過濾；把它放回工廠 workflow、按模型大小分層，這部分外面幾乎沒有案例。</p>
+
+  <p class="eyebrow">PASS 6 · 硬規矩</p>
+  <h2>校準與部署，一份合併的清單</h2>
+  <p>這是對話裡出現過的所有風險，合併成一份。每一條都有外部評測或你自己的實驗背書。</p>
+  <ul class="pockets stagger">
+    <li><span class="no">校準集</span><p>必須刻意放進「它應該不懂」的案例，不然門檻只量到它懂的那半邊，上線遇到混雜訊息就自信派工。合成資料數字偏樂觀，真實工單重校。</p></li>
+    <li><span class="no">盛行率</span><p>校準對分佈敏感：jev-certify 在 CLINC150 上自動路由 84.75%，但 out-of-scope 比例一升，「誤路由不超過 5%」的保證就守不住。警報組成隨班別、機種、新產品變，門檻要跟著重新認證。</p></li>
+    <li><span class="no">棄答選項</span><p>弱題明確給「無法判斷」，不能只靠門檻。KoBBQ 審計：有 unknown 選項時 95% 棄答，拿掉後同批題 0% 對、79% 選刻板答案。</p></li>
+    <li><span class="no">順序</span><p>選項順序鎖定。弱題 20% 隨順序翻答案。</p></li>
+    <li><span class="no">數值</span><p>全部在 L0 算完，不讓文字有機會覆蓋數據。「訊息裡寫『不急』就壓過數據」和 Check Point 的注入是同一種機制的良性版本。</p></li>
+    <li><span class="no">批次</span><p>多題一次問、前綴快取開著（<code>--swa-full</code>）。社群：13 題一次問比分開問便宜 12 倍、快 10 倍。</p></li>
+    <li><span class="no">解釋</span><p>Lazy：Jev 決定，生成模型只在被問「為什麼派給我」時補理由，理由不進決策路徑。</p></li>
+    <li><span class="no">微調</span><p>只考慮 E2B／E4B 那四題，26B 別動。LLM2Jev：微調讓 0.6B 大幅進步、讓 4B 在覆蓋到的領域進步但在沒覆蓋的格式退步；只用意圖資料訓練會養出偏 yes、壓 fallback 的捷徑，要 KL anchor。韓國 K-Decision：政策題 83.1% 輸 Jev 93.3%，補一個合成資料 adapter 就追平——覆蓋解釋了大部分差距，缺的是橋樑不是參數。</p></li>
+  </ul>
+
+  <p class="eyebrow">PASS 7 · 待驗證</p>
+  <h2>把「懂、讀 prompt、格式降難度」的比例量出來</h2>
+  <p>用你 15 美元等級的預算做四組消融就夠。把選項描述拿掉只留標籤，掉分就是 prompt 規則的貢獻。把邊界規則故意改錯，看準確率跟著錯規則走（在讀 prompt）還是抵抗（先驗主導）。用生成模式先解釋再作答，統計「答對但理由錯」的比例，那是 A/B/C/D 幫你藏掉的部分。數值部分單獨交 rule engine，剩下的差距才是 LLM 真正負責的範圍。</p>
+  <p>再加上社群建議的三步：shadow-run 一到兩週、自己畫 reliability diagram（按信心分箱、算每箱實際準確率）、門檻等資料確認機率誠實之後再設。</p>
+
+  <div class="note">
+    <p class="head">兩個便宜的探針</p>
+    <p>判斷某題「它懂不懂」不用猜：生成模式要它解釋那個詞，看講的是不是你們的意思；還有順序敏感度——某題一打亂選項就翻答案，就是那題的橋樑斷了。</p>
+  </div>
+
+  <p class="eyebrow">PASS 8 · WHOLE PICTURE</p>
+  <h2>全部放在一起：一個大的 PDCA</h2>
+  <p>前面每一段各講一個零件。把程式、Jev、workflow、兩種 agent loop、生成模型和人放回同一張圖，它是一個 PDCA：人在 PLAN 畫分支清單，runtime 在 DO 把每筆事件沿 cascade 往下掉，CHECK 把人確認的結果和模型答案對起來，ACT 是棘輪——而且 ACT 的四個動作「新 template、新 playbook、新 sensor、改邊界」是整個 loop 唯一會讓分支清單變長的地方。Jev 不會新增選項；這張圖裡只有左下角會。</p>
+
+  <figure class="cascade wide reveal">
+    <p class="title">Whole picture：程式、Jev、workflow、agent loop、生成模型、人</p>
+    <p class="subtitle">順時針一圈是一次 PDCA。DO 裡的八個落點 S1–S8 把每筆事件的去處窮舉完。</p>
+<div class="chart">
+<svg viewBox="0 0 640 640" role="img" aria-label="PDCA 大迴圈：PLAN 由人維護 template、playbook、sensor 目錄與題目門檻；DO 是 runtime cascade，每筆事件落到 S1 到 S8 八個落點之一；CHECK 由程式和人做校準與回溯補標；ACT 是棘輪，新增 template、playbook、sensor 或改寫邊界，回到 PLAN。">
+  <defs>
+    <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- PLAN -->
+  <rect class="box" x="20" y="20" width="280" height="230" rx="2"/>
+  <text class="mono" x="34" y="44">PLAN · 人（生成模型起草）</text>
+  <text x="34" y="72">分支清單是人畫的，不是模型猜的：</text>
+  <text x="34" y="96">· template 清單 — L1 的 N 個選項</text>
+  <text x="34" y="118">· playbook 清單 — L2 的 M 類假設</text>
+  <text x="34" y="140">· sensor／tag 目錄 — L3 查的表</text>
+  <text x="34" y="162">· 題目、選項描述（廠內定義寫進去）</text>
+  <text x="34" y="184">· 棄答門檻，用真實資料校準過</text>
+  <text class="dim" x="34" y="222">知道該問什麼 = 這裡有一條</text>
+
+  <!-- DO -->
+  <rect class="box" x="340" y="20" width="280" height="330" rx="2"/>
+  <text class="mono" x="354" y="44">DO · 每筆事件的 cascade</text>
+  <text class="mono" x="354" y="72">L0 程式</text>
+  <text x="354" y="92">切訊息、算數值 → S1 直接動作</text>
+  <text x="354" y="110">擋壞輸入（混雜、注入）→ S8 人</text>
+  <text class="mono" x="354" y="138">L1 Jev · 已知 case？</text>
+  <text x="354" y="158">高信心 → S2 workflow 自動</text>
+  <text x="354" y="176">低信心 → S3 人確認再跑</text>
+  <text class="mono" x="354" y="204">L2 Jev · 哪個 playbook？</text>
+  <text x="354" y="224">S4 已知 loop：逐假設取證 → 排序 → 人</text>
+  <text class="mono" x="354" y="252">L3 程式 · 有資料嗎？</text>
+  <text x="354" y="272">有 → S5 有界 loop：LLM 出假設、Jev 裁判</text>
+  <text x="354" y="290">　　預算用完沒找到 → S6 人</text>
+  <text x="354" y="308">沒有 → S7 埋點需求單</text>
+  <text class="dim" x="354" y="336">生成模型只在 S5 出假設、S4 列候選、答「為什麼」</text>
+
+  <!-- CHECK -->
+  <rect class="box" x="340" y="390" width="280" height="230" rx="2"/>
+  <text class="mono" x="354" y="414">CHECK · 程式 + 人</text>
+  <text x="354" y="442">每筆：人確認的結果 vs 模型答案</text>
+  <text x="354" y="462">　　→ 回溯補標（四種）</text>
+  <text x="354" y="490">每週：reliability diagram</text>
+  <text x="354" y="510">　　棄答率曲線（該往下走）</text>
+  <text x="354" y="530">　　盛行率漂移、順序敏感度</text>
+  <text x="354" y="550">　　S6／S7 的累積量</text>
+  <text class="dim" x="354" y="590">猜和讀只有在這裡分得開</text>
+
+  <!-- ACT -->
+  <rect class="out" x="20" y="390" width="280" height="230" rx="2"/>
+  <text class="mono" x="34" y="414">ACT · 棘輪（唯一會加選項的地方）</text>
+  <text x="34" y="442">S3 漏判 → 補校準資料、改選項描述</text>
+  <text x="34" y="464">S4／S5 確認 → create new template</text>
+  <text x="34" y="486">S5 找到 → create new playbook</text>
+  <text x="34" y="508">S6／S7 累積 → create new sensor</text>
+  <text x="34" y="530">弱題翻答案 → 改寫邊界、拆題</text>
+  <text x="34" y="552">盛行率變 → 重校門檻</text>
+  <text class="dim" x="34" y="590">第 100 次比第 1 次聰明，靠這一格</text>
+
+  <!-- arrows clockwise -->
+  <line class="arrow loop" x1="300" y1="60" x2="338" y2="60" marker-end="url(#ah3)"/>
+  <line class="arrow loop" x1="600" y1="350" x2="600" y2="388" marker-end="url(#ah3)"/>
+  <line class="arrow loop" x1="340" y1="600" x2="302" y2="600" marker-end="url(#ah3)"/>
+  <line class="arrow loop" x1="40" y1="390" x2="40" y2="252" marker-end="url(#ah3)"/>
+  <text class="dim" x="305" y="52">清單</text>
+  <text class="dim" x="548" y="374">結果</text>
+  <text class="dim" x="305" y="594">標籤</text>
+  <text class="dim" x="48" y="330">更新</text>
+</svg>
+</div>
+    <figcaption>Jev 只在 DO 的 L1、L2 和 S5 的裁判位置。生成模型只在三個地方開口。人在 PLAN、CHECK、ACT 和每個低信心出口。</figcaption>
+  </figure>
+
+  <h3>八個落點，把情境窮舉完</h3>
+  <p>Cascade 每一層都只有兩種結果，所以落點是互斥而且窮盡的：一筆事件不會同時落兩格，也不會沒地方去。</p>
+  <div class="table-scroll wide">
+    <table>
+      <thead><tr><th class="nowrap">落點</th><th>情境</th><th>誰收</th><th>Jev 在哪</th><th>回寫什麼</th></tr></thead>
+      <tbody>
+        <tr><td class="nowrap">S1</td><td class="wrap">數值可算：SPC 規則、UPH 閾值</td><td class="nowrap">程式</td><td class="wrap">不在</td><td class="wrap">無</td></tr>
+        <tr><td class="nowrap">S2</td><td class="wrap">已知 case，高信心</td><td class="nowrap">workflow</td><td class="wrap">L1 的決策節點</td><td class="wrap">抽樣稽核即可</td></tr>
+        <tr><td class="nowrap">S3</td><td class="wrap">已知 case，低信心</td><td class="nowrap">人 → workflow</td><td class="wrap">L1 棄答</td><td class="wrap">校準資料 +1；若是漏判，改選項描述</td></tr>
+        <tr><td class="nowrap">S4</td><td class="wrap">有 playbook，不知道是哪個假設</td><td class="nowrap">已知 loop → 人</td><td class="wrap">L2 分類 + 證據排序（打折）</td><td class="wrap">重複出現的假設 → 新 template</td></tr>
+        <tr><td class="nowrap">S5</td><td class="wrap">沒 playbook，有資料，探索找到</td><td class="nowrap">有界 loop → 人</td><td class="wrap">每步裁判、停止條件</td><td class="wrap">新 playbook（L3 搬到 L2）</td></tr>
+        <tr><td class="nowrap">S6</td><td class="wrap">沒 playbook，有資料，預算用完沒找到</td><td class="nowrap">人</td><td class="wrap">停止條件</td><td class="wrap">累積到一定量 → 可能是缺量測，開 sensor 單</td></tr>
+        <tr><td class="nowrap">S7</td><td class="wrap">沒資料</td><td class="nowrap">人／資本支出</td><td class="wrap">不在</td><td class="wrap">新 sensor，L3 目錄 +1</td></tr>
+        <tr><td class="nowrap">S8</td><td class="wrap">輸入本身壞：多則混雜、注入、格式</td><td class="nowrap">程式 → 人</td><td class="wrap">不在，L0 之前就擋</td><td class="wrap">切訊息規則 +1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>誰在哪一格</h3>
+  <div class="table-scroll wide">
+    <table>
+      <thead><tr><th class="nowrap">角色</th><th>PLAN</th><th>DO</th><th>CHECK</th><th>ACT</th></tr></thead>
+      <tbody>
+        <tr><td class="nowrap">程式</td><td class="wrap">維護 sensor 目錄</td><td class="wrap">L0 切訊息、算數值；L3 查目錄；跑 playbook 的取證步驟</td><td class="wrap">畫 reliability diagram、算棄答率與漂移</td><td class="wrap">重校門檻</td></tr>
+        <tr><td class="nowrap">Jev</td><td class="wrap">—</td><td class="wrap">L1、L2 分類；S4 排序；S5 裁判</td><td class="wrap">被量的對象</td><td class="wrap">—（它不加選項）</td></tr>
+        <tr><td class="nowrap">workflow</td><td class="wrap">—</td><td class="wrap">S2、S3 執行 template</td><td class="wrap">—</td><td class="wrap">接收新 template</td></tr>
+        <tr><td class="nowrap">已知 loop</td><td class="wrap">—</td><td class="wrap">S4 逐假設取證</td><td class="wrap">—</td><td class="wrap">接收新 playbook</td></tr>
+        <tr><td class="nowrap">有界 loop</td><td class="wrap">—</td><td class="wrap">S5／S6 探索，預算上界</td><td class="wrap">—</td><td class="wrap">—</td></tr>
+        <tr><td class="nowrap">生成模型</td><td class="wrap">起草 template／playbook 草稿給人改</td><td class="wrap">S5 出假設；S4 列候選；被問時答「為什麼」</td><td class="wrap">—</td><td class="wrap">把 S5 的發現寫成 playbook 草稿</td></tr>
+        <tr><td class="nowrap">人</td><td class="wrap">畫分支、寫廠內定義進選項</td><td class="wrap">S3、S4、S5、S6、S7、S8 的收尾</td><td class="wrap">確認結果、回溯補標</td><td class="wrap">批准新 template／playbook／sensor</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>讀這張表的方法是看空格。Jev 那一列在 PLAN 和 ACT 都是空的——它不畫分支也不加分支。生成模型那一列只在三個地方有字，而且沒有一個在決策路徑上。人那一列最滿，但 DO 裡的六個落點都是低信心出口，不是常態路徑；系統健康的指標就是那六格的流量隨時間往 S1、S2 搬。<span class="mark">PDCA 轉一圈，分支清單長一點，前門棄答率低一點；這就是整套東西存在的理由。</span></p>
+
+  <p class="eyebrow">R · 來源</p>
+  <h2>外部資料</h2>
+  <ul>
+    <li><a href="https://arxiv.org/html/2610.02076v1">LLM2Jev: LLMs Are Already Jev-Style Decision Models</a> — 凍結 4B 零標註 81.4%；微調的條件與捷徑；KL anchor</li>
+    <li><a href="https://github.com/fstandhartinger/jevbench">JevBench</a> — 242 題 pilot，英文、小樣本、類別不平衡</li>
+    <li><a href="https://benchlm.ai/blog/posts/what-is-jev">BenchLM: What Is Jev and Its Limits</a> — TypeSafe 自列的九個失敗模式</li>
+    <li><a href="https://blog.checkpoint.com/ai-security/jev-is-not-a-language-model-but-it-breaks-like-one-prompt-injection-against-a-typed-decision-model/">Check Point: A Decision Model Breaks Like Any Other Language Model</a> — 注入九種組合全破</li>
+    <li><a href="https://thakicloud.com/tech-blog/en/owm/lev-system-one-decision-model/">ThakiCloud: Lev, Jev open-sourced</a>、<a href="https://thakicloud.com/tech-blog/en/research/k-decision-jev-korean-comparison/">K-Decision, a Korean on-prem Jev</a> — 覆蓋解釋差距</li>
+    <li><a href="https://github.com/vamsikrishna2421/jev-usecases">Jev use-case catalog with reality check</a> — 7 倍／30 倍的社群中位數；composite scoring、retrieve-then-judge</li>
+    <li><a href="https://huggingface.co/blog/karmen-beatapi/18-practical-jev-use-cases-for-ai-agents">18 Practical Jev Use Cases for AI Agents</a> — agent 裡的位置：routing、RAG、guardrail、evaluation</li>
+    <li><a href="https://agentconn.com/blog/jev-typesafe-new-agent-layer-if-calibration-holds/">AgentConn: A New Agent Layer, If Calibration Holds</a> — shadow-run、reliability diagram、門檻三步</li>
+    <li><a href="https://dev.to/jamilxt/typesafes-jev-costs-400x-less-than-an-llm-these-25-lines-of-python-do-the-same-job-for-free-3ddd">These 25 Lines of Python Do the Same Job</a>、<a href="https://zeli.app/story/49816899">Jev's Calibrated Probabilities Are a Myth</a> — 公平硬幣 0.92、骰子 83%</li>
+    <li><a href="https://github.com/AbdelStark/awesome-typesafe-jev">awesome-typesafe-jev: independent evaluations</a> — KoBBQ、jev-certify、排序研究、Janus cascade</li>
+    <li><a href="https://imitator.ai-apps.work/r/agent-arch-2">VOL.2 四象限</a>、<a href="https://imitator.ai-apps.work/r/gb10-typed-decisions">gb10-typed-decisions</a> — 本篇的兩個前提</li>
+  </ul>
+  <p class="byline">架構筆記 · Agent vs Workflow · VOL.4 · 2026-10 · imitator</p>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
