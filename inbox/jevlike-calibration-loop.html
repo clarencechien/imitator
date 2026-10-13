@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="校正記錄簿 — 把 jevlike 從一次實驗變成產線上長期可信的判斷：資料怎麼分、校正怎麼做、迴圈怎麼轉、何時才輪到 LoRA">
+<meta name="imitator-reference" content="1980 年代日系工廠的計測器校正記錄簿 — 校正證明書那一頁：器具編號、校正日、有效期、判定、紫色日付印">
+<meta name="imitator-paper" content="hsl(96 20% 95%)">
+<meta name="imitator-accent" content="hsl(275 40% 40%)">
+<title>校正記錄簿：jevlike 上線後的長期迴圈，從校正到 LoRA</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+/* REGISTER:  校正記錄簿 — 讀者是要把 jevlike 真的放上產線的人。題目是：資料怎麼分、校正怎麼做、迴圈怎麼轉、什麼時候才輪到 LoRA。
+   REFERENCE: 1980 年代日系工廠的計測器校正記錄簿，校正證明書那一頁 — 器具編號、校正日、有效期限、下次校正日、判定欄、右下角一枚紫色日付印。
+   PAPER:     記錄簿用的淡綠格線紙 — 看久不累、能放十年。hsl(96 20% 95%)。
+   VOICE:     日付印的紫色只給「有效期」與判定用；標題用 Noto Serif TC 的明體，像證明書的印刷標題；數字與器具編號走等寬體。
+   NOT:       儀表板、不是 README 的重排。每個數字都標清楚是實測還是示意。
+   RECENT:    unavailable（無 token）。對照 reject list：非冷灰、非骨白+靛藍、非奶油+驗屍紅；與前一份（杏色 32°／青綠 178°）相距 64° 與 97°。 */
+:root {
+  --paper: hsl(96 20% 95%);
+  --card: hsl(96 25% 98%);
+  --ink: hsl(100 18% 12%);
+  --ink-2: hsl(100 10% 30%);
+  --mist: hsl(100 7% 44%);
+  --rule: hsl(96 14% 84%);
+  --rule-hard: hsl(96 12% 70%);
+  --accent: hsl(275 40% 40%);        /* 日付印的紫 */
+  --accent-soft: hsl(275 30% 90%);
+  --disp: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --serif: "Noto Serif TC", "Songti TC", serif;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(96 10% 9%);
+    --card: hsl(96 9% 13%);
+    --ink: hsl(96 15% 92%);
+    --ink-2: hsl(96 9% 74%);
+    --mist: hsl(96 6% 60%);
+    --rule: hsl(96 8% 21%);
+    --rule-hard: hsl(96 8% 31%);
+    --accent: hsl(275 45% 70%);
+    --accent-soft: hsl(275 25% 20%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(96 10% 9%);
+  --card: hsl(96 9% 13%);
+  --ink: hsl(96 15% 92%);
+  --ink-2: hsl(96 9% 74%);
+  --mist: hsl(96 6% 60%);
+  --rule: hsl(96 8% 21%);
+  --rule-hard: hsl(96 8% 31%);
+  --accent: hsl(275 45% 70%);
+  --accent-soft: hsl(275 25% 20%);
+}
+
+/* 證明書欄位：器具編號／有效期 */
+.cert { display: grid; grid-template-columns: repeat(auto-fit, minmax(10em, 1fr)); gap: var(--sp-2) var(--sp-4); border-top: 2px solid var(--rule-hard); border-bottom: 1px solid var(--rule); padding: var(--sp-3) 0; margin: var(--sp-4) 0 var(--sp-5); font-family: var(--mono); font-size: var(--fs-sm); color: var(--ink-2); }
+.cert > div { overflow-wrap: anywhere; }
+.cert b { display: block; font-weight: 500; font-size: var(--fs-xs); letter-spacing: .1em; color: var(--mist); }
+.cert .valid { color: var(--accent); }
+/* 日付印 */
+.stamp { display: inline-block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .12em; color: var(--accent); border: 2px solid var(--accent); border-radius: 50%; padding: .9em .6em; line-height: 1.25; text-align: center; transform: rotate(-6deg); margin: var(--sp-3) 0 0; }
+.stamp small { display: block; font-size: .8em; letter-spacing: .06em; }
+/* 實測 / 示意 標記 */
+.tag { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); border: 1px solid var(--rule-hard); border-radius: 3px; padding: .05em .4em; margin-left: .4em; vertical-align: middle; white-space: nowrap; }
+.tag.real { color: var(--accent); border-color: var(--accent); }
+.q { font-family: var(--mono); color: var(--accent); font-size: var(--fs-xs); letter-spacing: .08em; margin-right: .5em; }
+/* 圖解用的文字色 */
+.chart svg .dim { fill: var(--mist); }
+.chart svg .box { fill: var(--card); stroke: var(--rule-hard); }
+.chart svg .box.acc { stroke: var(--accent); stroke-width: 1.5; }
+.chart svg .arrow { stroke: var(--ink-2); fill: none; stroke-width: 1.5; }
+.chart svg .arrow.acc { stroke: var(--accent); }
+.chart svg .head { fill: var(--ink-2); }
+.chart svg .head.acc { fill: var(--accent); }
+.chart svg .t { fill: var(--ink); font-size: 12px; }
+.chart svg .t.s { font-size: 11px; fill: var(--ink-2); }
+.chart svg .t.m { font-family: var(--mono); }
+.chart svg .t.acc { fill: var(--accent); }
+.chart svg .band { fill: var(--accent-soft); }
+
+.card > .eyebrow:first-child { margin-top: 0; }
+</style>
+<body>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+<div class="progress"></div>
+<main class="report">
+
+<p class="eyebrow">校正記錄簿 · Line Manager / GB10 · jevlike 上線後 · 2026-10-13</p>
+<h1 class="display">校正不是一次的事，<br>是一本<em>記錄簿</em></h1>
+<p class="lede">jevlike 已經證明 Gemma 4 26B 可以當自家的 Jev。接下來的問題不是準不準，而是：上線之後，怎麼讓它一年後還是可信的。這一頁把資料怎麼分、校正具體怎麼做、迴圈怎麼轉、什麼時候才輪到 LoRA，用一條 SMT 線的數字走一遍。</p>
+<p class="byline">撰寫：Clarence · 依據：jevlike 十六輪實驗（repo clarencechien/jevlike）· 標「實測」的數字來自 results/，標「示意」的是為了說明流程假設的一條線</p>
+
+<div class="cert">
+  <div><b>器具</b>Gemma 4 26B-A4B · UD-Q4_K_M · llama.cpp ≥ b11371</div>
+  <div><b>校正方法</b>每類溫度 + 錯誤預算門檻（conformal）</div>
+  <div><b>校正依據</b>thresholds.lock.json · --check-lock</div>
+  <div><b>有效期</b><span class="valid">至下次觸發或 30 天</span></div>
+</div>
+
+<section class="reveal">
+<p class="eyebrow">01 · 一句話</p>
+<h2>資料要分五種角色，校正只有兩步加一個鎖，迴圈的關鍵是稽核抽樣</h2>
+<p>長期迴圈裡，資料有五種角色，混用任何兩種，數字就會開始騙你。校正本身很簡單：每類題一個溫度，再用錯誤預算反推門檻，然後把整組條件上鎖。真正容易被省略、也最不能省的，是從自動通過的決策裡<strong>隨機</strong>抽一小部分給人看，因為只有它能證明「自動通過的那些」真的沒有超過預算。</p>
+
+<div class="tiles stagger">
+  <div class="stat"><p class="label">十類題中零標註就 ≥ 0.98 的<span class="tag real">實測</span></p><p class="value">7 / 10</p><p class="delta">其餘三類靠改寫判準與幾十筆校準</p></div>
+  <div class="stat"><p class="label">5% 錯誤預算下強題的自動通過率<span class="tag real">實測</span></p><p class="value">0.98–1.00</p><p class="delta">實際錯 0–2%，十類全守住</p></div>
+  <div class="stat"><p class="label">單題延遲 p50，L4 開 --swa-full<span class="tag real">實測</span></p><p class="value">137 ms</p><p class="delta">讓模型生成 JSON 要 496 ms</p></div>
+  <div class="stat"><p class="label">未校正前的平均信心<span class="tag real">實測</span></p><p class="value">0.99</p><p class="delta">對的錯的都 0.99，門檻不能用它</p></div>
+</div>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">02 · 資料的五種角色</p>
+<h2>看過的資料，不能拿來回報成績</h2>
+<p>這是整本記錄簿唯一的鐵律。校正集上擬合出來的溫度和門檻，回頭在校正集上量，一定好看；那個數字不是成績，是回憶。所以資料要照用途分開，而且<strong>依時間切</strong>，不要隨機切：同一台機台同一天的 alarm 長得很像，隨機切會讓測試集偷看到校正集的近親。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>角色</th><th>用來做什麼</th><th>從哪裡來</th><th>能不能拿來擬合</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">黃金測試集<span class="sub">golden</span></td><td>換模型、換引擎、換 prompt 時的固定尺</td><td>一次性精挑，人工標註，每類 100–200 筆，含最難的那些</td><td><strong>永遠不能</strong></td></tr>
+<tr><td class="nowrap">校正集<span class="sub">calibration</span></td><td>擬合溫度、反推門檻</td><td>最近 8–12 週的真實資料 + 人工標註</td><td>只用在這裡</td></tr>
+<tr><td class="nowrap">滾動測試集<span class="sub">rolling test</span></td><td>回報「現在」的準確率與覆蓋率</td><td>比校正集更新的 2 週</td><td>不能</td></tr>
+<tr><td class="nowrap">稽核樣本<span class="sub">audit</span></td><td>量「自動通過的那些」到底錯多少</td><td>從自動通過的決策中<strong>隨機</strong>抽 1–2%</td><td>不能（它是量尺）</td></tr>
+<tr><td class="nowrap">升級標註<span class="sub">escalation</span></td><td>改題目、累積訓練資料</td><td>被送去人工的那些，人判完的結果，日常流程免費產生</td><td>可以拿來改題與訓練；<strong>不能拿來估門檻</strong></td></tr>
+</tbody>
+</table>
+</div>
+
+<figure class="reveal">
+<div class="chart">
+<svg viewBox="0 0 640 250" role="img" aria-label="真實資料依時間切成五種角色的示意圖">
+  <text x="12" y="20" class="t s">時間 →</text>
+  <line x1="12" y1="52" x2="628" y2="52" class="arrow"/>
+  <polygon points="628,48 636,52 628,56" class="head"/>
+  <rect x="12" y="40" width="80" height="24" class="box acc"/>
+  <text x="52" y="56" text-anchor="middle" class="t s acc">黃金集</text>
+  <text x="52" y="80" text-anchor="middle" class="t s">一次挑好，釘住</text>
+  <rect x="120" y="40" width="300" height="24" class="box"/>
+  <text x="270" y="56" text-anchor="middle" class="t s">校正集 · 最近 8–12 週</text>
+  <rect x="432" y="40" width="80" height="24" class="box"/>
+  <text x="472" y="56" text-anchor="middle" class="t s">滾動測試 · 2 週</text>
+  <rect x="528" y="40" width="90" height="24" class="box acc"/>
+  <text x="573" y="56" text-anchor="middle" class="t s acc">上線中</text>
+  <text x="270" y="80" text-anchor="middle" class="t s">擬合溫度與門檻</text>
+  <text x="472" y="80" text-anchor="middle" class="t s">回報成績</text>
+  <line x1="573" y1="64" x2="573" y2="110" class="arrow acc"/>
+  <polygon points="569,110 573,118 577,110" class="head acc"/>
+  <rect x="440" y="120" width="130" height="24" class="box"/>
+  <text x="505" y="136" text-anchor="middle" class="t s">自動通過（大多數）</text>
+  <rect x="440" y="160" width="130" height="24" class="box"/>
+  <text x="505" y="176" text-anchor="middle" class="t s">升級給人（少數）</text>
+  <line x1="570" y1="132" x2="600" y2="132" class="arrow"/>
+  <text x="604" y="136" class="t s">隨機抽 1–2%</text>
+  <line x1="612" y1="140" x2="612" y2="200" class="arrow"/>
+  <polygon points="608,200 612,208 616,200" class="head"/>
+  <rect x="440" y="212" width="178" height="24" class="box acc"/>
+  <text x="529" y="228" text-anchor="middle" class="t s acc">稽核樣本 → 驗證預算</text>
+  <line x1="440" y1="172" x2="300" y2="172" class="arrow"/>
+  <polygon points="300,168 292,172 300,176" class="head"/>
+  <rect x="120" y="160" width="172" height="24" class="box"/>
+  <text x="206" y="176" text-anchor="middle" class="t s">升級標註 → 改題、訓練</text>
+  <line x1="206" y1="160" x2="206" y2="120" class="arrow"/>
+  <polygon points="202,120 206,112 210,120" class="head"/>
+  <text x="206" y="104" text-anchor="middle" class="t s">下一輪校正集的一部分（依時間併入）</text>
+</svg>
+</div>
+<figcaption>資料流向。校正集與滾動測試集隨時間往前滾；黃金集不動；稽核樣本是量尺，升級標註是素材。</figcaption>
+</figure>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">03 · 校正具體怎麼做</p>
+<h2>兩步，加一個鎖</h2>
+<p>模型對每個選項字母給的是一個分數（logit）。原始的 softmax 機率在 jevlike 上量到平均 0.99，對的錯的都一樣高，所以第一步要先讓信心變得有意義，第二步才用它設門檻。</p>
+
+<h3>第一步：溫度 — 讓信心能排序</h3>
+<p>把每個 logit 除以一個數 T 再做 softmax。T 大於 1 把機率攤平。在校正集上找一個 T，讓「標準答案的負對數機率」加總最小，是一維最佳化，幾行程式。jevlike v12 量到<strong>每一類題各一個 T</strong> 比十類共用一個好；合成資料上擬合的 T 搬到 JevBench，ECE 從 0.093 降到 0.044。</p>
+
+<figure class="reveal">
+<div class="chart">
+<svg viewBox="0 0 640 280" role="img" aria-label="溫度校正前後，兩個例子的選項機率長條">
+  <text x="12" y="20" class="t s">例 A · 明確案例 · logit 9.6 / 4.1 / 1.0</text>
+  <text x="12" y="44" class="t s m">T = 1</text>
+  <rect x="70" y="32" width="259" height="14" fill="var(--c1)" rx="2"/>
+  <text x="345" y="44" class="t s m">0.996 / 0.004 / 0.000</text>
+  <text x="12" y="70" class="t s m">T = 2.4</text>
+  <rect x="70" y="58" width="230" height="14" fill="var(--c1)" rx="2"/>
+  <rect x="300" y="58" width="23" height="14" fill="var(--c2)" rx="2"/>
+  <rect x="323" y="58" width="7" height="14" fill="var(--c3)" rx="2"/>
+  <text x="345" y="70" class="t s m">0.886 / 0.090 / 0.025</text>
+  <text x="12" y="104" class="t s">例 B · 邊界案例 · logit 7.4 / 6.9 / 1.0</text>
+  <text x="12" y="128" class="t s m">T = 1</text>
+  <rect x="70" y="116" width="162" height="14" fill="var(--c1)" rx="2"/>
+  <rect x="232" y="116" width="98" height="14" fill="var(--c2)" rx="2"/>
+  <text x="345" y="128" class="t s m">0.622 / 0.377 / 0.001</text>
+  <text x="12" y="154" class="t s m">T = 2.4</text>
+  <rect x="70" y="142" width="138" height="14" fill="var(--c1)" rx="2"/>
+  <rect x="208" y="142" width="112" height="14" fill="var(--c2)" rx="2"/>
+  <rect x="320" y="142" width="10" height="14" fill="var(--c3)" rx="2"/>
+  <text x="345" y="154" class="t s m">0.532 / 0.432 / 0.037</text>
+  <text x="12" y="190" class="t">溫度做兩件事、不做一件事：</text>
+  <text x="12" y="212" class="t s">1. 把 0.996 壓成 0.886，「幾乎確定」和「真的確定」分得開，門檻才有刻度可以切。</text>
+  <text x="12" y="232" class="t s">2. 邊界案例的第二名被抬高（0.377 → 0.432），信心排序更貼近對錯。</text>
+  <text x="12" y="252" class="t s">✕ 不改變答案：例 B 仍然選 A。溫度只改信心，不改對錯；要改對錯得改題目或換模型。</text>
+  <rect x="470" y="12" width="12" height="12" fill="var(--c1)"/><text x="488" y="22" class="t s">選項 A</text>
+  <rect x="530" y="12" width="12" height="12" fill="var(--c2)"/><text x="548" y="22" class="t s">選項 B</text>
+  <rect x="590" y="12" width="12" height="12" fill="var(--c3)"/><text x="608" y="22" class="t s">C</text>
+</svg>
+</div>
+<figcaption>示意數字（logit 是假設的，softmax 計算是真的）。T = 2.4 只是舉例，實際值每類題在校正集上擬合。</figcaption>
+<details class="datatable">
+<summary>數據</summary>
+<div class="table-scroll plain">
+<table>
+<thead><tr><th>例子</th><th>logit A / B / C</th><th>T = 1</th><th>T = 2.4</th><th>答案</th></tr></thead>
+<tbody>
+<tr><td>A 明確</td><td class="nowrap">9.6 / 4.1 / 1.0</td><td class="nowrap">0.996 / 0.004 / 0.000</td><td class="nowrap">0.886 / 0.090 / 0.025</td><td>A（不變）</td></tr>
+<tr><td>B 邊界</td><td class="nowrap">7.4 / 6.9 / 1.0</td><td class="nowrap">0.622 / 0.377 / 0.001</td><td class="nowrap">0.532 / 0.432 / 0.037</td><td>A（不變）</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+</figure>
+
+<div class="note warn">
+<p class="head">溫度救不了的情況</p>
+<p>急迫度這一類題，模型錯的時候也很有信心，溫度攤平之後對錯的信心還是疊在一起（jevlike 量到錯誤偵測 AUROC 只有 0.70）。這種題用第二步反推，門檻會被推到接近滿分、覆蓋率很低，或者根本推不出來。<strong>推不出來就是答案：那一類不自動，全部給人</strong>。jevlike 的 11-thresholds 就是這樣處理急迫度的。</p>
+</div>
+
+<h3>第二步：門檻 — 用錯誤預算反推</h3>
+<p>先決定自動通過的那些最多可以錯幾成，例如 5%。然後在校正集上把題目依校正後信心從高排到低，從最高往下累加，算「信心 ≥ t 的那些題裡錯了幾題」，找最低的 t，使錯誤率的<strong>95% 信賴區間上界</strong>還在預算內。用上界而不是點估計，是因為校正集有限，運氣好的時候錯誤率會被低估。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>門檻 t</th><th>信心 ≥ t 的筆數</th><th>其中錯的</th><th>錯誤率（點估計）</th><th>錯誤率上界（Wilson 95%）</th><th>覆蓋率</th><th>判定</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">0.80</td><td>278</td><td>14</td><td>5.0%</td><td>8.3%</td><td>93%</td><td>✕ 超過預算</td></tr>
+<tr><td class="nowrap">0.85</td><td>262</td><td>10</td><td>3.8%</td><td>6.9%</td><td>87%</td><td>✕</td></tr>
+<tr><td class="nowrap">0.90</td><td>248</td><td>7</td><td>2.8%</td><td>5.7%</td><td>83%</td><td>✕ 點估計過了，上界沒過</td></tr>
+<tr><td class="nowrap">0.92</td><td>240</td><td>6</td><td>2.5%</td><td>5.3%</td><td>80%</td><td>✕</td></tr>
+<tr><td class="nowrap"><strong>0.94</strong></td><td>220</td><td>4</td><td>1.8%</td><td><strong>4.6%</strong></td><td><strong>73%</strong></td><td><strong>○ 取這個</strong></td></tr>
+<tr><td class="nowrap">0.96</td><td>196</td><td>2</td><td>1.0%</td><td>3.6%</td><td>65%</td><td>○ 但覆蓋率白白少 8 點</td></tr>
+<tr><td class="nowrap">0.98</td><td>160</td><td>1</td><td>0.6%</td><td>3.5%</td><td>53%</td><td>○ 太保守</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">示意：假設某一類題的校正集 300 筆、預算 5%。筆數與錯題數是假設的，上界與覆蓋率是依假設算出來的。實測的門檻在 jevlike 的 results/11-thresholds.md 與 thresholds.lock.json。</p>
+
+<figure class="reveal">
+<div class="chart">
+<svg viewBox="0 0 640 260" role="img" aria-label="覆蓋率與錯誤率上界隨門檻變化">
+  <g class="grid">
+    <line x1="60" y1="30" x2="60" y2="210"/>
+    <line x1="60" y1="210" x2="620" y2="210"/>
+    <line x1="60" y1="120" x2="620" y2="120"/>
+    <line x1="60" y1="30" x2="620" y2="30"/>
+  </g>
+  <rect x="60" y="120" width="560" height="90" class="band" opacity=".35"/>
+  <text x="66" y="134" class="t s">預算內（≤ 5%）</text>
+  <g class="axis">
+    <text x="54" y="34" text-anchor="end">10%</text>
+    <text x="54" y="124" text-anchor="end">5%</text>
+    <text x="54" y="214" text-anchor="end">0%</text>
+    <text x="120" y="230" text-anchor="middle">0.80</text>
+    <text x="200" y="230" text-anchor="middle">0.85</text>
+    <text x="280" y="230" text-anchor="middle">0.90</text>
+    <text x="360" y="230" text-anchor="middle">0.92</text>
+    <text x="440" y="230" text-anchor="middle">0.94</text>
+    <text x="520" y="230" text-anchor="middle">0.96</text>
+    <text x="600" y="230" text-anchor="middle">0.98</text>
+    <text x="340" y="250" text-anchor="middle">校正後信心門檻 t</text>
+  </g>
+  <polyline points="120,61 200,86 280,107 360,115 440,127 520,145 600,147" fill="none" stroke="var(--c1)" stroke-width="2"/>
+  <polyline points="120,120 200,142 280,160 360,165 440,178 520,192 600,199" fill="none" stroke="var(--c2)" stroke-width="2"/>
+  <circle cx="440" cy="127" r="5" fill="var(--c1)" stroke="var(--paper)" stroke-width="2"/>
+  <text x="452" y="124" class="t s">4.6%</text>
+  <circle cx="440" cy="178" r="5" fill="var(--c2)" stroke="var(--paper)" stroke-width="2"/>
+  <text x="452" y="194" class="t s">1.8%</text>
+  <line x1="440" y1="30" x2="440" y2="210" stroke="var(--accent)" stroke-width="1" stroke-dasharray="0"/>
+  <text x="446" y="44" class="t s acc">t = 0.94 · 覆蓋 73%</text>
+  <rect x="330" y="12" width="12" height="12" fill="var(--c1)"/><text x="348" y="22" class="t s">錯誤率上界</text>
+  <rect x="450" y="12" width="12" height="12" fill="var(--c2)"/><text x="468" y="22" class="t s">錯誤率點估計</text>
+</svg>
+</div>
+<figcaption>門檻往右推，錯誤率下降、覆蓋率也下降。取「上界剛好進預算」的那一點，再往右只是白白把題目丟給人。示意資料，同上表。</figcaption>
+<details class="datatable">
+<summary>數據</summary>
+<div class="table-scroll plain">
+<table>
+<thead><tr><th>t</th><th>點估計</th><th>上界</th><th>覆蓋率</th></tr></thead>
+<tbody>
+<tr><td>0.80</td><td>5.0%</td><td>8.3%</td><td>93%</td></tr>
+<tr><td>0.85</td><td>3.8%</td><td>6.9%</td><td>87%</td></tr>
+<tr><td>0.90</td><td>2.8%</td><td>5.7%</td><td>83%</td></tr>
+<tr><td>0.92</td><td>2.5%</td><td>5.3%</td><td>80%</td></tr>
+<tr><td>0.94</td><td>1.8%</td><td>4.6%</td><td>73%</td></tr>
+<tr><td>0.96</td><td>1.0%</td><td>3.6%</td><td>65%</td></tr>
+<tr><td>0.98</td><td>0.6%</td><td>3.5%</td><td>53%</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+</figure>
+
+<p>三段式就是設兩個門檻：高於上門檻自動通過；介於中間送給下一層（E4B 送 26B，或 26B 送 LLM 開思考）；低於下門檻直接給人。jevlike v9 在 12 格裡驗證了 11 格成立。</p>
+
+<h3>需要多少筆</h3>
+<p>錯誤預算越小，要越多筆才能「證明」。5% 預算下，每一類題的校正集大約要 <strong>200–300 筆</strong>，門檻才不會被上界壓得太保守；筆數少時方法依然成立，只是覆蓋率會很低，大部分題目升級。這也是為什麼真實資料到手後，第一件事是標 200–500 筆。</p>
+
+<h3>鎖：把整組條件釘死</h3>
+<p>校正結果只在「同一份權重、同一個引擎、同一個 prompt、同一個選項順序」下有效。jevlike 量到弱題有兩成會因選項順序改答案（急迫度 21%、SPC 19%），換引擎少一個 <code>&lt;bos&gt;</code> 十類平均掉 2–3 分。所以把條件全部寫進 lock 檔，上線前跑 <code>--check-lock</code>，任何一項變了就擋下來。它已經抓到過換錯引擎的 7 項。</p>
+<pre>{
+  "task": "m_alarm_category",
+  "model_sha256": "…",
+  "engine": "llama.cpp b11371",
+  "prompt_template_sha256": "…",
+  "option_order": ["A 機構", "B 電控", "C 物料", "D 程式", "E 環境"],
+  "temperature": 2.31,
+  "error_budget": 0.05,
+  "threshold_auto": 0.94,
+  "threshold_human": 0.60,
+  "calibration_window": "2026-08-18..2026-10-12",
+  "n_calibration": 312,
+  "rolling_test": {
+    "window": "2026-09-29..2026-10-12",
+    "n": 94, "err_upper": 0.041, "coverage": 0.81
+  },
+  "golden": {"n": 150, "acc": 0.973},
+  "valid_until": "2026-11-12"
+}</pre>
+<p class="byline">欄位示意。jevlike 現有的 thresholds.lock.json 已含模型、引擎、門檻；窗口、有效期與黃金集成績是本文建議補上的。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">04 · 以一條 SMT 線為例</p>
+<h2>每天 400 則，人只看 20 則</h2>
+<p>假設一條線每天進來約 400 則 alarm 與工單，每則問三題：類別、急迫度、要不要派工。照 jevlike v3 的級聯結果走：E4B 先答，門檻 0.999 以上自動通過（實測 66% 的題停在這層，整體準確率 0.952 對全用 26B 的 0.955，平均延遲少 20%），其餘 34% 送 26B。26B 再依每類門檻分流，平均約 85% 自動、15% 給人。</p>
+
+<figure class="reveal">
+<div class="chart">
+<svg viewBox="0 0 640 300" role="img" aria-label="一天 400 則的流向：E4B、26B、人">
+  <rect x="12" y="120" width="96" height="60" class="box acc"/>
+  <text x="60" y="145" text-anchor="middle" class="t acc">400 則 / 天</text>
+  <text x="60" y="165" text-anchor="middle" class="t s">alarm + 工單</text>
+  <line x1="108" y1="150" x2="170" y2="150" class="arrow"/>
+  <polygon points="170,146 178,150 170,154" class="head"/>
+  <rect x="180" y="110" width="110" height="80" class="box"/>
+  <text x="235" y="140" text-anchor="middle" class="t">E4B 先答</text>
+  <text x="235" y="160" text-anchor="middle" class="t s m">p50 ≈ 60 ms</text>
+  <text x="235" y="178" text-anchor="middle" class="t s">門檻 0.999</text>
+  <polyline points="235,110 235,50 362,50" class="arrow acc"/>
+  <polygon points="362,46 370,50 362,54" class="head acc"/>
+  <text x="244" y="44" class="t s acc">66% · 264 則自動</text>
+  <line x1="290" y1="180" x2="362" y2="180" class="arrow"/>
+  <polygon points="362,176 370,180 362,184" class="head"/>
+  <text x="294" y="172" class="t s">34% · 136 則</text>
+  <rect x="370" y="20" width="250" height="60" class="box acc"/>
+  <text x="495" y="44" text-anchor="middle" class="t acc">自動通過 · 合計 380 則 / 天</text>
+  <text x="495" y="64" text-anchor="middle" class="t s">其中隨機抽 1.5% ≈ 6 則 / 天給人稽核</text>
+  <rect x="370" y="170" width="110" height="80" class="box"/>
+  <text x="425" y="200" text-anchor="middle" class="t">26B 再答</text>
+  <text x="425" y="220" text-anchor="middle" class="t s m">p50 ≈ 137 ms</text>
+  <text x="425" y="238" text-anchor="middle" class="t s">每類各自門檻</text>
+  <line x1="425" y1="170" x2="425" y2="88" class="arrow acc"/>
+  <polygon points="421,88 425,80 429,88" class="head acc"/>
+  <text x="432" y="130" class="t s acc">85% · 116 則</text>
+  <line x1="480" y1="230" x2="540" y2="230" class="arrow"/>
+  <polygon points="540,226 548,230 540,234" class="head"/>
+  <rect x="550" y="200" width="78" height="60" class="box"/>
+  <text x="589" y="224" text-anchor="middle" class="t">人</text>
+  <text x="589" y="244" text-anchor="middle" class="t s m">≈ 20 則/天</text>
+  <text x="12" y="282" class="t s">每天留下的標註：升級 20 則 + 稽核 6 則 ≈ 26 則；一週 ≈ 130 則；三類題平分約各 43 則 / 週。</text>
+</svg>
+</div>
+<figcaption>示意流量。66% / 34% 與 0.952 / 0.955 是 jevlike v3 在合成資料上的實測；400 則、85%、1.5% 是為了算帳假設的。</figcaption>
+<details class="datatable">
+<summary>數據</summary>
+<div class="table-scroll plain">
+<table>
+<thead><tr><th>節點</th><th>每天</th><th>每週（5 天）</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td>進線</td><td>400</td><td>2,000</td><td>假設</td></tr>
+<tr><td>E4B 自動通過</td><td>264</td><td>1,320</td><td>66%，jevlike v3 實測</td></tr>
+<tr><td>送 26B</td><td>136</td><td>680</td><td>34%，同上</td></tr>
+<tr><td>26B 自動通過</td><td>116</td><td>580</td><td>85%，假設（強題 0.98，弱題低很多）</td></tr>
+<tr><td>升級給人</td><td>20</td><td>100</td><td>其餘</td></tr>
+<tr><td>稽核抽樣</td><td>6</td><td>30</td><td>自動通過的 1.5%，假設</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+</figure>
+
+<p class="mark">人每天看的 26 則裡，20 則是模型沒把握的，6 則是模型很有把握、但你要抽查它。後者才是量尺。</p>
+<p>升級標註只來自低信心的題目，它告訴你「沒把握的那些對不對」，完全不告訴你「有把握的那些錯多少」。一天 6 則看起來少，一個月就是 120 則，足夠算出稽核錯誤率的上界，對照 5% 的預算。少了這 6 則，整個迴圈等於沒有量尺。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">05 · 長期迴圈</p>
+<h2>八個站，每個月轉一圈，觸發時立刻轉</h2>
+
+<figure class="reveal">
+<div class="chart">
+<svg viewBox="0 0 640 330" role="img" aria-label="長期迴圈的八個站">
+  <ellipse cx="320" cy="165" rx="250" ry="115" fill="none" stroke="var(--rule-hard)" stroke-width="1.5"/>
+  <rect x="270" y="24" width="100" height="36" class="box acc"/><text x="320" y="46" text-anchor="middle" class="t acc">① 決策</text>
+  <rect x="470" y="60" width="100" height="36" class="box"/><text x="520" y="82" text-anchor="middle" class="t">② 記錄</text>
+  <rect x="520" y="146" width="112" height="36" class="box acc"/><text x="576" y="168" text-anchor="middle" class="t acc">③ 稽核抽樣</text>
+  <rect x="470" y="232" width="100" height="36" class="box"/><text x="520" y="254" text-anchor="middle" class="t">④ 監控</text>
+  <rect x="270" y="270" width="100" height="36" class="box"/><text x="320" y="292" text-anchor="middle" class="t">⑤ 觸發</text>
+  <rect x="70" y="232" width="110" height="36" class="box"/><text x="125" y="254" text-anchor="middle" class="t">⑥ 重新校正</text>
+  <rect x="8" y="146" width="100" height="36" class="box"/><text x="58" y="168" text-anchor="middle" class="t">⑦ 驗證</text>
+  <rect x="70" y="60" width="100" height="36" class="box acc"/><text x="120" y="82" text-anchor="middle" class="t acc">⑧ 上鎖</text>
+  <polygon points="430,47 438,52 430,57" class="head"/>
+  <polygon points="565,120 572,127 562,128" class="head"/>
+  <polygon points="565,210 572,203 562,202" class="head"/>
+  <polygon points="430,283 438,278 430,273" class="head"/>
+  <polygon points="210,283 202,278 210,273" class="head"/>
+  <polygon points="75,210 68,203 78,202" class="head"/>
+  <polygon points="75,120 68,127 78,128" class="head"/>
+  <polygon points="210,47 202,52 210,57" class="head"/>
+  <text x="320" y="150" text-anchor="middle" class="t s">每筆：輸入雜湊、原始 logprob、校正後信心、lock 版本、走哪條路、最後結果</text>
+  <text x="320" y="172" text-anchor="middle" class="t s">原始 logprob 一定存：換溫度時離線重算，不用重跑模型</text>
+  <text x="320" y="200" text-anchor="middle" class="t s acc">節奏：每月一圈；④ 的任一指標越線就立刻從 ⑤ 開始</text>
+</svg>
+</div>
+<figcaption>迴圈。①③⑧ 是三個不能省的站：沒有 ① 的紀錄就無法回溯，沒有 ③ 就沒有量尺，沒有 ⑧ 就會在不知不覺中換了條件。</figcaption>
+</figure>
+
+<h3>④ 監控什麼</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>指標</th><th>怎麼算</th><th>越線的意思</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">稽核錯誤率上界</td><td>最近 4 週的稽核樣本，Wilson 95% 上界</td><td>自動通過的那些真的在超過預算，最嚴重</td></tr>
+<tr><td class="nowrap">覆蓋率</td><td>自動通過 ÷ 全部，每類各算</td><td>掉很多通常是輸入變了（新機台、新 alarm code），不是模型變了</td></tr>
+<tr><td class="nowrap">校正後信心分布</td><td>每週的中位數、第 10 百分位</td><td>整體往下漂 → 資料分布在變</td></tr>
+<tr><td class="nowrap">選項總機率<span class="sub">option mass</span></td><td>所有選項字母的機率加總（jevlike 每次回傳）</td><td>掉下來表示模型根本沒打算回答：模板壞了、或題目超出範圍</td></tr>
+<tr><td class="nowrap">新詞率</td><td>state 裡沒在校正集出現過的機台代碼、alarm code 比例</td><td>升高 → 下一輪校正集要補這些</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>⑤ 觸發規則</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>情況</th><th>立刻做</th><th>然後</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">稽核錯誤率上界 &gt; 預算</td><td><strong>把門檻調高</strong>（往安全方向，立刻生效，覆蓋率暫時降）</td><td>重新校正，過驗證後再放回去</td></tr>
+<tr><td class="nowrap">覆蓋率掉 &gt; 10 點</td><td>先查輸入：新機台？新 code？模板？</td><td>不要急著降門檻；輸入變了就補校正集</td></tr>
+<tr><td class="nowrap">模型／引擎／prompt／選項順序改變</td><td><code>--check-lock</code> 失敗，拒絕上線</td><td>整組重來：校正、驗證、上鎖</td></tr>
+<tr><td class="nowrap">有效期到（30 天）</td><td>照節奏重新校正</td><td>沒有越線也要做，因為資料在滾</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>⑥⑦ 重新校正與驗證的節奏</h3>
+<figure class="reveal">
+<div class="chart">
+<svg viewBox="0 0 640 200" role="img" aria-label="滾動視窗：每月校正集與測試集往前推">
+  <text x="12" y="18" class="t s">週 →</text>
+  <g class="axis">
+    <text x="60" y="190" text-anchor="middle">0</text><text x="180" y="190" text-anchor="middle">4</text><text x="300" y="190" text-anchor="middle">8</text><text x="420" y="190" text-anchor="middle">12</text><text x="540" y="190" text-anchor="middle">16</text>
+  </g>
+  <g class="grid"><line x1="60" y1="30" x2="60" y2="170"/><line x1="180" y1="30" x2="180" y2="170"/><line x1="300" y1="30" x2="300" y2="170"/><line x1="420" y1="30" x2="420" y2="170"/><line x1="540" y1="30" x2="540" y2="170"/></g>
+  <text x="12" y="52" class="t s">第 1 輪</text>
+  <rect x="60" y="40" width="300" height="16" fill="var(--c1)" rx="2"/><rect x="360" y="40" width="60" height="16" fill="var(--c2)" rx="2"/>
+  <text x="426" y="52" class="t s m">lock v1 · 週 12 上線</text>
+  <text x="12" y="92" class="t s">第 2 輪</text>
+  <rect x="180" y="80" width="300" height="16" fill="var(--c1)" rx="2"/><rect x="480" y="80" width="60" height="16" fill="var(--c2)" rx="2"/>
+  <text x="546" y="92" class="t s m">lock v2</text>
+  <text x="12" y="132" class="t s">第 3 輪</text>
+  <rect x="300" y="120" width="300" height="16" fill="var(--c1)" rx="2"/><rect x="600" y="120" width="30" height="16" fill="var(--c2)" rx="2"/>
+  <rect x="60" y="152" width="12" height="12" fill="var(--c1)"/><text x="78" y="162" class="t s">校正集 · 10 週</text>
+  <rect x="200" y="152" width="12" height="12" fill="var(--c2)"/><text x="218" y="162" class="t s">滾動測試集 · 2 週</text>
+  <text x="340" y="162" class="t s">黃金集在圖外，每一輪都要再跑一次</text>
+</svg>
+</div>
+<figcaption>每輪往前推 4 週。新的溫度與門檻要同時過兩關：滾動測試集的錯誤率上界在預算內、覆蓋率沒有明顯下降；黃金集沒有退步。兩關都過才上鎖。</figcaption>
+</figure>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">06 · 通往 LoRA</p>
+<h2>迴圈的第二個產出，是教材</h2>
+<p>升級標註和稽核標註累積下來，就是訓練資料。但要先講清楚兩件事：<strong>LoRA 不保證比零樣本好</strong>，jevlike v11 試過同底模的 jevify LoRA，D0 只有 92.5%，比零樣本的 95.5% 差；而且 <code>--lora</code> 和生成共用一個 server 會讓判斷慢 3 倍。另一邊，Bespoke Nimble 在 Qwen 9B 上用對比式資料把 66.4% 拉到 90.1%，decider-4b 用 8 千筆讓 4B 贏過 Jev。差別在資料的品質和「要解決的是哪一類題」。</p>
+
+<figure class="reveal">
+<div class="chart">
+<svg viewBox="0 0 640 260" role="img" aria-label="一條線一年累積的人工標註筆數">
+  <g class="grid">
+    <line x1="60" y1="30" x2="60" y2="210"/><line x1="60" y1="210" x2="620" y2="210"/>
+    <line x1="60" y1="165" x2="620" y2="165"/><line x1="60" y1="120" x2="620" y2="120"/><line x1="60" y1="75" x2="620" y2="75"/><line x1="60" y1="30" x2="620" y2="30"/>
+  </g>
+  <g class="axis">
+    <text x="54" y="214" text-anchor="end">0</text><text x="54" y="169" text-anchor="end">2,000</text><text x="54" y="124" text-anchor="end">4,000</text><text x="54" y="79" text-anchor="end">6,000</text><text x="54" y="34" text-anchor="end">8,000</text>
+    <text x="60" y="230" text-anchor="middle">0</text><text x="200" y="230" text-anchor="middle">13</text><text x="340" y="230" text-anchor="middle">26</text><text x="480" y="230" text-anchor="middle">39</text><text x="620" y="230" text-anchor="middle">52 週</text>
+  </g>
+  <polyline points="60,210 232,165 404,120 620,64" fill="none" stroke="var(--c1)" stroke-width="2"/>
+  <circle cx="620" cy="64" r="5" fill="var(--c1)" stroke="var(--paper)" stroke-width="2"/>
+  <text x="560" y="56" class="t s">6,500 筆</text>
+  <line x1="232" y1="165" x2="232" y2="210" stroke="var(--accent)" stroke-width="1"/>
+  <text x="238" y="200" class="t s acc">第 16 週 · 2,000 筆</text>
+  <text x="238" y="186" class="t s">三類題各約 670：可以開始</text>
+  <line x1="404" y1="120" x2="404" y2="210" stroke="var(--accent)" stroke-width="1"/>
+  <text x="410" y="200" class="t s acc">第 32 週 · 4,000 筆</text>
+  <text x="410" y="186" class="t s">夠做對比式配對</text>
+  <text x="70" y="48" class="t s">一條線，每週 125 筆（升級 100 + 稽核 25），不含模型自己的輸出</text>
+  <text x="70" y="66" class="t s">四條線就是四倍；但同一類題跨線的資料才能合併</text>
+</svg>
+</div>
+<figcaption>示意。以 §04 的流量推算。累積的是人判過的筆數；模型自動通過的那些不算教材，只能當無標註的輔助。</figcaption>
+<details class="datatable">
+<summary>數據</summary>
+<div class="table-scroll plain">
+<table>
+<thead><tr><th>週</th><th>累積人工標註</th><th>每類（三類平分）</th></tr></thead>
+<tbody>
+<tr><td>4</td><td>500</td><td>167</td></tr>
+<tr><td>8</td><td>1,000</td><td>333</td></tr>
+<tr><td>16</td><td>2,000</td><td>667</td></tr>
+<tr><td>32</td><td>4,000</td><td>1,333</td></tr>
+<tr><td>52</td><td>6,500</td><td>2,167</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+</figure>
+
+<h3>什麼時候才值得訓練</h3>
+<p>不是「筆數夠了」就訓練，而是迴圈裡出現了零樣本解不掉的題。三個訊號同時成立才開始：</p>
+<div class="cols">
+  <div class="card">
+    <p class="eyebrow">訊號 1 · 有題目卡住</p>
+    <p>某一類題改寫判準之後，覆蓋率還是上不去，或者根本推不出門檻。jevlike 現在的候選是急迫度（0.885、AUROC 0.70）和 SPC（Clef 27B 訓練過的判斷頭在這題多 11 點，證明訓練有空間）。</p>
+  </div>
+  <div class="card">
+    <p class="eyebrow">訊號 2 · 教材夠而且對</p>
+    <p>那一類題累積 ≥ 1,500–2,000 筆人工標註，而且兩位標註者的 kappa ≥ 0.8。kappa 不到，先修題目定義，不要拿分歧的資料去訓練。</p>
+  </div>
+  <div class="card">
+    <p class="eyebrow">訊號 3 · 有明確的收益目標</p>
+    <p>寫死：E4B LoRA 在黃金集上要追到 26B 零樣本的 −2 點以內，單題延遲 ≤ 70 ms；或 26B LoRA 讓該類覆蓋率 +15 點。達不到就不換。</p>
+  </div>
+</div>
+
+<h3>怎麼做，怎麼驗</h3>
+<p>配方照 Nimble：只在答案字母的 token 上訓練；每筆標註配一筆「改一個事實讓答案翻轉」的孿生例子，讓模型學的是判準而不是表面線索。教師是 26B 開思考（jevlike v12 量到只對 SPC、UPH 有效、對急迫度有害，所以急迫度的教材只能來自人）。</p>
+<p>訓練出來的模型要過<strong>和零樣本一模一樣的閘門</strong>：黃金集不退步、滾動測試集錯誤率上界在預算內、重新擬合溫度與門檻、上鎖。它是記錄簿裡的另一台器具，不是例外。</p>
+
+<div class="note">
+<p class="head">記錄簿的三條</p>
+<p>第一，訓練用的資料要和黃金集、滾動測試集完全隔離，依時間切，同一筆的孿生例子不能跨集。第二，LoRA 模型和零樣本模型各自一本 lock，判斷與生成分開跑 server。第三，零樣本的 26B 永遠留著當對照；LoRA 如果某一天開始漂，退回去就是一行設定。</p>
+</div>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">07 · 第一個月要做的事</p>
+<h2>從合成資料到第一本 lock</h2>
+<div class="table-scroll">
+<table>
+<thead><tr><th>週</th><th>做什麼</th><th>產出</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">第 1 週</td><td>GB10 上重現 26B（docs/handoff-gb10.md）；從歷史資料挑黃金集，每類 100–150 筆，兩人獨立標，算 kappa</td><td>黃金集、kappa 表</td></tr>
+<tr><td class="nowrap">第 2–3 週</td><td>最近 8 週的真實資料標 200–300 筆／類當校正集；擬合每類溫度；5% 預算反推門檻；急迫度推不出就標「不自動」</td><td>溫度表、門檻表</td></tr>
+<tr><td class="nowrap">第 4 週</td><td>最近 2 週當滾動測試；黃金集重跑；兩關都過就上鎖，有效期 30 天；接上每天 6 則的稽核抽樣與監控面板</td><td>lock v1、監控面板</td></tr>
+<tr><td class="nowrap">之後每月</td><td>§05 轉一圈；有效期到或越線就提前</td><td>lock v2、v3 …</td></tr>
+</tbody>
+</table>
+</div>
+<p>整個流程裡 GPU 只在校正集和測試集上各跑一次 logprob，之後所有重算都在 CPU；一條線一個月的校正成本是人工標 300 筆加一個下午的機器時間。</p>
+<span class="stamp">校正<small>2026-10-13</small><small>有效至 11-12</small></span>
+</section>
+
+<section>
+<p class="eyebrow">附 · 來源</p>
+<p style="font-size: var(--fs-sm); color: var(--ink-2)">標「實測」的數字出自 jevlike repo（clarencechien/jevlike）：results/REPORT.md、04-accuracy、06-ladder、11-thresholds、13-jevbench、16-clef-llamacpp、17-v12 與 thresholds.lock.json；長官版 imitator.ai-apps.work/r/gb10-typed-decisions。溫度與門檻的方法：Platt／temperature scaling、conformal risk control（jevlike v7 借自 poorjev、jevcal，v9 修正）。LoRA 參考：Bespoke Nimble（Qwen 9B，66.4% → 90.1%）、decider-4b（8k 筆）。標「示意」的流量、筆數與 logit 是為了把流程算一遍而假設的，上線前要換成自己的。</p>
+</section>
+
+</main>
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
