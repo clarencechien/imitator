@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="設計計算書 — 以 Zeabur 關閉為切點，推導 AI 時代平台的核心資產是「每一層都能說不」">
+<meta name="imitator-reference" content="1980 年代化工廠 P&ID 藍曬圖隨附的設計計算書 — 編號圖頁、設計條件表、背壓閥符號">
+<meta name="imitator-paper" content="hsl(206 30% 95%)">
+<meta name="imitator-accent" content="hsl(212 62% 34%)">
+<title>每一層，都要能說不 — Zeabur 之後的 AI 平台地形</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* 1. chassis — report.css pasted verbatim below */
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* 2. this report's voice
+   REGISTER:  設計計算書 — 以 Zeabur 關閉為切點，推導 AI 時代平台的核心資產是「每一層都能說不」；讀者是要自己架平台的工程師。
+   REFERENCE: 1980 年代化工廠 P&ID 藍曬圖隨附的設計計算書 — 編號圖頁（SHT 01…）、設計條件表、閥門符號；背壓閥（backpressure regulator）是這篇的核心隱喻，直接取自這類圖面。
+   PAPER:     藍曬圖紙（diazo blueline）— 淡青白，hsl(206 30% 95%)。色相落在 190–230 是因為材料本身就是藍曬紙，不是預設灰；飽和 30% 讓它明顯不是中性灰。
+   VOICE:     普魯士藍只給一件事用：閥門、章節號、連結。標題用 Plex 窄體壓在 Noto 上，表格欄位用等寬體。數字是設計條件，不是裝飾。
+   NOT:       儀表板、不是 autopsy 紅、不是 mockup 的骨白加靛青。
+   RECENT:    unavailable（無 token）。 */
+:root {
+  --paper: hsl(206 30% 95%);
+  --card: hsl(206 30% 98%);
+  --ink: hsl(212 40% 14%);
+  --ink-2: hsl(212 25% 30%);
+  --mist: hsl(210 18% 42%);
+  --rule: hsl(208 25% 85%);
+  --rule-hard: hsl(208 25% 70%);
+  --prussian: hsl(212 62% 34%);
+  --accent: var(--prussian);
+  --accent-soft: hsl(210 45% 88%);
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --serif: "Noto Sans TC", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(212 38% 9%);
+    --card: hsl(212 34% 13%);
+    --ink: hsl(205 30% 92%);
+    --ink-2: hsl(205 20% 75%);
+    --mist: hsl(205 15% 62%);
+    --rule: hsl(212 25% 22%);
+    --rule-hard: hsl(212 25% 34%);
+    --prussian: hsl(204 70% 66%);
+    --accent-soft: hsl(210 40% 22%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(212 38% 9%);
+  --card: hsl(212 34% 13%);
+  --ink: hsl(205 30% 92%);
+  --ink-2: hsl(205 20% 75%);
+  --mist: hsl(205 15% 62%);
+  --rule: hsl(212 25% 22%);
+  --rule-hard: hsl(212 25% 34%);
+  --prussian: hsl(204 70% 66%);
+  --accent-soft: hsl(210 40% 22%);
+}
+pre { font-family: var(--mono); }
+
+/* drawing-sheet title block: the one device this register adds */
+.titleblock { font-family: var(--mono); font-size: var(--fs-xs); color: var(--mist); border: 1px solid var(--rule-hard); border-radius: 2px; padding: var(--sp-3) var(--sp-4); margin: var(--sp-5) 0 var(--sp-6); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--sp-2) var(--sp-4); }
+.titleblock > * { min-width: 0; }
+.titleblock b { display: block; color: var(--ink-2); font-weight: 500; letter-spacing: .04em; }
+.titleblock span { color: var(--ink); overflow-wrap: anywhere; }
+/* evidence grade chips: a verdict, written, never colour alone */
+.grade { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; border: 1px solid var(--rule-hard); border-radius: 2px; padding: .05em .45em; color: var(--ink-2); vertical-align: middle; white-space: nowrap; }
+.grade.strong { border-color: var(--accent); color: var(--accent); }
+/* figure */
+figure { margin: var(--sp-6) 0; }
+figcaption { font-family: var(--mono); font-size: var(--fs-xs); color: var(--mist); margin-top: var(--sp-3); letter-spacing: .03em; }
+.fig svg { width: 100%; height: auto; display: block; }
+.fig .box { fill: var(--card); stroke: var(--rule-hard); stroke-width: 1.2; }
+.fig .valve { fill: var(--accent); }
+.fig .pipe { stroke: var(--rule-hard); stroke-width: 2; fill: none; }
+.fig .band { fill: var(--accent-soft); stroke: none; }
+.fig text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+.fig text.lbl { font-family: var(--mono); font-size: 11px; fill: var(--mist); letter-spacing: .04em; }
+.fig text.t { fill: var(--ink); font-weight: 700; }
+/* timeline rows */
+.tl td:first-child { font-family: var(--mono); white-space: nowrap; color: var(--accent); font-weight: 500; }
+ol.conc { padding-left: 0; list-style: none; counter-reset: c; }
+ol.conc > li { counter-increment: c; position: relative; padding-left: 3.2rem; margin-bottom: var(--sp-5); }
+ol.conc > li::before { content: counter(c, decimal-leading-zero); position: absolute; left: 0; top: .15em; font-family: var(--mono); font-size: var(--fs-sm); color: var(--accent); letter-spacing: .04em; }
+ol.conc > li > b { display: block; margin-bottom: var(--sp-1); }
+.refs { font-size: var(--fs-sm); line-height: 1.7; }
+.refs li { margin-bottom: .35em; overflow-wrap: anywhere; }
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+<header class="reveal">
+<p class="eyebrow">設計計算書 · AI 平台地形 · REV A</p>
+<h1 class="display">每一層，<br>都要能<em>說不</em></h1>
+<p class="lede">2026 年 10 月 17 日，Zeabur 宣布年底關閉。這篇用它當切點，問一個比「哪家平台會贏」更前面的問題：AI 時代從開發到維運的平台，核心資產到底是什麼。答案不是算力，也不是 dashboard，是每一層都有一個能拒絕 agent 的閥門。</p>
+<div class="titleblock">
+  <div><b>DOC</b><span>AI-PLATFORM-2026-10</span></div>
+  <div><b>DATE</b><span>2026-10-17</span></div>
+  <div><b>SCOPE</b><span>2024 → 2026 H2</span></div>
+  <div><b>BASIS</b><span>a16z 2025-10 / 2026-02、Octoverse 2025、IaC-Eval、TerraFormer（ICSE 2026）、各家財報與公告</span></div>
+  <div><b>STATUS</b><span>結論八條，其中五條證據強、三條中；未決四項列於 SHT 08</span></div>
+</div>
+</header>
+
+<section>
+<p class="eyebrow">SHT 01 · 事故現場</p>
+<h2>Zeabur 的三年半，分三段讀</h2>
+<p>先把事實擺好。Zeabur 不是突然倒的，它在倒之前八個月就自己寫下了診斷書。</p>
+<div class="table-scroll"><table class="tl">
+<thead><tr><th>日期</th><th>事件</th><th>它說明了什麼</th></tr></thead>
+<tbody>
+<tr><td>2026-02-23</td><td>宣布共享叢集不再接新專案，定位改為「Your AI DevOps Engineer」</td><td>自己承認：賣算力就是在跟 AWS、GCP、Hetzner 比價，而機器跑在它們之上，價格永遠不可能更低；共享叢集的按量計價低於成本，一直在補貼。</td></tr>
+<tr><td>2026-08-27</td><td>第一次資安事件</td><td>部分帳號資訊與專案環境變數遭讀取，含第三方 API 金鑰與資料庫密碼。</td></tr>
+<tr><td>2026-09-22</td><td>關閉 AI Hub 並退款</td><td>評估維運成本與資安風險後，決定不再恢復。</td></tr>
+<tr><td>2026-10-14</td><td>第二次入侵，範圍比第一次大</td><td>攻擊者取得平台資料庫讀取權限；環境變數、帳號、API token、zSend 金鑰受影響，部分 GCP 專用伺服器也遭未授權存取。</td></tr>
+<tr><td>2026-10-17</td><td>創辦人發信宣布關閉</td><td>12/1 起專用伺服器停止續費、共享叢集暫停；12/31 全面停止。帳戶退款與資安損失賠償分開受理。</td></tr>
+</tbody>
+</table></div>
+<p>三段的邏輯是連著的。第一段承認「轉賣層沒有結構優勢」，於是轉型。但「AI DevOps Engineer」這個定位的前提，是平台要持有客戶 production 的所有鑰匙：環境變數、資料庫密碼、雲端 token。第二和第三段外洩的，剛好就是這些鑰匙。</p>
+<p><span class="mark">轉型不是失敗的原因，轉型把資安從功能變成了存在條件，而他們沒有那個底子。</span></p>
+<div class="note critical">
+<p class="head">同一年，同一種東西外洩了三次</p>
+<p>Vercel 4 月的事件起點是員工用的第三方 AI 工具 Context.ai 被入侵，再進到 Google Workspace，最後拿到客戶的環境變數。Lovable 4 月的 BOLA 漏洞讓任何免費帳號讀到 2025 年 11 月前所有專案的原始碼、資料庫憑證和 AI 對話記錄，而 Lovable 建的 app 常嵌著 Supabase、Stripe、Google API 的金鑰。Zeabur 兩次都是環境變數和 token。三家平台、三種架構，外洩的永遠是「平台替你保管的鑰匙」。差別只在 Lovable 和 Vercel 撐得住，Zeabur 撐不住。</p>
+</div>
+<p>還有一個對照組要擺出來，免得把「薄 PaaS」整個判死。Railway 1 月募了 $100M Series B，ARR 超過 $10M 且已獲利，自建整套 stack；Render 2 月以 $1.5B 估值募 $100M；Fly.io 7 月募 $25M，產品重新定位成「給 agent 的電腦」。三家活得好，共同點是要嘛自有基礎設施，要嘛有明確的 agent 時代定位。Zeabur 兩者都沒有。</p>
+</section>
+
+<section>
+<p class="eyebrow">SHT 02 · 時間軸</p>
+<h2>2024 到 2026 下半，三條線各自在做什麼</h2>
+<p>把 AI SDLC 拆成三條線看：Build（寫 code）、Ship 與 Run（部署與維運）、Data（資料層）。三條線的斜率完全不同。</p>
+<div class="table-scroll"><table class="tl">
+<thead><tr><th>時間</th><th>Build</th><th>Ship · Run</th><th>Data</th></tr></thead>
+<tbody>
+<tr><td>2024</td><td>補全變聊天；Replit Agent（9 月）、Bolt.new（10 月）、Lovable（11 月）上線</td><td>git push 就部署的薄 PaaS 時代：Zeabur、Railway、Render</td><td>Unity Catalog 開源（6 月）；Polaris 宣布將開源</td></tr>
+<tr><td>2025 H1</td><td>Karpathy 命名 vibe coding（2 月）；Lovable 半年從 $7M 到 $84M ARR</td><td>Lovable 170 個 app 可讀個資（CVE-2025-48757，3 月）；Replit agent 在 code freeze 中刪掉 prod 資料庫（7 月）</td><td>Databricks 買 Neon（5 月，約 $1B）：Neon 上 80% 的資料庫由 agent 建立；Snowflake 買 Crunchy Data（6 月）；DuckLake 發布（5 月）</td></tr>
+<tr><td>2025 H2</td><td>a16z〈Trillion Dollar AI Software Development Stack〉（10 月）：Plan → Code → Review，market map 幾乎不碰 Ship 與 Run；Salesforce Agentforce Vibes（10 月）</td><td>Pulumi Neo（9 月）：產 PR 不碰 prod；Resolve.ai 成為獨角獸（12 月）；Lovable Cloud 內建後端（9 月）</td><td>Octoverse（10 月）：TypeScript 成為第一語言；pg_lake 開源（11 月）；Supabase $5B（10 月）</td></tr>
+<tr><td>2026 H1</td><td>Karpathy 改口 agentic engineering（2 月）；a16z〈Most People Can't Vibe Code〉點名 setup、security、deployment 三個問題（2 月）；Google 關掉只活 11 個月的 Firebase Studio，改押 AI Studio（3 月）</td><td>Zeabur 轉型（2 月）；Vercel 被駭（4 月）；Lovable BOLA 48 天未修（4 月）；RedAccess 找到 38 萬個公開的 vibe app，5 千個含敏感資料（5 月）；Cloudflare 收購 VoidZero（6 月）</td><td>Lakebase GA（1 月）、Polaris 成 Apache 頂級專案（2 月）、Snowflake Cortex Code（2 月）、DuckLake 1.0（4 月）、Supabase $10.5B 且 60% 以上新資料庫由 AI 工具啟動（6 月）、Databricks「governed vibe coding」（6 月）</td></tr>
+<tr><td>2026 H2</td><td>Lovable $13.3B 估值、$600M ARR（8–9 月）；Replit 年化 $525M、目標年底 $1B</td><td>Zeabur 第一次入侵（8 月）、第二次（10 月）、關閉（10 月）</td><td>AWS 收購 DuckLabs（8 月）；Supabase 再募 $150M 並收購 Turso，每月 400 萬個新資料庫、約 70% 由 agent 建立（10 月）</td></tr>
+</tbody>
+</table></div>
+<p>三條線的讀法：Build 在 2025 年就被商品化了，一年內開源版的 Lovable（Dyad、bolt.diy）和三大雲自己的版本都出現；Ship 與 Run 是 2026 年事故和錢集中的地方；Data 是併購集中的地方。三大資料陣營一年內買的全是開源資料底座，Neon、Crunchy Data、DuckLabs，一個 app builder 都沒買。</p>
+</section>
+
+<section>
+<p class="eyebrow">SHT 03 · 設計條件</p>
+<h2>市場不是二分，是五塊</h2>
+<p>「企業 vs 非企業」太粗。按「誰擁有資料和權限」切，是五塊，每塊的治理來源不同，而 Cloudflare 只在其中一塊。</p>
+<div class="table-scroll"><table>
+<thead><tr><th>市場</th><th>誰在吃</th><th>治理從哪來</th><th>證據</th></tr></thead>
+<tbody>
+<tr><td>個人、創作者、小生意</td><td>Lovable、Base44（Wix）、Google AI Studio</td><td>平台預設，而且預設常常是錯的</td><td>Lovable 使用者調查：近八成想變現、三分之一已有營收；Base44 收購九個月後 ARR $100M、無業務團隊；但 RedAccess 的 38 萬個公開資產</td></tr>
+<tr><td>新創與技術團隊</td><td>Replit、Railway、Render、Fly.io、Cloudflare、Vercel</td><td>runtime 隔離；code 自己管</td><td>63 家 YC 公司有端點掛在 Replit；Supabase 調查：61% 新創過半程式碼由 AI 寫，Cloudflare 是成長最快的雲</td></tr>
+<tr><td>企業內部工具</td><td>Replit Enterprise、Retool、Power Apps、Mendix、OutSystems</td><td>SSO、VPC peering、自架</td><td>Zillow 600 席、7,000 個 app，非技術員工做的功能進 production；Retool 調查 48% 非工程師已能直接建置</td></tr>
+<tr><td>資料平台</td><td>Databricks、Snowflake</td><td>Unity Catalog、Polaris</td><td>Replit 建、Databricks Apps 跑、Unity Catalog 管；Snowflake 超過一半客戶在用 Cortex Code</td></tr>
+<tr><td>System of record</td><td>Salesforce、ServiceNow、SAP</td><td>trust layer，資料不出平台</td><td>Agentforce Vibes 推出時 4 萬月活、100 萬行 AI 生成 code 進 production</td></tr>
+</tbody>
+</table></div>
+<p>企業端最硬的一句話是 Salesforce 自己說的：所有動作都在 trust layer 裡跑，企業資料不離開平台邊界。這不是 Cloudflare 能吃的，因為這塊的護城河是資料所在地，不是 runtime。</p>
+<p>五塊市場裡，目前唯一跑通的「一條龍」長這樣：Build 在外面，Ship 與 Run 在資料平台裡面。Replit 的 agent 建 app，部署進 Databricks Apps 後繼承 Databricks 認證、Unity Catalog 治理和既有網路限制，還自動配一個 Lakebase Postgres 給 app 的操作資料。消費者層的 vibe 工具不自己長治理，而是把 app 投進已有治理的平台。</p>
+</section>
+
+<section>
+<p class="eyebrow">SHT 04 · 背壓閥</p>
+<h2>每一層贏家做的都是同一件事</h2>
+<p>把這一年的贏家和事故並排，會看到一個共同原則。化工廠的 P&amp;ID 上，每條會失控的管線都要有一個背壓閥：流量太快、壓力不對，閥門自己關。AI 時代的平台也是，agent 跑得比人快，所以每一層都要有一個能拒絕它的機制。</p>
+<figure class="fig wide reveal">
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig1t">
+<title id="fig1t">四層加一條橫切線，每層一個背壓閥</title>
+<path class="pipe" d="M24 90 H616"/>
+<g>
+<rect class="box" x="24" y="60" width="118" height="60" rx="3"/>
+<text class="t" x="83" y="86" text-anchor="middle">Intent · Plan</text>
+<text x="83" y="106" text-anchor="middle">spec、需求</text>
+</g>
+<g>
+<rect class="box" x="182" y="60" width="118" height="60" rx="3"/>
+<text class="t" x="241" y="86" text-anchor="middle">Build</text>
+<text x="241" y="106" text-anchor="middle">agent 寫 code</text>
+</g>
+<g>
+<rect class="box" x="340" y="60" width="118" height="60" rx="3"/>
+<text class="t" x="399" y="86" text-anchor="middle">Ship</text>
+<text x="399" y="106" text-anchor="middle">部署、infra</text>
+</g>
+<g>
+<rect class="box" x="498" y="60" width="118" height="60" rx="3"/>
+<text class="t" x="557" y="86" text-anchor="middle">Run</text>
+<text x="557" y="106" text-anchor="middle">o11y、incident</text>
+</g>
+<!-- valves: bow-tie glyph -->
+<g class="valve">
+<path d="M152 82 L172 90 L152 98 Z M172 82 L152 90 L172 98 Z"/>
+<path d="M310 82 L330 90 L310 98 Z M330 82 L310 90 L330 98 Z"/>
+<path d="M468 82 L488 90 L468 98 Z M488 82 L468 90 L488 98 Z"/>
+</g>
+<text class="lbl" x="162" y="140" text-anchor="middle">型別 / 編譯器</text>
+<text class="lbl" x="320" y="140" text-anchor="middle">PR / plan / branch</text>
+<text class="lbl" x="478" y="140" text-anchor="middle">唯讀 / 審批</text>
+<!-- data layer -->
+<rect class="box" x="182" y="170" width="434" height="44" rx="3"/>
+<text class="t" x="196" y="188">Data</text>
+<text x="196" y="205">schema 拒絕錯誤寫入 · catalog 一次定義處處執行 · branch 當沙箱</text>
+<path class="pipe" d="M241 120 V170 M399 120 V170 M557 120 V170"/>
+<!-- cross-cutting band -->
+<rect class="band" x="24" y="240" width="592" height="40" rx="3"/>
+<text class="t" x="40" y="258">橫切</text>
+<text x="40" y="274">agent 身分 · 審批 · 稽核 — Vercel 與 Azure MCP 事件後才被看見的那一層</text>
+</svg>
+<figcaption>FIG 1 · 四層加一條橫切。閥門是重點，箱子不是。</figcaption>
+</figure>
+<div class="table-scroll"><table>
+<thead><tr><th>層</th><th>誰在做</th><th>閥門怎麼關</th></tr></thead>
+<tbody>
+<tr><td>編譯器</td><td>TypeScript、Pulumi TS、Encore、Void</td><td>型別錯誤在編譯時被擋，不會燒到 apply 才發現</td></tr>
+<tr><td>資料寫入</td><td>Convex、Supabase RLS</td><td>Convex 的論述：後端必須拒絕格式錯誤的寫入，而不是接受再祈禱</td></tr>
+<tr><td>基礎設施</td><td>Pulumi Neo、Neon／Lakebase branch</td><td>Neo 產 PR 不直接改 prod；branch 讓 agent 在進 production 前預覽</td></tr>
+<tr><td>維運</td><td>Cleric、Traversal、Replit App Monitoring</td><td>唯讀。Traversal 明說不裝 agent、不寫 prod；Cleric 要走審批流程</td></tr>
+<tr><td>資料目錄</td><td>Unity Catalog、Polaris、Dremio Open Catalog</td><td>政策寫在 catalog 而不是個別引擎，一份設定涵蓋 Spark、Trino、DuckDB 和 AI agent</td></tr>
+<tr><td>組織</td><td>Salesforce trust layer、Databricks App Spaces</td><td>資料不出平台邊界；一組 app 一次設好權限，不逐個設</td></tr>
+</tbody>
+</table></div>
+<h3>這不只是比喻，有實證</h3>
+<p>你可能會問：IaC 和 infra-from-code 如果都由 AI 來寫，差在哪？差在回饋出現的時間和品質，而這有研究支持。</p>
+<div class="tiles stagger">
+<div class="stat"><p class="label">IaC-Eval（NeurIPS 2024）</p><p class="value">19.36%</p><p class="delta">GPT-4 在 458 個 AWS Terraform 情境的 pass@1；同一模型在 Python 的 EvalPlus 是 86.6%</p></div>
+<div class="stat"><p class="label">Generative Compilation（2026）</p><p class="value">65.9 → 13.1%</p><p class="delta">編譯錯誤率：無回饋 → 生成後回饋 20.7% → 生成中即時回饋 13.1%</p></div>
+<div class="stat"><p class="label">TerraFormer（ICSE 2026）</p><p class="value">贏 50 倍大的模型</p><p class="delta">用 verifier 回饋微調的小模型在 IaC-Eval 排第三，超過 Sonnet 3.7、GPT-4.1</p></div>
+</div>
+<p>TerraFormer 還解釋了為什麼 Terraform 比 Kubernetes 難：HCL 在訓練資料裡遠少於 k8s、CloudFormation、Ansible 用的 YAML 和 JSON。所以語言的勝負公式有三個乘數：訓練流行度 × 回饋品質 × 平台整合度。TypeScript 在前兩項最高，Octoverse 2025 顯示它在 8 月成為 GitHub 第一語言，月活貢獻者年增 66%。這就是為什麼「用 TS 寫 infra」（Pulumi、CDK、Encore、Convex）占便宜，而一個新發明的小眾 DSL 得靠把文件塞進 context 來補訓練資料的不足。</p>
+<p><span class="mark">a16z 2026 年說理想的 agent 是「先診斷、先實作、再來請你批准」。那是前半句。後半句是：每一層都要能說不。</span></p>
+</section>
+
+<section>
+<p class="eyebrow">SHT 05 · 重力</p>
+<h2>資料層是重力所在，企業與非企業在這裡收斂</h2>
+<p>看總量會被 app builder 的估值騙，看斜率要看「誰在開資料庫」。</p>
+<p class="hero">70%</p>
+<p class="lede">Supabase 每月約 400 萬個新資料庫，約七成由 AI agent 或 AI coding 工具建立。CEO 說可量測的是 60%，實際上更可能是 90%。</p>
+<div class="tiles stagger">
+<div class="stat"><p class="label">Neon</p><p class="value">30% → 80%</p><p class="delta">一年內 agent 建立的資料庫比例；創辦人預期幾年內到 99%</p></div>
+<div class="stat"><p class="label">Supabase</p><p class="value">$10.5B</p><p class="delta">2026-06，八個月翻倍；資料庫建立量年增 600%，Claude Code 是最大單一來源</p></div>
+<div class="stat"><p class="label">DuckDB</p><p class="value">300 萬 / 天</p><p class="delta">每日下載量；DuckLabs 8 月加入 AWS，專案留在基金會、MIT 授權不變</p></div>
+<div class="stat"><p class="label">Lakebase</p><p class="value">2× 倉儲</p><p class="delta">採用速度是 Databricks 資料倉儲產品的兩倍以上，數千家公司跑 production</p></div>
+</div>
+<p>三件事同時發生。第一，三大資料陣營一年內各買了一個開源資料底座：Databricks 買 Neon、Snowflake 買 Crunchy Data 並開源 pg_lake、AWS 買 DuckLabs。第二，目錄層開源化：Unity Catalog 2024 年開源，Polaris 2026 年 2 月成為 Apache 頂級專案；Iceberg 成為所有人的共同底層後，table format 不再差異化，競爭上移到 catalog。第三，商業模式反轉：Lovable 和 Bolt 透過 Supabase for Platforms 白牌 Supabase，名義上的競爭者變成支柱客戶。</p>
+<p>把這些拼起來，「資料自主」有了一個全開源的具體技術棧：Postgres 當 catalog、Parquet 放 S3 相容儲存、DuckDB 或 DuckLake 當無狀態計算、Polaris 或 Unity Catalog 管政策、MCP 給 agent 接。全部 MIT 或 Apache，三大雲都在背後出力，而且不需要任何一家雲。DuckLake 的設計一句話說完：metadata 放 Postgres，資料以 Parquet 放 S3，計算是可拋棄的 DuckDB 實例。</p>
+<p>企業與非企業的差別，在這一層縮小到一件事：<span class="mark">技術棧相同，分歧只剩政策住在哪。</span>非企業端是平台替你保管（Lovable Cloud、Supabase 託管），企業端是 catalog 或引擎強制執行（Unity、Polaris、EDB 把治理放進引擎）。EDB 的講法最直接：agent 以機器速度行動時，治理必須住在引擎裡，才不會被繞過。</p>
+<div class="note warn">
+<p class="head">一個要盯的風險</p>
+<p>AWS 收 DuckLabs 的結構是專案留在基金會、人全部進 AWS。有評論說得直白：基金會還在，但桌上每個人都戴同一個 logo 的名牌。MIT 授權是永久的，社群的最終武器是 fork，但斜率會被誰控制，值得看。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">SHT 06 · SoR</p>
+<h2>一定要 Salesforce 或 SAP 嗎</h2>
+<p>技術上不是。System of record 的核心是 record 和 data，而這一層的開源替代品已經夠用，而且比 Salesforce 更「agent 可讀」。</p>
+<p>Twenty 的做法值得單獨講。它有 40.2k star、592 位貢獻者，定位是「designed for AI 的 Salesforce 開源替代品」。2.0 在 2026 年 4 月把它變成可建構的平台：用 <code>defineObject</code> 在 TypeScript 裡定義 object、field、view，然後 <code>app:publish</code>。有團隊把它反過來用：CRM 不是通訊錄，是 control plane，保存每個流程的正式狀態和任務佇列，agent 是清佇列的 worker。客戶頁上已有從 Salesforce 遷出的案例，用 agentic AI 壓縮遷移工作；另一家從死掉的廠商匯出檔搬過來，CRM 成本降 90% 以上。Odoo 19 新增獨立的 AI App，定位是基礎設施而非功能，所有資料放 Postgres、沒有專有格式。</p>
+<p><span class="mark">Salesforce 的黏性在於流程語意鎖在它的 UI 設定裡；一旦語意變成 repo 裡的 TS 檔案，agent 就能重生、遷移、驗證它。</span>這是對 SoR 護城河最直接的攻擊。</p>
+<p>但要誠實講規模：開源 ERP 市場 2026 年約 $53 億，年增 9.66%，相對 SAP 是零頭；案例集中在中型企業，大企業案例仍薄；ERPNext 的 AI 目前是第三方工具集合，不是核心原生。大企業留在 Salesforce 的原因是流程語意、合規、生態、遷移成本，不是資料庫。所以「在自己平台上 vibe」是路徑依賴下的最佳解，不是技術最佳解。這兩句話同時成立。</p>
+</section>
+
+<section>
+<p class="eyebrow">SHT 07 · 施工說明</p>
+<h2>對內網 IDP 的意涵</h2>
+<p><span class="chip">接回 Void 與 Encore 那題</span> 這篇的起點其實是另一個問題：Void 能不能架在內網當 Internal Developer Platform，Encore.ts 能不能吃 k8s。答案是 Void 的「自架」仍在 Cloudflare 上，Encore 的 k8s 自動化只限 GKE 和 EKS，內網要走 self-host 路線自己寫 manifest。走到這裡，那題的答案變得清楚：你要的不是某家的產品，是內網版的 control plane。</p>
+<ol>
+<li><b>不要選轉賣層。</b>它們的經濟模型（Zeabur 自己說的）和資安模型（事件證明的）都撐不住。</li>
+<li><b>第二層自己擁有，runtime 可換。</b>審批加稽核那層是你的：agent 產 PR 和 manifest，人審，Argo CD 同步。審批面板在你手上，不在 SaaS 手上。</li>
+<li><b>Secrets 不集中在一個 SaaS。</b>Zeabur、Vercel、Lovable 三案外洩的都是平台保管的鑰匙。內網走 Vault 或 External Secrets。</li>
+<li><b>資料層照開源三件套走。</b>Postgres、S3 相容儲存、DuckDB 或 DuckLake，加一個 catalog。這條和 UNS data hub、serverless 數據 API 是同一個方向。</li>
+<li><b>Run 層先接唯讀的 AI 根因分析。</b>Cleric、Traversal、Replit 都收斂在唯讀，這可能會變成行規。</li>
+<li><b>IaC 選「高流行度語言加強 verifier 鏈」。</b>Pulumi TS 加 policy-as-code，或 k8s YAML 加 OPA、Kyverno、admission。小眾 infra-from-code DSL 的賭注是 verifier 強到可以補流行度，目前沒有公開數據證明。</li>
+</ol>
+</section>
+
+<section>
+<p class="eyebrow">SHT 08 · 結論與未決</p>
+<h2>八條結論，標了證據強度</h2>
+<ol class="conc">
+<li><b>Zeabur 的死因是結構性的。 <span class="grade strong">強</span></b>薄轉賣層加 AI 口號這個組合在 2026 年沒有生存空間；Railway、Render、Fly.io 活著是因為自有基礎設施或明確的 agent 定位。</li>
+<li><b>平台競爭不在 Build 層，在「誰擁有授權邊界與稽核」。 <span class="grade strong">強</span></b>Build 一年內被開源和三大雲商品化；Lovable $600M 賣的是 hosting 和部署，不是生成。</li>
+<li><b>每一層贏家做的都是 backpressure。 <span class="grade strong">強</span></b>編譯器、寫入、branch、PR、唯讀、catalog、trust layer，同一條原則；IaC-Eval 與 TerraFormer 給了實證。</li>
+<li><b>市場是五塊，Cloudflare 只在一塊。 <span class="grade strong">強</span></b>每塊的治理來源不同，SoR 和資料平台的護城河是資料所在地，不是 runtime。</li>
+<li><b>資料層是重力所在，企業與非企業在這裡收斂。 <span class="grade strong">強</span></b>一年內的收購全是開源資料底座；agent 開資料庫的比例從 30% 走到 80% 到 90%；分歧只剩政策住在哪。</li>
+<li><b>「一定要 Salesforce 或 SAP」是假的，「大公司跑不動」是真的。 <span class="grade">中</span></b>Twenty 已有從 Salesforce 遷出的案例，但開源 ERP 市場相對 SAP 是零頭。</li>
+<li><b>目前唯一跑通的一條龍是「Build 在外、Ship 與 Run 在資料平台內」。 <span class="grade">中</span></b>Replit 加 Databricks、v0 加 Snowflake 同構；沒有單一廠商橫跨五個市場。</li>
+<li><b>下一代平台的 UI 是審批面板，不是設定面板。 <span class="grade">中</span></b>a16z 的「先做再求批准」、Claude Code 的 task list、Cleric 的 approval flow、Void 把憑證留給管理員，形狀一樣。偏推論。</li>
+</ol>
+<h3>仍是假設，不能寫成結論的</h3>
+<ul>
+<li>任何平台「agent 建的 app 進 production 的佔比」都沒有公開數字。有的是間接指標（Supabase 的建立比例、Zillow 案例、63 家 YC 公司的 DNS）和反指標（IDC：88% 的 agentic 試點從未到 production；只有約三分之一開發者對用 vibe 工具建業務關鍵 app 有信心）。正確寫法是：production 化集中在內部工具和新產品，核心系統仍未。</li>
+<li>交易型 SoR 的 agent 化證據薄。Lakebase 說數千家在跑 production，但沒說是什麼工作負載；Odoo 19 的 AI App 才剛出。</li>
+<li>Neon 80%、Supabase 90%、EDB「95% 企業三年內自建」都是廠商數字。</li>
+<li>Encore、Void、Convex 在中立 benchmark 下的表現：沒有。IaC-Eval 只測 Terraform。這一塊自己跑實驗是唯一辦法。</li>
+</ul>
+</section>
+
+<section>
+<p class="eyebrow">REF · 參考資料</p>
+<h2>來源</h2>
+<ul class="refs">
+<li>INSIDE，〈Zeabur 宣布停止營運〉，2026-10-17。<a href="https://www.inside.com.tw/article/42662-zeabur-shutdown-dec-31-dedicated-servers-stop-renewal-dec-1">inside.com.tw</a></li>
+<li>Zeabur changelog，〈The Shared Cluster Will No Longer Accept New Projects〉，2026-02-23。<a href="https://zeabur.com/changelogs/phasing-out-shared-cluster">zeabur.com</a></li>
+<li>a16z，〈The Trillion Dollar AI Software Development Stack〉，2025-10-09。<a href="https://a16z.com/the-trillion-dollar-ai-software-development-stack/">a16z.com</a></li>
+<li>a16z，〈Most People Can't Vibe Code. Here's How We Fix That.〉，2026-02-03。<a href="https://a16z.com/most-people-cant-vibe-code-heres-how-we-fix-that/">a16z.com</a></li>
+<li>GitHub，Octoverse 2025。<a href="https://github.blog/2025-10-28-octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/">github.blog</a></li>
+<li>TechCrunch，〈Lovable's annualized revenue crosses $600M〉，2026-09-24。<a href="https://techcrunch.com/2026/09/24/lovables-annualized-revenue-crosses-600m-as-vibe-coding-takes-off/">techcrunch.com</a></li>
+<li>Sacra，〈Replit passes $500M/year〉。<a href="https://sacra.com/research/replit-passes-500m-year/">sacra.com</a></li>
+<li>The Register，〈Lovable denies data leak〉，2026-04-20。<a href="https://www.theregister.com/2026/04/20/lovable_denies_data_leak/">theregister.com</a></li>
+<li>Cloud Security Alliance，CISO Daily Briefing，2026-04-20（Vercel 事件）。<a href="https://labs.cloudsecurityalliance.org/research/ciso-daily-briefing-20260420/">cloudsecurityalliance.org</a></li>
+<li>Axios，〈AI vibe-coding apps leak sensitive data〉，2026-05-07。<a href="https://www.axios.com/2026/05/07/loveable-replit-vibe-coding-privacy">axios.com</a></li>
+<li>Kon et al.，IaC-Eval，NeurIPS 2024。<a href="https://par.nsf.gov//servlets/purl/10646999">par.nsf.gov</a></li>
+<li>TerraFormer，ICSE 2026 Distinguished Paper。<a href="https://conf.researchr.org/details/icse-2026/icse-2026-software-engineering-in-practice/43/TerraFormer-Automated-Infrastructure-as-Code-with-LLMs-Fine-Tuned-via-Policy-Guided-">conf.researchr.org</a></li>
+<li>Generative Compilation，arXiv 2607.13921。<a href="https://arxiv.org/pdf/2607.13921">arxiv.org</a></li>
+<li>Pulumi，〈The Agentic Infrastructure Era〉，2026-05。<a href="https://www.pulumi.com/releases/agentic-infrastructure-era">pulumi.com</a></li>
+<li>Databricks，〈Enabling governed vibe coding〉與 Replit 整合說明，2026。<a href="https://databricks.com/blog/enabling-governed-vibe-coding-enterprise-apps-databricks">databricks.com</a></li>
+<li>Databricks DAIS 2025 keynote（Neon 30% → 80%）。<a href="https://ceointerviews.ai/interview/203853/">ceointerviews.ai</a></li>
+<li>DBTA，〈Lakebase GA〉，2026-01。<a href="https://www.dbta.com/Editorial/News-Flashes/Databricks-Lakebase-is-Now-Generally-Available-Delivering-Reliability-Performance-and-Governance-173362.aspx">dbta.com</a></li>
+<li>Snowflake，〈Control plane for the agentic enterprise〉，2026-04-21。<a href="https://www.snowflake.com/en/news/press-releases/snowflake-expands-snowflake-intelligence-and-cortex-code-to-power-the-control-plane-for-the-agentic-enterprise/">snowflake.com</a></li>
+<li>Let's Data Science，〈Supabase $10.5B, agents build most databases〉，2026-06。<a href="https://letsdatascience.com/blog/supabase-10-5-billion-ai-agents-build-most-databases">letsdatascience.com</a></li>
+<li>Investor Society，〈Supabase $150M from GIC and Turso acquisition〉，2026-10-02。<a href="https://www.theinvestorsociety.com/supabase-us-150m-from-gic-and-a-turso-buy-to-power-databases-built-by-ai-agents/">theinvestorsociety.com</a></li>
+<li>DuckDB，〈DuckLabs to Join AWS〉，2026-08-26。<a href="https://duckdb.org/2026/08/26/ducklabs-to-join-aws">duckdb.org</a></li>
+<li>Datalakehouse Hub，〈State of Apache Polaris, July 2026〉。<a href="https://datalakehousehub.com/blog/state-of-apache-polaris-july-2026">datalakehousehub.com</a></li>
+<li>EDB Postgres AI 平台頁。<a href="https://www.enterprisedb.com/index%2ephp/edb-postgres-ai">enterprisedb.com</a></li>
+<li>Twenty 客戶案例。<a href="https://twenty.com/customers">twenty.com</a></li>
+<li>ERP Today，〈Open-source ERP gets a second look〉。<a href="https://erp.today/open-source-erp-ai-shortlist-erpnext-odoo/">erp.today</a></li>
+<li>Salesforce，Agentforce Vibes（salesforcedevops.net 整理）。<a href="https://salesforcedevops.net/?p=40785">salesforcedevops.net</a></li>
+<li>Retool，2026 Build vs. Buy 報告與內部建置者調查。<a href="https://www.businesswire.com/news/home/20251007982081/en">businesswire.com</a></li>
+<li>Void 官方文件（self-hosted platform、Node target）。<a href="https://void.cloud/guide/self-hosted-platform">void.cloud</a></li>
+<li>Encore，Self-host 與 Kubernetes 文件。<a href="https://encore.dev/docs/self-host/configure-infra">encore.dev</a></li>
+</ul>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
