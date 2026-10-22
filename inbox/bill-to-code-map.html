@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="海圖 — 四張雲端帳單當測深數字，標出同一座暗礁；讀者是用 AI 做工具、還沒收到帳單的人">
+<meta name="imitator-reference" content="1970 年代英國海軍部海圖（Admiralty Chart）— 米黃陸地、白水面、黑色測深數字、洋紅色的警示與燈標">
+<meta name="imitator-paper" content="hsl(48 34% 94%)">
+<meta name="imitator-accent" content="hsl(322 62% 36%)">
+<title>帳單到程式碼的地圖</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  海圖 — 四張雲端帳單當測深數字，標出同一座暗礁；讀者是用 AI 做工具、還沒收到帳單的人。
+   REFERENCE: 1970 年代英國海軍部海圖（Admiralty Chart）— 米黃的陸地、留白的水面、黑色等寬的測深數字、
+              洋紅色（magenta）只給燈標與警示；圖例框在角落，章節像圖幅編號。
+   PAPER:     海圖紙 — 微黃的厚紙，hsl(48 34% 94%)；暗色版是夜航時紅燈下的圖桌，暖近黑。
+   VOICE:     洋紅只給警示（標題字、章節號、連結、帳單數字）；標題用 Plex Condensed 接 Noto Sans；
+              測深數字用等寬；拉出句用宋體像圖上的水域名。
+   NOT:       儀表板、事故報告的計分板（那是上一篇）。沒有互動元件；數字是測深，不是裝飾。
+   RECENT:    一次加分的代價 paper 352° · accent 228°；其餘無 token，unavailable。
+              紙 48° 離 352° 56°、洋紅 322° 離 228° 94° — 不用改。 */
+
+:root {
+  --paper: hsl(48 34% 94%);
+  --card:  hsl(48 40% 97%);
+  --ink:   hsl(48 20% 12%);
+  --ink-2: hsl(48 12% 30%);
+  --mist:  hsl(48 8% 42%);
+  --rule:  hsl(48 22% 84%);
+  --rule-hard: hsl(48 18% 68%);
+  --accent: hsl(322 62% 36%);        /* 海圖的洋紅：燈標、警示、暗礁 */
+  --accent-soft: hsl(322 40% 91%);
+  --land: hsl(44 48% 86%);           /* 陸地的米黃 — 只給圖例框和附錄 */
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
+  --sans: "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(48 12% 8%); --card: hsl(48 10% 11%);
+    --ink: hsl(48 18% 90%); --ink-2: hsl(48 10% 72%); --mist: hsl(48 6% 58%);
+    --rule: hsl(48 8% 20%); --rule-hard: hsl(48 8% 32%);
+    --accent: hsl(322 52% 70%); --accent-soft: hsl(322 28% 20%);
+    --land: hsl(44 14% 15%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(48 12% 8%); --card: hsl(48 10% 11%);
+  --ink: hsl(48 18% 90%); --ink-2: hsl(48 10% 72%); --mist: hsl(48 6% 58%);
+  --rule: hsl(48 8% 20%); --rule-hard: hsl(48 8% 32%);
+  --accent: hsl(322 52% 70%); --accent-soft: hsl(322 28% 20%);
+  --land: hsl(44 14% 15%);
+}
+
+/* 已知坑：底盤 pre 未設 font-family */
+pre, code, kbd { font-family: var(--mono); }
+/* 給人讀的 prompt：要換行，不要橫向截斷 */
+pre.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.sounding { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* 測深數字：一行到底，不准在數字中間換行 */
+.stat .value.sounding { font-family: var(--mono); font-weight: 500; color: var(--accent); white-space: nowrap; letter-spacing: -.03em; font-size: clamp(1.4rem, 1rem + 1.2vw, 1.9rem); }
+.stat .label { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; }
+/* 四個測深：手機一欄、平板 2×2、桌機四個一排 — 永遠不要 3+1 */
+.tiles.soundings { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 30rem) { .tiles.soundings { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 64rem) { .tiles.soundings { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* 圖例框 — 海圖角落的 legend */
+.legend-box {
+  background: var(--land); border: 1px solid var(--rule-hard);
+  padding: var(--sp-4) var(--sp-5); margin: var(--sp-5) 0;
+}
+.legend-box .eyebrow { margin-top: 0; }
+.legend-box dl { display: grid; grid-template-columns: minmax(0, 7em) minmax(0, 1fr); gap: var(--sp-2) var(--sp-4); margin: 0; }
+.legend-box dt { font-family: var(--mono); font-size: var(--fs-sm); color: var(--accent); min-width: 0; }
+.legend-box dd { margin: 0; min-width: 0; }
+@media (max-width: 480px) { .legend-box dl { grid-template-columns: minmax(0, 1fr); } }
+
+/* 四個案例：像圖幅上的一格 */
+.case { border-top: 1px solid var(--rule-hard); padding-top: var(--sp-4); margin-top: var(--sp-5); }
+.case h3 { margin-top: 0; font-family: var(--disp); }
+.case h3 .no { font-family: var(--mono); color: var(--accent); font-weight: 500; margin-right: .5em; }
+.inferred { color: var(--mist); font-size: var(--fs-sm); }
+.inferred::before { content: "推論 · "; font-family: var(--mono); color: var(--accent); }
+
+/* 暗礁圖：SVG */
+figure.reef { margin: var(--sp-5) 0; }
+figure.reef .chart svg { min-width: 30rem; }
+@media (max-width: 40rem) { .cases :is(th, td) { min-width: 10em; } .cases :is(th, td):first-child { min-width: 8em; } }
+figure.reef figcaption { font-size: var(--fs-sm); color: var(--mist); margin-top: var(--sp-2); }
+</style>
+
+<body>
+<div class="progress" aria-hidden="true"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<header class="reveal">
+  <p class="eyebrow">事故調查 · 續篇 · 2026-10 <span class="chip">接回 一次加分的代價</span></p>
+  <h1 class="display">帳單響了之後，<br>你手上有沒有<br>一張<em>地圖</em></h1>
+  <p class="lede">四個人、四張雲端帳單、同一個錯。差別不在專不專業，也不在有沒有用 AI——在帳單到程式碼之間那張圖從哪裡來。</p>
+  <p class="byline">案例：Happy Toy Scout（半路工程師在矽谷）、FunClass 翻課星球（方方老師）、兩則社群貼文 · 依據：作者公開文章、媒體報導、網站實測標頭、前一份報告 · 未登入、未碰任何人的雲端帳號</p>
+</header>
+
+<section class="reveal">
+  <p class="eyebrow">TL;DR</p>
+  <h2>三句話</h2>
+  <ol>
+    <li><strong>每個人都會犯同一個錯：</strong>沒算「使用者數 × 每次資料量」。事前沒有人知道流量會不會來，所以這個錯不分專業與否，矽谷的資深工程師也照犯。</li>
+    <li><strong>帳單是唯一的警報，但它只說多少錢，不說為什麼。</strong>從金額回推到那一行程式碼，中間要一張地圖：計費單位是什麼、一個動作幾台裝置各下載多少、使用者十倍帳單幾倍。有地圖的人兩天修對層，沒地圖的人幾個月修錯層。</li>
+    <li><strong>AI 讓閉環變便宜，不讓人變強。</strong>便宜的閉環放大你原本的方向：有地圖的人更快修好，沒地圖的人更快加功能。而且它的答案是抽樣不是查表，所以地圖得是確定性的數字，不能是「問它行不行」。</li>
+    <li><strong>AI 有這張地圖，但三個條件缺一不可：</strong>問題得被放進流程裡（不能靠人想到）、AI 給的圖可能是錯的（帳單才是對的）、帳單來的時候丟給它最準（事後比事前準）。</li>
+  </ol>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">01 · 暗礁</p>
+  <h2>同一個錯，每個人都會撞到</h2>
+  <p>雲端帳單爆掉的故事，九成是同一道算式沒算：</p>
+  <pre class="wrap">每月帳單 ≈ 使用者數 × 每個使用者觸發的次數 × 每次送出的資料量 × 單價</pre>
+  <p>前三項相乘叫扇出（fan-out）。做 MVP 的那個晚上，使用者數是未知數——不知道會不會有人用，就沒有理由花時間算「十萬人進來會讀幾次」。所以這個錯不是粗心，是結構性的：<strong>事前沒有任何回饋能告訴你算錯了</strong>。第一個回饋永遠是帳單，而帳單來的時候，乘法已經跑了一陣子。</p>
+  <p class="mark">撞礁不分專業。差別是撞了之後，手上有沒有一張圖告訴你礁在哪裡。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">02 · 測深</p>
+  <h2>四張帳單</h2>
+  <p>四個案例壓成同一個形狀：錯 → 警報 → 修哪一層 → 地圖從哪來。四個人裡沒有一組是「專家對新手」；他們是四種「地圖在哪」的狀態。</p>
+
+  <div class="tiles soundings wide stagger">
+    <div class="stat"><div class="value sounding">2 天</div><p class="label">Happy Toy Scout 免費額度打滿；十天內修完</p></div>
+    <div class="stat"><div class="value sounding">NT$2,854</div><p class="label">FunClass 一個月帳單；修了幾個月還在錯的層</p></div>
+    <div class="stat"><div class="value sounding">NT$8,000+</div><p class="label">Places API 一個晚上；地圖是 AI 給的，而且給錯</p></div>
+    <div class="stat"><div class="value sounding">US$5,000</div><p class="label">Vercel 一個月；從帳單回推，搬走</p></div>
+  </div>
+
+  <div class="table-scroll cases">
+  <table>
+    <thead><tr><th>案例</th><th>沒算的扇出</th><th>警報</th><th>修了哪一層</th><th>地圖從哪來</th></tr></thead>
+    <tbody>
+      <tr><td>Happy Toy Scout<span class="sub">2026-08 · 一人 side project</span></td><td>13,000 家門市全載、每個訪客都讀資料庫</td><td class="nowrap">上線不到 2 天額度打滿</td><td>對的層：快取靜態資料、依視角載入、砍讀取次數</td><td>在腦子裡</td></tr>
+      <tr><td>FunClass 翻課星球<span class="sub">2026-05 起 · 國小老師</span></td><td>整班壓縮塊廣播給 30 台裝置</td><td class="nowrap">一天 300 多元 → 月 NT$2,854</td><td>錯的層：修「發布頻率」，沒修「每次大小」</td><td>被自己寫的 skill 關掉</td></tr>
+      <tr><td>Places API 貼文<span class="sub">2026 · Threads</span></td><td>大量呼叫 Places API，以為方案含在內</td><td class="nowrap">一晚 NT$8,000+</td><td>止血、設硬上限、申訴</td><td>AI 給的，而且是錯的</td></tr>
+      <tr><td>Vercel 搬家貼文<span class="sub">2024 · 知乎</span></td><td>幾十萬月訪放在按用量計費的平台</td><td class="nowrap">月 US$5,000+</td><td>搬到計費單位不同的平台</td><td>從帳單學回來</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <figure class="reef">
+    <div class="chart">
+    <svg viewBox="0 0 640 330" role="img" aria-labelledby="trk-t" font-size="12" font-family="Noto Sans TC, sans-serif">
+      <title id="trk-t">四條航跡：同一聲警報之後，每個人各自走了哪幾步</title>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--rule-hard)"/></marker>
+      </defs>
+      <!-- column heads -->
+      <g fill="var(--mist)" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11">
+        <text x="150" y="22">警報</text>
+        <text x="300" y="22">第一步</text>
+        <text x="450" y="22">第二步</text>
+        <text x="580" y="22">現況</text>
+      </g>
+      <line x1="120" y1="30" x2="630" y2="30" stroke="var(--rule-hard)"/>
+
+      <!-- track A -->
+      <g>
+        <text x="10" y="64" fill="var(--ink)" font-weight="700">A</text>
+        <text x="28" y="64" fill="var(--ink-2)">Happy Toy Scout</text>
+        <line x1="150" y1="60" x2="590" y2="60" stroke="var(--rule-hard)" stroke-width="1.5" marker-end="url(#arr)"/>
+        <circle cx="150" cy="60" r="7" fill="var(--accent)"/>
+        <circle cx="300" cy="60" r="7" fill="var(--accent)"/>
+        <circle cx="450" cy="60" r="7" fill="var(--accent)"/>
+        <circle cx="580" cy="60" r="7" fill="var(--accent)"/>
+        <g fill="var(--ink-2)" font-size="11" text-anchor="middle">
+          <text x="150" y="84">第 2 天額度打滿</text>
+          <text x="300" y="84">快取靜態資料</text>
+          <text x="450" y="84">依視角載入、砍讀取</text>
+          <text x="580" y="84">第 10 天修完</text>
+        </g>
+      </g>
+
+      <!-- track B -->
+      <g>
+        <text x="10" y="134" fill="var(--ink)" font-weight="700">B</text>
+        <text x="28" y="134" fill="var(--ink-2)">FunClass</text>
+        <line x1="150" y1="130" x2="590" y2="130" stroke="var(--rule-hard)" stroke-width="1.5" marker-end="url(#arr)"/>
+        <circle cx="150" cy="130" r="7" fill="var(--accent)"/>
+        <circle cx="300" cy="130" r="7" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/>
+        <circle cx="450" cy="130" r="7" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/>
+        <circle cx="580" cy="130" r="7" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/>
+        <g fill="var(--ink-2)" font-size="11" text-anchor="middle">
+          <text x="150" y="154">夏天 一天 300 元</text>
+          <text x="300" y="154">修頻率（大小沒動）</text>
+          <text x="450" y="154">9 月摸到拆開存</text>
+          <text x="580" y="154">正式環境仍整塊</text>
+        </g>
+      </g>
+
+      <!-- track C -->
+      <g>
+        <text x="10" y="204" fill="var(--ink)" font-weight="700">C</text>
+        <text x="28" y="204" fill="var(--ink-2)">Places API</text>
+        <line x1="150" y1="200" x2="590" y2="200" stroke="var(--rule-hard)" stroke-width="1.5" marker-end="url(#arr)"/>
+        <circle cx="150" cy="200" r="7" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/>
+        <circle cx="300" cy="200" r="7" fill="var(--accent)"/>
+        <circle cx="450" cy="200" r="7" fill="var(--accent)"/>
+        <circle cx="580" cy="200" r="7" fill="var(--accent)"/>
+        <g fill="var(--ink-2)" font-size="11" text-anchor="middle">
+          <text x="150" y="224">問 AI，AI 給錯方案</text>
+          <text x="300" y="224">一晚 8,000 元</text>
+          <text x="450" y="224">設配額上限、申訴</text>
+          <text x="580" y="224">拿回調整款</text>
+        </g>
+      </g>
+
+      <!-- track D -->
+      <g>
+        <text x="10" y="274" fill="var(--ink)" font-weight="700">D</text>
+        <text x="28" y="274" fill="var(--ink-2)">Vercel 搬家</text>
+        <line x1="150" y1="270" x2="590" y2="270" stroke="var(--rule-hard)" stroke-width="1.5" marker-end="url(#arr)"/>
+        <circle cx="150" cy="270" r="7" fill="var(--accent)"/>
+        <circle cx="300" cy="270" r="7" fill="var(--accent)"/>
+        <circle cx="450" cy="270" r="7" fill="var(--paper)" stroke="var(--rule-hard)" stroke-width="2"/>
+        <circle cx="580" cy="270" r="7" fill="var(--accent)"/>
+        <g fill="var(--ink-2)" font-size="11" text-anchor="middle">
+          <text x="150" y="294">月 5,000 美元</text>
+          <text x="300" y="294">從單位回推</text>
+          <text x="450" y="294">—</text>
+          <text x="580" y="294">搬到按次計費</text>
+        </g>
+      </g>
+
+      <!-- legend -->
+      <g font-size="11" fill="var(--mist)">
+        <circle cx="150" cy="318" r="5" fill="var(--accent)"/><text x="162" y="322">切在「使用者 × 次數 × 大小」上的一步</text>
+        <circle cx="400" cy="318" r="5" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/><text x="412" y="322">沒切到的一步（或錯的圖）</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>同一聲警報之後的四條航跡。實心是切在乘法上的一步，空心是沒切到的一步。A 四步全實心，十天；B 警報之後三步全空心，幾個月；C 的第一步就是一張錯的圖；D 兩步到位。</figcaption>
+  </figure>
+
+  <article class="case">
+    <h3><span class="no">A</span>地圖在腦子裡：Happy Toy Scout</h3>
+    <p>8 月 18 日麥當勞在全美推出 Hello Kitty × Godzilla 聯名兒童餐，每家店供應的款式不同，家長只能在社團裡到處打聽。21 日週五深夜，Fremont 的工程師 Brian 開始寫，週六早上做完第一版：全美 13,000 多家門市上地圖、定位、依玩具編號篩選、一鍵回報。他說雖然只想給灣區朋友用，但「一開始就直接以全美規模來設計架構」。</p>
+    <p>太太分享到家長群後病毒式擴散。上線不到兩天，免費雲端額度「徹底打滿，並遠遠超過了」。他列出的修法有三件：快取門市靜態資料與歷史回報、依地圖視角動態載入、大幅減少不必要的 API 呼叫與資料庫讀取。十天內部署 122 次，他形容是「邊開飛機邊換引擎」。十天後 12.7 萬使用者、4 萬筆回報；三週後 19.7 萬使用者、151 萬次瀏覽、同時在線峰值 2,400 人。</p>
+    <p>注意他「以全美規模設計」的意思：資料放得下，不是成本放得下。13,000 家店放得進地圖，跟十萬人各讀一次 13,000 家店，是兩件事。這就是扇出沒算——跟下一位老師犯的是同一個錯。差別在帳單響了之後：他列的三件事，每一件都切在「使用者 × 次數 × 大小」的乘法上，沒有一件是在修別的地方。</p>
+    <p>今天網站實測（2026-10-22）：App 跑在 Cloudflare Workers 上（回應標頭有 <code>x-vinext-cache</code>，vinext 是 Cloudflare 把 Next.js 跑在 Workers 上的 runtime）、資料庫是 Supabase（CSP 只允許一個 <code>supabase.co</code> 網域）、瀏覽器零直連資料庫，全走同源 <code>/api/*</code>、首頁在 CDN 節點快取 5 分鐘，過期後先回舊的再背景更新（stale-while-revalidate）、收藏頁面是「發版時產生的快照」、地圖用 Leaflet 加 OpenStreetMap 公用 tiles。</p>
+    <p class="inferred">第一天用的是哪家雲、帳單金額、有沒有換過平台、有沒有用 AI 寫，公開資料都沒有。Wayback 八月沒有頁面快照。「不到兩天打滿」若是 Supabase 免費版的 5 GB egress，一天 7 萬次瀏覽、每次 50 KB 就是 3.6 GB——一天半破，跟時間線對得上，但這是推算不是證據。</p>
+  </article>
+
+  <article class="case">
+    <h3><span class="no">B</span>地圖被自己關掉：FunClass 翻課星球</h3>
+    <p>國小老師方方用 AI 做了班級加分工具，月活躍 5.4 萬人，9 月帳單 NT$2,854，幾乎全是 Firebase Realtime Database 的下載流量。扣分的那一步只有一個：把「整班壓成一塊」的備份格式直接拿來當即時廣播，老師加一分，全班 30 台裝置各自重新下載整塊；在按位元組計費的資料庫上，這樣做大約貴 400 倍。詳細拆解在上一篇〈<a href="https://imitator.ai-apps.work/r/funclass-cost-case-study">一次加分的代價</a>〉。</p>
+    <p>他不是沒修。夏天發現一天燒 300 多元，做了底層改造：分數加緩衝、寫入加冷卻、內容沒變不重發——修的全是「發布頻率」，沒有一項碰到「每次發布的大小」。到 9 月才自己摸到「拆開存」的方向，而且只對一個帳號試行，正式環境仍是整塊廣播。</p>
+    <p>為什麼修錯層？他寫給 Codex 的技能有一條：使用者是新手、沒提到成本時，選不用付費的路線，而且<strong>不要教定價</strong>。本意是不嚇跑新手，結果是 agent 選資料庫、設計同步格式時，沒有人回頭問過「每多一位學生要多付多少」。那張地圖 AI 本來有，被一條好意的規則關掉了。</p>
+  </article>
+
+  <article class="case">
+    <h3><span class="no">C</span>地圖是 AI 給的，而且給錯：Places API</h3>
+    <p>一位開發者的專案大量用 Google Maps Places API，上線第一個月帳單逼近五萬台幣。他問 Gemini，Gemini 告訴他有一個月費 100 美元的 Starter Plan，還列出方案涵蓋的 API 項目。他訂了，一個晚上燒了八千多塊台幣，點進帳單一看用量是 8,000 多％——Starter Plan 根本不含 Places API。接下來兩週在 Maps 和 Cloud Billing 之間被踢皮球，期間還收到逾期付款通知，最後帳單上出現一筆服務調整項，錢拿回來了。</p>
+    <p>他自己寫的教訓有一條最值錢：預算「提醒」跟「上限」是兩回事。提醒只是通知你超標，API 費用可以在一個晚上從幾十塊衝到幾千塊，通知來的時候來不及反應；要設配額上限（quota cap），超過就硬擋。</p>
+    <p>這個案例是給第 06 節用的：他有去問 AI 要地圖，AI 給了一張，圖是錯的。最後校正那張圖的不是 AI，是帳單。</p>
+  </article>
+
+  <article class="case">
+    <h3><span class="no">D</span>地圖從帳單學回來：Vercel 搬家</h3>
+    <p>一位獨立開發者把 AI 搜尋引擎部署在 Vercel，每月幾十萬訪問量，登入後台一看，一個月 5,000 多美元。他的判斷是：幾十萬月訪不算大，這個費用不合理。於是搬到 Cloudflare 託管加自建伺服器，省下來的錢夠他寫一篇文章。</p>
+    <p>這是最常見的一種路徑：事前沒算，帳單來了，從金額反推出「我被哪個計費單位收了錢」，然後換一個單位不同的地方。地圖是事後畫的，但畫對了。</p>
+  </article>
+</section>
+
+
+<section class="reveal">
+  <p class="eyebrow">03 · 潮流</p>
+  <h2>閉環變便宜了，人沒有變強</h2>
+  <p>先把這篇的主角說出來，不然四張帳單只是四個故事。主角是 AI 時代那個最常被說反的句子：<strong>AI 讓人變強</strong>。四條航跡說的是另一件事——AI 讓閉環變便宜，而便宜的閉環會放大你原本的方向，不會替你換方向。</p>
+  <p>方方老師用 agent 加功能的速度是真的快：遊戲艙、寵物、轉蛋、Boss 戰、18 個 Cloud Functions，每一個都在幾週內上線。Brian 十天 122 次部署也是真的快。同一個放大器，一個把速度全部花在「加」，一個把速度全部花在「修」。放大器不分辨這兩者；分辨它們的，是撞礁之後手上那張圖。</p>
+  <p>所以「中位數」和「離群值」要說清楚是哪一條軸。老師在教育產品那條軸上是離群值——5.4 萬月活、雜誌專訪；Brian 在基礎設施那條軸上是離群值。帳單量的是基礎設施那條軸，所以在這篇裡老師落在中位數。<strong>AI 放大的是你在那條軸上的位置</strong>：中位數加 AI，是更快地回到中位數——agent 給的是大家都會選的架構，你加功能的速度變快，而每一次加功能都是一次沒人扣分的選型；離群值加 AI，是更快地離群——同樣的工具，用在收斂上。</p>
+  <p class="mark">AI 讓有地圖的人更快修好，讓沒地圖的人更快加功能。</p>
+  <p>還有一個放大器自己帶來的新礁：<strong>它的答案是機率抽樣，不是查表</strong>。問它「這個方案含不含 Places API」，它給了一個流暢的錯答案；同一個問題換一天問，答案可能不同。這對寫程式沒關係——編譯器會抓；對架構決策有關係——沒有東西會抓，帳單來之前你不知道它錯了。所以地圖不能是「問 AI 這樣行不行」，那是把一個隨機變數當成確定答案。地圖得是確定性的東西：計費單位、扇出的位元組數、十倍時的月費——這些是查得到、算得出、跟定價頁對得上的數字，問十次答案一樣。第 05 節的圖例是按這個標準寫的。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">04 · 反事實</p>
+  <h2>如果 Brian 一開始就選 Cloudflare</h2>
+  <p>這句話有兩個版本，只有一個站得住。</p>
+  <p><strong>站不住的：</strong>「他就不會犯錯」。不對。扇出沒算這個錯，在 Cloudflare 上一樣會犯——13,000 家店全載、每個訪客讀一次，程式碼一模一樣。</p>
+  <p><strong>站得住的：</strong>「他的錯就不會變成帳單」。Workers 不按流出位元組計費，同一個錯在 Supabase 上是 GB，在 Workers 上是請求次數，單價低到十倍流量也只是幾美元。選 Cloudflare 不是避免犯錯，是讓這類錯打不到你。而這件事本身就是地圖的第一條——「計費單位是什麼」——在第一天就用掉了。「做好玩的」正確定義不是「隨便做」，是「選一個錯了也不會痛的計費單位」。</p>
+  <div class="note warn">
+    <p><strong>便宜的失敗也是安靜的失敗。</strong>Brian 兩天就學到，是因為免費額度有硬上限、會停、會響。同一個錯在 Workers 上只會讓後台儀表板的請求數多幾個零，沒有警報；他可能一直不知道自己每個訪客多讀了幾十次。選對計費單位保護的是錢包，不是學習。所以這一節不是在說「大家都去用 Cloudflare」——是在說：計費單位決定你的警報多痛、多快、多響。FunClass 的 Blaze 隨用隨付沒有上限，警報慢而且無聲，要等月底；這是老師修了幾個月的另一半原因。</p>
+  </div>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">05 · 圖例</p>
+  <h2>地圖是什麼</h2>
+  <p>不是知道「正確的架構」——AI 也知道正確的架構，而且讀過的事故檢討報告比任何一個架構師都多——系統出事之後寫的那種文件，記錄哪裡壞、為什麼壞、怎麼修，每一家雲端廠商和大公司都公開過幾百份。地圖是<strong>從帳單回到程式碼的映射</strong>：看到金額，知道是哪個計費單位；知道計費單位，知道是哪個扇出；知道扇出，知道是哪一行。</p>
+
+  <div class="legend-box">
+    <p class="eyebrow">LEGEND · 三個問題</p>
+    <dl>
+      <dt>單位</dt><dd>這個服務的計費單位是什麼？按次、按位元組、按人頭，還是按秒。同一個技巧換了單位，結果可能相反——整班壓成一塊在按次計費的 Firestore 是省錢，在按位元組的 Realtime Database 是燒錢。</dd>
+      <dt>扇出</dt><dd>使用者做一個動作，幾台裝置各下載多少？扇出數乘每次資料量，就是帳單成長的速度。</dd>
+      <dt>十倍</dt><dd>使用者變成十倍、一百倍，帳單變幾倍？線性成長的項目要先想誰付錢，再決定要不要做。</dd>
+    </dl>
+  </div>
+
+
+  <p>這三個問題是上一篇第 07 節寫給用 AI 做工具的人的關卡，這裡把它們升格成圖例：每個案例都能用這三格重新讀一遍。Brian 的三件修法對應的是扇出和十倍；老師的 skill 關掉的是單位；Places API 那位被 AI 騙的是單位；Vercel 那位換的是單位。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">06 · 燈標</p>
+  <h2>沒地圖的人，能從 AI 借到一張嗎</h2>
+  <p>可以。但有三個條件，而且條件比答案重要。</p>
+
+  <h3>一、地圖在書裡，問題不在</h3>
+  <p>計費單位、扇出、十倍帳單——這些 AI 全都知道，問了就答。老師的 agent 之所以沒給，不是不會，是 skill 規定「不教定價」。所以第一個條件是：<strong>問題要被放進流程裡，不能靠人想到</strong>。地圖可以外部化成一道關卡：agent 每次加「即時同步」「多人連線」之前必須先答三個問題，答不出來不准動手。沒地圖的人裝這道門，等於借了一張。</p>
+
+  <h3>二、AI 給的地圖可能是錯的</h3>
+  <p>Places API 那位就是證據：Gemini 給了一張錯的定價圖，一晚燒掉八千。所以第二個條件是<strong>閉環</strong>——AI 畫草圖，帳單校正，人把兩者連起來。地圖不是從 AI 拿到的那一刻生效，是從第一次被帳單打到、回來改圖那一刻生效。你可以讓 AI 畫圖，不能讓它替你被打。</p>
+
+  <h3>三、事後比事前準</h3>
+  <p>事前問「我這個架構會不會爆」，AI 只能給中位數的答案，因為它不知道流量。事後把帳單截圖和程式碼一起丟進去問「為什麼」，答案準得多——上一篇報告就是證明：只憑公開 repo 和一張帳單截圖，AI 畫出了老師自己幾個月沒畫出來的那張圖。所以沒地圖的人最划算的做法不是事前問 AI，是<strong>在警報響的那一刻，把警報的內容原封不動交給 AI，然後自己讀懂它回的那張圖</strong>。</p>
+
+  <h3>那麼，一個「架構 review」技能，是不是免費的地圖</h3>
+  <p>2026 年最紅的一類技能是在動手前盤問你的——像 grill-me 這種：一次一個問題、附上它的建議答案、等你回答、直到每個決策分支都定案才准寫程式。還有各種「幫我 review 架構」的技能。它們拿得到那張地圖嗎？拿得到一半，而且要知道是哪一半。</p>
+  <ul>
+    <li><strong>它們是第一個條件的具體形狀。</strong>把問題放進流程、不靠人想到——這正是盤問型技能在做的事。老師的技能把定價問題關掉，grill-me 這類技能把問題打開。方向對了。</li>
+    <li><strong>但技能裡的地圖，是寫技能的人的地圖。</strong>一個通用的盤問技能問的是通用的問題：資料模型、錯誤處理、邊界條件。它不會問「Realtime Database 按位元組計費，你的整班壓縮塊每次廣播幾 KB」——除非寫它的人被這張帳單打過。所以技能的價值等於作者的地圖；你裝一個別人寫的技能，借到的是別人撞過的礁。</li>
+    <li><strong>只有輸出數字的問題才是門，輸出意見的問題只是對話。</strong>「這個架構有沒有問題」AI 會給你一段流暢的意見，而且每次不一樣——這是第 03 節說的隨機性。「這個服務的計費單位是什麼、單次扇出幾個位元組、十倍時月費多少」逼出來的是數字，數字可以拿去跟定價頁對——這等於在帳單來之前，先造了一個便宜的警報。好的技能把不可驗證的問題換成可驗證的數字；壞的技能只是讓你在動手前多聊了一輪。</li>
+    <li><strong>盤問型技能最常見的失敗，它自己的說明就寫了：</strong>照單接受它附的建議答案，等於讓它自己盤問自己。那不是地圖，是回音。</li>
+    <li><strong>它會替你補完地圖，但補上去的墨水跟查到的是同一個顏色。</strong>你沒想到的，它擅長補——邊界條件、漏掉的失敗模式、同類系統常在哪裡出事，這是它讀得多的本事。你想歪的，它不擅長抓——它順著你的前提往下推，前提錯了它會把錯的前提推得更完整。而兩種補法在它的輸出裡長得一模一樣：查到的、算出來的、猜的，都是同樣流暢的一段話。所以要它補地圖的時候，逼它在每個答案後面標出處——「定價頁查到的」「從你給的數字算的」「我猜的」——只信前兩種，第三種當成待驗證的假設。</li>
+  </ul>
+  <p>所以不是免費午餐，是便宜午餐：問的那一半免費，驗的那一半不免費。而且午餐是誰做的很重要——一個從真帳單長出來的三題關卡，比一個三十題的通用清單值錢。</p>
+
+  <p class="pull">AI 有地圖，但只在你問的時候給、給的可能是錯的、帳單來的時候最準。</p>
+  <p>壓成一句：沒地圖的人要做的不是學會畫圖，是把三個問題做成門、把帳單當成老師、把 AI 當成翻譯。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">07 · 第五個測深</p>
+  <h2>第五個例子是你</h2>
+  <p>四個人沒有一個是為了寫進報告才犯錯的。下一個收到帳單的人，大概率也不會是因為不專業。所以這一節不講道理，給工具。</p>
+  <p>下次讓 agent 加任何會隨人數成長的功能之前，把這段貼進去，要它先回答再動手：</p>
+  <pre class="wrap">在實作之前，先回答下面三題，答不出來就停下來問我：
+1. 這個功能用到的每個雲端服務，計費單位是什麼？（按次／按位元組／按人頭／按秒）
+2. 使用者做一個動作，會有幾台裝置各自下載多少資料？算出單次扇出的位元組數。
+3. 使用者變成 10 倍和 100 倍時，這個功能的月費各是多少？哪一項是線性成長？
+把三題的答案寫成一張表，讓我決定要不要做，再開始寫程式。</pre>
+  <p>然後，帳單來的那一天——不管是免費額度打滿的通知，還是月底的一張數字——把它原封不動貼給 AI，連同那段程式碼，問「為什麼是這個數字」。它回的那張圖，自己讀一遍，確認每一格都對得上帳單；對不上的地方，是它錯，不是帳單錯。</p>
+  <p class="mark">地圖不是從 AI 拿到的那一刻生效，是從第一次被帳單打到、回來改圖那一刻生效。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">附 · 證據與限制</p>
+  <h2>哪些是看到的，哪些是推的</h2>
+  <ul>
+    <li><strong>直接看到的：</strong>Brian 在換日線的全文與世界日報、Tri-City Voice 的報導；Happy Toy Scout 今天的回應標頭、CSP、靜態資源清單與頁面文字；FunClass 的帳單截圖、三代公開程式碼與 Codex 技能（詳見上一篇）；Threads 與知乎兩則貼文的原文。</li>
+    <li><strong>推論：</strong>Brian 第一天用的雲、打滿的是哪個額度、帳單金額、有沒有換平台、有沒有用 AI 寫——全部沒有公開資料，文中凡涉及這些都標了「推論」。「Staff 工程師」是他粉專的自述，沒有第三方佐證。</li>
+    <li><strong>沒做的：</strong>沒有登入任何人的帳號、沒有讀寫任何雲端資料、沒有測量真實流量；沒有聯絡任何一位當事人。四個案例是說書，不是統計；它們支撐的是「地圖從哪來」這個框架，不是分佈的證明。</li>
+    <li><strong>跟上一篇的關係：</strong>〈一次加分的代價〉是單一案例的事故調查；這一篇把它放進四個案例裡，問的是另一個問題——同一個錯，為什麼路徑不同。</li>
+  </ul>
+
+  <h3>資料來源</h3>
+  <ul>
+    <li><a href="https://crossing.cw.com.tw/article/21038">換日線 · 為了幫女兒找玩具，我意外做出全美破 20 萬用戶的爆紅軟體（Brian 本人，2026-09-23）</a></li>
+    <li><a href="https://www.worldjournal.com/wj/story/121360/9755594">世界日報 · 工程師寫程式 幫女兒尋找麥當勞限量玩具 12.7萬人跟用</a></li>
+    <li><a href="https://tricityvoice.com/stem-spotlight-happy-toy-scout/">Tri-City Voice · STEM spotlight: Happy Toy Scout</a></li>
+    <li><a href="https://happytoyscout.com/en">Happy Toy Scout 首頁（2026-10-22 實測標頭與 CSP）</a></li>
+    <li><a href="https://www.facebook.com/PivotSoftwareEngineer/">半路工程師在矽谷 · 粉專自介</a></li>
+    <li><a href="https://imitator.ai-apps.work/r/funclass-cost-case-study">一次加分的代價 · FunClass 雲端帳單事故調查（上一篇）</a></li>
+    <li><a href="https://www.threads.com/@lin.sam0304/post/DVdTML8Ab9l/">Threads · Google Places API 費用爆掉的經歷（Gemini 給錯方案資訊）</a></li>
+    <li><a href="https://zhuanlan.zhihu.com/p/1974639727333357148">知乎 · 我把网站迁移到 cf，省了几万块（Vercel 月 5,000 美元）</a></li>
+    <li><a href="https://github.com/mattpocock/skills">Matt Pocock · skills（grill-me 技能的來源 repo）</a></li>
+    <li><a href="https://firebase.google.com/docs/database/usage/billing">Firebase · Realtime Database 計費說明</a></li>
+    <li><a href="https://developers.cloudflare.com/workers/platform/pricing/">Cloudflare · Workers 定價</a></li>
+  </ul>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
