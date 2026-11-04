@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="續報 — 把 91APP 與幣安的攻擊路徑重抄成門窗表，看門牌寫「內部」的門通到哪裡">
+<meta name="imitator-reference" content="1980 年代建築施工圖的門窗表頁 — 藍線圖（重氮晒圖）上的門號圈、圖框標題欄與紅筆修訂三角">
+<meta name="imitator-paper" content="hsl(208 38% 94%)">
+<meta name="imitator-accent" content="hsl(354 72% 38%)">
+<title>門牌寫著內部的門 — 91APP 被駭事件續報</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  續報 — 把 91APP 與幣安公開的攻擊路徑重抄成一張門窗表，讀者是平台業者與帶團隊的工程主管。
+   REFERENCE: 1980 年代建築施工圖的門窗表頁 — 藍線圖（重氮晒圖）紙、圈起來的門號、右下角的圖框標題欄、紅筆修訂三角。
+   PAPER:     藍線圖的晒圖紙 — 重氮晒出來的底帶一層淡藍，hsl(208 38% 94%)。色相落在 190–230 是因為材料本身就是藍晒紙，不是預設灰。
+   VOICE:     紅筆只給修訂與標題那個字；門號用等寬體圈起來；標題用窄體，像圖面上的字規字。
+   NOT:       資安廠商的白皮書。沒有盾牌、沒有鎖頭圖示，門號就是唯一的圖示。
+   RECENT:    unavailable（沒有 token，主機也連不到）；改以本機最近四份草稿手動比對 — paper 28° 48° 118° 352° · accent 22° 228° 262° 322°。
+              208° 離最近的 paper 遠超 15°；354° 離 22° 為 28°、離 322° 為 32°，都超過 25°，不用改。
+   DARK:      第二種材料是藍晒（cyanotype）— 普魯士藍底、白線，hsl(212 56% 13%)；紅筆在藍底上要更亮。 */
+
+:root {
+  --paper: hsl(208 38% 94%);       /* 藍線圖晒圖紙 */
+  --card: hsl(208 46% 97%);
+  --ink: hsl(214 50% 13%);          /* 重氮線的深藍黑 */
+  --ink-2: hsl(213 32% 27%);
+  --mist: hsl(212 20% 38%);
+  --rule: hsl(208 32% 82%);
+  --rule-hard: hsl(210 34% 64%);
+  --accent: hsl(354 72% 38%);       /* 紅筆修訂 */
+  --accent-soft: hsl(354 62% 92%);
+  --sans: "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Noto Sans TC", monospace;
+  --grid: hsl(208 40% 88%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(212 56% 13%);      /* 藍晒：普魯士藍底 */
+    --card: hsl(212 50% 17%);
+    --ink: hsl(205 36% 93%);        /* 白線 */
+    --ink-2: hsl(206 26% 79%);
+    --mist: hsl(207 20% 67%);
+    --rule: hsl(211 40% 26%);
+    --rule-hard: hsl(209 34% 38%);
+    --accent: hsl(356 86% 75%);
+    --accent-soft: hsl(356 36% 26%);
+    --grid: hsl(212 48% 18%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(212 56% 13%);
+  --card: hsl(212 50% 17%);
+  --ink: hsl(205 36% 93%);
+  --ink-2: hsl(206 26% 79%);
+  --mist: hsl(207 20% 67%);
+  --rule: hsl(211 40% 26%);
+  --rule-hard: hsl(209 34% 38%);
+  --accent: hsl(356 86% 75%);
+  --accent-soft: hsl(356 36% 26%);
+  --grid: hsl(212 48% 18%);
+}
+
+/* 已知坑：chassis 的 pre 沒有 font-family */
+pre { font-family: var(--mono); }
+
+/* 頁首：圖紙格線只鋪在標題區，不鋪在正文底下 */
+.sheet-head {
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  border: 1px solid var(--rule-hard);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+  max-width: none !important;
+}
+.sheet-head .display { margin-top: var(--sp-3); }
+.display { font-weight: 700; letter-spacing: -.01em; }
+h2, h3 { font-weight: 700; }
+
+/* 圖框標題欄 */
+.titleblock { margin-inline: 0 !important; border-radius: 0; border: 1.5px solid var(--ink); background: var(--card); max-width: none !important; margin-block: var(--sp-5) var(--sp-6); }
+.titleblock table { font-size: var(--fs-sm); }
+.titleblock th { width: 7.5em; font-family: var(--mono); font-weight: 500; font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); border-right: 1px solid var(--rule); position: static; }
+.titleblock td, .titleblock th { border-bottom: 1px solid var(--rule); }
+
+/* 門號：圖面上圈起來的門編號 */
+.door {
+  display: inline-block; font-family: var(--mono); font-size: var(--fs-xs); font-weight: 500;
+  letter-spacing: .04em; color: var(--ink);
+  border: 1.5px solid var(--ink); border-radius: 999px; padding: .1em .6em; white-space: nowrap;
+}
+.door.out { border-style: dashed; color: var(--ink-2); border-color: var(--ink-2); }
+
+/* 證據章 — 文字本身就是意思，框線只是輔助 */
+.ev {
+  display: inline-block; font-family: var(--mono); font-size: .72rem; letter-spacing: .06em;
+  padding: .05em .45em; border: 1px solid var(--ink-2); border-radius: 2px; color: var(--ink-2);
+  vertical-align: .12em; white-space: nowrap; margin-inline: .15em;
+}
+.ev.fact  { border-color: var(--ink); color: var(--ink); border-width: 1.5px; }
+.ev.claim { border-style: double; border-width: 3px; padding: 0 .4em; }
+.ev.infer { border-style: dashed; }
+.ev.unk   { border-style: dotted; color: var(--mist); border-color: var(--mist); }
+
+/* 紅筆修訂三角：v0.1（10/30）之後才出現的事實 */
+.rev {
+  display: inline-block; font-family: var(--mono); font-size: .72rem; font-weight: 500;
+  color: var(--accent); white-space: nowrap; margin-inline: .1em; vertical-align: .12em;
+}
+.rev::before { content: "△"; margin-right: .1em; }
+
+.legend-line { font-size: var(--fs-sm); color: var(--ink-2); }
+.legend-line .ev, .legend-line .rev { margin-right: .2em; }
+
+.eyebrow { letter-spacing: .14em; }
+.findings { padding-left: 1.4em; }
+.findings li { margin-bottom: var(--sp-2); }
+.sources { font-size: var(--fs-sm); padding-left: 1.8em; }
+.sources li + li { margin-top: var(--sp-1); }
+.sources a { overflow-wrap: anywhere; }
+sup.ref { font-family: var(--mono); font-size: .68em; }
+sup.ref a { text-decoration: none; }
+.casecard h3 { margin-top: 0; }
+.casecard .who { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; color: var(--mist); margin-bottom: var(--sp-2); }
+.casecard p { font-size: var(--fs-sm); line-height: 1.75; }
+.casecard p:last-child { margin-bottom: 0; }
+.stat .value { font-family: var(--disp); }
+@media (max-width: 40rem) { table.long { min-width: 36rem; } table.long td:nth-child(2), table.long td:nth-child(3) { min-width: 9em; } }
+.endnote { font-size: var(--fs-sm); color: var(--mist); border-top: 1px solid var(--rule-hard); padding-top: var(--sp-4); margin-top: var(--sp-7); }
+</style>
+<body>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+<div class="progress" aria-hidden="true"></div>
+
+<main class="report">
+
+<header class="sheet-head reveal">
+  <p class="eyebrow" style="margin-top:0">91APP 被駭事件 · 續報 · <span class="nowrap">2026-11-04</span></p>
+  <h1 class="display">最常沒鎖的，<br>是門牌寫著<br><em>內部</em>的那扇</h1>
+  <p class="lede" style="margin-bottom:0">上一份的結論是「門沒換，只是敲門的變多了」。這份往下追一層：同一個月的兩起事件，91APP 與幣安，攻擊者最後走進核心系統時經過的門，大多被歸類為「內部」。</p>
+</header>
+
+<div class="titleblock table-scroll plain">
+<table>
+<tbody>
+<tr><th scope="row">案名</th><td>91APP 被駭事件續報：內部的門（對照幣安 10/29 盜轉案）</td></tr>
+<tr><th scope="row">接續</th><td>《門沒換，只是敲門的變多了》v0.1（91app-breach-findings，資料截至 10/30）</td></tr>
+<tr><th scope="row">版次</th><td><span class="nowrap">v0.1</span> · <span class="nowrap">2026-11-04</span> · 公開資料整理，非鑑識報告</td></tr>
+<tr><th scope="row">資料截止</th><td><span class="nowrap">2026-11-04 10:50</span>（台北時間）</td></tr>
+<tr><th scope="row">證據章</th><td class="legend-line"><span class="ev fact">已證實</span>多方獨立報導或可直接查核　<span class="ev claim">官方說法</span>當事公司或主管機關自述　<span class="ev infer">推論</span>本報告的推斷　<span class="ev unk">未知</span>沒有公開資料</td></tr>
+<tr><th scope="row">修訂記號</th><td class="legend-line"><span class="rev">新</span>10/30 上一份之後才出現的事實</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ───────────────────────── A-01 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">A-01 · 續報</p>
+<h2>上一份留下的空格，填了哪幾格</h2>
+<p>上一份在附錄列了一張「還不知道」的清單。六天後回頭對照：</p>
+
+<div class="table-scroll">
+<table class="long">
+<thead><tr><th>項目</th><th>10/30 時</th><th>11/4 現在</th><th class="nowrap">章</th></tr></thead>
+<tbody>
+<tr><td>哪一個 CVE</td><td>未公布</td><td>仍未公布。今年 Appsmith 有在野利用紀錄的是 CVE-2026-22794（1.92 以下）<sup class="ref"><a href="#s8">8</a></sup>，但沒有公開資料把它和 91APP 連起來</td><td><span class="ev unk">未知</span></td></tr>
+<tr><td>Appsmith 有沒有對外開放</td><td>未公布</td><td>仍未公布</td><td><span class="ev unk">未知</span></td></tr>
+<tr><td>ARTEX 執行了鏈中的哪一段</td><td>未公布</td><td>仍未公布。25 天報告只說工具鏈與 9–10 月日韓那一波相同<sup class="ref"><a href="#s1">1</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td>補償金額</td><td>研議中</td><td><span class="rev">新</span>線上表單 11/2 已開放，頁面寫補償內容「將持續於本頁更新」，金額仍未公布<sup class="ref"><a href="#s2">2</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td>數產署裁處</td><td>行政檢查中</td><td><span class="rev">新</span>已完成實地檢查、確認攻擊阻斷<sup class="ref"><a href="#s5">5</a></sup>；尚無裁處公告。數產署 10/20 說過，收到完整資料後會視情況依個資法開罰，可能再做第二次檢查<sup class="ref"><a href="#s6">6</a></sup></td><td><span class="ev unk">未知</span></td></tr>
+<tr><td>財報認列</td><td>未定</td><td>財務影響仍在評估<sup class="ref"><a href="#s5">5</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>這六天多出來的事實：</p>
+<ul>
+<li><span class="rev">新</span>11/2 起開始通知，但前提是品牌先在 91APP 後台簽授權書。官方 FAQ 寫明：沒收到通知，可能是不在名單內，也可能是品牌還沒授權，這種情況無法用該頁的方式受理<sup class="ref"><a href="#s2">2</a></sup>。<span class="ev claim">官方說法</span></li>
+<li><span class="rev">新</span>全家表示若後續有消費者求償，會向 91APP 追究；台灣無印良品確認約 18 萬名會員受影響<sup class="ref"><a href="#s4">4</a></sup>。<span class="ev claim">官方說法</span></li>
+<li><span class="rev">新</span>11/3 股價最低到 45.6 元，再創歷史新低<sup class="ref"><a href="#s5">5</a></sup>。<span class="ev fact">已證實</span></li>
+<li>10/30 全體會員被要求重新登入，官方說是預防措施，不是新事件；10/14 之後仍收到詐騙訊息，也不代表又被入侵，因為已外流的資料會被重複使用<sup class="ref"><a href="#s2">2</a></sup>。<span class="ev claim">官方說法</span></li>
+</ul>
+<p><span class="mark">填上的格子全在「善後」那一側；「門是怎麼被打開的」那一側，一格都沒填。</span></p>
+</section>
+
+<!-- ───────────────────────── A-02 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">A-02 · 門窗表</p>
+<h2>兩棟樓，七扇門</h2>
+<p>建築施工圖裡有一張「門窗表」：每扇門一個編號，寫它在哪、通往哪、用什麼鎖。把 91APP 與幣安公開的攻擊路徑照這個格式重抄一次，門牌上寫的和門後實際通到的，差距就攤開了。</p>
+
+<div class="table-scroll">
+<table class="long">
+<thead><tr><th>門號</th><th>案</th><th>門牌上寫</th><th>門後實際通到</th><th class="nowrap">章</th></tr></thead>
+<tbody>
+<tr><td><span class="door">D-01</span></td><td class="nowrap">91APP</td><td>第三方「內部效率工具」Appsmith</td><td>有已知漏洞、沒有及時修補；攻擊者從這裡進入內部網路<sup class="ref"><a href="#s3">3</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td><span class="door">D-02</span></td><td class="nowrap">91APP</td><td>內部 GitLab</td><td>放著其中一座訂單資料庫的金鑰<sup class="ref"><a href="#s3">3</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td><span class="door">D-03</span></td><td class="nowrap">91APP</td><td>內部 CI 主機</td><td>能連到正式資料庫網段。事後的防堵措施才「限制 CI 主機與資料庫網段連線」<sup class="ref"><a href="#s3">3</a></sup></td><td><span class="ev infer">推論</span></td></tr>
+<tr><td><span class="door out">D-04</span></td><td class="nowrap">幣安</td><td>工程師自己裝的 AI 開發工具（Homebrew 安裝程式）</td><td>被竄改過的安裝程式。幣安 6 月就偵測到、換了裝置也輪替了憑證，但這名工程師的職務與錢包團隊同事資訊已經外流<sup class="ref"><a href="#s9">9</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td><span class="door out">D-05</span></td><td class="nowrap">幣安</td><td>求職面試的「程式作業」</td><td>另一名工程師在工作電腦上下載作業，裡面的惡意程式碼在安裝時執行<sup class="ref"><a href="#s9">9</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td><span class="door">D-06</span></td><td class="nowrap">幣安</td><td>內部 AI 工具</td><td>10/20 被用來從那台受害電腦，控制另外兩名錢包工程師的電腦<sup class="ref"><a href="#s9">9</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td><span class="door">D-07</span></td><td class="nowrap">幣安</td><td>工程師電腦上的容器部署權杖</td><td>部署容器、觸及內部錢包簽章服務，在正常提領流程之外轉出資產<sup class="ref"><a href="#s9">9</a></sup></td><td><span class="ev claim">官方說法</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="legend-line"><span class="door">D-0x</span> 實線圈：門牌寫內部，或只給自己人用的門　<span class="door out">D-0x</span> 虛線圈：外牆上的門，靠社交工程打開</p>
+
+<p>D-04 和 D-05 是外牆上的門，靠的是假求職與被竄改的開發工具，這是北韓駭客團隊的老招式；幣安表示今年以來已攔下約 57 起疑似北韓的攻擊，手法清單就是這些<sup class="ref"><a href="#s9">9</a></sup>。其餘五扇，門牌上寫的都是「內部」或「自己人用」。</p>
+
+<div class="note">
+<p class="head">幣安案和 ARTEX 無關</p>
+<p>幣安自己的報告和各家報導都沒有提到 ARTEX 或其他攻擊框架<sup class="ref"><a href="#s9">9</a>,<a href="#s10">10</a></sup>。<span class="ev claim">官方說法</span> 歸因方面，區塊鏈分析公司 TRM Labs 有高度信心指向北韓的 TraderTraitor，FBI 也點名北韓<sup class="ref"><a href="#s11">11</a></sup>。<span class="ev claim">官方說法</span> 北韓否認涉入。</p>
+</div>
+</section>
+
+<!-- ───────────────────────── A-03 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">A-03 · 對照</p>
+<h2>兩種敲門法，同一種門</h2>
+
+<div class="cols stagger">
+  <div class="card casecard">
+    <p class="who">91APP · 10/03 – 10/14</p>
+    <h3>敲門的是 AI 框架</h3>
+    <p>系統內發現 ARTEX 的痕跡，官方說工具鏈與日韓同一波相同；攻擊者是誰沒有歸因。<span class="ev claim">官方說法</span></p>
+    <p>門：沒修補的內部工具，接著是放著金鑰的程式碼庫和能直連資料庫的建置主機。</p>
+    <p>怎麼被發現：品牌客戶通報消費者收到詐騙訊息，也就是外部訊號，不是內部監控<sup class="ref"><a href="#s7">7</a></sup>。<span class="ev claim">官方說法</span></p>
+  </div>
+  <div class="card casecard">
+    <p class="who">幣安 · 2026-06 – 10/29</p>
+    <h3>敲門的是人</h3>
+    <p>攻擊者花了幾個月：先用竄改過的開發工具，再用兩輪假面試，一個一個換到工程師的電腦<sup class="ref"><a href="#s10">10</a></sup>。<span class="ev claim">官方說法</span></p>
+    <p>AI 出現兩次：誘餌是工程師正在找的 AI 開發工具，橋是幣安自己的內部 AI 工具。</p>
+    <p>怎麼被發現：內部收到大額轉帳警示，暫停提領，約四小時後封鎖<sup class="ref"><a href="#s12">12</a></sup>。<span class="ev claim">官方說法</span></p>
+  </div>
+</div>
+
+<div class="tiles wide stagger">
+  <div class="stat"><p class="label">91APP　訂單資料庫被存取 → 阻斷</p><div class="value">11 天</div><p class="delta">10/03 11:00 → 10/14 23:00</p></div>
+  <div class="stat"><p class="label">幣安　經內部 AI 工具橫移 → 資產轉出</p><div class="value">9 天</div><p class="delta">10/20 → 10/29</p></div>
+  <div class="stat"><p class="label">幣安　第一次接觸 → 資產轉出</p><div class="value">約 4 個月</div><p class="delta">2026-06 → 10/29</p></div>
+</div>
+<p class="legend-line">這三個數字量的不是同一件事，不能直接相比：91APP 的起點是資料庫已經被碰到的那一刻，攻擊者何時進入 Appsmith 沒有公布。<span class="ev unk">未知</span></p>
+
+<p class="pull reveal">在 91APP 案裡，AI 是攻擊者手上的工具；在幣安案裡，AI 是防守方自己牆內的一條走廊。</p>
+</section>
+
+<!-- ───────────────────────── A-04 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">A-04 · 分析</p>
+<h2>為什麼「內部」最常沒鎖</h2>
+<p><span class="mark">「內部」描述的是誰在用它，不是誰碰得到它。</span>門牌只寫了前者，攻擊者只在乎後者。兩案的五扇內部門有三個共同特徵。</p>
+
+<h3>一、接得越多，越好用</h3>
+<p>Appsmith 的賣點就是把資料庫和 API 接起來拼成後台，官方 repo 寫著可整合 25 種以上的資料庫<sup class="ref"><a href="#s20">20</a></sup>。內部 AI 工具也一樣：要能讀程式碼、開終端機、碰到同事的開發環境，才幫得上忙。這類工具的價值和它碰得到的範圍是同一件事，所以它天生和「最小權限」互相拉扯。<span class="ev infer">推論</span></p>
+
+<h3>二、權限是照「方便」給的</h3>
+<p>使用者是同事，所以預設信任。過去這類客製的內部應用還有一道看不見的鎖：沒有公開文件，外人不知道它怎麼運作。Google 10/30 發布的報告在防禦第四層特別點到這件事：內部業務應用多半是各公司客製、沒有公開文件，以前要有內部知識才知道怎麼利用；LLM 驅動的攻擊工具讓攻擊者能快速列舉並理解這些應用，再拿它們的合法功能來用<sup class="ref"><a href="#s13">13</a></sup>。<span class="ev claim">官方說法</span> 那道看不見的鎖，現在不算鎖了。</p>
+
+<h3>三、不在修補與監控的名單上</h3>
+<p>91APP 的 25 天報告承認，防護與修補管理沒跟上攻擊速度<sup class="ref"><a href="#s1">1</a></sup>；資安顧問歸納的第一個破口，就是內部工具被當成「不對外」而延後更新<sup class="ref"><a href="#s7">7</a></sup>。<span class="ev claim">官方說法</span></p>
+<p>幣安的例子更細一層。它 6 月就抓到第一次入侵，換了裝置、輪替了憑證，鎖換了；但「誰負責錢包、和誰同組」這份名冊已經外流，三個月後攻擊者照著名冊，從另一扇門找到同一組人<sup class="ref"><a href="#s9">9</a></sup>。<span class="ev infer">推論</span> 換鎖收不回已經被抄走的門牌。</p>
+
+<p><span class="chip">接回 v0.1</span> 這三點沒有一點是新的。資安署的說法也是 AI 改變的是速度與成本，不是手法<sup class="ref"><a href="#s14">14</a></sup>。ARTEX 這類框架讓攻擊者能同時試很多扇門；試到最後，最容易推開的仍然是門牌寫著「內部」的那扇。</p>
+</section>
+
+<!-- ───────────────────────── A-05 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">A-05 · 檢視</p>
+<h2>「以 AI 保護」會不會是 D-08</h2>
+<p>91APP 的新防護有三項：零信任架構、以 AI 保護與檢測、引入外部資安專家。第二項裡有一句是「AI 工具自我檢視弱點並修正」<sup class="ref"><a href="#s1">1</a></sup>。<span class="ev claim">官方說法</span> 方向沒有錯，Google 的報告也建議用 AI 驅動的程式碼審查，搶在攻擊者之前找出攻擊路徑<sup class="ref"><a href="#s13">13</a></sup>。</p>
+<p>但對照幣安：它在事後處置裡，必須重建被濫用的內部 AI 工具和存取控制<sup class="ref"><a href="#s9">9</a></sup>。一個能自我檢視、自我修正的 AI 工具，權限必然橫跨程式碼庫、部署流程和正式環境，這正是一扇新的、門牌寫著「內部」的門。<span class="ev infer">推論</span></p>
+
+<div class="note warn">
+<p class="head">給這項承諾補四個檢核問題</p>
+<ol>
+<li>這個 AI 工具用誰的身分執行？是它自己的，還是借用某個工程師的？</li>
+<li>它碰得到哪些系統？能不能登入或控制其他人的電腦？</li>
+<li>它拿到的權杖多久過期？</li>
+<li>它有沒有在漏洞修補與行為監控的名單上？</li>
+</ol>
+<p>四題都答不出來，它就是門窗表上的 D-08。</p>
+</div>
+</section>
+
+<!-- ───────────────────────── A-06 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">A-06 · 調查發現</p>
+<h2>三類調查發現</h2>
+
+<h3>與可能肇因有關</h3>
+<ol class="findings">
+<li>兩案中，攻擊者進入核心系統前經過的門，多數被定位為內部工具或內部資產：91APP 三扇，幣安兩扇。<span class="ev claim">官方說法</span></li>
+<li>91APP 的入口是被稱為「內部效率工具」的 Appsmith，有已知漏洞未及時修補。<span class="ev claim">官方說法</span></li>
+<li>幣安的內部 AI 工具在 10/20 被用來從一台受害電腦擴散到另外兩名錢包工程師的電腦，其中一台存有容器部署權杖。<span class="ev claim">官方說法</span></li>
+</ol>
+
+<h3>與風險有關</h3>
+<ol class="findings">
+<li>內部工具的價值來自廣泛連線，這和最小權限原則天然衝突。<span class="ev infer">推論</span></li>
+<li>事件後輪替憑證、更換裝置，收不回已外流的組織資訊（誰負責什麼、誰和誰同組）；幣安的第二階段攻擊正是從這類資訊出發。<span class="ev infer">推論</span></li>
+<li>91APP 的新防護方案加入 AI 工具，若沒有納入身分、權限、修補與監控管理，等於新增一扇內部門。<span class="ev infer">推論</span></li>
+<li>91APP 的消費者通知要先取得各品牌授權，通知完成的時間取決於 1,329 家品牌的回覆速度。<span class="ev infer">推論</span></li>
+</ol>
+
+<h3>其他</h3>
+<ol class="findings">
+<li>至 11/4，91APP 仍未公布 CVE、Appsmith 是否對外開放、ARTEX 執行了鏈中哪一段。<span class="ev unk">未知</span></li>
+<li>幣安案沒有公開資料顯示使用 ARTEX 或其他攻擊框架。<span class="ev claim">官方說法</span></li>
+<li>兩案的發現來源不同：91APP 靠外部詐騙訊號，幣安靠內部大額轉帳警示。<span class="ev claim">官方說法</span></li>
+</ol>
+</section>
+
+<!-- ───────────────────────── A-07 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">A-07 · 改善建議</p>
+<h2>照「碰得到什麼」重畫門窗表</h2>
+
+<h3>給平台業者</h3>
+<ul>
+<li><strong>重新盤點內部工具，依據是它碰得到什麼，不是誰在用。</strong>名單上至少要有低程式碼平台、內部 AI 工具、CI 主機、程式碼庫。</li>
+<li>內部工具和對外服務用同一套修補時限。「不對外」不是延後更新的理由。</li>
+<li>正式環境的金鑰不放進程式碼庫，改用短效、綁定工作負載的憑證，這也是 Google 建議的第二層防禦<sup class="ref"><a href="#s13">13</a></sup>。</li>
+<li>內部 AI 工具給獨立身分與最小權限，不讓它直接登入或控制其他人的電腦，把它的動作納入行為偵測。</li>
+<li>偵測要做到內部先發現：資料庫讀取量、連線來源網段的異常都該告警。91APP 這次是消費者先收到詐騙。</li>
+</ul>
+
+<h3>給品牌客戶</h3>
+<ul>
+<li>合約寫明事件通知的時限與方式，不要以「調查完成」為通知起點。上一份已指出，91APP 初期告知品牌的影響範圍和最後公布的不同。</li>
+</ul>
+
+<h3>給工程師個人</h3>
+<ul>
+<li>求職作業、搜尋結果裡找到的安裝程式，不要在工作電腦上執行。幣安兩扇外牆門都是這樣開的。</li>
+</ul>
+</section>
+
+<!-- ───────────────────────── 附錄 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">附錄 A · 同期事件</p>
+<h2>同一週，未納入分析的案子</h2>
+<p>以下事件時間相近，但不是本篇論證的依據，列在這裡備查。</p>
+<div class="table-scroll">
+<table class="long">
+<thead><tr><th class="nowrap">日期</th><th>事件</th><th>和本篇的關係</th><th class="nowrap">章</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">10/26</td><td>首爾警方逮捕一名 32 歲男子，涉嫌用 ARTEX 入侵逾 90 家企業與機構、竊取約 820 萬筆個資<sup class="ref"><a href="#s17">17</a></sup></td><td>同一套工具，不同操作者</td><td><span class="ev fact">已證實</span></td></tr>
+<tr><td class="nowrap">10/30</td><td>WorkOS 內部銷售工具遭未授權存取，CEO 點名攻擊用了 ARTEX<sup class="ref"><a href="#s16">16</a></sup></td><td>又一個「內部工具」入口；細節未公布</td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td class="nowrap">10/30</td><td>Chainalysis 公告外部人士以「offensive agentic」手法存取內部系統與工具，並澄清與幣安案無關<sup class="ref"><a href="#s15">15</a></sup></td><td>未說明是哪套框架</td><td><span class="ev claim">官方說法</span></td></tr>
+<tr><td class="nowrap">11/03</td><td>永豐銀行 419 名客戶、427 筆異常轉出，共 4,270 萬元；銀行稱是「新網銀交易系統」程式異常<sup class="ref"><a href="#s18">18</a></sup>。業界推測是新舊系統轉換時，測試案例誤觸正式環境<sup class="ref"><a href="#s19">19</a></sup>；警方不排除遭駭</td><td>若證實是測試誤觸，主題會變成「內部的門沒有敵人也會自己打開」，屬於另一篇；待 11/12 重大偶發事件報告</td><td><span class="ev unk">未知</span></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">附錄 B · 下次更新的觸發條件</p>
+<ul>
+<li>永豐銀行 11/12 前提出的重大偶發事件報告</li>
+<li>91APP 公布補償金額，或在財報中揭露財務影響</li>
+<li>數產署公布行政檢查結果或裁處</li>
+<li>幣安委託的第三方資安複查結果</li>
+<li>91APP 公布 CVE、Appsmith 部署方式，或 ARTEX 執行了哪一段</li>
+</ul>
+</section>
+
+<section>
+<p class="eyebrow">附錄 C · 來源</p>
+<ol class="sources">
+<li id="s1"><a href="https://91app.com/blog/91app-202610-security-incident-2/">91APP：《91APP 被駭事件：25 天調查報告》新聞稿（2026-10-29）</a></li>
+<li id="s2"><a href="https://91app.com/91app-202610-security-incident-compensation/">91APP：消費者個資損害補償與通知說明（11-02 更新）</a></li>
+<li id="s3"><a href="https://www.ithome.com.tw/news/179923">iThome：91APP 遭駭事件查出 ARTEX 攻擊痕跡（18 天報告與防堵措施）</a></li>
+<li id="s4"><a href="https://tw.news.yahoo.com/91app%E9%81%AD%E9%A7%AD%E6%B3%A2%E5%8F%8A480%E8%90%AC%E4%BA%BA-1329%E5%AE%B6%E5%93%81%E7%89%8C%E5%90%8D%E5%96%AE%E8%88%87%E8%A3%9C%E5%84%9F%E5%87%BA%E7%88%90-092824569.html">Yahoo 新聞：91APP 遭駭波及 480 萬人，品牌名單與補償（全家、無印良品回應）</a></li>
+<li id="s5"><a href="https://news.cnyes.com/news/id/6644767">鉅亨網：〈焦點股〉91APP*-KY 股價續破底創低（11-03）</a></li>
+<li id="s6"><a href="https://www.mirrormedia.mg/story/20261020-177fin-210730">鏡週刊：數發部收到完整資料後視狀況依個資法開罰（10-20）</a></li>
+<li id="s7"><a href="https://muskis.com.tw/91app-data-breach/">Musk-IS：91APP 資安事件懶人包</a></li>
+<li id="s8"><a href="https://www.resecurity.com/blog/article/cve-2026-22794-changing-the-origin-header-to-take-over-appsmith-accounts">Resecurity：CVE-2026-22794（Appsmith 帳號接管，≤1.92）</a></li>
+<li id="s9"><a href="https://thehackernews.com/2026/11/binance-reveals-how-fake-job-interviews.html">The Hacker News：Binance Reveals How Fake Job Interviews and AI Tool Abuse Led to $6.43 Billion Theft（11-03）</a></li>
+<li id="s10"><a href="https://www.coindesk.com/business/2026/11/03/binance-s-usd6-3-billion-hack-began-with-a-fake-job-interview-exchange-says">CoinDesk：Binance's $6.3 billion hack began with a fake job interview（11-03）</a></li>
+<li id="s11"><a href="https://www.ettoday.net/news/20261102/3264768.htm">ETtoday：TRM Labs 指向北韓 TraderTraitor（11-02）</a></li>
+<li id="s12"><a href="https://n.yam.com/Article/20261104195700">品傳媒：幣安公布 63 億美元駭案調查時間軸（11-04）</a></li>
+<li id="s13"><a href="https://cloud.google.com/blog/topics/threat-intelligence/artex-and-friends-enter-agentic-offensive-frameworks">Google Threat Intelligence Group、Mandiant：ARTEX and Friends: Enter Agentic Offensive Frameworks（10-30）</a></li>
+<li id="s14"><a href="https://www.informationsecurity.com.tw/article/article_detail.aspx?aid=13416">資安人：資安署示警 AI 攻擊加速</a></li>
+<li id="s15"><a href="https://www.infosecurity-magazine.com/news/chainalysis-customers-offensive/">Infosecurity Magazine：Chainalysis Warns Customers After "Offensive Agentic" Security Incident（11-02）</a></li>
+<li id="s16"><a href="https://cellcog.ai/blog/workos-artex-breach/">cellcog：WorkOS Breach: An AI Agent Framework Got In（二手整理，引述 WorkOS 公告與 CEO 貼文）</a></li>
+<li id="s17"><a href="https://www.ithome.com.tw/news/179981">iThome 資安日報 10/27：首爾警方逮捕 ARTEX 嫌犯</a></li>
+<li id="s18"><a href="https://tw.news.yahoo.com/%E6%B0%B8%E8%B1%90%E9%8A%80%E5%82%B3%E9%81%AD%E9%9B%86%E9%AB%94%E7%9B%9C%E8%BD%89-%E9%87%91%E7%AE%A1%E6%9C%83%EF%BC%9A%E5%BD%B1%E9%9F%BF419%E4%BA%BA%E5%85%B1%E8%BD%89%E5%87%BA4270%E8%90%AC-%E5%85%A7%E9%83%A8%E8%AA%BF%E6%9F%A5%E7%99%BC%E7%8F%BE%E6%96%B0%E7%B6%B2%E9%8A%80%E4%BA%A4%E6%98%93%E7%B3%BB%E7%B5%B1%E7%A8%8B%E5%BC%8F%E7%95%B0%E5%B8%B8-092403135.html">Yahoo 新聞：金管會證實永豐 419 人、4,270 萬，新網銀交易系統程式異常（11-03）</a></li>
+<li id="s19"><a href="https://udn.com/news/story/7239/9855454">聯合報：永豐盜轉疑雲，新舊系統轉換、業界懷疑測試出包（11-04）</a></li>
+<li id="s20"><a href="https://github.com/appsmithorg/appsmith">appsmithorg/appsmith：官方 repo 說明</a></li>
+</ol>
+</section>
+
+<p class="endnote">本報告整理公開資料，不是鑑識報告。所有「推論」都是作者依公開資料的推斷，當事公司未證實。資料截至 2026-11-04 10:50（台北時間）。</p>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
