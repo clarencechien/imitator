@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="進口報單 — 以 Instant Checkout 撤退為切點，推導 agent 時代需求側的核心資產是「誰記錄在案」">
+<meta name="imitator-reference" content="1980 年代台灣報關行的進口報單三聯單 — 無碳複寫黃聯、編號欄位、進口人欄、關員核章與背面責任條款">
+<meta name="imitator-paper" content="hsl(48 45% 93%)">
+<meta name="imitator-accent" content="hsl(160 45% 27%)">
+<title>帳單上印著誰的名字 — AI 平台地形 下篇</title>
+<meta name="description" content="上篇說資料層是重力所在。下篇看需求側：AI agent 拿走注意力，aggregator 握住履約，而分界線是 merchant of record——帳單上印誰的名字，出了事找誰。">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;700&family=Noto+Sans+TC:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+/* ── this report's voice ─────────────────────────────────────────────────
+   REGISTER:  進口報單 — 以 Instant Checkout 六個月撤退為切點，推導 agent 時代需求側的核心資產
+              是「誰記錄在案」：帳單上印誰的名字、出了事找誰。讀者是讀過上篇《每一層，都要能說不》的人。
+   REFERENCE: 1980 年代台灣報關行的進口報單三聯單 — 無碳複寫的黃聯、編號欄位、進口人欄、
+              關員核章、背面小字的責任條款。表格是主體，戳記是裁決，數字填在欄位裡不是飄在版面上。
+   PAPER:     無碳複寫紙的黃聯 — 暖黃，hsl(48 45% 93%)。這是會被海關留存的那一聯。
+   VOICE:     關務章的墨綠只給欄位編號、標題的那個詞、連結與裁決章用；
+              Latin 用 Plex Condensed 像打字機填表，中文落回 Noto；mono 當欄位標籤。
+   NOT:       儀表板，不是投資報告。沒有互動元件；每個數字都標公司自報／分析師估計／廠商宣稱。
+   RECENT:    unavailable（無 token）。已知上篇 paper 206° / accent 212°；本篇 48° / 160°，
+              紙差 158°、accent 差 52°，不用改。與 autopsy（cream + 紅章）靠章的顏色拉開。 */
+:root {
+  --paper: hsl(48 45% 93%);      /* 無碳複寫黃聯 */
+  --card:  hsl(48 50% 97%);
+  --ink:   hsl(40 18% 12%);
+  --ink-2: hsl(40 14% 30%);
+  --mist:  hsl(40 10% 44%);
+  --rule:  hsl(46 28% 82%);
+  --rule-hard: hsl(46 24% 68%);
+  --accent: hsl(160 45% 27%);    /* 關員核章的墨綠印泥 */
+  --accent-soft: hsl(158 32% 88%);
+  --stamp: hsl(160 45% 27%);
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", "PingFang TC", sans-serif;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(46 12% 9%); --card: hsl(46 12% 13%);
+    --ink: hsl(46 20% 90%); --ink-2: hsl(46 12% 72%); --mist: hsl(46 8% 58%);
+    --rule: hsl(46 10% 22%); --rule-hard: hsl(46 10% 34%);
+    --accent: hsl(158 38% 62%); --accent-soft: hsl(158 22% 20%);
+    --stamp: hsl(158 38% 62%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(46 12% 9%); --card: hsl(46 12% 13%);
+  --ink: hsl(46 20% 90%); --ink-2: hsl(46 12% 72%); --mist: hsl(46 8% 58%);
+  --rule: hsl(46 10% 22%); --rule-hard: hsl(46 10% 34%);
+  --accent: hsl(158 38% 62%); --accent-soft: hsl(158 22% 20%);
+  --stamp: hsl(158 38% 62%);
+}
+pre { font-family: var(--mono); }
+
+/* 報單表頭：編號欄位一排 */
+.form-head {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0; border: 1px solid var(--rule-hard); border-radius: 3px; margin: var(--sp-5) 0 var(--sp-6);
+  background: var(--card); max-width: none; font-variant-numeric: tabular-nums;
+}
+.form-head > div { border-bottom: 1px solid var(--rule); }
+.form-head > div { min-width: 0; padding: var(--sp-2) var(--sp-3); border-right: 1px solid var(--rule); }
+.form-head > div:last-child { border-right: 0; }
+.form-head .k { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .12em; color: var(--mist); text-transform: uppercase; display: block; }
+.form-head .v { font-size: var(--fs-sm); color: var(--ink); }
+@media (max-width: 40rem) { .form-head > div { border-right: 0; border-bottom: 1px solid var(--rule); } .form-head > div:last-child { border-bottom: 0; } }
+
+/* 關員核章：裁決用，一節一枚 */
+.stamp {
+  display: inline-block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .14em;
+  color: var(--stamp); border: 2px solid var(--stamp); border-radius: 4px; padding: .15em .5em;
+  transform: rotate(-2deg); vertical-align: .1em; margin-left: .4em;
+}
+.stamp.weak { opacity: .7; border-style: dashed; }
+
+/* 分層圖 */
+.layers text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+.layers .lbl { fill: var(--ink); font-weight: 700; }
+.layers .k { font-family: var(--mono); font-size: 11px; fill: var(--mist); letter-spacing: .08em; }
+.layers .box { fill: var(--card); stroke: var(--rule-hard); }
+.layers .box.hot { fill: var(--accent-soft); stroke: var(--accent); }
+.layers .arrow { stroke: var(--accent); stroke-width: 2; fill: none; }
+.layers .valve { stroke: var(--ink); stroke-width: 1.5; fill: var(--paper); }
+.layers .dash { stroke: var(--rule-hard); stroke-dasharray: 4 4; }
+
+/* 證據強度 */
+.grade { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; white-space: nowrap; }
+td .grade { color: var(--accent); }
+.ref ol { padding-left: 1.4em; font-size: var(--fs-sm); color: var(--ink-2); }
+.ref li + li { margin-top: .35rem; }
+.ref a { overflow-wrap: anywhere; }
+</style>
+<body>
+<div class="progress" aria-hidden="true"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<p class="eyebrow">進口報單 · AI 平台地形 · 下篇 · REV A</p>
+<h1 class="display reveal">帳單上<br>印著<em>誰的名字</em></h1>
+<p class="lede">上篇從 Zeabur 關閉出發，說供給側的重力在資料層。這篇看另一端：AI agent 替你比價、替你按下購買之後，Booking、Amazon、DoorDash 這些握著需求的 aggregator 還剩什麼？答案不在對話框裡，在帳單上——誰的名字記錄在案，出了事就找誰。</p>
+
+<div class="form-head wide reveal">
+  <div><span class="k">DOC</span><span class="v">AI-PLATFORM-2026-11</span></div>
+  <div><span class="k">DATE</span><span class="v">2026-11-05</span></div>
+  <div><span class="k">SCOPE</span><span class="v">2024 → 2026 H2 · 需求側</span></div>
+  <div><span class="k">BASIS</span><span class="v">OTA 與平台財報、第九巡迴判決、Stratechery、Adobe、Chartbeat</span></div>
+  <div><span class="k">STATUS</span><span class="v">結論八條對齊上篇八條，五強三中；未決八項列於欄 08</span></div>
+  <div><span class="k">PRIOR</span><span class="v"><a href="https://imitator.ai-apps.work/r/ai-platform-2026-10">上篇 · 每一層，都要能說不</a></span></div>
+</div>
+
+<section>
+<p class="eyebrow">欄 00 · 申報事項</p>
+<h2>同一句話，有三種強度</h2>
+<p>起點是一句在 2026 年秋天很常聽到的話：「就如同 AI 不會取代軟體一樣，AI Agent 不會取代 Aggregator。」這句話有三種寫法，證據對它們的裁決完全不同，先分開。</p>
+<p><strong>強版：agent 根本進不來，aggregator 安全。</strong> 這版被數字否定了。Adobe 追蹤超過一兆次美國零售站點造訪，2025 年假期檔 AI 導流年增 693%，到 2026 年 7 月 AI 導流的轉換率反而比非 AI 流量高 60%，一年前還低一半（Adobe 2026-08，第三方量測）。ChatGPT 的廣告開賣約二百天就到 10 億美元年化（2026-08-31，OpenAI 自報）。agent 作為需求的新入口，是事實不是預測。</p>
+<p><strong>弱版：agent 取代 aggregator 只是時間問題。</strong> 這版解釋不了 2026 年 3 月發生的事。OpenAI 在 2025-09-29 推出 Instant Checkout，六個月後公告初版「沒有提供期望的彈性」，結帳移回商家自己的 app 與網站；按鈕轉換率低於 1%，產業平均是 3 到 4%（The Information 轉述）。Walmart 的 EVP 公開說，ChatGPT 裡的轉換率比導回 Walmart.com 低三倍，消費者怕「單件結帳會收到五個箱子」（WIRED 2026-03-18，公司高層陳述）。Google 的 Universal Cart 從 5 月 I/O 的「夏天上線」拖到 10 月 15 日，砍掉 YouTube、砍掉 AP2 自主購買，文案從「agent 替你買」改成「confidence and control」。</p>
+<p><strong>中版，也就是可以寫的那一版：</strong><span class="mark">agent 正在成為需求的新 aggregator，但它只能拿走 aggregator 營收堆疊裡「人在看」的那幾層；「東西要到、錢要對、出事找誰」的那幾層，它不但拿不走，還得透過它們完成。</span>四家獨立來源對風險的排序一模一樣：贊助與意圖廣告先死，比價與 metasearch 次之，無差異供給的 take rate 第三，訂閱與忠誠度之後，付款與履約最後（uncoveralpha 2026-09、HBR 2026-04、Morgan Stanley 2026-02、Bernstein 2025-08）。</p>
+<p>這就是下篇的骨架：agent 攻擊的是注意力層，留下的是履約層，而 aggregator 的利潤偏偏集中在被攻擊的那一層。後面每一欄都在替這句話填數字，和畫邊界。</p>
+</section>
+
+<section>
+<p class="eyebrow">欄 01 · 貨名與分層</p>
+<h2>Aggregator 的營收是五層，agent 打得到三層</h2>
+<p>「Booking 的營收」或「Amazon 的營收」當一個數字看，會看錯。它是一疊性質很不同的收入，agent 對每一層的力道不同。下表每個數字都標來源性質：公司自報、分析師估計、廠商宣稱、或由自報數字換算。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>層</th><th>誰在這層賺錢</th><th>agent 怎麼攻</th><th>已觀察到的損害</th><th>判定</th></tr></thead>
+<tbody>
+<tr><td><strong>L2 注意力／贊助版位</strong><span class="sub">attention · ads</span></td>
+<td>Amazon 廣告 2025 年 686 億美元，占淨銷售 9.6%、年增 22%（自報）；Instacart 廣告占營收 30.2%（2026 Q3，自報）；Uber 廣告年化超過 20 億（自報）；Walmart 全球廣告約 64 億，年增 46%（自報）。</td>
+<td>agent 不看廣告。Thompson 2025-05：agent「對廣告免疫」；2026-10：Google 與 Amazon 的廣告卡在人和他要找的東西中間，人不在場，廣告就沒有位置。</td>
+<td>交易型 aggregator 的廣告線還沒有一條下滑：Amazon 2026 Q3 廣告 196 億仍年增 11%。損害出現在內容型：Tripadvisor 媒體與廣告 2026 Q2 年減 12.1%（10-Q）。</td>
+<td>最暴露，而且利潤最集中。Morgan Stanley：多數利潤來自綁著交易的廣告；uncoveralpha：接近 100% 毛利。皆為分析師描述，沒有公司揭露這層的營業利潤。</td></tr>
+<tr><td><strong>L3 比價／metasearch／導流</strong><span class="sub">comparison</span></td>
+<td>Tripadvisor Hotels &amp; Other 2025 年 7.5 億；Booking「廣告與其他」含 KAYAK 11.9 億（皆自報）。</td>
+<td>AI Overviews 與 AI Mode 直接給答案。Pew 2025-07：有 AI 摘要時 8% 點傳統結果，沒有時 15%。</td>
+<td>Tripadvisor 是即時傷亡：Hotels &amp; Other 2026 Q1 −20%、Q2 −21%、Q3 指引 −20 到 −23%；CEO 明說 flyby visitors 因 AI overviews 下滑（自報）。</td>
+<td>正在被取代。</td></tr>
+<tr><td><strong>L1 摩擦／訂閱／忘了取消</strong><span class="sub">subscription</span></td>
+<td>Amazon 訂閱 496 億（2025，自報）；DashPass 超過 3,500 萬會員；Uber One 4,600 萬會員，會員占訂單額將過半（2025 年底，自報）。</td>
+<td>HBR：agent 不受沉沒成本影響，會替你比價換家。</td>
+<td>無。Booking Genius 高等級會員占間夜「high 50%」、Uber One 占比上升，忠誠度在 2026 年是 aggregator 加碼的方向。</td>
+<td>理論上暴露，實際上是護城河的一部分。</td></tr>
+<tr><td><strong>L4 交易 take rate</strong><span class="sub">commission</span></td>
+<td>Booking 商戶加代理營收 257 億，占營收 95.6%（2025，自報換算）；營收對總訂房額 14.5%（2025）→ 約 16%（2026 Q3）。Expedia 12.3% → 14.5%（2026 Q3，自報）。DoorDash 淨營收率 13.3%。Amazon 第三方賣家服務 1,722 億，占 24%。</td>
+<td>新中介在上面再疊一層：OpenAI 對 Instant Checkout 商家收 4%（2026-01-26 生效，The Information 報導、Shopify 確認）；Meta 據報打算以交易抽成變現（二手）。</td>
+<td>零。兩大 OTA 營收率持平或上升；OpenAI 的 4% 隨產品退場；Google UCP、Microsoft Copilot、Perplexity、Amazon Buy for Me 全部 0% 抽成、商家保留 merchant of record。</td>
+<td>2026 年內沒有壓縮。壓力的形式是「付費導流再加一條」，不是砍佣金。</td></tr>
+<tr><td><strong>L4′ 付款／merchant of record</strong><span class="sub">MoR · VCC</span></td>
+<td>Booking 商戶訂房額占比 65% → 75%（2024 Q4 → 2026 Q3，自報）；付款營收藏在商戶營收裡，不單獨揭露。</td>
+<td>業界反向收斂：商家保留 MoR，agent 只拿一次性 token（Stripe SPT、Mastercard Agentic Tokens、Visa、Google Pay）。</td>
+<td>agent 平台主動把這層留給商家。Stripe：商家是 merchant of record，保有退款與爭議的控制權。</td>
+<td>agent 不碰，也碰不起。</td></tr>
+<tr><td><strong>L5 實體供給／合約／履約</strong><span class="sub">fulfillment</span></td>
+<td>Booking 470 萬家旅宿；DoorDash 單季 9.93 億張訂單；Amazon 物流。</td>
+<td>只有航空被 Meta Muse 透過 Duffel API 直連，因為 NDC 標準先存在。</td>
+<td>DoorDash 2026 Q3：第三方 agent 累計「幾百張」訂單（CEO Tony Xu，自報）。</td>
+<td>不可取代層。Thompson 也同意：Amazon 的護城河植根於實體世界。</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>讀這張表要注意：營收分層和利潤分層不是同一張表，而沒有任何公司揭露利潤分層。Booking 95.6% 的營收在 L4，但 Platform Aeronaut 把一張 1,000 美元的訂單拆成營收 145、行銷 45、EBITDA 53，再假設 agent 直連供給、OTA 只剩賣資料，EBITDA 剩 8 美元。這是分析師試算，不是揭露，但它說明「營收還在」和「利潤還在」是兩個問題。Amazon 更極端：廣告 686 億若接近 100% 毛利，而北美加國際零售的營業利潤合計只有約 340 億（總營業利潤 800 億減 AWS 456 億，自報換算），廣告可能是 Amazon 非 AWS 營業利潤的全部甚至更多。這解釋了為什麼 Amazon 是唯一築牆的 aggregator：它的廣告強度約占 GMV 8%，是外送與雜貨平台（Uber 2% 出頭、Instacart 2.8%）的三到四倍。</p>
+
+<figure class="wide reveal">
+<p class="title">FIG 1 · 五層加一條橫切，agent 打得到上面三層</p>
+<p class="subtitle">灰框是 agent 拿不走的層；綠框是拿得走的。橫切線是四道閥門，驗證者全是在位者。</p>
+<div class="chart layers">
+<svg viewBox="0 0 640 352" role="img" aria-label="aggregator 五層營收堆疊與 agent 攻擊範圍示意圖">
+  <text x="20" y="22" class="k">AGENT 攻擊範圍</text>
+  <path class="arrow" d="M20 34 V148" />
+  <path class="arrow" d="M14 140 L20 150 L26 140" />
+  <rect class="box hot" x="44" y="30" width="330" height="34" rx="3"/><text x="56" y="52" class="lbl">L2 注意力・贊助版位</text><text x="400" y="52">Amazon ads 686 億 · 近 100% 毛利（分析師）</text>
+  <rect class="box hot" x="44" y="70" width="330" height="34" rx="3"/><text x="56" y="92" class="lbl">L3 比價・metasearch</text><text x="400" y="92">Tripadvisor 飯店 −21%（自報）</text>
+  <rect class="box hot" x="44" y="110" width="330" height="34" rx="3"/><text x="56" y="132" class="lbl">L1 訂閱・忘了取消</text><text x="400" y="132">理論暴露，實際加碼</text>
+  <line class="dash" x1="44" y1="156" x2="620" y2="156"/>
+  <text x="20" y="178" class="k">AGENT 繞不過</text>
+  <rect class="box" x="44" y="186" width="330" height="34" rx="3"/><text x="56" y="208" class="lbl">L4 take rate</text><text x="400" y="208">Booking 95.6% 營收 · 未壓縮</text>
+  <rect class="box" x="44" y="226" width="330" height="34" rx="3"/><text x="56" y="248" class="lbl">L4′ merchant of record</text><text x="400" y="248">商戶占比 65% → 75%</text>
+  <rect class="box" x="44" y="266" width="330" height="34" rx="3"/><text x="56" y="288" class="lbl">L5 供給合約・履約</text><text x="400" y="288">470 萬家旅宿 · 9.93 億張／季</text>
+  <line x1="44" y1="340" x2="620" y2="340" stroke="var(--ink)" stroke-width="1.5"/>
+  <g class="valve"><circle cx="110" cy="340" r="6"/><circle cx="260" cy="340" r="6"/><circle cx="410" cy="340" r="6"/><circle cx="560" cy="340" r="6"/></g>
+  <text x="56" y="326" class="k">橫切：CDN 簽章 · agent profile · 卡組織註冊 · MoR 責任</text>
+</svg>
+</div>
+<figcaption>FIG 1 · 和上篇 FIG 1 同構：箱子不是重點，閥門才是。差別在供給側的閥門管 agent 寫資料，需求側的閥門管 agent 花錢。</figcaption>
+</figure>
+</section>
+
+<section>
+<p class="eyebrow">欄 02 · 進口人</p>
+<h2>Merchant of Record：帳單上的那個名字</h2>
+<p>整篇最重要的一個詞要先科普，因為它不是技術名詞，是責任名詞。</p>
+<p><strong>Merchant of Record（MoR，記錄商戶）</strong>是一筆刷卡交易在卡組織與銀行眼中「賣東西的那個人」。你信用卡帳單上印誰的名字、錢進誰的帳戶、Visa 和 Mastercard 出問題找誰，那就是 MoR。這個身分不看誰做了介面、誰寫了推薦演算法，只看誰扛責任：收款要交營業稅，跨境要處理各國稅務與法遵，客人刷了不認帳時 chargeback 打到它頭上，詐欺損失它先吸收，退款從它的帳戶出，客服電話打給它。</p>
+<p>報關有一個完全對應的詞：<strong>Importer of Record</strong>，進口人記錄在案。海關查稅、追補稅、扣貨，找的是報單上「進口人」那一欄的名字，不是幫你下單的代購、也不是幫你轉運的物流。台灣讀者從代購和關稅就懂：代購可以幫你選、幫你買、幫你寄，但報單上誰的名字，誰就要在海關面前負責。</p>
+<p>用這個眼鏡看 2026 年的動作，很多事忽然很清楚：</p>
+<ul>
+<li>Booking 把商戶訂房額占比從 65% 拉到 75%，意思是愈來愈多訂單它自己當 MoR：錢先進 Booking，再開虛擬卡（VCC）付給飯店，中間的匯率、詐欺、退款、稅務它全包。這不是技術選擇，是把自己變成「出事找得到的人」。</li>
+<li>Google 做了十五年旅遊始終不碰 MoR，2026-08-27 上線的 AI Mode 飯店訂房，卡還是飯店或 OTA 刷。它有流量、有資料、有模型，獨獨不要帳單上的名字。</li>
+<li>Agent 平台 2026 年全部收斂到同一句話：商家保留 MoR，agent 只拿一次性 token。Stripe 的 Agentic Commerce Suite、Google 的 UCP、Walmart 的 Agent Gateway 都這樣寫。翻成白話是：我幫你挑、幫你按，但帳單上不印我的名字。</li>
+</ul>
+<p class="pull">Agent 願意替你做決定，不願意替你負責。而需求側的重力，就在負責的那一層。</p>
+<p>Thompson 自己也承認這是「agent 是終極 aggregator」的極限：agent 一旦繼承失敗訂單的責任，「那會極度困難」，顧客可能會回到 Amazon（2026-10，二手轉述）。Booking 的 CFO 在 2026 年 3 月說得更具體：LLM 處理不了取消、客服、付款、稅務與法規。這五樣東西，就是 MoR 的工作清單。</p>
+</section>
+
+<section>
+<p class="eyebrow">欄 03 · 到貨紀錄</p>
+<h2>2024 到 2026 下半：一個完整的週期</h2>
+<p>把 agentic commerce 的事件排成一條線，形狀和上篇 Zeabur 那條一樣：鋪路、衝刺、撤退、然後由握著基礎設施的人重新畫地形。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>時間</th><th>Agent 平台在做什麼</th><th>Aggregator 在做什麼</th><th>閥門與法律</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2024</td><td>Thompson 3 月〈Aggregator's AI Risk〉：單一答案動搖 aggregator 經濟學。Amazon Rufus 7 月全美上線；Perplexity 11 月「Buy with Pro」。</td><td>Chegg 全年營收 −14%、非訂閱流量 2025 年 1 月 −49%：內容型的崩塌已開始。</td><td>Reddit 更新 robots.txt 封未授權爬蟲；7 月 Delaware 陪審團判 Booking.com 誘使第三方爬 Ryanair 違反 CFAA。</td></tr>
+<tr><td class="nowrap">2025 H1</td><td>Bernstein：若 agent 成功「網際網路會變暗」，助理是「aggregator 的 aggregator」。Amazon Buy for Me 4 月 beta，不抽成。Apple 的 Eddy Cue 5 月作證 Safari 搜尋量 22 年來首度下滑。</td><td>Chegg 2 月告 Google。</td><td>Mastercard Agent Pay 4 月 29 日發布。Cloudflare 7 月 1 日預設封鎖 AI 爬蟲、推 pay-per-crawl。Thompson 5 月：agent 對廣告免疫。</td></tr>
+<tr><td class="nowrap">2025 H2 · 衝刺</td><td>9 月 16 日 Google AP2；<strong>9 月 29 日 OpenAI + Stripe 推 Instant Checkout</strong>，Etsy 當天上線；10 月 DevDay 推 ChatGPT Apps，Expedia、Booking、Uber、DoorDash、Instacart、Zillow 首批——全部導回自家 app 完成交易；11 月 13 日 Google AI Mode agentic checkout；11 月 25 日 PayPal + Perplexity。</td><td>8 月 21 日 Amazon 把 Google、Meta 爬蟲加進 robots.txt；11 月 24 日連 ChatGPT-User 也封；<strong>11 月 4 日 Amazon 告 Perplexity</strong>。Skift 10 月 24 日問：OTA 會變成 ChatGPT 的被動接單員嗎？</td><td>8 月 28 日 Cloudflare Signed Agents；10 月 14 日 Visa Trusted Agent Protocol（與 Cloudflare 共推）；12 月 11 日 Stripe Agentic Commerce Suite；12 月 18 日 Visa 說完成「數百筆」受控交易。</td></tr>
+<tr><td class="nowrap">2026 H1 · 撤退</td><td>1 月 11 日 Google UCP（商家保留 MoR）；<strong>1 月 26 日 OpenAI 對 Shopify 商家收 4%</strong>；2 月 9 日 ChatGPT 測廣告，Expedia 立刻投；<strong>3 月 5 到 24 日 OpenAI 縮回 Instant Checkout</strong>，Expedia 當日 +12%、Booking +8%；5 月 13 日 Rufus 併入 Alexa for Shopping；5 月 19 日 I/O 宣布 Universal Cart。</td><td>2 月 20 日 Marriott、Wyndham 揭露 agentic 訂房計畫，Booking 數週內 −30%，BTIG：獨立旅宿離不開 OTA。4 月 14 日 Expedia 調查：66% 不信任 AI 替他們訂，只有 8% 願意透過 AI 平台訂。</td><td>3 月 4 日 Amazon 服務協議加入 agent 自我識別條款；3 月 9 日 Chesney 法官給 Amazon 初步禁制令；3 月 17 日第九巡迴暫停。</td></tr>
+<tr><td class="nowrap">2026 H2 · 重畫地形</td><td>8 月 31 日 ChatGPT 廣告年化 10 億；<strong>9 月 8 日 Meta Muse 上線</strong>，一週登 App Store 免費榜第一；9 月 28 日 Thompson〈Apps, Agents, and Aggregation〉：「Agents are the ultimate Aggregators」；10 月 15 日 Universal Cart 縮水上線。</td><td>8 月 5 日 Booking Q2：LLM 導流 &lt;1% 間夜。9 月 22 日 Expedia 加入 Muse，EXPE −7.7%、BKNG −5.1%。10 月 29 日 DoorDash Q3：第三方 agent 累計「幾百張」；同日以約 170 億美元收購 Instacart。<strong>11 月 3 日 Booking Q3：LLM 導流「遠低於 1%」，水平 agent 直連 470 萬家旅宿成本太高，「所以可能會透過 Booking」</strong>。</td><td><strong>8 月 4 日第九巡迴 3-0 撤銷禁制令：「是使用者在存取 Amazon 的電腦」</strong>；9 月 20 日 Amazon 封 Muse；9 月 21 日改以加州州法重新起訴；<strong>10 月 21 日 Walmart Agent Gateway</strong>：每個 agent 一個 profile、花費上限、看不到卡號。</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>OpenAI 的 Instant Checkout 之於 agentic commerce，就是 Zeabur 之於 AI 平台：在別人的基礎設施上抽一層薄薄的稅（4%），而那層稅沒有帶來足夠的價值差（轉換率反而低三倍）。六個月撤回。活下來的做法——Google Universal Cart、Copilot Checkout、Walmart 的 Sparky——全部是「發現在外、結帳回家」。</p>
+
+<div class="tiles wide stagger">
+  <div class="stat"><p class="label">Booking · LLM 導流占間夜（2026 Q3，自報）</p><p class="value">遠低於 1%</p><p class="delta">沒有單一 agent 特別突出</p></div>
+  <div class="stat"><p class="label">DoorDash · 第三方 agent 累計訂單（2026 Q3，自報）</p><p class="value">幾百張</p><p class="delta">對照單季 9.93 億張</p></div>
+  <div class="stat"><p class="label">Walmart · ChatGPT 內結帳 vs 導回（WIRED，高層陳述）</p><p class="value">低 3 倍</p><p class="delta">「單件結帳會收到五個箱子」</p></div>
+  <div class="stat"><p class="label">Expedia 調查 · 願意透過 AI 平台訂（2026-04，YouGov）</p><p class="value">8%</p><p class="delta">66% 不信任 AI 替自己訂</p></div>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">欄 04 · 關員核章</p>
+<h2>誰能對 agent 說不</h2>
+<p>上篇的核心是「每一層贏家做的都是 backpressure」。需求側的對應問題是：誰握有可以拒絕 agent 的閥門？2026 年的答案很乾淨：<span class="mark">法律閥被拆掉了，同一年建了四道技術閥，每一道的驗證者都是在位者。</span></p>
+
+<h3>法律閥：2026 年 8 月拆除</h3>
+<p>Amazon 告 Perplexity 是整個週期裡最重要的一條法律線。Chesney 法官 3 月的禁制令建立在 CFAA 上：Comet「經使用者許可、但未經 Amazon 授權」存取密碼保護的帳號——這個理論若成立，任何使用者委託的 agent 都可以被當成駭客。第九巡迴 8 月 4 日以 3-0 推翻：「是使用者在存取 Amazon 的電腦」，Amazon 的理論「可能讓使用者本身負刑責」。但同一份判決明言不禁止平台封鎖違反條款的 agent。Amazon 9 月照做，封了 Muse，並改以加州州法與侵權干擾重新起訴，修正訴狀在地院待審。法律的收斂方向是：「使用者委託的存取」和「第三方爬取」被分開（Ryanair 告 Booking 的爬蟲敗訴仍有效），而下面的技術閥，就是要讓這條線在機器上可讀。</p>
+
+<h3>技術閥一：CDN 的簽章 agent 白名單 <span class="stamp">CLOUDFLARE</span></h3>
+<p>Cloudflare 2025-07-01 預設封鎖 AI 爬蟲，08-28 推出 Signed Agents（首批 ChatGPT agent、Goose、Browserbase），10-14 與 Visa、Mastercard、Amex 共推 Trusted Agent Protocol；IETF 的 Web Bot Auth 草案由 Cloudflare 與 Google 共同撰寫，2026-09-01 最後修訂，實作者含 Vercel、Shopify、Visa。Matthew Prince 2026 年 6 月：自動化請求已占 HTTP 請求 57.5%。注意草案裡有一句「本文件不定義撤銷機制」——閥門有了，關閥的標準還沒有。</p>
+
+<h3>技術閥二：aggregator 自己的 agent 身分與花費上限 <span class="stamp">WALMART</span></h3>
+<p>Walmart Agent Profiles（2026-10-21）是目前最完整的樣板：agent 在使用者帳號裡有自己的 profile，用使用者的 Walmart 登入授權但只有 Walmart 看得到登入；預設每筆核准，或 50、100、200 美元預授權；agent 拿不到卡號、不能改付款方式、看到的價格和人一樣；退貨流程同樣適用於 agent 的誤操作；違規就封。Amazon 的版本是要求 agent 在 HTTP 請求裡自我識別，不識別就封——Amazon 封的是「不表明身分的 agent」，不是 agent 本身。「Walmart 開放、Amazon 封閉」的二分被高估了：Walmart 也強迫第三方 agent 走自家的 Sparky。這一層就是上篇 FIG 1 那條橫切線「agent 身分・審批・稽核」在消費端的翻版。</p>
+
+<h3>技術閥三：卡組織的 agent 註冊 <span class="stamp">VISA · MASTERCARD</span></h3>
+<p>Mastercard Agent Pay 讓 agent 建置者註冊，清算前要出示簽章的指令紀錄；Visa 的 Intelligent Commerce Connect 在 2026-04-09 一次支援 TAP、MPP、ACP、UCP 四種協議——Visa 一次支援四種，本身就是證據：沒有一種協議贏。Google AP2 的三段 mandate（意圖、購物車、付款）是「各方帶進爭議時的證據」。The Paypers 的 Zennon Kapron 說得最準：agentic commerce 不威脅軌道，它威脅通行費——agent 移除卡片慣性、讓商家導向更便宜的軌道，利潤先於交易量下降；卡組織於是把自己重新定位成信任層。</p>
+
+<h3>技術閥四：merchant of record 與退款責任 <span class="stamp">MoR</span></h3>
+<p>最深的一道，因為它不是技術，是責任歸屬。欄 02 已經說過：業界在 2025 Q4 到 2026 年收斂到同一句話，商家保留 MoR，agent 持 scoped token。10minhotel 的 Martin Soler 把這一層的問題問到底：「當 AI 做了決定，誰負責？那時我們才知道自己建的是旅行社，還是一個很聰明的訂房引擎。」</p>
+
+<p>四道閥門有一個結構上的共同點：沒有一道給 agent「存取權」，每一道都是「在位者可以說不」。驗證者全是既有的信任中介——邊緣是 Cloudflare，網路是 Visa 和 Mastercard，PSP 是 Stripe，平台是 Walmart、Amazon、Google。上篇說平台競爭不在 Build 層，在誰擁有授權邊界與稽核；需求側的對應是：<strong>agent 競爭不在對話框，在誰擁有 agent 的身分、花費上限與事後責任。</strong></p>
+</section>
+
+<section>
+<p class="eyebrow">欄 05 · 貨物分類</p>
+<h2>「不會被取代」只對一半的 aggregator 成立</h2>
+<p>把 2026 年的損害按程度排成五級，排序本身就是邊界。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>級</th><th>誰</th><th>數字（日期，性質）</th><th>為什麼</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">一 · 存在性</td><td>Chegg、Stack Overflow</td><td>Chegg 2026 Q2 營收 5,180 萬美元，年減 51%（8-K）；Stack Overflow 月提問量回到 2009 年水準。</td><td>供給就是文字答案，LLM 自己就是供給。</td></tr>
+<tr><td class="nowrap">二 · 導流腰斬</td><td>靠 Google 的內容站、Tripadvisor</td><td>Chartbeat：出版商 Google 導流 2025-07 → 2026-07 年減 40.2%，忠實讀者頁面瀏覽持平；People Inc. Google 占 session 52% → 28%，數位營收仍 +8%；Tripadvisor 品牌飯店 −22.6%，但有履約的 Viator +3%。</td><td>注意力層崩、訂閱層不動，和報業一樣：美國報紙廣告 2005 年 494 億 → 2022 年 98 億，發行收入全程持平。</td></tr>
+<tr><td class="nowrap">三 · 買方流失</td><td>Fiverr、Upwork</td><td>Fiverr 2026 Q2 營收 −10%、活躍買家 −21.9%、Q3 指引 −18 到 −26%；Upwork GSV −4%，CEO 點名 AI 自動化。</td><td><strong>重要反例。</strong>Fiverr 有交易、有付款、有 MoR，還是在掉——因為它的供給（文案、設計、翻譯）本身可以被 agent 做掉。「有履約就安全」不夠精確，要寫成「有 agent 做不到的履約」才安全。</td></tr>
+<tr><td class="nowrap">四 · 估值重挫</td><td>Zillow、Rightmove、Yelp</td><td>Zillow 2026 Q2 營收 +18%，不重複使用者 −2%；Rightmove 2025 營收 +9%，市值蒸發約 10 億英鎊，ChatGPT 來源流量 &lt;0.5%；Yelp 廣告點擊 −5%，但拿到 51.27 萬次 LLM 引用。</td><td>情緒 vs 基本面。Rightmove 是最乾淨的案例。</td></tr>
+<tr><td class="nowrap">五 · 防守中</td><td>Booking、Expedia、Amazon、DoorDash、Instacart</td><td>見欄 01。財報無損。</td><td>封鎖或開放都可以，結帳與顧客紀錄留在家。DoorDash 引用「Order with Google」的舊教訓：Google 帶來點擊，送餐出問題後留不住顧客。</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>這個排序有實證基礎。Emory 與 WashU 的 Reddit 研究（105,012 個 subreddit，diff-in-diff，資料到 2025 年 12 月）發現 AI Overviews 上線後，經驗型社群的留言增幅是事實型的 2.3 到 2.8 倍：事實型內容被替代，經驗型內容被發現。邊界因此可以寫成一句話：<span class="mark">aggregator 的價值如果是「人看得到的比較層，疊在可被 LLM 重生成的資訊上」，它正在被取代；如果它的價值包含 agent 做不到的履約、自有供給或紀錄系統，它正在被重新中介，而不是被取代——但重新中介之後，利潤分配會變。</span></p>
+</section>
+
+<section>
+<p class="eyebrow">欄 06 · 原產地</p>
+<h2>為什麼「AI 不會取代軟體」比「agent 不會取代 aggregator」強</h2>
+<p>原話把兩件事類比，下篇要說清楚的是：它們結構上不對稱，而這個不對稱正是 Ben Thompson 與 Benedict Evans 在 2026 年的分歧。</p>
+<p><strong>供給側：agent 要取代 SoR，必須自己變成 SoR。</strong> Jamin Ball 2026-06：換掉一個 system of record「痛到客戶會不計代價避免」，agent 時代的贏家是決定「哪個 agent 被授權動什麼資料、上限多少」的清算所，「鎖定從你的資料移到你的權限」。a16z 2026-05：agent 殺得掉肌肉記憶這個護城河，殺不掉操作邏輯與脈絡。Sequoia 的 Pat Grady：SoR 相當安全，中間層的 systems of engagement 有麻煩。供給側這句話的弱點是定價（per-seat），不是存在。</p>
+<p><strong>需求側：agent 要取代 demand aggregator，只需要使用者和一條付款路徑——而它已經有了。</strong> Thompson 2026-09-28：「Agents are the ultimate Aggregators」，稀缺的是意志，「多數人和公司只會有一個 agent」。ChatGPT 約 10 億週活、廣告年化 10 億美元、Apps 平台；Muse 一週登免費榜第一。需求側這句話的弱點，是需求關係本身。</p>
+<p>所以原話的前半句是結構性的，後半句不是。用上篇的語言：供給側的重力在資料所在地，agent 繞不過；需求側的重力在履約與責任所在地，agent 同樣繞不過——<strong>但需求側多了一層 agent 可以直接拿走的東西：注意力與需求訊號，而那恰好是 aggregator 利潤最集中的地方。</strong></p>
+<p>Evans 是對「agent 必然成為 aggregator」最強的反方。2025-11：在位者的推薦護城河是用行為資料堆出來的，LLM 讓新創可以「租到冷啟動」，但他預期 agent 助理會變成「使用者的局部、彼此競爭的視角」；2026-02：ChatGPT 八到九億使用者、約 5% 付費、「參與度與黏性非常窄、沒有網路效應」，Google 與 Meta 可以綑綁。兩人有一個交集：都認為分銷（Google、Meta）勝過產品（OpenAI）。差別在 Thompson 認為 agent 這個形態必然聚合成一個，Evans 認為可能是多個局部視角——那就不是 aggregator 了。</p>
+<p>硬數據站在哪邊？Datos 的桌機面板 2026 Q1：AI 工具占美國桌機搜尋事件 1.65%，Google 94.3%，而且 Google 每位使用者的搜尋次數還在增加；Chartbeat：ChatGPT 占出版商導流 0.02%；Google 2026 Q3 說查詢年增率是五年來最高。<strong>對「答案」而言入口已經移動；對「點擊與交易」而言還沒有。</strong>Thompson 在對的方向上，Evans 在對的速度上。</p>
+<p>還有一股力量沒有人能算：Microsoft Research 的〈The Agentic Economy〉指出，agent 若可互通，中介之間因轉換成本低而競爭，可抽取的通行費會被壓縮；但 agentic 圍牆花園可能把市場力重新集中到少數玩家。uncoveralpha 說主要風險不是 take rate 歸零，是一個更大的新 aggregator 先抽一層；Meta 據報打算以交易抽成變現，定價對照 aggregator 過去付給 Google 的錢。那池水有多大？Booking 的行銷費用占總訂房額 4.4%（2025）→ 4.8%（2026 Q3），一年約 80 到 100 億美元，主要付給 Google。這就是 agent 想重新定價的那一池。</p>
+</section>
+
+<section>
+<p class="eyebrow">欄 07 · 對照上篇</p>
+<h2>八條對八條</h2>
+<p>上篇八條結論，每一條在需求側都有對應物。證據強度的判準和上篇一樣：<span class="grade">強</span> 是多家獨立來源的公司自報數字收斂；<span class="grade">中</span> 是方向明確但數字是分析師估計或單一來源。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>#</th><th>上篇 · 供給側</th><th>下篇 · 需求側</th><th>強度</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">1</td><td>Zeabur 的死因是結構性的：薄轉賣層加 AI 口號，2026 年沒有生存空間。</td><td>Instant Checkout 的死因是結構性的：在別人的履約與 MoR 之上疊一層 4% 的稅，轉換率反而低三倍。活著的全是「發現在外、結帳回家」。</td><td><span class="grade">強</span></td></tr>
+<tr><td class="nowrap">2</td><td>平台競爭不在 Build 層，在誰擁有授權邊界與稽核。</td><td>agent 競爭不在對話框，在誰擁有 agent 的身分、花費上限與事後責任。五個在位者在 12 個月內建了同構的東西。</td><td><span class="grade">強</span></td></tr>
+<tr><td class="nowrap">3</td><td>每一層贏家做的都是 backpressure。</td><td>需求側每一道閥門做的都是同一件事：讓 agent 可被識別、可被限額、可被拒絕，驗證者永遠是在位者。</td><td><span class="grade">強</span></td></tr>
+<tr><td class="nowrap">4</td><td>市場是五塊，Cloudflare 只在一塊。</td><td>aggregator 的營收是五層，agent 只打得到三層，而利潤不成比例地在那三層。營收分層全是自報；利潤分層沒有揭露，只有方向一致的分析師描述。</td><td><span class="grade">強／中</span></td></tr>
+<tr><td class="nowrap">5</td><td>資料層是重力所在，企業與非企業在這裡收斂。</td><td>需求側的重力在履約與責任所在地——MoR、供給合約、退款爭議——agent 平台與 aggregator 在這裡收斂，而且是 agent 平台主動退回來的。</td><td><span class="grade">強</span></td></tr>
+<tr><td class="nowrap">6</td><td>「一定要 Salesforce 或 SAP」是假的，「大公司跑不動」是真的。</td><td>「一定要 Booking 或 Amazon」是假的（Hyatt 大半直訂、Walmart 可以開放），「長尾離不開 aggregator」是真的。agent 複製了連鎖與獨立的既有分裂，沒有消除它。航空是唯一被 API 直連的垂直，因為 NDC 先存在。</td><td><span class="grade">中</span></td></tr>
+<tr><td class="nowrap">7</td><td>唯一跑通的一條龍是「Build 在外、Ship 與 Run 在資料平台內」。</td><td>唯一跑通的 agentic commerce 是「發現在 agent 內、交易與履約在 aggregator 內」。沒有單一玩家橫跨發現、交易、履約三層。</td><td><span class="grade">強</span></td></tr>
+<tr><td class="nowrap">8</td><td>下一代平台的 UI 是審批面板，不是設定面板。</td><td>下一代 aggregator 的 UI 是 agent 的授權面板——每筆核准或預授權上限、agent 看不到卡號、退貨適用於 agent——不是搜尋框。供給側的審批面板管 agent 寫資料，需求側的管 agent 花錢。</td><td><span class="grade">中</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>第 7 條是兩篇最乾淨的押韻。第 5 條是同一條定律：agent 繞不過資料所在地，也繞不過責任所在地。</p>
+</section>
+
+<section>
+<p class="eyebrow">欄 08 · 待補件</p>
+<h2>仍是假設，不能寫成結論的</h2>
+<ul>
+<li><strong>「agent 會壓縮 aggregator 的 take rate。」</strong>截至 2026 Q3 沒有任何交易型 aggregator 的營收率出現壓縮；沒有任何賣方發表過量化的壓縮估計。觀察到的形式是「付費導流再加一條」，不是砍佣金。</li>
+<li><strong>「廣告層是 aggregator 的主要利潤來源。」</strong>方向有共識，但沒有公司揭露廣告層營業利潤；「Amazon 廣告約等於非 AWS 營業利潤」是自報數字加上「接近 100% 毛利」的分析師假設。</li>
+<li><strong>「Meta 會對 Muse 收交易抽成。」</strong>二手引述，Meta 沒有文件確認；Perplexity「8 到 12% GMV」的傳聞與它自述的 0% 矛盾。</li>
+<li><strong>「Rufus 帶來 120 億美元增量銷售。」</strong>Amazon 自報，方法論未揭露。</li>
+<li><strong>Platform Aeronaut 的 145／45／53 → 8 美元試算。</strong>前提是「agent 直連供給、OTA 只賣資料」，這個前提 2026 年沒有發生。</li>
+<li><strong>SoR 與 aggregator 的不對稱。</strong>是 Thompson、Ball、a16z 三個來源的邏輯交集，不是任何一人的原話。</li>
+<li><strong>「法律閥已永久拆除。」</strong>第九巡迴只處理了 CFAA；Amazon 以州法重新起訴，待審，沒有審判日期。</li>
+<li><strong>「約四分之一的人願意讓 agent 買」是穩定的。</strong>Forrester 2025-03 的 24% 到 Visa 2026-04 的 38%，但 60% 要求每筆核准；各家定義不同，不可直接比較。</li>
+</ul>
+
+<h3>2027 年該盯的兩個數字</h3>
+<p>看的不是 LLM 導流占比，那個數字會從遠低於 1% 慢慢爬，說明不了什麼。看兩個：<strong>Booking 的行銷費用占總訂房額會不會突破 5%</strong>——那是新 aggregator 向下抽的稅有多大；以及<strong>它商戶營收裡的付款處理回饋會不會被單獨揭露</strong>——那是履約層能不能自己養活自己。</p>
+
+<p class="pull">Agent 把 aggregator 推回它最初的樣子：一個握著供給合約與信任的履約層，帳單上印著自己的名字。然後在它頭上長出一個新的 aggregator。那個新的是一個還是很多個、它向下抽的稅會不會被 agent 之間的競爭抹平，是 2027 年才有答案的問題。</p>
+</section>
+
+<section class="ref">
+<p class="eyebrow">REF · 參考資料</p>
+<h2>來源</h2>
+<ol>
+<li>Booking Holdings，Q4 2025 earnings release（8-K）。<a href="https://www.sec.gov/Archives/edgar/data/1075531/000107553126000008/q4-25bkngearningsrelease.htm">sec.gov</a></li>
+<li>Booking Holdings，Q3 2026 earnings release。<a href="https://s25.q4cdn.com/383369491/files/content_files/BKNG-Q3-2026-Earnings-Release.pdf">q4cdn.com</a>；Q3 2026 法說逐字稿（Motley Fool，2026-11-04）。<a href="https://www.fool.com/earnings/call-transcripts/2026/11/04/booking-holdings-bkng-q3-2026-earnings-call-transcript/">fool.com</a></li>
+<li>Booking Holdings，Q2 2026（PhocusWire，2026-08-05）。<a href="https://www.phocuswire.com/news/finance/booking-holdings-q2-2026-earnings">phocuswire.com</a></li>
+<li>Expedia Group，Q4 2025 earnings release。<a href="https://s202.q4cdn.com/757635260/files/doc_financials/2025/q4/Earnings-Release-Q4-2025_FINAL.pdf">q4cdn.com</a>；Q3 2026 8-K。<a href="https://www.sec.gov/Archives/edgar/data/0001324424/000132442426000059/earningsrelease-q32026.htm">sec.gov</a></li>
+<li>Expedia Group，〈The AI Trust Gap〉調查，2026-04-14。<a href="https://www.businesswire.com/news/home/20260414532485/en/Expedia-Group-Reveals-The-AI-Trust-Gap-Travelers-Embrace-AI-for-Planning-but-Rely-on-Trusted-Brands-to-Book">businesswire.com</a></li>
+<li>Tripadvisor，Q2 2026 10-Q。<a href="https://www.sec.gov/Archives/edgar/data/0001526520/000119312526336693/trip-20260630.htm">sec.gov</a>；Q2 2026 摘要（Travelers Today，2026-08-07）。<a href="https://www.travelerstoday.com/articles/60777/20260807/tripadvisors-hotel-search-falls-21-percent-while-viator-keeps-growing.htm">travelerstoday.com</a></li>
+<li>Amazon 營收結構整理（Revenue Memo）。<a href="https://www.revenuememo.com/p/how-does-amazon-make-money">revenuememo.com</a>；Amazon Q3 2026 廣告（Digiday）。<a href="https://digiday.com/media-buying/amazons-ads-nears-20-billion-in-q3-as-it-bets-on-agentic-ai-to-fuel-further-growth/">digiday.com</a></li>
+<li>DoorDash，Q4 2025 8-K。<a href="https://www.boardroomalpha.com/sec/dash-8-k-2026-02-18-0001792789-26-000012/prodq4dashex991-pressrelea.htm">boardroomalpha.com</a>；Tony Xu「幾百張」（AI Weekly，2026-10-31）。<a href="https://aiweekly.co/alerts/doordash-ceo-only-several-hundred-orders-so-far-from-ai-agents">aiweekly.co</a>；DoorDash 收購 Instacart 與 Amazon 廣告（PPC Land）。<a href="https://ppc.land/amazon-ad-growth-halves-to-11-as-doordash-buys-instacart-for-17bn/">ppc.land</a></li>
+<li>Uber，Q4 2025 法說（Motley Fool）。<a href="https://fool.com/earnings/call-transcripts/2026/02/04/uber-uber-q4-2025-earnings-call-transcript/">fool.com</a>；Walmart Connect FY2026（PPC Land）。<a href="https://ppc.land/walmart-connect-hits-41-growth-as-ad-business-nears-6-4b/">ppc.land</a></li>
+<li>Chegg，Q2 2026 8-K。<a href="https://www.sec.gov/Archives/edgar/data/0001364954/000136495426000085/a9901-financialresultsq220.htm">sec.gov</a>；Stack Overflow 提問量（Pragmatic Engineer）。<a href="https://newsletter.pragmaticengineer.com/p/the-pulse-134">pragmaticengineer.com</a></li>
+<li>Chartbeat 2026 Playbook（Search Engine Journal，2026-09-24）。<a href="https://www.searchenginejournal.com/google-search-decline-publishers-chartbeat/590681/">searchenginejournal.com</a>；People Inc. Q1 2026（Digiday）。<a href="https://digiday.com/media/media-briefing-publishers-cautiously-count-ai-licensing-as-notable-revenue-amid-programmatic-strain-in-q1-earnings/">digiday.com</a></li>
+<li>Fiverr Q2 2026（Staffing Industry Analysts）。<a href="https://www.staffingindustry.com/news/global-daily-news/fiverr-q2-revenue-slips-10-amid-ai-led-market-shift">staffingindustry.com</a>；Upwork Q2 2026（TNW）。<a href="https://thenextweb.com/news/upwork-q2-2026-ai-disruption-guidance-cut">thenextweb.com</a></li>
+<li>Zillow Q2 2026 shareholder letter。<a href="https://s25.q4cdn.com/975009107/files/doc_earnings/2026/q2/presentation/Zillow-2Q26-Shareholders-Letter.pdf">q4cdn.com</a>；Rightmove（Estate Agent Today，2026-03）。<a href="https://www.estateagenttoday.co.uk/breaking-news/2026/03/rightmove-ai-wont-replace-us/">estateagenttoday.co.uk</a>；Yelp Q2 2026 shareholder letter。<a href="https://www.sec.gov/Archives/edgar/data/0001345016/000134501626000059/yelpq22026ex992lettertos.htm">sec.gov</a></li>
+<li>Adobe，AI traffic trends report，2026-08-19。<a href="https://business.adobe.com/assets/pdfs/resources/sdk/ai-traffic-trends-report-august-2026/ai-traffic-trends-report-2026-08-19.pdf">adobe.com</a></li>
+<li>OpenAI，〈Powering product discovery in ChatGPT〉，2026-03-24。<a href="https://openai.com/index/powering-product-discovery-in-chatgpt/">openai.com</a>；TechCrunch，2026-03-24。<a href="https://techcrunch.com/2026/03/24/openais-plans-to-make-chatgpt-more-like-amazon-arent-going-so-well">techcrunch.com</a>；Shopify 確認 4% 費用（Shopifreaks，2026-01-26）。<a href="https://www.shopifreaks.com/shopify-confirms-a-4-fee-on-sales-made-through-chatgpt-but-whats-the-real-cost/">shopifreaks.com</a></li>
+<li>Walmart ChatGPT 結帳（PPC Land 轉述 WIRED，2026-03-18）。<a href="https://ppc.land/walmarts-chatgpt-checkout-flopped-heres-what-comes-next/">ppc.land</a>；Walmart Agent Gateway（wwwhatsnew，2026-10-24）。<a href="https://wwwhatsnew.com/2026/10/24/walmart-agent-gateway-agentes-ia-compras-amazon-bloqueo/">wwwhatsnew.com</a></li>
+<li>OTA 股價反彈（Reuters via The Star，2026-03-06）。<a href="https://www.thestar.com.my/tech/tech-news/2026/03/06/online-travel-stocks-rise-after-report-that-openai-to-scale-back-direct-checkouts">thestar.com.my</a>；ChatGPT 廣告年化 10 億（Shopifreaks，2026-08-31）。<a href="https://www.shopifreaks.com/openai-says-its-advertising-business-has-reached-a-1-billion-annualized-revenue-run-rate-roughly-200-days-after-launch/">shopifreaks.com</a></li>
+<li>Stripe × OpenAI Instant Checkout，2025-09-29。<a href="https://stripe.com/newsroom/news/stripe-openai-instant-checkout">stripe.com</a>；Stripe Agentic Commerce Suite，2025-12-11。<a href="https://stripe.com/blog/agentic-commerce-suite">stripe.com</a></li>
+<li>Google UCP（Axios，2026-01-11）。<a href="https://www.axios.com/2026/01/11/google-shopify-ai-shopping-standard-nrf-2026">axios.com</a>；Universal Cart 上線（PPC Land，2026-10-15）。<a href="https://ppc.land/googles-universal-cart-reaches-us-search-and-gemini-but-not-youtube/">ppc.land</a>；Merchant Center UCP checkout。<a href="https://support.google.com/merchants/answer/16837055?hl=en">support.google.com</a></li>
+<li>第九巡迴 Amazon v. Perplexity（Sovereign Magazine）。<a href="https://www.sovereignmagazine.com/article/ninth-circuit-perplexity-comet-amazon-cfaa-ruling">sovereignmagazine.com</a>；Amazon 封 Muse（SiliconANGLE，2026-09-21）。<a href="https://siliconangle.com/2026/09/21/amazon-blocks-metas-muse-agent-from-shopping-on-users-behalf/">siliconangle.com</a>；Amazon 修正訴狀（AI Weekly）。<a href="https://aiweekly.co/alerts/amazon-alleges-perplexity-misled-ninth-circuit-on-comet-traffic">aiweekly.co</a></li>
+<li>Ryanair v. Booking（Irish Times，2024-07-20）。<a href="https://www.irishtimes.com/business/2024/07/20/us-court-rules-in-favour-of-ryanair-against-bookingcom-in-screen-scraping-case">irishtimes.com</a></li>
+<li>Cloudflare Signed Agents，2025-08-28。<a href="https://blog.cloudflare.com/signed-agents/">cloudflare.com</a>；預設封鎖 AI 爬蟲（MIT Technology Review，2025-07-01）。<a href="https://www.technologyreview.com/2025/07/01/1119498/cloudflare-will-now-by-default-block-ai-bots-from-crawling-its-clients-websites/">technologyreview.com</a>；Web Bot Auth（WorkOS）。<a href="https://workos.com/blog/web-bot-auth-identify-ai-agents">workos.com</a></li>
+<li>Mastercard Agent Pay，2025-04-29。<a href="https://www.mastercard.com/news/press/2025/april/mastercard-unveils-agent-pay-pioneering-agentic-payments-technology-to-power-commerce-in-the-age-of-ai/">mastercard.com</a>；Visa Intelligent Commerce Connect（TechInformed，2026-04-09）。<a href="https://techinformed.com/visa-opens-one-integration-for-ai-agent-payments/">techinformed.com</a>；Zennon Kapron（The Paypers，2026-05-19）。<a href="https://thepaypers.com/fintech/expert-views/agentic-commerce-does-not-threaten-the-rails-it-threatens-the-toll">thepaypers.com</a></li>
+<li>Ben Thompson，〈Aggregator's AI Risk〉2024-03-04。<a href="https://stratechery.com/2024/aggregators-ai-risk/">stratechery.com</a>；〈The Agentic Web and Original Sin〉2025-05-20。<a href="https://stratechery.com/2025/the-agentic-web-and-original-sin/">stratechery.com</a>；〈Google, Nvidia, and OpenAI〉2025-12-01。<a href="https://stratechery.com/2025/google-nvidia-and-openai/">stratechery.com</a>；〈Apps, Agents, and Aggregation〉2026-09-28。<a href="https://stratechery.com/2026/apps-agents-and-aggregation/">stratechery.com</a>；2026-10 談話（OfficeChai 轉述）。<a href="https://officechai.com/ai/metas-ads-would-be-less-threatened-by-ai-than-googles-or-amazons-stratecherys-ben-thompson/">officechai.com</a></li>
+<li>Benedict Evans，〈AI, networks and Mechanical Turks〉2025-11-23。<a href="https://www.ben-evans.com/benedictevans/2025/11/23/ai-networks-and-mechanical-turks">ben-evans.com</a></li>
+<li>uncoveralpha，〈The agent economy: who's most at risk〉2026-09-30。<a href="https://www.uncoveralpha.com/p/the-agent-economy-whos-most-at-risk">uncoveralpha.com</a>；Morgan Stanley，agentic commerce podcast，2026-02-17。<a href="https://www.morganstanley.com/insights/podcasts/thoughts-on-the-market/agentic-commerce-ai-shopping-assistants-brian-nowak-nathan-feather">morganstanley.com</a>；Bernstein 三情境（Investing.com 轉述）。<a href="https://ng.investing.com/news/analyst-ratings/bernstein-sees-ai-disrupting-travel-booking-reshaping-ota-landscape-93CH-2136183">investing.com</a></li>
+<li>Platform Aeronaut，〈Will Muse Kill the OTA or Just Change the Landlord?〉2026-09-24。<a href="https://www.platformaeronaut.com/p/agents-coming-for-the-middlemen-will">platformaeronaut.com</a>；Martin Soler，10minhotel，2026-10-07。<a href="https://en.10minhotel.com/2026/10/07/agentic-is-booking-travel-but/">10minhotel.com</a>；Skift，2025-10-24。<a href="https://skift.com/2025/10/24/will-agentic-ai-turn-otas-into-passive-order-takers/">skift.com</a></li>
+<li>Jamin Ball，〈Clearinghouses Will Win the Agents Era〉2026-06-12。<a href="https://cloudedjudgement.substack.com/p/systems-of-record-won-the-saas-era">substack.com</a>；a16z，〈Is Software Losing Its Head?〉2026-05-13。<a href="https://a16z.com/is-software-losing-its-head/">a16z.com</a></li>
+<li>Microsoft Research，〈The Agentic Economy〉，arXiv 2505.15799。<a href="https://arxiv.org/pdf/2505.15799">arxiv.org</a>；Zhang, Cui &amp; Zhang，Reddit × AI Overviews，arXiv 2605.16428。<a href="https://arxiv.org/pdf/2605.16428">arxiv.org</a></li>
+<li>Datos Q1 2026 State of Search（PPC Land）。<a href="https://ppc.land/ai-still-under-2-but-growing-datos-q1-2026-state-of-search-report/">ppc.land</a>；Pew，AI 摘要點擊率，2025-07-22。<a href="https://www.pewresearch.org/short-reads/2025/07/22/google-users-are-less-likely-to-click-on-links-when-an-ai-summary-appears-in-the-results/">pewresearch.org</a>；Pew 報業 fact sheet。<a href="https://www.pewresearch.org/journalism/fact-sheet/newspapers/">pewresearch.org</a></li>
+<li>Expedia × Muse 股價（TIKR，2026-09）。<a href="https://www.tikr.com/blog/expedia-stock-closed-down-nearly-8-the-day-after-its-meta-muse-tie-up-heres-where-the-stock-could-go">tikr.com</a>；Marriott／Wyndham 與 Booking −30%（Skift，2026-02-20）。<a href="https://skift.com/?p=803602">skift.com</a></li>
+<li>上篇：《每一層，都要能說不 — Zeabur 之後的 AI 平台地形》。<a href="https://imitator.ai-apps.work/r/ai-platform-2026-10">imitator.ai-apps.work</a></li>
+</ol>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
