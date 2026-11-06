@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="實驗紀錄 — 一個下午把五個午餐問題做成一篇報告，記下每一次收線和每一個 token">
+<meta name="imitator-reference" content="1980 年代實驗室的硬皮紀錄簿 — 淡綠格線頁，左頁貼資料，右頁寫推論，每條有時間">
+<meta name="imitator-paper" content="hsl(150 18% 94%)">
+<meta name="imitator-accent" content="hsl(70 60% 26%)">
+<title>野心的單位變小了 — 從 Google 搜尋到 agent，一個答案的代價</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  實驗紀錄 — 一個下午把五個午餐問題做成一篇報告，記下每一次收線和每一個 token，
+              讀者是以為 agent 時代等於「答案變便宜」的人。
+   REFERENCE: 1980 年代實驗室的硬皮紀錄簿 — 淡綠格線頁，左頁貼資料，右頁寫推論，每條記錄前面有時間。
+   PAPER:     紀錄簿的淡綠格線紙 — hsl(150 18% 94%)。綠是因為它是拿來記錄的，不是拿來發表的。
+   VOICE:     橄欖色墨水 hsl(70 60% 26%) 只給時間戳、題號與裁決；標題用 Plex 窄體壓在 Noto 前面，記錄簿封面上那種機打字。
+   NOT:       心得文。每一條都有時間、有數字、有出處；錯的地方照記。
+   RECENT:    paper 62° 28° 208° 206° 48° 118° 352° 355° · accent 318° 22° 354° 212° 160° 262° 228° 225° 272°
+              — 150° 離最近的 118° 有 32°，70° 離最近的 48°（那是紙，不是 accent）無涉，離最近 accent 22° 有 48°。
+              無 token，census 以記憶中最近九篇的手記代替。 */
+:root {
+  --paper: hsl(150 18% 94%);
+  --card:  hsl(150 22% 97%);
+  --ink:   hsl(150 14% 13%);
+  --ink-2: hsl(150 9% 30%);
+  --mist:  hsl(150 7% 44%);
+  --rule:  hsl(150 14% 80%);
+  --rule-hard: hsl(150 10% 62%);
+  --accent: hsl(70 60% 26%);
+  --accent-soft: hsl(70 36% 88%);
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
+  --sans: "Noto Sans TC", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(150 10% 8%); --card: hsl(150 9% 11%);
+    --ink: hsl(150 12% 90%); --ink-2: hsl(150 8% 74%); --mist: hsl(150 6% 58%);
+    --rule: hsl(150 8% 21%); --rule-hard: hsl(150 8% 36%);
+    --accent: hsl(70 45% 66%); --accent-soft: hsl(70 22% 18%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(150 10% 8%); --card: hsl(150 9% 11%);
+  --ink: hsl(150 12% 90%); --ink-2: hsl(150 8% 74%); --mist: hsl(150 6% 58%);
+  --rule: hsl(150 8% 21%); --rule-hard: hsl(150 8% 36%);
+  --accent: hsl(70 45% 66%); --accent-soft: hsl(70 22% 18%);
+}
+pre { font-family: var(--mono); }
+figure.chart { margin-inline: 0; }
+.chart text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+.chart .grid { stroke: var(--rule); stroke-width: 1; }
+.chart .axline { stroke: var(--rule-hard); stroke-width: 1; }
+.bar { fill: var(--c1, var(--accent)); }
+/* 紀錄簿的時間戳 */
+.ts { font-family: var(--mono); font-size: .8rem; letter-spacing: .1em; color: var(--accent); }
+.log td:first-child { font-family: var(--mono); font-size: .85em; color: var(--accent); white-space: nowrap; }
+.log td:last-child { color: var(--ink-2); }
+.hit td:last-child { color: var(--ink); font-weight: 700; }
+.proto { font-family: var(--mono); font-size: .95rem; line-height: 2; padding: 1rem 1.2rem; border: 1px solid var(--rule-hard); background: var(--card); border-radius: var(--radius); }
+.proto b { color: var(--accent); font-weight: 500; }
+.err { border-left: 3px solid var(--accent); padding-left: var(--sp-4); margin-block: var(--sp-4); }
+.err .k { font-family: var(--mono); font-size: .8rem; color: var(--accent); display: block; margin-bottom: .2rem; }
+</style>
+
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+<header class="reveal">
+  <p class="eyebrow">實驗紀錄 · 外送專法篇 · 下</p>
+  <h1 class="display">野心的<br><em>單位</em>變小了</h1>
+  <p class="lede">五個午餐聊天的問題，兩個小時的牆上時間，其中 agent 工作了 36 分鐘，人坐在螢幕前大約半小時，換到一篇有模型也有驗算的報告。外送是上篇的事。這一篇記的是那兩個小時裡發生了什麼，誰做了什麼，錯在哪裡，花了多少。</p>
+</header>
+
+<section class="reveal">
+  <p class="eyebrow">01 · 起點</p>
+  <p><span class="ts">14:31</span> 一份 Gemini 整理好的文件和五個問題進來。外送專法到底是什麼。Uber Eats 和 foodpanda 為什麼變貴。到底會多貴。別人走過這條路，台灣會怎樣。國外經驗能用嗎，都是同一家 Uber。</p>
+  <p>那份文件是 chat 時代的答案長什麼樣的標本。結構漂亮：執行摘要和四方矩陣，三地對照表，還有一個消費者棄用的臨界點模型。八成的數字查下去都是對的。問題出在剩下的兩成跟那八成寫在同一張表裡，用同樣的語氣。紐約官方報告的數據、DoorDash 遊說時的口徑、遊說團體對市場規模的推估，還有它自己發明的「溢價率超過 35% 到 40% 就棄用」模型，讀者分不出哪一格是地基、哪一格是裝潢。</p>
+  <p class="mark">它最大的問題不在錯，在它寫得讓人不會想追問。</p>
+  <p>上篇〈加薪留不住〉是這五個問題的答案。這一篇記的是從那份文件到那篇報告之間的兩個小時。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">02 · 紀錄</p>
+  <p>下面是整個下午的流水帳。左欄是時間，中欄是人說了什麼，右欄是那句話造成的結果。agent 做的事沒有逐條列，因為量太大：二十二次搜尋和五次抓全文，讀了一篇論文的附錄，寫了一支腳本，跑了三組區間，出了三版報告，檢查器跑兩次。人這邊只有八句話。</p>
+  <div class="table-scroll">
+  <table class="log">
+    <thead><tr><th>時間</th><th>人說的</th><th>結果</th></tr></thead>
+    <tbody>
+      <tr><td>14:31</td><td>先求證 Gemini 查的資訊與結論，再來看 agent 能給什麼</td><td>定了順序：查核在前。兩輪搜尋，找出兩處歪掉的結論，一件漏掉的大事</td></tr>
+      <tr class="hit"><td>14:39</td><td>台灣只保障接單後時間？一小時只有一單還有時薪嗎？查一下</td><td>挖出法條的真正結構：只算接單中的分鐘，等單一毛沒有。整篇的論點從這裡開始</td></tr>
+      <tr class="hit"><td>14:39</td><td>有沒有論文或模型？我不用訪問，用漲過之後的現況</td><td>從評論變成可算的東西。找到三篇論文，而且定了識別策略：用兩個時間窗把兩個參數拆開</td></tr>
+      <tr><td>14:45</td><td>一步步來，先抓模型</td><td>擋住跳結論。論文附錄 D 五頁整個抓下來</td></tr>
+      <tr class="hit"><td>14:53</td><td>先用真實資料，然後可調的，先用假設區間跑幾個結果</td><td>定了「先釘數再開旋鈕」。平台公佈的兩週數據把進入彈性釘住，模型只剩一個真正會動的參數</td></tr>
+      <tr><td>15:01</td><td>可以變成回家作業，先寫 report</td><td>v0.1。套樣式，跑檢查器，三種寬度看過</td></tr>
+      <tr class="hit"><td>15:30</td><td>裡面有回答平台也把成本轉給店家嗎？店家外送價比內用價差三成以上</td><td>抓到 v0.1 的洞。轉嫁率少算一倍，店家那條線重寫</td></tr>
+      <tr><td>15:58</td><td>太像學術報告。每題要白話版。結尾要寫拿到什麼事實、離答案多遠</td><td>v0.3。改了報告的輸出格式，多了第 8 題</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>粗體的四行改變了結論。其他四行改變了順序或格式。沒有一行是在提供資訊。</p>
+  <p>還有一件事表格看不出來：人不在電腦前。從對話紀錄的時間戳算，14:31 到 16:34 共 123 分鐘，agent 從收到一句話到交出結果，加起來工作了 36 分鐘。其餘 87 分鐘是 agent 做完在等人。等的時間分兩種：十次 1 到 5 分鐘的短空檔，是人回來讀產出、想下一句；五次 10 到 25 分鐘的長空檔，是人在做別的事。把短空檔加上長空檔裡讀報告的幾分鐘，人真正坐在這件事前面的時間大約半小時。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">03 · 三種答案</p>
+  <p>拿五個問題裡的「到底會多貴」示範。同一個問題，三個時代給的東西長得不一樣。</p>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th></th><th>Google 搜尋</th><th>Chat</th><th>Agent</th></tr></thead>
+    <tbody>
+      <tr><td>拿到什麼</td><td>十條連結：工會說出軌制。平台說成本 +32%。協會說蒸發 460 億。媒體說叫外送貴五成</td><td>一份文件：每單硬成本增 10 到 25 元，附一張四方矩陣</td><td>消費者每單 +4% 到 4.5%，會員 +66%，外送員時薪 +0 到 2%。每個數字有出處，其中一個是平台自報，標出來了</td></tr>
+      <tr><td>誰做三角測量</td><td>你</td><td>沒人。出處被壓平</td><td>agent 做，但人要決定從哪一邊收線</td></tr>
+      <tr><td>答案的形狀</td><td>素材</td><td>結論</td><td>事實，外加出處和模型，以及離答案多遠和作業</td></tr>
+      <tr><td>保鮮期</td><td>看你什麼時候搜</td><td>快照，沒有日期</td><td>自帶到期日：Uber 收購 Delivery Hero 2027 下半年定案後要重問</td></tr>
+      <tr><td>錯了怎麼辦</td><td>你自己發現</td><td>很難發現，因為每一格的語氣一樣</td><td>每一格都能回頭對，所以錯得出來。這一篇後面有四個</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>第三欄多出來的那三樣東西，模型和距離，還有作業，是這個下午真正新的產物。上篇最後一題「我拿到了什麼」那張表就是這個形狀：五個問題答了兩個半，剩下的標出來等什麼。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">04 · 收線的四次</p>
+  <p>釣竿是 agent 在甩。但四次改變結論的時刻，都是人判斷「線鬆了」。把四次攤開看，它們有共同的形狀。</p>
+  <p><span class="ts">一</span> 「一小時只有一單，還有時薪嗎？」agent 的第一輪查核寫了「只保障接單後時間」，寫得很順，順到像是講完了。這一問逼出法條的真正結構，也逼出後面所有論點的起點：台灣的設計把空等的成本放在外送員身上。線鬆的訊號是：一句話講得太順。</p>
+  <p><span class="ts">二</span> 「有沒有論文或模型？」在這之前，整件事是一篇查核加評論。這一問把它變成可以算的東西。附帶的那句「我不用訪問，用漲過之後的現況」更重要，它定了識別策略：消費者價格 8 月 14 日才動，所以前兩週的供給反應只看得到一個參數。線鬆的訊號是：結論有了，但沒有式子。</p>
+  <p><span class="ts">三</span> 「先用真實資料，再開旋鈕。」沒有這一句，模型會變成三個口味參數的遊戲。有了這一句，平台公佈的兩週數據先把進入彈性釘住，剩下的旋鈕才有意義。線鬆的訊號是：參數太多，每個都能撥。</p>
+  <p><span class="ts">四</span> 「店家也轉嫁了，外送價比內用價差三成。」這是 agent 自己沒看到的洞。v0.1 把商家那 2.5 個百分點記在「商家付」就停了，轉嫁率因此少算一倍。線鬆的訊號是：你自己的生活經驗跟報告裡的數字對不上。</p>
+  <p class="pull">agent 時代稀缺的技能，可能是在答案看起來完整的時候，決定還要不要再問一次。</p>
+  <p>鏡子篇說 AI 照出來的是你的信念。這個下午照出來的是另一樣東西：追問的習慣。四次收線沒有一次需要新資訊，需要的是對「完整」的不信任。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">05 · 錯在哪裡</p>
+  <p>agent 在這兩個小時裡犯了四個錯。照記，因為它們是論點的一部分。</p>
+  <div class="err"><span class="k">14:39 · 三分之一</span>第一輪查核寫「台灣的地板只有西雅圖的三分之一」。下一輪自己查到：那是匯率。除以當地最低時薪之後，台灣 23% 對西雅圖 25%，幾乎一樣。這個錯是 agent 自己翻掉的，因為原句有數字，數字可以重算。</div>
+  <div class="err"><span class="k">15:01 · 轉嫁率 0.25</span>v0.1 只算了消費者服務費，沒算商家灌進外送菜單的那一塊。是人抓的。修正後店家那條線整個重寫，外送員那條線沒變。</div>
+  <div class="err"><span class="k">14:53 · 平台的數據</span>把進入彈性釘住的三組數字，全部是 Uber Eats 和 foodpanda 自己公佈的。平台有動機證明「外送員沒有更好」。這算出處問題，還不算錯誤，但它必須跟結論一樣顯眼。上篇把它寫在驗算那題旁邊，用一個警示框。</div>
+  <div class="err"><span class="k">15:19 · 舊檔</span>跑檢查器第一次跑的是改分號之前的版本，報了 11 個已經修掉的分號。重抓現行版本再跑才對。小事，但它說明流程裡每一步都要知道自己在看哪個版本。</div>
+  <p>Google 時代這些錯也會犯。差別在 chat 時代你看不到它們，每一格的語氣一樣。agent 時代每一個都有出處，所以錯得出來，也修得掉。agent 犯的錯沒有比較少，變的是錯誤可以修。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">06 · 這個答案的代價</p>
+  <p>把對話紀錄裡每一次 API 呼叫的用量加起來。快取讀取算 0.1 倍，快取寫入算 2 倍，輸出算 5 倍，這樣加權比較接近實際的計價。紀錄從 14:54 換到工作環境之後才有逐筆的數字，前面二十三分鐘在另一個介面跑，只知道它留下了約 34 萬 token 的上下文，用同樣權重估約 90 萬。</p>
+  <div class="tiles stagger">
+    <div class="stat"><div class="label">牆上時間</div><div class="value">123 分鐘</div></div>
+    <div class="stat"><div class="label">agent 工作</div><div class="value">36 分鐘</div></div>
+    <div class="stat"><div class="label">人坐在螢幕前</div><div class="value">約 30 分鐘</div></div>
+    <div class="stat"><div class="label">人送出的訊息</div><div class="value">18 則</div></div>
+  </div>
+  <div class="tiles stagger">
+    <div class="stat"><div class="label">加權 token，整個下午</div><div class="value">約 500 萬</div></div>
+    <div class="stat"><div class="label">API 呼叫，14:54 之後</div><div class="value">70 次</div></div>
+    <div class="stat"><div class="label">對話尾端的上下文</div><div class="value">61 萬 token</div></div>
+    <div class="stat"><div class="label">真正輸出的字</div><div class="value">7 萬 token</div></div>
+  </div>
+  <figure class="chart">
+    <p class="title">token 花在哪裡</p>
+    <p class="subtitle">14:54 之後的 70 次呼叫，加權後，單位萬</p>
+    <svg viewBox="0 0 640 262" role="img" aria-label="token 用量依用途分組">
+      <line class="grid" x1="150" y1="40" x2="590" y2="40"/>
+      <line class="grid" x1="150" y1="80" x2="590" y2="80"/>
+      <line class="grid" x1="150" y1="120" x2="590" y2="120"/>
+      <line class="grid" x1="150" y1="160" x2="590" y2="160"/>
+      <line class="axline" x1="150" y1="200" x2="590" y2="200"/>
+      <text x="150" y="216">0</text><text x="370" y="216" text-anchor="middle">125 萬</text><text x="590" y="216" text-anchor="end">250 萬</text>
+      <rect class="bar" x="150" y="48" width="380" height="20"/><text x="142" y="63" text-anchor="end">查資料</text><text x="538" y="63">216</text>
+      <rect class="bar" x="150" y="80" width="151" height="20"/><text x="142" y="95" text-anchor="end">對話本身</text><text x="309" y="95">86</text>
+      <rect class="bar" x="150" y="112" width="111" height="20"/><text x="142" y="127" text-anchor="end">做報告</text><text x="269" y="127">63</text>
+      <rect class="bar" x="150" y="144" width="83" height="20"/><text x="142" y="159" text-anchor="end">系統指令</text><text x="241" y="159">47</text>
+      <rect class="bar" x="150" y="176" width="12" height="20"/><text x="142" y="191" text-anchor="end">記憶</text><text x="170" y="191">7</text>
+      <text x="150" y="238" style="fill:var(--mist)">查資料的 216 萬裡，查的當下只佔一小部分，</text>
+      <text x="150" y="256" style="fill:var(--mist)">其餘是查到的東西在之後 70 次呼叫裡被反覆重讀。</text>
+    </svg>
+    <details class="datatable"><summary>數據</summary>
+      <div class="table-scroll"><table>
+        <thead><tr><th>用途</th><th>加權 token（萬）</th><th>佔比</th><th>怎麼算的</th></tr></thead>
+        <tbody>
+          <tr><td>網路查資料（搜尋＋論文）</td><td>216</td><td>52%</td><td>22 次搜尋與 5 次抓全文留下約 27 萬 token，之後每次呼叫重讀</td></tr>
+          <tr><td>對話本身（問答與思考）</td><td>86</td><td>21%</td><td>人的問題、agent 的回答與思考，輸出以 5 倍計</td></tr>
+          <tr><td>檔案、腳本與報告製作</td><td>63</td><td>15%</td><td>三版 HTML 加樣式表，模型腳本，截圖檢查</td></tr>
+          <tr><td>系統指令（每輪重讀）</td><td>47</td><td>11%</td><td>約 6 萬 token 的系統提示與工具清單，有快取</td></tr>
+          <tr><td>記憶工具</td><td>7</td><td>2%</td><td>讀了三次</td></tr>
+        </tbody>
+      </table></div>
+      <p class="src">原始計數：快取讀取 3,571 萬，快取寫入 18 萬，未快取輸入 34 萬，輸出 7 萬。分組是按「這段內容由哪個工具產生」去推的，是近似值。</p>
+    </details>
+  </figure>
+  <p>三件事值得記。</p>
+  <p>查資料貴，但貴的地方不在查，在重讀。查到的 27 萬 token 留在對話裡，之後每一次呼叫都掃一遍，七十次掃下來佔了一半。這是 agent 工作方式的結構性成本：它記得的東西越多，每一步越貴。</p>
+  <p>真正輸出的字只有 7 萬 token，包含三版報告和所有回答。36 分鐘的工作，產出佔用量不到 2%，其餘都是讀。</p>
+  <p>換成人的時間，這個下午做的事，我的估計是一個經濟系研究生一到兩週：查三個城市的官方報告，讀一篇工作論文的模型，找台灣的數據，寫腳本，寫文章。但對照的另一邊要寫對。這個下午人花的時間是半小時，而且這半小時是從別的事情裡切出來的，像午餐時順口問一個問題，吃完飯回來看一眼答案。研究生的兩週是全職，這半小時是順手。兩週對上順手的半小時，這才是野心的單位可以變小的原因。</p>
+  <p>所以這個答案的代價有三層。第一層是 agent 的訂閱費，它把五百萬 token 和二十二次搜尋藏在鏡子後面，人看不到，也不用看。第二層在鏡子前面：人的半小時，和八句話裡改了結論的那四句。那四句沒有 token 可以買，它們來自追問的習慣，而習慣是之前花的時間。第三層是鏡子本身：agent 犯的四個錯都在對話紀錄裡，看得到才修得掉，這也是一種成本，叫作要有人看。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">07 · 這是什麼野心</p>
+  <p>Felix Rieseberg 那篇〈How to be more ambitious〉講的野心，是去做本來會打消念頭的事。打消念頭的理由通常是成本：這要一個月，這要找人，這要先學一門課。</p>
+  <p>這個下午打消念頭的理由本來很充分。「Uber Eats 為什麼變貴」是午餐聊天的題目，拿它當研究題目做，要讀論文，要建模，要找數據，正常人不會為一個聊天題目花兩週。所以正常的結局是 Google 搜幾次，或者拿 Gemini 那份文件當答案。</p>
+  <p>兩週變成順手的半小時之後，那個理由不成立了。野心的單位從「專案」縮到「問題」：一個問題值得做到有模型、有驗算也有出處，因為做到那裡的成本已經低於「拿一份看起來完整的文件當答案」的風險。</p>
+  <p class="mark">野心的另一種定義：對更小的事，用同樣的標準。</p>
+  <p>harness-probe 那篇的結論是「跑從來不是問題，看才是」。這個下午是同一句話的另一個版本：跑的是 agent，二十二次搜尋，一篇論文，三版報告。看的是人，八句話。跑的成本降了兩個數量級，看的成本一點沒降。所以單位變小的同時，人的工作沒有變少，變的是它的位置：從做事移到判斷事情做到哪裡該停，該追問，還是該翻掉。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">08 · 沒解的</p>
+  <p>這篇紀錄只跑過一次。一次成功不代表流程可重複，它可能只是題目剛好：外送專法剛好有論文，平台剛好公佈了數據，模型剛好只有一行式子。換一個題目，三個「剛好」可能少一個。</p>
+  <p>釘住進入彈性的數據只有平台有。agent 可以把這件事標出來，不能替代一個獨立的資料來源。這個限制在 Google 時代一樣存在，agent 沒有解掉它。</p>
+  <p>回家作業還是人的。上篇留了三題，哪一題值得追、什麼時候追，agent 排不出優先順序，因為那取決於你還關不關心這個問題。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">09 · 回家作業</p>
+  <p>把這個下午的流程寫成一個方框，下一個午餐問題用同一套再跑一次。能跑第二次，這篇才算成立。</p>
+  <div class="proto">
+    <b>01</b> 查核：先對別人的答案逐條找出處，標出歪掉的和漏掉的<br>
+    <b>02</b> 追問：一句話講得太順的地方，問一次<br>
+    <b>03</b> 找模型：有沒有人解過，式子長什麼樣<br>
+    <b>04</b> 釘數：先用真實資料把能釘的參數釘住，再開旋鈕<br>
+    <b>05</b> 跑區間：剩下的參數撥幾個值，看哪個真的會動<br>
+    <b>06</b> 寫：每個數字標出處，自報的數據標利益方<br>
+    <b>07</b> 標距離：拿到的事實離答案多遠，差距就是作業<br>
+    <b>08</b> 記帳：花了多少 token，人說了幾句話，人坐在前面幾分鐘
+  </div>
+  <p>候選題目一個：上篇第 8 題「沒問但冒出來的」那一條，外送員學會等疊單。它沒有現成的論文，平台數據只有一個接單率，模型要自己寫。三個「剛好」少兩個，剛好可以測這套流程。</p>
+</section>
+
+<section class="reveal">
+  <p class="eyebrow">出處</p>
+  <ul class="src">
+    <li>上篇：〈加薪留不住〉，slug delivery-pay-floor，本篇所有關於外送專法的數字與出處都在那裡。</li>
+    <li>對話紀錄：2026-11-06 14:31 至 16:18，本機 jsonl 逐筆用量；加權規則為快取讀取 0.1 倍，快取寫入 2 倍，輸出 5 倍。</li>
+    <li>Felix Rieseberg, "How to be more ambitious"。</li>
+    <li>同站：〈跑從來不是問題，看才是〉（harness-probe）、〈AI 放大器還是鏡子〉（ai-amp-or-mir）。</li>
+    <li>An, Garin &amp; Kovak, NBER Working Paper 34545, 2025-12，附錄 D。</li>
+  </ul>
+</section>
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
