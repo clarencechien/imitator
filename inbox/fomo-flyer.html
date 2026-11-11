@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="拆傳單 — 把 X 上催你學新名詞的貼文當成同一張招生傳單來拆，問它催的東西是不是早就內建了">
+<meta name="imitator-reference" content="1990 年代南陽街補習班的招生傳單 — 粉紅色模造紙、單色藍墨、名師頭銜放最大、角落一枚紅色限時章">
+<meta name="imitator-paper" content="hsl(350 42% 94%)">
+<meta name="imitator-accent" content="hsl(222 64% 36%)">
+<title>催你學的，已經內建了 — 驗收筆記 番外</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* 2. this report's voice
+   REGISTER:  拆傳單 — 把 X 上催你學新名詞的貼文當成同一張招生傳單來拆，讀者是每天被推這些貼文的人。
+   REFERENCE: 1990 年代南陽街補習班的招生傳單 — 粉紅色模造紙、單色藍墨、名師頭銜放最大、角落一枚紅色的「限時」章。
+   PAPER:     傳單用的粉紅色模造紙，hsl(350 42% 94%)。便宜、顯眼、一疊一疊發。
+   VOICE:     油墨藍只給標題的那個詞、節號和連結；粗黑體標題；等寬體只放欄位名。
+              紅章是第二個聲音：讀者補上的註記，只蓋在被查證過的地方。
+   NOT:       儀表板，也不是行銷頁。沒有互動元件，表格是證物。
+   RECENT:    paper 312° 42° 165° · accent 128° 351° 8° — 350° 離 312° 有 38°，222° 都離得夠遠。
+              原本想用黃色模造紙（55°），離 42° 只有 13°，所以換了材料。 */
+:root {
+  /* PAPER: 粉紅色模造紙 */
+  --paper: hsl(350 42% 94%);
+  --card:  hsl(350 52% 97%);
+  --ink:   hsl(228 40% 14%);
+  --ink-2: hsl(228 22% 29%);
+  --mist:  hsl(228 12% 39%);
+  --rule:  hsl(350 28% 83%);
+  --rule-hard: hsl(350 22% 68%);
+  /* ACCENT: 單色印刷的油墨藍 */
+  --accent: hsl(222 64% 36%);
+  --accent-soft: hsl(222 52% 89%);
+  /* STAMP: 讀者蓋上去的紅章 — 只給查證結果用 */
+  --stamp: hsl(4 68% 40%);
+  --disp: "Archivo", "Noto Sans TC", sans-serif;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+/* 3. dark — 夜裡貼在騎樓柱子上的同一張傳單 */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(348 22% 9%);
+    --card:  hsl(348 20% 13%);
+    --ink:   hsl(350 24% 92%);
+    --ink-2: hsl(350 14% 78%);
+    --mist:  hsl(350 8% 63%);
+    --rule:  hsl(348 16% 21%);
+    --rule-hard: hsl(348 14% 32%);
+    --accent: hsl(220 80% 75%);
+    --accent-soft: hsl(222 36% 22%);
+    --stamp: hsl(6 72% 70%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(348 22% 9%);
+  --card:  hsl(348 20% 13%);
+  --ink:   hsl(350 24% 92%);
+  --ink-2: hsl(350 14% 78%);
+  --mist:  hsl(350 8% 63%);
+  --rule:  hsl(348 16% 21%);
+  --rule-hard: hsl(348 14% 32%);
+  --accent: hsl(220 80% 75%);
+  --accent-soft: hsl(222 36% 22%);
+  --stamp: hsl(6 72% 70%);
+}
+
+pre { font-family: var(--mono); }
+.display { font-weight: 900; font-size: clamp(2.5rem, 1.3rem + 5vw, 4.9rem); }
+
+/* 傳單頭 — the strip across the top of a flyer */
+.flyerhead {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 0;
+  border: 2px solid var(--accent);
+  margin: var(--sp-5) 0 var(--sp-6);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .06em;
+  background: var(--card);
+}
+.flyerhead > div { min-width: 0; padding: var(--sp-2) var(--sp-3); border-right: 1px solid var(--rule-hard); border-bottom: 1px solid var(--rule-hard); }
+.flyerhead > div:last-child { border-right: 0; }
+.flyerhead .k { color: var(--mist); font-size: .75rem; display: block; }
+.flyerhead .v { color: var(--ink); display: block; margin-top: .15em; }
+
+/* 填空傳單 — the flyer as a form; each blank is one field of the template */
+.blankform {
+  border: 2px solid var(--accent);
+  background: var(--card);
+  padding: var(--sp-5);
+  margin-block: var(--sp-6);
+  font-size: 1.12rem;
+  line-height: 2.3;
+}
+.blankform .head { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .14em; color: var(--accent); line-height: 1.6; margin-bottom: var(--sp-3); }
+.blankform > :last-child { margin-bottom: 0; }
+.blank {
+  display: inline-block;
+  border-bottom: 2px solid var(--accent);
+  padding: 0 .5em;
+  margin: 0 .15em;
+  font-family: var(--mono);
+  font-size: .82em;
+  line-height: 1.5;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* 紅章 — a reader's verdict, stamped on */
+.stamp {
+  display: inline-block;
+  border: 2px solid var(--stamp);
+  color: var(--stamp);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: .12em;
+  padding: .05em .55em;
+  border-radius: 2px;
+  transform: rotate(-2deg);
+  white-space: nowrap;
+}
+
+/* 傳遞紀錄 — who handed the flyer to whom, in order */
+.relay { list-style: none; padding: 0; margin: var(--sp-4) 0 var(--sp-5); }
+.relay li { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--sp-3); padding: var(--sp-3) 0; border-bottom: 1px solid var(--rule); margin: 0; }
+.relay li > * { min-width: 0; }
+.relay .n { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--accent); padding-top: .3em; }
+
+/* 順序 — four steps in a row; the flyer is the last one */
+.chain { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-block: var(--sp-5); border: 1px solid var(--rule-hard); background: var(--card); }
+.chain > div { min-width: 0; padding: var(--sp-3); border-right: 1px solid var(--rule-hard); }
+.chain > div:last-child { border-right: 0; background: var(--accent-soft); }
+.chain .n { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; color: var(--accent); display: block; }
+.chain .t { font-weight: 700; display: block; margin-top: .2em; }
+.chain .d { font-size: var(--fs-sm); color: var(--ink-2); display: block; margin-top: .2em; line-height: 1.6; }
+@media (max-width: 640px) {
+  .chain { grid-template-columns: minmax(0, 1fr); }
+  .chain > div { border-right: 0; border-bottom: 1px solid var(--rule-hard); }
+  .chain > div:last-child { border-bottom: 0; }
+  .relay li { grid-template-columns: 4.5rem minmax(0, 1fr); }
+  .blankform { padding: var(--sp-4); font-size: 1.05rem; }
+}
+
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<p class="eyebrow">驗收筆記 · 番外 · THE FLYER</p>
+<h1 class="display">催你學的，<br>已經<em>內建</em>了</h1>
+<p class="lede">X 上每隔幾週就有一則「某位大神上週把畢生所學濃縮成兩小時免費課」。我收了 23 則，拆開來是同一張傳單。傳單上催你學的東西，在它爆紅之前多半已經是一個指令。傳單要你去的地方，是一篇長文和一份訂閱名單。</p>
+
+<div class="flyerhead reveal">
+  <div><span class="k">題名</span><span class="v">催你學的，已經內建了</span></div>
+  <div><span class="k">樣本</span><span class="v">23 則 · 2026-05 至 2026-11</span></div>
+  <div><span class="k">版次</span><span class="v">v0.2 · 2026-11-11</span></div>
+  <div><span class="k">系列</span><span class="v">驗收筆記 番外 · 接上篇 S-00、下篇 S-10</span></div>
+</div>
+
+<p><a href="https://imitator.ai-apps.work/r/unlimited-token-report">上篇</a>在 S-00 說，那份報告不是要糾正轉傳，轉傳掉的東西本來就會掉。那時候我把轉傳當成背景。這篇把它拿出來當題目，因為我後來發現，掉的東西並不隨機。</p>
+
+<p>先說這些樣本怎麼來的。X 的貼文頁沒辦法用程式直接打開，所以 v0.1 每一則的內文、觀看數和社群註記，都取自搜尋引擎收錄的貼文頁。v0.2 我用自己的瀏覽器實際打開了其中十幾則貼文和七篇長文，也讀了三支原片的字幕。有打開過的數字是 11 月 11 日看到的值，其餘仍是搜尋引擎收錄的值。樣本是用固定句型去搜出來的，這個偏誤我在 X-05 補了一次抽樣。標「約」的日期是從貼文編號推算的。</p>
+
+<p>這篇的比喻只有一個：補習班的招生傳單。名師的頭銜放最大，旁邊印著原價和限時，最下面是報名專線。</p>
+
+<!-- ───────────────────────── X-00 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-00 · 一張傳單</p>
+<h2>它說是 Opus 5.5 的課</h2>
+
+<p>起點是一則簡體中文貼文，11 月 10 日凌晨由 <a href="https://x.com/F5Adon/status/2119829189683716489">@F5Adon</a> 發出，一天多累積 20.2 萬次觀看。它說這是「Claude Opus 5.5 最好的課程之一」，幾千塊的教育訓練還不如看這個，然後列了五個時間點，請大家先收藏。附的影片長 1 小時 34 分，片頭字卡寫著 Claude Managed Agents with Opus 5.5。</p>
+
+<p>影片本身是真的，而且不差。它是 Anthropic 的工程師在 AI Engineer World's Fair 的工作坊，官方後來切成四段上架，每段都有逐字稿。內容講的是 Managed Agents 這個平台怎麼設計：為什麼要把 session 紀錄、大腦和手拆開，憑證為什麼不放進沙箱，怎麼用 rubric 驗收。</p>
+
+<p>對不上的是標籤。World's Fair 在 6 月 29 日到 7 月 2 日舉行，Opus 5.5 是 9 月 22 日才發佈的。官方到 10 月 11 日（美西時間）才把錄影上架，<a href="https://www.youtube.com/watch?v=Uv0nAf_7tyU">第一段</a>的標題是 Decoupling the Brain from the Hands，標題、縮圖和開頭半分鐘都沒有 Opus 5.5 這幾個字。</p>
+
+<p>上架不到九小時，X 上就有了<a href="https://x.com/0xCodez/status/2109653301021069686">英文版傳單</a>。四段被接成一支，加上燒進畫面的字幕，還有那張 with Opus 5.5 的片頭字卡。時間點的說明也改寫過，第二段變成「打造 Opus 5.5 大腦」，最後一段變成「用 Claude agent 做逆向工程」，剛好接到文末掛的那篇長文〈How to Reverse Engineer Anything with Opus 5.5〉。這則我是追原帖時找到的，不算在 23 則裡。</p>
+
+<p><span class="mark">一場 7 月初錄的工作坊，10 月上架當天就被貼上 9 月才發佈的模型名字。</span>一個月後的中文版用的是同一支重剪過的影片，字卡還在。有意思的是，中文版的五個時間點說明反而照實寫了工作坊的內容，只有標題那一句留著 Opus 5.5。</p>
+
+<p>同一場工作坊的英文版傳單寫得更用力：Anthropic「剛辦了一場獨家的兩小時課」，還提醒讀者要在刪文之前看完。</p>
+
+<p>如果只有這兩則，可以當成有人標題下得太滿。問題是它有很多兄弟。</p>
+</section>
+
+<!-- ───────────────────────── X-01 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-01 · 七個欄位</p>
+<h2>同一張表單填出來的</h2>
+
+<p>把 23 則排在一起，句型幾乎可以疊起來。我把它還原成一張填空表：</p>
+
+<div class="blankform reveal">
+<p class="head">招生傳單 · 填空版</p>
+<p><span class="blank">權威</span>在<span class="blank">知名公司</span>待了<span class="blank">N 年</span>。<span class="blank">上週</span>，他把所學濃縮成一堂免費的<span class="blank">N 小時</span>課。<span class="blank">階梯</span>。別人花<span class="blank">價格</span>上的課，教的還比這少。你現在大概沒空看，別讓它從動態消失。先看，再讀下面的<span class="blank">指南</span>。</p>
+</div>
+
+<p>七個欄位，每一格都有幾種固定填法。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>欄位</th><th>常見填法</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">權威</td><td>Karpathy、黃仁勳、Andrew Ng、Hassabis，或沒有姓名的「Anthropic 工程師」</td></tr>
+<tr><td class="nowrap">時效</td><td>「上週」「昨天剛出」「剛發佈」</td></tr>
+<tr><td class="nowrap">時長</td><td>23、32、40、42、50、69 分鐘，1 小時，2 小時。數字很精確，但常和原片對不上</td></tr>
+<tr><td class="nowrap">價格</td><td>$15K 的 bootcamp、$500 的課、$400 的課、「幾千塊的教育訓練」</td></tr>
+<tr><td class="nowrap">階梯</td><td>Prompts → Agents → Loops → Graphs，或 10% → 100%。順序會變，10 月 13 日那則把 Graphs 排到 Loops 前面</td></tr>
+<tr><td class="nowrap">急迫</td><td>你現在沒空看、別讓它消失、先收藏、刪文前快看</td></tr>
+<tr><td class="nowrap">出口</td><td>下面的指南、full course、framework</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>補習班的傳單也是這樣印的。名師換一個，科目換一個，原價和限時不用動。</p>
+
+<p>我把樣本分成三型，後面三節各講一型。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>型</th><th>做了什麼</th><th>則數</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">A · 舊片新標</td><td>影片是真的，日期或主題被換掉</td><td class="num">7</td></tr>
+<tr><td class="nowrap">B · 引言移植</td><td>一句話掛在權威名下，並跟著當月熱詞改寫</td><td class="num">13</td></tr>
+<tr><td class="nowrap">C · 真內容換包裝</td><td>內容是近期且真實的，貼上最新模型的標籤</td><td class="num">3</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ───────────────────────── X-02 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-02 · 對日期</p>
+<h2>上週出的課，是去年的錄影</h2>
+
+<p>A 型最容易查，因為只要對一個日期。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>傳單上寫的</th><th>影片實際是</th><th>觀看</th></tr></thead>
+<tbody>
+<tr><td>Karpathy「上週」把畢生所學濃縮成兩小時，從 Agents 講到 Graphs</td><td>2025 年 2 月 27 日發佈的〈How I use LLMs〉，一支教一般人怎麼用聊天機器人的影片</td><td class="num nowrap">57.6 萬</td></tr>
+<tr><td>Karpathy 說「刪掉一切，只留 Graph」，用 1 小時教你建 graph</td><td>2023 年他在 Stanford 講 Transformer 架構的課。註記說查不到這句引言</td><td class="num nowrap">53.4 萬</td></tr>
+<tr><td>黃仁勳用 50 分鐘解釋什麼取代了 prompt</td><td>發文者自己在回覆裡貼了原片，是一支談 NVIDIA 創業心態的訪談</td><td class="num nowrap">未記錄</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>前兩則都被 X 的社群註記更正了。<span class="stamp">已註記</span> 但註記只掛在那一則貼文上。8 月 17 日那則後來被註記。8 月 29 日，另一個帳號把同一段文字再發一次，又拿到 34.6 萬次觀看。10 月 13 日還有人發，只把階梯的順序調了一下。10 月 18 日，「只留 Graph」那句換成 69 分鐘的版本重新上架，44.3 萬次觀看。</p>
+
+<p>第二則裡那句「只留 Graph」可能有個來歷。Transformer 可以看成節點之間互相傳訊息的圖，那堂課確實在講這個。一句講神經網路結構的話，被搬去當 agent 編排的口號。這是我的推測，我沒有逐字稿可以對。</p>
+
+<div class="note warn">
+<p class="head">連我自己引過的，也被包裝過</p>
+<p>下篇 S-13 用了 Karpathy 的四層漏斗。寫這篇的時候我回頭查了，那則是真的：<a href="https://x.com/karpathy/status/2109361546505966046">原帖</a>在 2026 年 10 月 11 日發出，轉貼他自己 4 月 9 日的舊帖。四層和餐巾紙算術是 10 月才加的，4 月那則講的是兩群人各說各話，下篇寫成「4 月寫、10 月重貼」不夠準確。</p>
+<p>同一則真帖，到了樣本裡出現三次的一個帳號手上，標題變成 Karpathy「剛揭露只有 0.2% 的人真的在用 AI」。0.2% 是原帖裡 2,000 萬人那一層的占比。原帖講的是誰看得到什麼。</p>
+</div>
+</section>
+
+<!-- ───────────────────────── X-03 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-03 · 換一個詞</p>
+<h2>同一句話，六月說 loop，八月說 graph</h2>
+
+<p>B 型比較難查，因為引言沒有日期可以對。但把同一個人名下的句子按時間排開，會看到句子跟著熱詞在動。</p>
+
+<p>loop 這個詞在 6 月初紅起來。7 月 18 日，Peter Steinberger 發了一句提問，大意是我們還在談 loop 嗎，還是已經換成 graph 了。幾個小時後就有人寫了「loop engineering 已死」。從那天起，傳單上的詞也換了。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>掛名</th><th>loop 版</th><th>graph 版或加碼版</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">黃仁勳</td><td>沒人寫 prompt 了，新工作是寫 loop（6/18，95.2 萬觀看）</td><td>新工作是建 loops and graphs（8/8、8/23）</td></tr>
+<tr><td class="nowrap">Andrew Ng</td><td>prompt 三到六個月內過時，由 loop 取代（6 月底中文媒體轉述）</td><td>prompt 六個月內會死，由 graph 取代（8/17）</td></tr>
+<tr><td class="nowrap">「Anthropic 工程師」</td><td>我們建 loop（9/13、10/20）</td><td>我們建 loops and graphs（8/24）</td></tr>
+<tr><td class="nowrap">Hassabis</td><td>一人勝過整個新創團隊（5 月起）</td><td>再加「五年內十分之一人力」（11/7）</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>「Anthropic 工程師」那一列最能說明問題。graph 版在 8 月，loop 版反而在 9 月和 10 月，兩個版本同時在流通。<span class="mark">引言是配合貼文要推的那篇長文去填的，長文講 loop 就填 loop，講 graph 就填 graph。</span></p>
+
+<p>8 月 23 日那則底下有人回了一句，說這讀起來是在推銷那篇指南，黃仁勳只是掛在最上面的鉤子。我覺得這是整批樣本裡最準的一句評語。</p>
+
+<p>黃仁勳 6 月那句有出處，但出處裡沒有那句話。發文者隔天在回覆裡貼了原片連結，是美聯社 6 月 16 日的<a href="https://www.youtube.com/watch?v=VU8vRGWMOy4">專訪</a>。我把 YouTube 上 51 分鐘那個版本的自動字幕搜了一遍。loop 一次都沒出現。prompt 出現一次，在第 35 分鐘，講的是 AI 要先聽懂你要什麼。那則貼文底下也有兩個人回覆，說看完整支找不到這句。</p>
+
+<p>所以這一格可以這樣記。訪談是真的，日期是真的，引號裡的句子是填上去的。到 8 月它又多了兩個字。</p>
+</section>
+
+<!-- ───────────────────────── X-04 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-04 · 一句話的半年</p>
+<h2>被註記過的那句話，後來有兩百萬人看</h2>
+
+<p>11 月 7 日深夜，一個彙整帳號發了一段影片，配上兩句掛在 Hassabis 名下的話。第一句說，真正懂 AI 的一個人會勝過整個新創團隊。第二句說，五年內，用 AI 做事的人可以用十分之一的人力經營整間公司。隔天晚上 Elon Musk <a href="https://x.com/elonmusk/status/2119406464372789396">轉貼</a>，只寫了一個詞 Interesting。11 月 11 日我打開來看，原帖是 7,581 個讚、212 萬次瀏覽，Musk 那則轉貼自己另有 247 萬次瀏覽。</p>
+
+<p>我原本以為這則比較接近源頭。往回查，它至少是第四手。</p>
+
+<ol class="relay">
+<li><span class="n">5/14</span><div>@AnatoliKopadze 把同一句話搭配「60 分鐘 Cambridge 演講」發出，還附了幾條關於生產力差距和公司規模的引言。這則被加上<a href="https://x.com/cyrilgupta/status/2055203047505010766">社群註記</a>：影片裡沒有這句話，也沒有其他幾條。<span class="stamp">已註記</span></div></li>
+<li><span class="n">約 8/30</span><div>同一個帳號<a href="https://x.com/AnatoliKopadze/status/2094157816223400036">重發</a>。時態從「不久後」改成「如今」，仍然配 60 分鐘 Cambridge 演講。</div></li>
+<li><span class="n">約 10/2</span><div>5 月也發過一版的另一個帳號<a href="https://x.com/sairahul1/status/2106023899297378722">再發一次</a>，這次的出口是他自己寫的「一人公司完整指南」。</div></li>
+<li><span class="n">11/7</span><div><a href="https://x.com/RoundtableSpace/status/2119093769991774480">彙整帳號的版本</a>加上第二句「五年內十分之一人力」。底下有回覆問為什麼不寫明這是一年半前的影片。這一則到 11 月 11 日都沒有註記。隔天進到 Musk 的動態。</div></li>
+</ol>
+
+<p>5 月那則註記連到的原片，是 Cambridge 大學 2025 年 3 月 24 日上架的<a href="https://www.youtube.com/watch?v=hHooQmmzG4k">演講</a>〈Accelerating Scientific Discovery with AI〉，全長 1 小時 4 分。我把它的自動字幕整份搜過。startup、one person、headcount、tenth、outperform 都沒有出現。team 出現三次，講的是他小時候待過的西洋棋青年隊，和蛋白質結構競賽的參賽隊伍。整場在講 AlphaFold 和科學發現，沒有談公司要用多少人。</p>
+
+<p>11 月 7 日那段影片長 1 小時 1 分 15 秒，5 月那則是 1 小時 1 分 3 秒，底下回覆提到的內容和「一年半前」的說法也對得上這場演講。我沒有逐格比對畫面，所以只說到這裡。幾乎可以確定是同一支，而那一支的字幕裡沒有這兩句話。一份 11 月 10 日的 AI 每日摘要也把這句話標成未經查證，理由是所有出現的地方都追得到同一條轉貼鏈，找不到訪談或活動。</p>
+
+<p>這則讓我看到三件事。</p>
+
+<p>第一，註記不會跟著引言走。它掛在單一貼文上，換個帳號重發就歸零。同一句話 5 月被註記，11 月照樣拿到兩百萬次瀏覽。</p>
+
+<p>第二，它走出了原本的圈子。前面的樣本大多在同一批帳號之間流通，讀的人多少知道這是什麼。被 Musk 轉貼之後，它進到一般人的動態，下一步就是被當成既定事實寫進簡報。</p>
+
+<p>第三，第二句是預測。就算 Hassabis 真的說過，「五年內十分之一人力」講的也是還沒發生的事。現在能確認的是，傳單附的那支影片裡沒有。</p>
+</section>
+
+<!-- ───────────────────────── X-05 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-05 · 報名專線</p>
+<h2>傳單最下面那一行</h2>
+
+<p>每張傳單最後都指向同一個地方：下面的指南。那幾乎都是 X 的長文，作者是發文帳號自己，或一個固定搭檔。</p>
+
+<p>能確認的有三件。</p>
+
+<p><strong>出口只有三種。</strong>連到自己的長文，連到搭檔的長文，或只要你收藏。搭檔是固定的：甲發影片，文末掛乙的長文，下次換過來。</p>
+
+<p><strong>長文的主題常和影片無關。</strong>8 月 26 日那則掛的是 Anthropic 工程師談 loops and graphs，連出去的長文在介紹 Grok Bot。6 月 18 日那則掛黃仁勳，長文是量化交易的 loop 框架。影片負責讓你停下來，長文才是要你看的東西。</p>
+
+<p><strong>同一批帳號重複出現。</strong>有一個帳號同時出現在黃仁勳、Hassabis、Opus 5.5 三條線上，另一個也出現了三次。</p>
+
+<p>v0.1 寫到這裡就只能推測。這次我把七篇長文實際點開，看文末連到哪裡。</p>
+
+<div class="table-scroll wide">
+<table>
+<thead><tr><th>傳單</th><th class="nowrap">傳單觀看</th><th>掛的長文</th><th class="nowrap">長文觀看</th><th>文末出口</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">6/18 黃仁勳</td><td class="num nowrap">95.2 萬</td><td><a href="https://x.com/horizon_trade_x/status/2067638109416657259">量化交易的 loop 框架</a>，作者是一個交易平台的官方帳號</td><td class="num nowrap">237 萬</td><td>自家平台的封測候補名單</td></tr>
+<tr><td class="nowrap">8/17 Karpathy</td><td class="num nowrap">57.6 萬</td><td><a href="https://x.com/0xwhrrari/status/2086784668003598356">Graph Engineering</a>，發文者自己寫的</td><td class="num nowrap">426.5 萬</td><td>Telegram 群、Substack</td></tr>
+<tr><td class="nowrap">8/23 黃仁勳</td><td class="num nowrap">未記錄</td><td><a href="https://x.com/AnatoliKopadze/status/2080668775796314331">Graph Engineering explained</a>，發文者自己寫的</td><td class="num nowrap">1,351 萬</td><td>Telegram 頻道</td></tr>
+<tr><td class="nowrap">8/26「Anthropic 工程師」</td><td class="num nowrap">未記錄</td><td><a href="https://x.com/Mahaximus_/status/2091879951926522112">Grok Bot 介紹</a>，發文者自己寫的</td><td class="num nowrap">205.8 萬</td><td>沒有外部連結</td></tr>
+<tr><td class="nowrap">10/2 Hassabis</td><td class="num nowrap">未記錄</td><td><a href="https://x.com/sairahul1/status/2105956783563120784">一人公司指南</a>，發文者自己寫的</td><td class="num nowrap">19.2 萬</td><td>一個 AI 員工產品的推薦連結，文末標示 Paid Partnership</td></tr>
+<tr><td class="nowrap">10/12 Opus 5.5 英文版</td><td class="num nowrap">20 萬</td><td><a href="https://x.com/0xMovez/status/2109604520770548146">用 Opus 5.5 做逆向工程</a>，搭檔帳號寫的</td><td class="num nowrap">227 萬</td><td>Substack</td></tr>
+<tr><td class="nowrap">11/7「Anthropic 工程師」</td><td class="num nowrap">未記錄</td><td><a href="https://x.com/0xwhrrari/status/2118327478250840140">Harness, Loop and Graph</a>，搭檔帳號寫的</td><td class="num nowrap">153.9 萬</td><td>Substack、Telegram</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>最後一列的傳單也是追連結時找到的，不在 23 則裡。</p>
+
+<p>七篇裡看到三件事。</p>
+
+<p><strong>長文的觀看比傳單多。</strong>有兩邊數字的三組，長文是傳單的 2.5 倍、7 倍和 11 倍。<span class="mark">傳單是替長文導流的其中一張，長文才是主商品。</span>一篇長文會被好幾張傳單掛上去，8 月那篇 Graph Engineering 到 11 月還在被引用。</p>
+
+<p><strong>出口是名單和業配，我沒有看到賣課。</strong>四篇把人導到 Telegram 或 Substack。兩篇是產品，一篇作者就是產品的官方帳號，一篇自己標了付費合作。一篇沒有外部連結，介紹的是 xAI 的產品。Substack 裡有沒有付費內容，從外面看不到。其中一個的首頁寫著超過一千名訂閱者。</p>
+
+<p><strong>傳單只占這些帳號發文的一小部分。</strong>這是 X-09 樣本偏誤那一題的補課。我換了一種抽法，直接把兩個重複出現的帳號最近兩週的貼文拉出來數。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>帳號與期間</th><th>則數</th><th>名師傳單</th><th>「貼進 Grok Bot」類</th><th>產品介紹影片</th><th>其他</th></tr></thead>
+<tbody>
+<tr><td>@AnatoliKopadze · 10/29 到 11/10</td><td class="num">33</td><td class="num">3</td><td class="num">14</td><td class="num">13</td><td class="num">3</td></tr>
+<tr><td>@Mahaximus_ · 10/26 到 11/10</td><td class="num">33</td><td class="num">1</td><td class="num">25</td><td class="num">0</td><td class="num">7</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>66 則裡，名師傳單只有 4 則。其餘大多是「把這段貼進 Grok Bot，今晚就改變你的人生」這種句型，幾乎每一則都掛一篇自己的長文，另一大類是新創產品的介紹影片。第二個帳號的「其他」裡有 5 則是同一句型換成 Opus 5.5 或 Fable 5.2。那些產品介紹有沒有收錢，貼文上沒有標示，我不能確定。能確定的是，名師傳單是這條生產線上的一種規格，不是主力。</p>
+
+<p>平台分潤仍然是背景。X 在 2026 年把長文開放給所有付費使用者，還設了最佳長文獎金。9 月 7 日起，分潤改成按付費使用者在首頁看到的曝光計算，並開始對搬運別人影片的帳號降酬。創作者自己報的舊制行情大約是每百萬曝光 8 到 12 美元，一篇一千萬次觀看的長文也只有一百美元上下。光靠分潤養不起每天兩三則的產量，名單和業配比較像是真正的收入。這最後一句仍是我的推測。</p>
+
+<div class="note">
+<p class="head">線索，還不是證據</p>
+<p>從帳號簡介看得到三樣東西：有人寫著正在做自己的專案，有人的顯示名稱帶著交易所的夥伴標記，多數帳號名是加密貨幣圈慣用的格式。這些只說明這群人原本在哪個圈子，不能證明錢從哪裡來。</p>
+</div>
+</section>
+
+<!-- ───────────────────────── X-06 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-06 · 時間差</p>
+<h2>內建在前，名詞在後</h2>
+
+<p>寫到這裡，我開始懷疑一件事。這些傳單催我學的東西，會不會過三個月就內建到工具裡，根本不用學？</p>
+
+<p>查了日期之後，答案比我猜的更進一步。多數情況是功能已經內建了，名詞才紅起來。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>熱詞</th><th>對應的內建功能</th><th>名詞開始流行</th><th>樣本裡最早的傳單</th><th>內建早多少</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">Loop</td><td>Claude Code 的 <code>/goal</code>，5/11。更早還有 3 月的 <code>/loop</code></td><td>6/7，Addy Osmani 的文章命名</td><td class="nowrap">6/18</td><td class="nowrap">約 4 週</td></tr>
+<tr><td class="nowrap">Graph</td><td>Managed Agents 的多 agent 編排，5/6。Dynamic Workflows，5/28</td><td>7/18，Steinberger 的提問</td><td class="nowrap">7 月下旬</td><td class="nowrap">7 到 10 週</td></tr>
+<tr><td class="nowrap">Memory、dreaming</td><td>Claude Code 的 auto memory，2/25。Managed Agents 的 dreaming，5/6</td><td>11/6，Anthropic 的記憶文章</td><td class="nowrap">11/8 起</td><td class="nowrap">6 到 8 個月</td></tr>
+<tr><td class="nowrap">Harness</td><td>Managed Agents（代管的 harness），4/8</td><td>2 月上旬</td><td class="nowrap">未單獨出現</td><td class="nowrap">名詞早 2 個月</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="tiles stagger">
+  <div class="stat"><div class="label">LOOP</div><div class="value">4 週</div><div class="delta">指令比名詞早</div></div>
+  <div class="stat"><div class="label">GRAPH</div><div class="value">7–10 週</div><div class="delta">功能比名詞早</div></div>
+  <div class="stat"><div class="label">MEMORY</div><div class="value">6–8 個月</div><div class="delta">功能比名詞早</div></div>
+</div>
+
+<p>四個裡有三個，順序是這樣的：</p>
+
+<div class="chain reveal">
+  <div><span class="n">01</span><span class="t">社群土法</span><span class="d">有人寫了一支腳本，讓 agent 自己跑到做完</span></div>
+  <div><span class="n">02</span><span class="t">廠商內建</span><span class="d">腳本變成一個指令或一個 API</span></div>
+  <div><span class="n">03</span><span class="t">有人命名</span><span class="d">一篇文章給這個做法取了名字</span></div>
+  <div><span class="n">04</span><span class="t">傳單</span><span class="d">名字配上名師、原價和限時</span></div>
+</div>
+
+<p><code>/goal</code> 就是這樣來的。社群先流傳一支讓 agent 反覆執行的腳本，Codex 在 4 月 30 日把它做成指令，Claude Code 在 5 月 11 日跟進。6 月 2 日，Claude Code 的負責人 Boris Cherny 在訪談裡說他不再 prompt Claude 了，他寫 loop 去 prompt 它。五天後 Osmani 的文章把這件事叫做 loop engineering。再過十一天，第一張掛著黃仁勳的 loop 傳單出現。</p>
+
+<p><span class="mark">你看到傳單的時候，它教你手工搭的東西已經是一個指令。</span>而且讓這個名詞紅起來的人裡面，有一位就是做那個指令的人。名詞流行，有一部分是廠商在介紹自己剛上線的功能。</p>
+
+<p>這張表有三個限制，我不想讓它看起來比實際更強。</p>
+
+<p>它的主表只排了 Anthropic 一家。我後來補查了另外兩家，方向一樣。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>廠商</th><th>Loop 類</th><th>多 agent 類</th><th>記憶類</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">OpenAI Codex</td><td><code>/goal</code>，4/30。排程自動化，4/16</td><td>多個 agent 平行執行，4/16</td><td>記憶預覽，4/16</td></tr>
+<tr><td class="nowrap">Google</td><td>Jules 的排程任務，2025 年 12/10。CI Fixer 自動修到過，2/19</td><td>Gemini CLI 的 subagents，4/16</td><td>Jules 的記憶，2025 年 9/30</td></tr>
+<tr><td class="nowrap">名詞流行</td><td class="nowrap">6/7</td><td class="nowrap">7/18</td><td class="nowrap">11/6</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>三家的功能都在名詞流行之前就上線了。Codex 4 月 16 日那幾項的日期取自第三方整理，我沒有對到官方更新紀錄。用地端模型的人不在這張表裡，那些功能沒有內建，harness 還是要自己搭。</p>
+
+<p>順帶一提，內建不等於長久。Jules 的更新紀錄最後一則寫著它會在 2026 年 12 月 31 日停止服務。</p>
+
+<p>內建的是機制。<code>/goal</code> 的完成條件要你寫，outcomes 的 rubric 也要你寫。</p>
+
+<p>「名詞開始流行」取的是公認的命名文章。loop engineering 最早的用例在 3 月 8 日，如果從那天算，名詞和內建大約同時。Harness 那一列則是名詞先出現。所以比較保險的說法是：等到它變成傳單，功能幾乎都已經在了。</p>
+</section>
+
+<!-- ───────────────────────── X-07 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-07 · 第三次</p>
+<h2>這次數的是你學了哪個詞</h2>
+
+<p><a href="https://imitator.ai-apps.work/r/million-cores-report">下篇</a> S-10 寫過，2026 年上半年外面在數 token，下半年在數 agent，兩次數的都是投入。X 上數的是第三種：你學了哪個詞，看了幾小時的課。</p>
+
+<p>prompt、context、harness、loop、graph，大約一季換一個。每換一次，傳單就重印一次，階梯往上加一格，最上面那格永遠是這個月的詞。10 月有人把順序排錯了，Graphs 排在 Loops 前面，也沒有人發現，因為沒有人真的照著那個階梯走。</p>
+
+<p class="pull">詞是投入。學了一個詞，手上的工作不會多做完一件。</p>
+
+<p>有一件事讓我覺得有點好笑。這些傳單引用的一手材料，自己都在勸人別急。那場被包裝成 Opus 5.5 課程的<a href="https://ai.engineer/talks/Uv0nAf_7tyU-decoupling-brain-from-hands-claude-managed-agents">工作坊</a>，第一段就在講 harness 會過期：為舊模型加的修補，新模型出來就用不到了。講者後來在問答裡說，他們一直在拿掉對模型的限制，今天需要的東西明天未必需要。現場還有聽眾抱怨，每次換模型都要重新投資一輪工具。</p>
+
+<p>Anthropic 那篇<a href="https://www.anthropic.com/research/components-of-agent-memory">記憶文章</a>的實驗也是同一個方向。玩同一款遊戲，寫了 413 個記憶檔的舊模型只拿到一個徽章，只寫 9 個檔的新模型拿到四個。給模型加一條「只記失敗」的規則，它從記憶得到的好處反而少了一截。</p>
+
+<p>材料在說少做一點、晚一點再做。包裝在說你已經落後了。</p>
+
+<p>那什麼不會被內建？完成要怎麼定義，拿什麼當驗收的依據，這些沒有辦法包成兩小時的免費課。那是上下篇的題目，這裡不重講。</p>
+</section>
+
+<!-- ───────────────────────── X-08 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-08 · 拿到傳單之後</p>
+<h2>三個動作，各一分鐘</h2>
+
+<p>我現在看到這種貼文會做三件事。</p>
+
+<ol>
+<li><strong>對日期。</strong>找到影片的原始上傳頁，看上傳日。A 型在這一步就結束了。</li>
+<li><strong>找原話。</strong>引言有沒有附訪談連結或時間點。沒有姓名的「某公司工程師」直接當作沒有出處。同一句話如果搜得到兩個只差一個詞的版本，兩個都先不信。</li>
+<li><strong>查它是不是已經是一個指令。</strong>打開我在用的工具的更新紀錄，搜那個詞。有的話，讀官方那一頁說明就夠了，通常比兩小時短。</li>
+</ol>
+
+<p>這些貼文晚三個月才看，會損失什麼？以這 23 則來說，我找不到損失。A 型的影片本來就是一兩年前的。B 型的引言查無出處。C 型的內容是真的，但原始版本一直掛在主辦單位的網站上，有逐字稿，也沒有人會刪。</p>
+
+<p>真正會過期的只有傳單本身。</p>
+</section>
+
+<!-- ───────────────────────── X-09 ───────────────────────── -->
+<section>
+<p class="eyebrow">X-09 · 補課</p>
+<h2>補了什麼，還缺什麼</h2>
+
+<p>v0.1 列了八項待補。這一版補的結果如下。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>項目</th><th>結果</th><th>寫在哪</th></tr></thead>
+<tbody>
+<tr><td>長文裡賣什麼</td><td>點開七篇。出口是訂閱名單和業配，沒有看到賣課</td><td class="nowrap">X-05</td></tr>
+<tr><td>Hassabis 影片的逐字稿</td><td>原片字幕裡沒有那兩句話</td><td class="nowrap">X-04</td></tr>
+<tr><td>Musk 的轉貼</td><td>確認，11 月 8 日 20:27</td><td class="nowrap">X-04</td></tr>
+<tr><td>黃仁勳 6 月的原句</td><td>發文者貼的原片是美聯社專訪，字幕裡沒有 loop</td><td class="nowrap">X-03</td></tr>
+<tr><td>X-00 的原帖和字卡</td><td>原帖找到了。字卡不在官方上架的版本裡，最早出現在上架當天的英文版傳單</td><td class="nowrap">X-00</td></tr>
+<tr><td>樣本偏誤</td><td>改抽兩個帳號兩週的全部貼文，名師傳單是 66 則裡的 4 則</td><td class="nowrap">X-05</td></tr>
+<tr><td>時間差只看了一家</td><td>補了 OpenAI 和 Google，方向相同</td><td class="nowrap">X-06</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>還缺的有這些。</p>
+
+<ul>
+<li><strong>Garry Tan 的轉貼沒找到。</strong>我搜了他提到 Hassabis 的貼文和轉貼，只有 Y Combinator 自己的訪談片段，沒有這句引言。可能是我搜的方式漏了，也可能他轉的是別則。</li>
+<li><strong>X 上那兩支影片我沒有逐格對過。</strong>Hassabis 那支是靠片長和回覆內容判斷和原片相同。黃仁勳那則配的是 23 分鐘的剪輯，我查的是 51 分鐘的完整版字幕。兩份都是自動字幕。</li>
+<li><strong>字卡只對了官方影片的開頭。</strong>我看了第一段的標題、縮圖和前 27 秒。字卡是英文版發文者加的，還是他拿到的來源就有，分不出來。</li>
+<li><strong>Substack 和 Telegram 裡面有什麼。</strong>我只走到門口。</li>
+<li><strong>產品介紹貼文有沒有收錢。</strong>只有一篇自己標了付費合作。</li>
+<li><strong>帳號抽樣只有兩個帳號、兩週。</strong>而且這兩個帳號是因為重複出現才被挑中的。</li>
+<li><strong>觀看數的時間點不一致。</strong>打開過的是 11 月 11 日的值，其餘是被搜尋引擎收錄時的值，不能直接相比。</li>
+<li><strong>Codex 的三個日期沒有對到官方紀錄。</strong>見 X-06。</li>
+</ul>
+</section>
+
+<hr>
+
+<!-- ───────────────────────── 附錄 A ───────────────────────── -->
+<section>
+<p class="eyebrow">附錄 A · 樣本</p>
+<h2>23 則</h2>
+
+<p>日期新的在上。型別見 X-01。觀看數只填看得到的。</p>
+
+<div class="table-scroll wide">
+<table>
+<thead><tr><th>日期</th><th>帳號</th><th>型</th><th>掛名與說法</th><th>觀看</th><th>查證</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">11/10</td><td><a href="https://x.com/F5Adon/status/2119829189683716489">@F5Adon</a></td><td class="nowrap">C</td><td>Opus 5.5 最好的課程之一 · 勝過幾千塊的教育訓練 · 先收藏</td><td class="num nowrap">20.2 萬</td><td>即 Managed Agents 工作坊 · 影片和 10/12 英文版是同一支重剪版</td></tr>
+<tr><td class="nowrap">11/7</td><td><a href="https://x.com/RoundtableSpace/status/2119093769991774480">@RoundtableSpace</a></td><td class="nowrap">B</td><td>Hassabis：懂 AI 的一個人勝過整個新創團隊 · 五年內用十分之一人力經營公司</td><td class="num nowrap">212 萬</td><td>原片字幕裡沒有這兩句，見 X-04</td></tr>
+<tr><td class="nowrap">10/26</td><td><a href="https://x.com/ai_explorer25/status/2114722566330077471">@ai_explorer25</a></td><td class="nowrap">A</td><td>Karpathy「1 小時 Stanford 課」，從 LLM 到 Graph 的百分比階梯</td><td class="num nowrap">2.2 萬</td><td>與 8/14 那則同一套說法</td></tr>
+<tr><td class="nowrap">約 10/20</td><td><a href="https://x.com/Dipanshu_AI/status/2112763665023943008">@Dipanshu_AI</a></td><td class="nowrap">B</td><td>「Anthropic 工程師」：我們不寫 prompt，我們建 loop · 42 分鐘 · 值 $400</td><td class="num nowrap"></td><td>與 9/13 那則文字幾乎相同</td></tr>
+<tr><td class="nowrap">10/18</td><td><a href="https://x.com/LunarResearcher/status/2111806045429387749">@LunarResearcher</a></td><td class="nowrap">A</td><td>Karpathy：刪掉一切，只留 Graph · 69 分鐘</td><td class="num nowrap">44.3 萬</td><td>同一句話 8/14 已被註記查無出處</td></tr>
+<tr><td class="nowrap">約 10/17</td><td><a href="https://x.com/0xCodez/status/2111448179015123306">@0xCodez</a></td><td class="nowrap">C</td><td>Anthropic 工程師「剛發佈」1 小時課：用 Opus 5.5 跑 1,000 個 agent · 勝過 $500 課程</td><td class="num nowrap"></td><td>講題對得上 AI Engineer 的另一場演講（推測）</td></tr>
+<tr><td class="nowrap">10/13</td><td>@shikamarutsai</td><td class="nowrap">A</td><td>Karpathy 兩小時課 · 階梯順序變成 Graphs 在 Loops 前面</td><td class="num nowrap"></td><td>8/17 那則的改寫 · 經他人轉貼頁面看到</td></tr>
+<tr><td class="nowrap">約 10/12</td><td><a href="https://x.com/AnatoliKopadze/status/2109733155414421965">@AnatoliKopadze</a></td><td class="nowrap">C</td><td>Anthropic「獨家 2 小時」Opus 5.5 agent 課 · 刪文前快看</td><td class="num nowrap"></td><td>即 Managed Agents 工作坊</td></tr>
+<tr><td class="nowrap">約 10/2</td><td><a href="https://x.com/sairahul1/status/2106023899297378722">@sairahul1</a></td><td class="nowrap">B</td><td>Hassabis：一人勝過整個團隊 · 60 分鐘 Cambridge 演講</td><td class="num nowrap"></td><td>5 月版本已被註記</td></tr>
+<tr><td class="nowrap">約 9/13</td><td><a href="https://x.com/LunarResearcher/status/2099146795880271890">@LunarResearcher</a></td><td class="nowrap">B</td><td>「Anthropic 工程師」：我們建 loop · 42 分鐘 · 值 $400</td><td class="num nowrap"></td><td>未具名，查無出處</td></tr>
+<tr><td class="nowrap">約 8/30</td><td><a href="https://x.com/AnatoliKopadze/status/2094157816223400036">@AnatoliKopadze</a></td><td class="nowrap">B</td><td>Hassabis：如今一人可勝過整個團隊 · 60 分鐘 Cambridge 演講</td><td class="num nowrap"></td><td>5 月版本已被註記</td></tr>
+<tr><td class="nowrap">8/29</td><td><a href="https://x.com/kaorixbt/status/2093722881972682867">@kaorixbt</a></td><td class="nowrap">A</td><td>Karpathy 兩小時課 · $15K bootcamp</td><td class="num nowrap">34.6 萬</td><td>回覆指出是一年前的影片</td></tr>
+<tr><td class="nowrap">約 8/26</td><td><a href="https://x.com/Mahaximus_/status/2092670041062035853">@Mahaximus_</a></td><td class="nowrap">B</td><td>「Anthropic 工程師」：想進前 1% 就要建 Loops and Graphs · 40 分鐘</td><td class="num nowrap"></td><td>未具名，查無出處</td></tr>
+<tr><td class="nowrap">約 8/24</td><td><a href="https://x.com/hanakoxbt/status/2091864379314565333">@hanakoxbt</a></td><td class="nowrap">B</td><td>「Anthropic 工程師」：我們建 loops and graphs · 32 分鐘</td><td class="num nowrap"></td><td>未具名，查無出處</td></tr>
+<tr><td class="nowrap">約 8/23</td><td><a href="https://x.com/AnatoliKopadze/status/2091507517763334526">@AnatoliKopadze</a></td><td class="nowrap">B</td><td>黃仁勳：新工作是建 Loops and Graphs · 50 分鐘</td><td class="num nowrap"></td><td>作者自己回覆：原片是一支談 NVIDIA 創業心態的訪談</td></tr>
+<tr><td class="nowrap">8/17</td><td><a href="https://x.com/0xwhrrari/status/2089336474923667665">@0xwhrrari</a></td><td class="nowrap">A</td><td>Karpathy「上週」把所學濃縮成兩小時課 · $15K bootcamp</td><td class="num nowrap">57.6 萬</td><td>社群註記：影片是 2025-02-27 的〈How I use LLMs〉</td></tr>
+<tr><td class="nowrap">約 8/17</td><td><a href="https://x.com/DAIEvolutionHub/status/2089242382974038153">@DAIEvolutionHub</a></td><td class="nowrap">B</td><td>Andrew Ng：prompt 六個月內會死，由 graph 取代</td><td class="num nowrap"></td><td>查無出處</td></tr>
+<tr><td class="nowrap">約 8/16</td><td><a href="https://x.com/LunarResearcher/status/2089103351761785096">@LunarResearcher</a></td><td class="nowrap">A</td><td>Karpathy「剛發佈」1 小時 Stanford 課，百分比階梯</td><td class="num nowrap"></td><td>與 8/14 那則同一支影片</td></tr>
+<tr><td class="nowrap">8/14</td><td><a href="https://x.com/Mahaximus_/status/2088328196127334401">@Mahaximus_</a></td><td class="nowrap">A</td><td>Karpathy：prompt 要消失了，只留 Graph · 1 小時</td><td class="num nowrap">53.4 萬</td><td>社群註記：影片是 2023 年 Stanford 的 Transformer 課，查無此引言</td></tr>
+<tr><td class="nowrap">約 8/8</td><td><a href="https://x.com/mikenevermiss/status/2086021473949340093">@mikenevermiss</a></td><td class="nowrap">B</td><td>黃仁勳：新工作是建 loops and graphs · 50 分鐘</td><td class="num nowrap"></td><td>與 6/18 那句只差「and graphs」</td></tr>
+<tr><td class="nowrap">6/18</td><td><a href="https://x.com/zodchiii/status/2067673484025590132">@zodchiii</a></td><td class="nowrap">B</td><td>黃仁勳：沒人寫 prompt 了，新工作是寫 loop · 23 分鐘 · 「昨天剛出」</td><td class="num nowrap">95.2 萬</td><td>發文者貼的原片是 AP 6/16 專訪 · 字幕裡沒有 loop</td></tr>
+<tr><td class="nowrap">約 5/15</td><td><a href="https://x.com/sairahul1/status/2055284521109508430">@sairahul1</a></td><td class="nowrap">B</td><td>Hassabis：不久後一人可勝過整個團隊</td><td class="num nowrap"></td><td>同期版本被註記</td></tr>
+<tr><td class="nowrap">5/14</td><td><a href="https://x.com/cyrilgupta/status/2055203047505010766">@AnatoliKopadze</a></td><td class="nowrap">B</td><td>Hassabis 同一句 · 60 分鐘 Cambridge 演講</td><td class="num nowrap"></td><td>社群註記：該影片裡沒有這句話，也沒有貼文列的其他引言 · 連結是引用它的回覆頁</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ───────────────────────── 附錄 B ───────────────────────── -->
+<section>
+<p class="eyebrow">附錄 B · 來源</p>
+<h2>引用</h2>
+
+<ul>
+<li>X 貼文：連結見附錄 A。v0.2 實際開啟的有 X-00、X-03、X-04、X-05 提到的各則和七篇長文，以及兩個帳號的個人頁，日期是 2026-11-11。其餘取自搜尋引擎收錄的貼文頁。</li>
+<li>原片與字幕：AI Engineer〈<a href="https://www.youtube.com/watch?v=Uv0nAf_7tyU">Decoupling the Brain from the Hands（Part 1 of 4）</a>〉，2026-10-11 上架。Cambridge〈<a href="https://www.youtube.com/watch?v=hHooQmmzG4k">Accelerating Scientific Discovery with AI</a>〉，2025-03-24 上架。美聯社〈<a href="https://www.youtube.com/watch?v=VU8vRGWMOy4">Nvidia CEO Jensen Huang says society needs 'new social norms' in age of AI</a>〉，2026-06-16。字幕都是 YouTube 的自動字幕。</li>
+<li>其他廠商的日期：<a href="https://jules.google/docs/changelog/">Jules 更新紀錄</a>、<a href="https://github.com/google-gemini/gemini-cli/discussions/25562">Gemini CLI v0.38.1 公告</a>、<a href="https://blog.buildfastwithai.com/openai-codex-for-almost-everything-2026">Codex 4 月 16 日更新的第三方整理</a>。</li>
+<li>工作坊：AI Engineer 的 <a href="https://ai.engineer/talks/Uv0nAf_7tyU-decoupling-brain-from-hands-claude-managed-agents">Part 1</a>、<a href="https://ai.engineer/talks/FGftGOzfohc-build-research-agent-claude-managed-agents-part">Part 2</a>、<a href="https://ai.engineer/talks/QSeaZ6qHyXs-claude-managed-agents-q-evals-ci-cd">Part 4</a>。Part 3 取自<a href="https://finance.biggo.com/podcast/bd69f264b46e27d8">第三方摘要</a>。活動日期見 <a href="https://www.ai.engineer/worldsfair/2026/llms.md">World's Fair 2026 活動資訊</a>。</li>
+<li>Opus 5.5 發佈日：<a href="https://www.anthropic.com/claude-opus-5-5">Anthropic 公告</a>、<a href="https://omidsaffari.com/blog/claude-opus-5-5-for-agents-and-coding">第三方整理</a>。</li>
+<li>Karpathy 漏斗：<a href="https://x.com/karpathy/status/2109361546505966046">10 月 11 日原帖</a>、<a href="https://x.com/karpathy/status/2042334451611693415">4 月 9 日舊帖</a>。連結與引文取自 <a href="https://cellcog.ai/blog/karpathy-llm-understanding-funnel/">CellCog 的整理</a>，另見 <a href="https://startupfortune.com/andrej-karpathy-says-the-ai-capability-gap-is-now-a-sharp-funnel/">Startup Fortune</a>。</li>
+<li>Hassabis 引言未經查證：<a href="https://github.com/diclogic/ai-daily-digest/issues/208">AI Daily Digest 2026-11-10</a>。</li>
+<li>名詞起源與時間線：<a href="https://blog.wescale.fr/en/qui-a-invent-quoi-lorigine-des-termes-de-ling%C3%A9nierie-des-agents">WeScale 的考據</a>、<a href="https://www.codecentric.de/en/knowledge-hub/blog/loop-harness-context-engineering-explained">codecentric</a>、<a href="https://agentfactory.panaversity.org/chinese/docs/graph-engineering-crash-course">Graph Engineering 速成課</a>（Steinberger 提問與後續口號）。</li>
+<li>6 月底中文媒體對黃仁勳、Andrew Ng 說法的轉述：<a href="https://eu.36kr.com/en/p/3873913078732036">36Kr 英文版</a>。</li>
+<li>內建日期：<code>/goal</code> 見 <a href="https://zenn.dev/suwash/articles/claude-code-goal-command_20260514?locale=en">Zenn 的版本調查</a>與<a href="https://pasqualepillitteri.it/en/news/2514/goal-command-codex-claude-code-11-days">Codex 與 Claude Code 的十一天</a>。<code>/loop</code> 見 <a href="https://arxiv.org/html/2608.21884v2">arXiv 2608.21884</a>。auto memory 見 <a href="https://www.havoptic.com/r/claude-code-2.1.59">v2.1.59 發佈紀錄</a>。Managed Agents 5 月 6 日更新見 <a href="https://letsdatascience.com/blog/anthropic-dreaming-claude-managed-agents-self-improving-may-6">Let's Data Science</a>。</li>
+<li>記憶實驗：Anthropic〈<a href="https://www.anthropic.com/research/components-of-agent-memory">The components of agent memory</a>〉，2026-11-06。</li>
+<li>X 的創作者計酬：<a href="https://blog.x.com/en/business/creator-updates-and-article-contest-replacement">X 官方部落格</a>、<a href="https://www.lilachbullock.com/how-to-get-paid-on-x/">Lilach Bullock</a>、<a href="https://xpert.so/blog/how-much-does-x-actually-pay-creators-in-2026-34363">xpert.so</a>、<a href="https://creaticalc.com/blog/how-much-does-x-pay-creators">creaticalc</a>。後三者是第三方整理，行情數字是創作者自述。</li>
+<li>上下篇：〈<a href="https://imitator.ai-apps.work/r/unlimited-token-report">無限的是 token，有限的是驗收</a>〉、〈<a href="https://imitator.ai-apps.work/r/million-cores-report">一百萬顆 CPU，是用來驗的</a>〉。</li>
+</ul>
+
+<p class="byline">番外 v0.2 · 2026-11-11 · 上篇：無限的是 token，有限的是驗收 · 下篇：一百萬顆 CPU，是用來驗的</p>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
