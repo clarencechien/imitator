@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="改投 — 2026 年一批畫 AI 流程的畫布收攤，清點哪些東西被搬走、改投到哪、哪些留在原址">
+<meta name="imitator-reference" content="1980 年代被退回的航空郵簡 — 淡藍薄紙、打字機打的收件地址、紫紅色的「遷移新址不明」退件戳、手寫的改投地址">
+<meta name="imitator-paper" content="hsl(204 40% 94%)">
+<meta name="imitator-accent" content="hsl(328 58% 36%)">
+<title>推理搬走了，畫布還在 — 哪一種 low-code 下課，哪一種沒有</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  改投 — 2026 年一批畫 AI 流程的畫布收攤，清點寄到畫布的東西哪些被搬走、改投到哪、哪些留在原址；讀者是手上還有畫布的工程師。
+   REFERENCE: 1980 年代被退回的航空郵簡 — 淡藍薄紙、打字機打的收件地址、紫紅色的「遷移新址不明」退件戳、手寫的改投地址。
+   PAPER:     航空郵簡的淡藍薄紙 — hsl(204 40% 94%)。色相落在 190–230 是因為材質本身就是藍的，不是預設的冷灰；飽和度 40%。
+   VOICE:     紫紅印油只給戳記：裁決、章節碼、連結。打字機體做地址欄與標籤。標題用粗黑體，像郵戳壓上去的字。
+   NOT:       訃聞。畫布沒有死，這不是悼文，也不是產品型錄。
+   RECENT:    paper 44° 350° 312° · accent 22° 222° 128°（無站台 token，從 archive/report 的 git 歷史讀最近三篇）— 204° 與 328° 都離得夠遠，不用改。
+              本系列前幾篇 paper 50° 14° 272° · accent 216° 178° 262°，也都避開。 */
+
+:root {
+  --paper: hsl(204 40% 94%);
+  --card: hsl(204 45% 97.5%);
+  --ink: hsl(214 32% 13%);
+  --ink-2: hsl(214 16% 30%);
+  --mist: hsl(214 10% 38%);
+  --rule: hsl(204 28% 84%);
+  --rule-hard: hsl(204 22% 70%);
+  --stamp: hsl(328 58% 36%);          /* 退件戳的紫紅印油 */
+  --accent: var(--stamp);
+  --accent-soft: hsl(328 45% 90%);
+  --disp: "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --sans: "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --mono: "Courier Prime", "Noto Sans TC", ui-monospace, Menlo, Consolas, monospace;
+}
+/* 同一張郵簡關燈後：夜航的深藍近黑，不是灰 */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(210 30% 9%);  --card: hsl(210 26% 13%);
+    --ink: hsl(204 30% 92%);   --ink-2: hsl(204 16% 76%); --mist: hsl(204 10% 64%);
+    --rule: hsl(210 18% 21%);  --rule-hard: hsl(210 16% 32%);
+    --stamp: hsl(326 62% 74%); --accent: var(--stamp); --accent-soft: hsl(326 30% 20%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(210 30% 9%);  --card: hsl(210 26% 13%);
+  --ink: hsl(204 30% 92%);   --ink-2: hsl(204 16% 76%); --mist: hsl(204 10% 64%);
+  --rule: hsl(210 18% 21%);  --rule-hard: hsl(210 16% 32%);
+  --stamp: hsl(326 62% 74%); --accent: var(--stamp); --accent-soft: hsl(326 30% 20%);
+}
+
+/* 已知坑：chassis 的 pre 沒設字型 */
+pre { font-family: var(--mono); }
+
+.display { font-weight: 900; letter-spacing: -.01em; line-height: 1.12; }
+h2, h3 { font-weight: 700; }
+.eyebrow { letter-spacing: .12em; }
+
+/* 郵簡邊緣的斜紋：只出現一次，在頁首 */
+.airmail {
+  height: 7px; max-width: none; margin: 0 0 var(--sp-6);
+  background: repeating-linear-gradient(-45deg,
+    var(--stamp) 0 12px, transparent 12px 24px,
+    var(--rule-hard) 24px 36px, transparent 36px 48px);
+}
+
+/* 來源階梯標記（沿用系列寫法） */
+.src { font-family: var(--mono); font-size: .72em; color: var(--mist); letter-spacing: .04em; vertical-align: super; margin-left: .15em; white-space: nowrap; }
+
+/* 地址欄：打字機打的三行，這份報告的主張寫在這裡 */
+.addr {
+  background: var(--card); border: 1px solid var(--rule-hard); border-radius: 2px;
+  padding: var(--sp-4) var(--sp-5); margin-block: var(--sp-5);
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.9;
+  position: relative;
+}
+.addr dl { margin: 0; display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 0 var(--sp-3); }
+.addr dt { color: var(--mist); letter-spacing: .1em; }
+.addr dd { margin: 0; min-width: 0; color: var(--ink); }
+.addr .struck { text-decoration: line-through; text-decoration-color: var(--stamp); text-decoration-thickness: 2px; }
+
+/* 戳記：歪一點，像手蓋的 */
+.stamp {
+  display: inline-block; border: 2px solid var(--stamp); color: var(--stamp);
+  font-family: var(--disp); font-weight: 900; font-size: .92em; letter-spacing: .14em;
+  padding: .12em .6em .14em; border-radius: 3px; transform: rotate(-2.5deg);
+  line-height: 1.3; white-space: nowrap; vertical-align: .06em;
+}
+.stamp.stay { border-color: var(--ink-2); color: var(--ink-2); transform: rotate(1.5deg); }
+
+/* 判讀：事實與判讀分開，是這個系列的規矩 */
+.verdict {
+  border: 1px solid var(--rule-hard); border-radius: 2px; background: var(--card);
+  padding: var(--sp-5) var(--sp-5) var(--sp-5) calc(var(--sp-5) + .35em);
+  margin-block: var(--sp-6); box-shadow: inset .35em 0 0 var(--stamp);
+}
+.verdict::before {
+  content: "判讀 · VERDICT"; display: block;
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .16em;
+  color: var(--accent); margin-bottom: var(--sp-2);
+}
+.verdict > :last-child { margin-bottom: 0; }
+
+/* 18% 那一格 */
+.hero-wrap { margin-block: var(--sp-6); }
+.hero { color: var(--stamp); }
+.hero-wrap .cap { font-size: var(--fs-sm); color: var(--mist); margin: 0; }
+
+/* 表格 */
+.report section > .table-scroll.narrow { max-width: var(--measure); margin-inline: 0; }
+figure { margin-inline: 0; }
+/* 手機：多欄表給足寬度讓它在框內捲，不要把字擠成三個字一行 */
+@media (max-width: 40rem) { .table-scroll.roomy table { min-width: 42rem; } }
+th { font-family: var(--mono); font-weight: 700; letter-spacing: .04em; }
+td.self, th.self { background: var(--accent-soft); }
+td .sub { font-family: var(--mono); text-transform: none; letter-spacing: .04em; }
+th .sub { display: block; font-weight: 400; font-size: var(--fs-xs); color: var(--mist); letter-spacing: .02em; }
+
+/* 規則與反模式 */
+.rules { list-style: none; padding: 0; margin: var(--sp-5) 0; }
+.rules li { padding: var(--sp-4) 0; border-top: 1px solid var(--rule); }
+.rules li:last-child { border-bottom: 1px solid var(--rule); }
+.rules .id { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .14em; color: var(--accent); display: block; margin-bottom: var(--sp-1); }
+.rules strong { font-weight: 700; }
+
+.sources { font-size: var(--fs-sm); color: var(--ink-2); }
+.sources li { overflow-wrap: anywhere; }
+.sources h3 { font-family: var(--mono); letter-spacing: .1em; color: var(--accent); }
+
+/* 圖：直式排版，375px 不用捲；所以放掉 chassis 的 min-width */
+.chart svg.tall { min-width: 0; max-width: 24rem; }
+.chart svg text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+.chart svg .lab { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; fill: var(--mist); }
+.chart svg .t { font-weight: 700; fill: var(--ink); }
+.chart svg .frame { fill: none; stroke: var(--rule-hard); stroke-width: 1.2; }
+.chart svg .node { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.2; }
+.chart svg .node.r { fill: var(--accent-soft); stroke: var(--stamp); stroke-dasharray: 5 3; }
+.chart svg .dest { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.4; }
+.chart svg .dest.r { stroke: var(--stamp); stroke-width: 1.8; }
+.chart svg .arrow { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+.chart svg .arrow.r { stroke: var(--stamp); stroke-width: 1.6; }
+.chart svg .head { fill: var(--ink-2); }
+.chart svg .head.r { fill: var(--stamp); }
+.chart svg .acc { fill: var(--stamp); font-weight: 700; }
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<div class="airmail" aria-hidden="true"></div>
+
+<p class="eyebrow">架構筆記 · Agent vs Workflow · VOL.6 · 2026-11</p>
+<h1 class="display">推理<em>搬走</em>了，<br>畫布還在</h1>
+<p class="lede">2026 年有一批畫 AI 流程的畫布收攤，OpenAI 的 Agent Builder 和 Google 的 Opal 都在名單上。這一篇清點它們裝過什麼，哪些被搬走，搬去哪，再把 VOL.3 的比價單往下補一欄。</p>
+<p class="byline">研究稿 2026-11-11 · 接 VOL.3《你早就在用 harness 了》，並引〈每一層，都要能說不〉結論 8 · 事實標 L1–L4 來源階梯，判讀另框 · 日期與數字皆為 2026-11-11 查閱所見</p>
+
+<div class="addr">
+<dl>
+<dt>收件</dt><dd>推理步驟（先搜尋，再抽欄位，依金額分支）</dd>
+<dt>原址</dt><dd><span class="struck">畫布上的節點</span></dd>
+<dt>批註</dt><dd><span class="stamp">遷移</span> 改投 prompt · skill · md</dd>
+</dl>
+</div>
+
+<section>
+<p class="eyebrow">00 · 前情</p>
+<h2>VOL.3 的比價單少了一欄</h2>
+<p><span class="chip">接回 VOL.1</span> Q1 問控制流由誰決定：程式碼決定是 workflow，模型在執行期決定是 agent loop。<span class="chip">接回 VOL.2</span> 可枚舉與否、有沒有 oracle，交出 CELL A 到 D 四格。<span class="chip">接回 VOL.3</span> Harness 不在 Q1 軸上，它決定錯了多貴。那一篇留下 RULE 05「買殼、寫流程、借迴圈」和三條鎖定軸，分別看模型、平台與狀態。</p>
+<p>VOL.3 的比價單比的是程式碼框架，五家廠商的 SDK 加一欄自製。拖拉節點的畫布那一層沒有進表。當時的理由是它不屬於 harness，現在看是漏了。</p>
+<p>補這一欄的起點是 X 上一則貼文。作者自稱在字節做過 Coze 的 workflow 引擎，他說 Coze 要下線了，並留下三個判斷：workflow 是被「模型自己會規劃」淘汰的；當年拼命做的拖曳節點是在替模型的笨拙買單，是 low-code 平台延續出來的過渡產物；怎麼搭工作流的技能已經被 agent 內化<span class="src">L4</span>。</p>
+<p>先校正標題。官方公告下線的是<strong>企業版</strong>：企業標準版與旗艦版 2026 年 11 月 30 日起停止新售，在火山引擎購買的舊版套餐 12 月 31 日下線，新版企業套餐最晚到 2027 年 12 月 31 日，理由寫的是「因產品整合安排」<span class="src">L1</span>。個人版還在。那三個判斷值不值得信，要看 Coze 以外的案例。</p>
+</section>
+
+<section>
+<p class="eyebrow">01 · 現場</p>
+<h2>收攤的畫布，使用者被送去哪</h2>
+<p>把 2026 年收掉的畫布排成一張表，重點看最後一欄。</p>
+
+<div class="table-scroll roomy">
+<table>
+<thead><tr><th>產品</th><th>時間</th><th>官方給的理由</th><th>使用者被送去哪</th><th>級</th></tr></thead>
+<tbody>
+<tr><td>OpenAI Agent Builder<br><span class="sub">託管畫布</span></td><td><span class="nowrap">2025-10-06 推出</span><br><span class="nowrap">2026-06-03 宣佈淘汰</span><br><span class="nowrap">2026-11-30 關閉</span></td><td>遷移指南沒有說明</td><td>匯出成 Agents SDK 程式碼（TypeScript 或 Python），或把匯出內容貼進 ChatGPT Workspace Agent，用自然語言重建。指南註明這個流程不轉換 workflow graph</td><td>L1</td></tr>
+<tr><td>Google Opal<br><span class="sub">Labs 實驗 · 託管畫布</span></td><td><span class="nowrap">2026-11-17 關閉</span></td><td>可重用的工作流整併到 Gemini 的 Skills</td><td>Skills，也就是可重用的自訂指令。Opal 專案不會自動轉換</td><td>L3</td></tr>
+<tr><td>Flowise<br><span class="sub">開源畫布 · 2025-08 被 Workday 收購</span></td><td><span class="nowrap">2026-07-29 凍結</span><br><span class="nowrap">2026-08-31 終止支援</span></td><td>開發者改用 coding agent 處理複雜任務</td><td>程式碼留在 GitHub，Apache 2.0，自己 fork</td><td>L1</td></tr>
+<tr><td>Coze 企業版<br><span class="sub">託管畫布 · 字節</span></td><td><span class="nowrap">2026-11-30 停止新售</span><br><span class="nowrap">最晚 2027-12-31 下線</span></td><td>產品整合安排</td><td>後續方案與資源匯出都「另行公告」。團隊 8 月已併入豆包</td><td>L1<br>L3</td></tr>
+<tr><td>騰訊元器<br><span class="sub">託管 agent 平台</span></td><td><span class="nowrap">2026-11-09 停服</span></td><td>業務調整</td><td>騰訊雲 ADP</td><td>L3</td></tr>
+<tr><td>Langflow 託管版<br><span class="sub">DataStax Astra 內</span></td><td><span class="nowrap">2026-04-09 移除</span></td><td>未查到</td><td>Langflow 開源版，自己架</td><td>L4</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Flowise 的公告是這張表裡講得最白的一份。團隊自己寫：「The typical rigid workflow low code approach quickly hits the limit」<span class="src">L1</span>。OpenAI 的遷移指南沒給理由，但有一行限制值得抄下來：核心是強確定性的 workflow，可能無法忠實搬成 workspace agent<span class="src">L1</span>。</p>
+<p>有兩個案例我沒有算進來。Relay.app 在 7 月宣佈收攤，原因是創辦人和部分員工被 Google 聘走，產品沒有被買<span class="src">L4</span>。豆包、千問與元寶在 7 月下架的是使用者自建 agent 的廣場，起因是 7 月 15 日施行的擬人化互動服務管理辦法<span class="src">L3</span>。這兩件一件是人事、一件是監管，都跟畫布這個形式無關。</p>
+
+<div class="note">
+<p class="head">另一半原因是錢</p>
+<p>IDC 的數字：2025 年中國公有雲的 agent 開發平台市場整體約 2.5 億人民幣，Coze 以 19.3% 排第一<span class="src">L3</span>。兩個數字相乘大約 4,800 萬，這是推算，Coze 沒有揭露過營收。同一年私有部署的市場是 17.5 億<span class="src">L4</span>。市占第一的產品落在一個小池子裡，這件事跟模型能力無關。</p>
+</div>
+
+<div class="verdict">
+<p>因果要分開標。「被模型自己會規劃淘汰」在 Flowise 是官方自己寫的。在 Coze 只有一則自稱前員工的貼文，官方說的是產品整合。OpenAI 沒給理由。</p>
+<p>去處倒是一致。六個案例裡，沒有一個把使用者送去另一塊畫布。去處只有兩種。一種是文字，包括 prompt、skill 與用自然語言描述的 agent。另一種是程式碼。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">02 · 主軸</p>
+<h2>畫布裝過兩樣東西</h2>
+<p>2024 年在畫布上拉一個節點，可能是在做兩件不同的事。</p>
+<p>第一件是寫<strong>推理步驟</strong>。先搜尋，再抽欄位，依金額分支，然後把結果丟給下一個 prompt。這是人用滑鼠替模型回答 Q1。VOL.1 的 Q1 只有兩個答案，程式碼或模型。畫布上的推理節點是第三個答案，由人畫。它成立的前提是模型自己規劃不好。</p>
+<p>第二件是寫<strong>確定性流程</strong>。觸發與重試，憑證更新，寫回 CRM，等人簽核。這是 CELL A 的 workflow，本來就該由程式碼決定，畫布只是它的一種寫法。</p>
+
+<figure class="reveal">
+<p class="title">同一塊畫布上的兩種節點，2026 年各自的去處</p>
+<div class="chart">
+<svg class="tall" viewBox="0 0 360 366" role="img" aria-label="2024 年的畫布同時裝了推理節點與確定性節點。2026 年推理節點搬到文字，確定性節點留在流程。">
+<text class="lab" x="8" y="16">2024 年的畫布</text>
+<rect class="frame" x="8" y="24" width="344" height="196" rx="4"/>
+<text class="lab" x="20" y="46">推理節點 · 人替模型規劃</text>
+<rect class="node r" x="20" y="54" width="100" height="36" rx="4"/><text x="70" y="77" text-anchor="middle">先搜尋</text>
+<rect class="node r" x="130" y="54" width="100" height="36" rx="4"/><text x="180" y="77" text-anchor="middle">再抽欄位</text>
+<rect class="node r" x="240" y="54" width="100" height="36" rx="4"/><text x="290" y="77" text-anchor="middle">依金額分支</text>
+<text class="lab" x="20" y="118">確定性節點 · 對世界的假設</text>
+<rect class="node" x="20" y="126" width="74" height="36" rx="4"/><text x="57" y="149" text-anchor="middle">觸發</text>
+<rect class="node" x="102" y="126" width="74" height="36" rx="4"/><text x="139" y="149" text-anchor="middle">重試</text>
+<rect class="node" x="184" y="126" width="74" height="36" rx="4"/><text x="221" y="149" text-anchor="middle">寫回</text>
+<rect class="node" x="266" y="126" width="74" height="36" rx="4"/><text x="303" y="149" text-anchor="middle">簽核</text>
+<text class="acc" x="20" y="198">只裝上面那一排的畫布，被搬空了</text>
+
+<line class="arrow r" x1="90" y1="220" x2="90" y2="276"/><polygon class="head r" points="85,276 90,286 95,276"/>
+<text class="acc" x="100" y="254">推理 · 2026 搬走</text>
+<rect class="dest r" x="8" y="290" width="164" height="64" rx="4"/>
+<text class="t" x="90" y="317" text-anchor="middle">文字</text>
+<text x="90" y="338" text-anchor="middle">prompt · skill · md</text>
+
+<line class="arrow" x1="270" y1="220" x2="270" y2="276"/><polygon class="head" points="265,276 270,286 275,276"/>
+<text x="280" y="254">確定性 · 留下</text>
+<rect class="dest" x="188" y="290" width="164" height="64" rx="4"/>
+<text class="t" x="270" y="317" text-anchor="middle">流程</text>
+<text x="270" y="338" text-anchor="middle">畫布或程式碼</text>
+</svg>
+</div>
+<figcaption>推理節點用虛線框，因為它編碼的是「模型做不到」的假設。確定性節點編碼的是對世界的假設，例如 API 會逾時，憑證會過期，退款要有人簽。</figcaption>
+</figure>
+
+<p><span class="chip">接回 VOL.3</span> 那一篇引過 Anthropic 的說法，harness 的每個元件都編碼了一個「模型自己做不到」的假設，這些假設值得被壓力測試。推理節點正是這種元件。假設失效，元件就該拆。確定性節點不一樣，模型再強，API 還是會逾時。</p>
+<p>Lindy 把這條路完整走了一遍。最早的版本讓使用者在一個大文字框裡描述要自動化的事，2.0 改成方塊加箭頭、自稱 Zapier of AI，2026 年 2 月的 Lindy Assistant 又回到對話介面<span class="src">L4</span>。同一家公司，從文字到畫布再回到文字。</p>
+
+<p class="pull">推理搬去文字，確定性留在流程。只裝推理的畫布，被搬空了。</p>
+
+<p>所以那則貼文的前兩個判斷大致成立，第三個要改寫。被 agent 內化的是「替模型排步驟」這門手藝。排確定性流程的手藝還在，而且 03 會看到，它現在多了一個工作：把 agent 框住。</p>
+</section>
+
+<section>
+<p class="eyebrow">03 · 收斂</p>
+<h2>兩頭往中間收</h2>
+<p>如果 02 是對的，應該看得到兩個方向的移動：從「全用畫的」出發的產品把推理交出去，從「全用 prompt」出發的產品把確定性加回來。2026 年兩邊都有。</p>
+
+<div class="table-scroll roomy">
+<table>
+<thead><tr><th>產品</th><th>出發點</th><th>2026 年做了什麼</th><th>級</th></tr></thead>
+<tbody>
+<tr><td>Dify</td><td class="nowrap">全用畫的</td><td>8 月 27 日 New Agent 進 beta：模型驅動的 ReAct 迴圈，加上隔離的 Linux sandbox，以及 Skills 與 MCP 工具。Agent 變成可以被多條 workflow 重用的資源</td><td>L4</td></tr>
+<tr><td>騰訊雲 ADP 4.0</td><td class="nowrap">全用畫的</td><td>6 月 5 日發佈，新增支援 agentic loop 的 Claw 模式，Agent 與 Workflow 可以雙向互調。副總裁的說法是模糊開放的事交給 agent，確定的流程交給 workflow，省 token</td><td>L3</td></tr>
+<tr><td>Gumloop</td><td class="nowrap">全用畫的</td><td>改以 agent 當主要介面，workflow 變成 agent 可以呼叫的東西</td><td>L3</td></tr>
+<tr><td>Coze 3.0</td><td class="nowrap">全用畫的</td><td>5 月底發佈，支援多人多 agent 協作，可接 Claude Code、Codex CLI。三個月後團隊併入豆包</td><td>L3</td></tr>
+<tr><td>Salesforce Agentforce</td><td class="nowrap">全用 prompt</td><td>新版 builder 2 月 GA，加入 Agent Script，把確定性執行和 LLM 推理分開。文件寫的原則：能表達成程式的決策，就寫成邏輯</td><td>L1</td></tr>
+<tr><td>Google Gemini Enterprise</td><td class="nowrap">全用 prompt</td><td>4 月的 Agent Designer 可用自然語言或視覺流程建 agent，把生成式步驟和確定性的業務規則組在一起</td><td>L3</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>兩邊收到同一個形狀：確定性的外框，裡面放 agent 節點，關鍵動作前停下來等人。Dify 官方轉載的一篇社群文章把分工講成一句話，agent 負責判斷與選擇，workflow 負責順序與邊界<span class="src">L2</span>。微軟的 Copilot Studio 文件也是同一個結構：flow 可以呼叫 agent，也可以放人工審核步驟<span class="src">L1</span>。</p>
+
+<h3>有人量過比例</h3>
+<p>Zapier 從 1,500 家企業客戶裡取 AI workflow 採用最深的前四分之一，共 375 家，統計這些 workflow 的步驟組成<span class="src">L2</span>。</p>
+
+<div class="hero-wrap">
+<p class="hero">18%</p>
+<p class="cap">採用最深的那一群，AI workflow 裡 AI 步驟的佔比。</p>
+</div>
+
+<div class="table-scroll plain narrow">
+<table>
+<thead><tr><th>步驟類別</th><th class="num">佔比</th></tr></thead>
+<tbody>
+<tr><td>AI 步驟</td><td class="num">18%</td></tr>
+<tr><td>分支與閘門</td><td class="num">17%</td></tr>
+<tr><td>訊息</td><td class="num">15%</td></tr>
+<tr><td>邏輯與格式</td><td class="num">14%</td></tr>
+<tr><td>其他應用動作</td><td class="num">13%</td></tr>
+<tr><td>紀錄與資料儲存</td><td class="num">12%</td></tr>
+<tr><td>工單與待辦</td><td class="num">7%</td></tr>
+<tr><td>排程與流程控制</td><td class="num">4%</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>這個數字有兩個限制。它是賣 workflow 的廠商自己的資料，而且只看前 25%。同一份報告說只把 AI 留給推理步驟可以省 71% 成本，那是用 24 條 workflow 建模估出來的，報告自己註明不是客戶實測。18% 我當事實用，71% 只當方向。</p>
+
+<h3>有人一年前就講過</h3>
+<p>2025 年 10 月，OpenAI 在 DevDay 推出 Agent Builder 的隔天，LangChain 的 Harrison Chase 寫了一篇解釋為什麼 LangChain 不做視覺 workflow builder。他的論點是這類產品被兩頭擠：複雜度低的交給 no-code agent，複雜度高的要寫成程式碼，中間那段越來越窄<span class="src">L2</span>。LangChain 後來做的是用自然語言描述來建 agent 的工具，2026 年 1 月 GA，3 月改名 LangSmith Fleet<span class="src">L1</span>。</p>
+<p>八個月後 OpenAI 宣佈淘汰 Agent Builder。遷移指南只給兩條路，Agents SDK 或 Workspace Agents。一條是程式碼，一條是自然語言。</p>
+</section>
+
+<section>
+<p class="eyebrow">04 · 修正</p>
+<h2>n8n 是修正，不是反例</h2>
+<p>最容易寫錯的地方在這裡。Coze 收攤、n8n 估值翻倍，順手的解釋是「n8n 做的是確定性管線，不碰 AI」。我查到一半時差點這樣寫，資料不支持。</p>
+<p>n8n 的投資方 Felicis 引述，2025 年 n8n 上超過 80% 的 workflow 涉及 AI agent<span class="src">L3</span>。另一份第三方分析看了 4,650 個 workflow，只有 25% 含 AI 節點<span class="src">L4</span>。兩個數字的母體和定義都不同，我對不起來，列在 08。不管採哪一個，n8n 的畫布上都有不少 AI。分界線不在「畫布上有沒有 AI」。</p>
+<p>差別要從 n8n 執行長 Jan Oberhauser 今年 9 月的訪談裡找<span class="src">L2</span>。他講的幾件事，逐條對回 02：</p>
+<ul>
+<li><strong>畫布是拿來看的。</strong>他強調的用途是檢查與稽核：看得到建了什麼，也看得到每一次怎麼跑、每一步進出什麼資料。</li>
+<li><strong>圖可以不是人畫的。</strong>示範裡他用一段 prompt 請 AI assistant 建 workflow，AI 想了大約八分鐘，交出一張帶審核步驟的圖。</li>
+<li><strong>常見的路徑是先文字後畫布。</strong>他說很多人先用 Claude Code 做原型，再搬到 n8n 跑正式的。</li>
+<li><strong>AI 是其中一種節點。</strong>他的說法是 AI 加確定性邏輯加 human in the loop，一個 if 比模型便宜、快，而且百分之百可靠。</li>
+<li><strong>產物帶得走。</strong>可自架，workflow 可匯出，模型可換，還能設備援模型。</li>
+</ul>
+<p>他同時報了幾個數字：年經常性營收過 1 億美元，活躍使用者 150 萬，企業客戶 1,200 家，公司有獲利。這些是執行長自述。外部可查的是 2026 年 5 月 SAP 的策略投資，估值 52 億美元，並把 n8n 放進 SAP 的 Joule Studio<span class="src">L3</span>。</p>
+
+<div class="verdict">
+<p>n8n 沒有反駁 02，它示範了留下來的畫布長什麼樣。圖的作者換成 AI，人退到審查的位置。<span class="mark">畫布從作者的工具，變成審查的介面。</span></p>
+<p><span class="chip">接回〈每一層〉</span> 那一篇的結論 8 寫「下一代平台的 UI 是審批面板，不是設定面板」，當時標的證據強度是中、偏推論。Coze 的畫布是設定面板，設定模型怎麼想。n8n、Copilot Studio 與 Agentforce 現在畫的是護欄、簽核和例外處理。這一條可以往上調。</p>
+<p>要注意說話的人。賣畫布的人說畫布重要，這是他的立場。</p>
+</div>
+
+<div class="note warn">
+<p class="head">反證要並列</p>
+<p>一份分析自動化範本的研究指出，n8n 範本裡只有 1.2% 含明確的人工核准步驟<span class="src">L4</span>。這是公開範本，不是正式環境的資料，原始頁面我也只讀到摘要。但它提醒一件事：畫布「可以」當審批面板，和大家「真的」在上面放審批，中間還有距離。</p>
+</div>
+
+<p>分界線可以收成三個問題。推理由誰寫，是人畫的節點還是模型在執行期自己規劃。圖由誰畫，是人拖出來的還是 AI 生成後由人審。產物能不能帶走，也就是能不能匯出、自架與換模型。Coze 型的畫布，三題的答案是人畫，人拖，帶不走。</p>
+</section>
+
+<section>
+<p class="eyebrow">05 · 比價單</p>
+<h2>補上畫布那一欄，再加一條軸</h2>
+<p><span class="chip">接回 VOL.3</span> 三條鎖定軸原樣套到畫布層。最後一欄沿用 VOL.3 的自製做法當對照。表內標「未查」的格子是這次沒有重新查核的。</p>
+
+<div class="table-scroll roomy">
+<table>
+<thead><tr><th>軸</th><th>Coze 企業版</th><th>Dify</th><th>n8n</th><th class="self">自製<br><span class="sub">cron + claude -p + md + git</span></th></tr></thead>
+<tbody>
+<tr><td>模型<br><span class="sub">能接誰</span></td><td>官方模型服務跟著火山方舟上下架<span class="src">L1</span></td><td>多家模型統一接入<span class="src">L2</span>，地端模型未查</td><td>任意，可設備援模型<span class="src">L2</span></td><td class="self">僅 Claude</td></tr>
+<tr><td>平台<br><span class="sub">跑在哪</span></td><td>託管。企業版停售<span class="src">L1</span></td><td>開源，可私有部署<span class="src">L3</span></td><td>可自架，也有雲端版<span class="src">L2</span></td><td class="self">跑在哪台就是哪台</td></tr>
+<tr><td>狀態<br><span class="sub">帶不帶得走</span></td><td>對話、記憶與 workflow 等資源的匯出安排「後續公告」<span class="src">L1</span></td><td>自架時在自己的資料庫，匯出格式未查</td><td>workflow 可匯出，有版本歷史<span class="src">L2</span></td><td class="self">md 與 git，人讀得懂</td></tr>
+<tr><td>模型壽命<br><span class="sub">新增</span></td><td>2026 年五批下線，低程式碼專案列了 34 筆<span class="src">L1</span></td><td>看你接的供應商</td><td>看你接的供應商</td><td class="self">看 Anthropic 的通知期</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>第四條軸：模型壽命</h3>
+<p>VOL.3 的模型軸問的是「能接哪些模型」。這次多出來的問題是「供應商多快把模型從你腳下抽走」。</p>
+<p>Coze 的模型下線通知頁是一手資料<span class="src">L1</span>。頁面開頭就寫，模型下線後，用到它的線上 agent、workflow 與應用都無法正常運行。2026 年的下線分五批，從 3 月 31 日到 10 月 22 日，每批間隔一到三個月。最具體的一筆在 5 月。5 月 11 日那批，多數型號的建議遷移目標是 <code>doubao-seed-2-0-lite-260215</code>。10 月 22 日那批，這個型號自己在下線名單上。照建議搬過去的人，五個月後要再搬一次。</p>
+<p>各家寫在政策裡的通知期差很多：</p>
+
+<div class="table-scroll plain narrow">
+<table>
+<thead><tr><th>供應商</th><th>政策寫的最短通知期</th><th>級</th></tr></thead>
+<tbody>
+<tr><td>Anthropic</td><td>公開發佈的模型，退役前至少 60 天</td><td>L1</td></tr>
+<tr><td>OpenAI</td><td>GA 模型至少 6 個月，特化版本至少 3 個月</td><td>L3</td></tr>
+<tr><td>阿里雲百煉</td><td>快照模型 30 天，主線模型 3 個月</td><td>L1</td></tr>
+<tr><td>Coze</td><td>下線通知頁沒有寫通知期</td><td>L1</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="verdict">
+<p>這條軸對畫布的傷害比對程式碼框架大，原因在 02。畫布上每個推理節點都有一段對著某個型號調出來的 prompt，節點越多，換模型要重測的東西越多。</p>
+<p>推理收成一段文字交給模型自己規劃之後，換模型要重測的是驗收。驗收是 VOL.1 的 oracle，它本來就不該跟著模型變。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">06 · 工廠版</p>
+<h2>地端場景，第四條軸反過來</h2>
+<p>沿用 VOL.3 的前提。環境在地端，外網受限，地端與雲端模型雙跑，可觀測性也全在地端，主要任務是事件檢討。整節是設計建議。</p>
+<ol>
+<li><strong>託管畫布出局。</strong>平台軸就過不了，這跟它收不收攤無關。</li>
+<li><strong>可自架的畫布過得了平台軸。</strong>Dify、n8n 與 MaxKB 都在這一類<span class="src">L2</span><span class="src">L3</span>。接地端模型的 tool calling 品質要自己量，這一點跟 VOL.3 第 06 節的結論相同，瓶頸在推論伺服器。</li>
+<li><strong>模型壽命在地端是你自己的事。</strong>型號是你架的，沒有人會寄下線通知。代價是什麼時候升級由你決定，重測的成本還在，只是時程在自己手上。</li>
+<li><strong>按 CELL 決定畫布放哪。</strong>CELL A 的資料搬運、告警分派與開工單，用 n8n 型的畫布或既有的 job runner 都可以，畫布的好處是產線工程師看得懂、稽核看得到。CELL B 的事件檢討照 VOL.3 做，推理段寫成 prompt 加輸出契約，放在 bounded loop 裡，不要在畫布上拉成一串推理節點。CELL C 買殼。</li>
+<li><strong>人審接既有的簽核。</strong>04 那個 1.2% 是提醒。工廠已經有工單系統，human in the loop 接那裡，不要在畫布上另做一套沒人看的核准節點。</li>
+</ol>
+<p>一個可以馬上做的檢查：把現有畫布上每個節點標成「推理」或「確定性」。推理節點連續出現三個以上，就是 2024 年的畫法。收成一個 agent 節點加一份文字指示，確定性節點原地不動。</p>
+</section>
+
+<section>
+<p class="eyebrow">07 · 規則與反模式</p>
+<h2>RULE 05 修訂、RULE 06 增補、RULE 09，AP-25–28</h2>
+<ul class="rules">
+<li><span class="id">RULE 05（修訂）· 買殼、擁有流程、借迴圈</span><strong>VOL.3 寫的是「workflow 永遠自己寫」，改成「自己擁有」。</strong>可以用畫的，可以讓 AI 生成，但產物要能匯出成檔案，能在自己的機器上跑，也能換模型。n8n 活著跟原本的寫法衝突，跟修訂後的不衝突。</li>
+<li><span class="id">RULE 06（增補）· 鎖定看四軸</span><strong>原本的模型、平台與狀態，再加模型壽命。</strong>挑平台時多問三件事：政策寫的通知期多長，去年實際下架幾次，下架那天你的東西會不會停。</li>
+<li><span class="id">RULE 09 · 推理寫成文字，確定性寫成流程</span><strong>兩種東西不要用同一種節點畫。</strong>推理步驟放 prompt、skill 或 md，交給模型在執行期規劃。會產生副作用的步驟，以及需要重試或簽核的步驟，放流程。</li>
+<li><span class="id">AP-25 · 畫腦</span><strong>在畫布上用一串節點替模型規劃。</strong>模型每升級一次，這串節點就多一分多餘，而且拆它的成本由你付。</li>
+<li><span class="id">AP-26 · 借來的畫布</span><strong>流程只存在別人的託管畫布裡，手上沒有匯出檔。</strong>停售公告出來那天，才讀到匯出安排另行公告。</li>
+<li><span class="id">AP-27 · 把收購當保證</span><strong>以為被大公司買走的開源專案會一直有人維護。</strong>Flowise 被收購後不到一年就凍結，凍結後公告的高風險漏洞沒有修補版<span class="src">L4</span>。開源授權保證你能 fork，不保證有人修。</li>
+<li><span class="id">AP-28 · 追著型號調節點</span><strong>每個節點的 prompt 綁一個型號。</strong>型號半年內就可能下線，節點有幾個，就要重調幾次。</li>
+</ul>
+<p>回到最初那個問題，low-code 假裝是 harness 的，是不是都下課了。這一題的兩個詞都要換掉。收攤的那一型沒有在假裝 harness，它做的是替模型手畫計畫，那件事既不是 workflow 引擎也不是殼。留下來的畫布也還是 low-code。它們只是不再裝推理，改裝確定性流程和給人審的地方，有幾家開始長出真的殼，例如 sandbox、權限與稽核。</p>
+</section>
+
+<section>
+<p class="eyebrow">08 · 未決</p>
+<h2>還沒解的，和什麼會推翻這一篇</h2>
+<ul>
+<li><strong>n8n 的 AI 佔比。</strong>80% 和 25% 差太多。一個是投資方引述的平台數字，一個是第三方工具 Synta 的使用者樣本，我沒有辦法對齊。</li>
+<li><strong>人審的實際使用率。</strong>只有範本資料，沒有正式環境的資料。</li>
+<li><strong>Zapier 的 18% 只代表前四分之一。</strong>一般使用者的比例可能更低，也可能因為 AI 用得淺而完全不同。</li>
+<li><strong>Dify 那篇定位文是社群成員寫的</strong>，由官方轉載，不能當成公司聲明。</li>
+<li><strong>仍在賣託管畫布加 prompt 節點的產品</strong>，例如百煉的應用編排、千帆 AppBuilder，我只查到產品動態，沒有營收或留存。</li>
+</ul>
+<p>推翻條件先寫下來。如果 2027 年有一個純託管、推理由人在畫布上畫，而且不能匯出的產品還在成長，02 的主軸就要改。如果下一次模型世代更新後，留下來的畫布也開始把確定性流程交給模型在執行期寫程式完成，RULE 09 的後半句也要重看。</p>
+</section>
+
+<section class="sources">
+<p class="eyebrow">來源 · SOURCES</p>
+<h2>來源階梯</h2>
+<p>沿用 VOL.3 的分級：L1 官方文件與公告，L2 官方部落格與當事人本人說法，L3 第三方媒體與研究，L4 個人文章與討論。查閱日 2026-11-11。本篇的轉述皆非逐字引用，除了 Flowise 公告那一句。</p>
+
+<h3>L1</h3>
+<ul>
+<li>FlowiseAI, <a href="https://flowiseai.com/sunset">The Future of Flowise</a>（收攤公告與時程表）</li>
+<li>OpenAI, <a href="https://developers.openai.com/api/docs/guides/agent-builder/migrate-from-agent-builder">Migrate from Agent Builder</a>；<a href="https://openai.com/index/introducing-agentkit/">Introducing AgentKit</a> 頁首的 2026-06-03 更新</li>
+<li>扣子, <a href="https://docs.volcengine.com/docs/coze/coze-enterprise-offline-announcement?lang=zh">扣子企業版下線公告</a>（2026-10-29）；<a href="https://docs.coze.cn/guides_model_offline_note">模型下線通知</a></li>
+<li>Salesforce Architects, <a href="https://architect.salesforce.com/docs/architect/fundamentals/guide/hybrid-reasoning-agentforce-builder-agent-script">Hybrid reasoning with Agentforce Builder and Agent Script</a></li>
+<li>Microsoft Learn, <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/overview">Copilot Studio overview</a></li>
+<li>LangChain docs, <a href="https://docs.langchain.com/langsmith/fleet/changelog.md">LangSmith Fleet changelog</a></li>
+<li>Anthropic, <a href="https://platform.claude.com/docs/about-claude/model-deprecations">Model deprecations</a>；阿里雲百煉, <a href="https://help.aliyun.com/document_detail/2712454.html">模型下線機制</a></li>
+</ul>
+
+<h3>L2</h3>
+<ul>
+<li>Harrison Chase, <a href="https://blog.langchain.com/not-another-workflow-builder">Not Another Workflow Builder</a>（2025-10）</li>
+<li>Jan Oberhauser 訪談逐字稿, <a href="https://www.aakashg.com/claude-code-killed-n8n-its-ceo-disagrees/">Claude Code Killed n8n. Its CEO Disagrees.</a>（2026-09-28）。營收與使用者數等數字皆為本人自述</li>
+<li>Zapier, <a href="https://zapier.com/ai/workflow-index/q2-2026-report">AI Workflow Index Q2 2026</a>。廠商自家資料，樣本為前 25%，成本數字為建模估算</li>
+<li>Dify 官方部落格轉載的社群文章, <a href="https://dify.ai/blog/rethinking-dify-devops-for-the-agent-era">Rethinking Dify: DevOps for the Agent Era</a></li>
+<li>飛致雲, <a href="https://fit2cloud.com/maxkb/download/introduce-maxkb_2026.pdf">MaxKB 產品介紹</a>（2026-01，開源、GPL v3）</li>
+</ul>
+
+<h3>L3</h3>
+<ul>
+<li>Tech星球（36氪轉載）, <a href="https://eu.36kr.com/zh/p/4055286987838595">字節扣子、騰訊元器接連下線</a>（IDC 市場數字、元器停服與擬人化互動辦法）</li>
+<li>界面新聞, <a href="https://www.163.com/dy/article/LB1SNFSG0534A4SC.html">Coze 企業版將下線</a>（團隊併入豆包）</li>
+<li>AlphaSignal, <a href="https://alphasignal.ai/news/google-kills-opal-and-turns-gems-into-gemini-skills-for-free-users">Google Kills Opal and Turns Gems Into Gemini Skills</a>。Opal 的關閉我沒有讀到 Google 官方頁，多家報導日期一致</li>
+<li>IT之家, <a href="https://www.ithome.com/0/960/952.htm">騰訊雲 ADP 4.0 發佈</a>；36氪, <a href="https://eu.36kr.com/zh/p/3901396207584902">ADP 4.0 海外版</a>；IT之家, <a href="https://www.ithome.com/0/958/372.htm">扣子 3.0 上線</a></li>
+<li>Zapier blog, <a href="https://zapier.com/es/blog/gumloop-vs-zapier">Zapier vs. Gumloop</a>。競品寫的比較文，只取「Gumloop 改以 agent 為主介面」這一點</li>
+<li>SiliconANGLE, <a href="https://siliconangle.com/2026/04/22/google-puts-gemini-enterprise-heart-new-agentic-taskforce-enterprise-automation/">Google puts Gemini Enterprise at the heart of the new agentic taskforce</a></li>
+<li>Felicis, <a href="https://felicis.com/blog/how-jan-oberhauser-and-n8n-became-essential-to-the-ai-revolution">How Jan Oberhauser and n8n became essential</a>（投資方文章，80% 的出處）</li>
+<li>Orchestra, <a href="https://www.getorchestra.io/knowledge-hub/glossary/n8n-valuation">n8n valuation</a>（SAP 投資與估值整理）</li>
+<li>eCorp IT, <a href="https://ecorpit.com/ai-model-retirement-policies-compared-2027/">LLM model deprecation policy comparison</a>（OpenAI 通知期的轉述）</li>
+<li>人人都是產品經理, <a href="https://www.woshipm.com/?p=6258793">六個 agent 平台的區別與聯繫</a>（Dify 可私有部署）</li>
+</ul>
+
+<h3>L4</h3>
+<ul>
+<li>X 貼文，作者自稱前 Coze workflow 引擎開發者。本篇的起點，三個判斷的出處</li>
+<li>yage.ai, <a href="https://yage.ai/share/coze-enterprise-shutdown-en-20261105.html">The Era of Drawing Flowcharts for AI with a Mouse Is Over</a>。頁尾自己標示全文由 AI 生成。「n8n 賣確定性管線」的說法出自這裡，本篇 04 沒有採用</li>
+<li>aiidelist, <a href="https://aiidelist.com/blog/dify-new-agent-2026">Dify New Agent Explained</a></li>
+<li>Latent Space wiki, <a href="https://latent.space/wiki/lindyai-4d358bb8/">Lindy</a> 與 <a href="https://latent.space/wiki/florent-crivello-612081f6/">Florent Crivello</a> 條目</li>
+<li>n8n community, <a href="https://community.n8n.io/t/i-analyzed-193-000-workflow-events-and-4-650-n8n-workflows-from-synta-here-is-what-people-actually-build-versus-what-they-think-they-want/281705">I analyzed 193,000 workflow events and 4,650 n8n workflows</a>（25% 的出處）</li>
+<li>Neura, <a href="https://www.neura.market/research/automation-index-2026">Automation Index 2026</a>（1.2% 的出處，只讀到摘要）</li>
+<li>omidsaffari.com, <a href="https://omidsaffari.com/blog/langflow">Langflow: What It Is and When to Use It</a>（託管版 2026-04-09 移除）</li>
+<li>ToolDirectory, <a href="https://tooldirectory.ai/tools/relay-app">Relay.app</a>（收攤原因）</li>
+<li>DevToolLab, <a href="https://devtoollab.com/blog/flowise-alternatives">Best Flowise Alternatives in 2026</a>（凍結後的漏洞公告）</li>
+<li>實在智能, <a href="https://www.ai-indeed.com/aboutNews/27531.html">企業 agent 平台選型</a>（引 IDC 私有部署市場 17.5 億）</li>
+</ul>
+
+<h3>本系列</h3>
+<ul>
+<li>VOL.1 它們不會報錯，它們會成功：Q1、Q2 與 oracle</li>
+<li>VOL.2 第一百次，要比第一次聰明：CELL A–D</li>
+<li><a href="https://imitator.ai-apps.work/r/agent-arch-3">VOL.3 你早就在用 harness 了</a>：RULE 05、三條鎖定軸，本篇修訂與增補的對象</li>
+<li>VOL.4 它很會分，但它不會想</li>
+<li>VOL.5 動詞沒變，受詞換了：RULE 07–08、AP-21–24</li>
+<li><a href="https://imitator.ai-apps.work/r/ai-platform-2026-10">每一層，都要能說不</a>：結論 8，本篇 04 提供的補充證據</li>
+</ul>
+
+<h3>未驗證</h3>
+<ul>
+<li>Coze 訂閱到期 15 天後記憶庫自動銷毀、海外版 9 月砍掉九項 workflow 功能。兩項都只見於 yage.ai 那篇，我沒有讀到官方頁，正文沒有使用。</li>
+<li>Dify 的應用匯出格式、接地端模型的實際狀況。比價表標「未查」。</li>
+<li>OpenAI 淘汰 Agent Builder 的原因。官方頁沒有寫。</li>
+<li>Coze 模型下線頁的 34 筆是我照頁面數的，其中一個型號在兩批各出現一次。</li>
+</ul>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
