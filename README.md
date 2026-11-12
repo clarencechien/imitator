@@ -20,6 +20,8 @@ link／token，先前發出的一律失效。
 | `worker/` | Cloudflare Worker 原始碼與部署設定。[部署與管理流程](worker/README.md) |
 | `docs/spec.md` | v2 的設計、取捨，以及明確不採用的方案 |
 | `docs/publishing-rules.md` | 上傳時會被檢查的規則（英文，錯誤訊息指向它） |
+| `docs/troubleshooting.md` | 推不上去時：API 錯誤訊息對照、擁有權、inbox 被退 |
+| `docs/token-rotation.md` | token 怎麼來、放哪、弄丟了怎麼拼回來、怎麼只換一組 |
 | `CLAUDE.md` | 給 LLM／CLI 的一頁式使用說明 |
 | `docs/claude-md-snippet.md` | 同上，但自足 —— 可以直接貼進別的專案的 `CLAUDE.md` |
 | `scripts/migrate.mjs` | 把 `archive/report/*.html` 一次推上去的遷移腳本 |

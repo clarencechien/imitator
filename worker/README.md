@@ -380,6 +380,15 @@ dashboard 就能撤銷。
 
 `epoch` 不用哨兵值，手改數字即可。
 
+逐步操作、token 放在哪、弄丟了怎麼從 `groups.json` 拼回來、輪替後還是
+`invalid token` 怎麼查，見 [`docs/token-rotation.md`](../docs/token-rotation.md)。
+兩件常被問的事先寫在這裡：
+
+- **弄丟 token 不一定要輪替。** `groups.json` 的 secret 是明碼，token 就是
+  `imi_{gid}_{epoch}_{write.secret}`，照著拼回來即可。
+- **輪替不影響覆寫權。** 覆寫判準是 `owner === gid`，比的是 group 名稱，不是
+  secret。換了 token 照樣能更新這組原本發佈的 slug。
+
 ### read secret 會進日誌，這是設計上如此
 
 magic link 把 secret 放在路徑裡（`config.js` 組出 `/join/{gid}/{secret}`），
@@ -445,12 +454,19 @@ multipart。後果：
 **沒有 `owner` 的物件是誰都寫不動、刪不掉的**（包含它原本的作者）。相容分支已經
 拿掉了 —— 那條對「無主的 public」是對所有 group 放行的，留著等於讓新加的 group
 可以永久佔走任何一個沒補到的 slug。鎖死可以從 R2 dashboard 手動刪，被佔走不行。
+（這裡說的「沒有 owner」指 R2 的 metadata，不是列表上看到的值，見下一段。）
 
-查證的方法是 `GET /v1/a`，`owner` 會出現在每一筆裡：
+`GET /v1/a` 的每一筆都有 `owner`，但**那是 KV 索引裡的值，不是判準**。判準是 R2
+物件的 `customMetadata.owner`，列表讀的是 KV 的 `idx:{slug}`。每次 PUT 會同時寫兩邊，
+但兩邊有可能不同步，所以列表上的 `null` 不一定代表誰都寫不動。要確定就拿 owner
+那組的 token 直接 PUT：回 200 就是寫得動，順便也把索引補好了。細節與處理步驟見
+[`docs/troubleshooting.md`](../docs/troubleshooting.md) §3。
+
+找出列表上 owner 是 `null` 的 slug（回應是多行縮排的 JSON，`owner` 在 `slug` 下面
+第三行，所以要用 `-B`）：
 
 ```bash
-curl -s https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_TOKEN" \
-  | grep -c '"owner": null'      # 要是 0
+curl -s https://imitator.ai-apps.work/v1/a -H "Authorization: Bearer $IMITATOR_TOKEN" | grep -B4 '"owner": null' | grep -o '"slug": "[^"]*"'
 ```
 
 每一筆還有 `style`：報告最前面那五個 `<meta name="imitator-*">` 抽出來的樣式指紋

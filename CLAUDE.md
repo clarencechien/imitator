@@ -27,6 +27,12 @@ curl -X PUT https://imitator.ai-apps.work/v1/a/<slug> \
   排序），省略就是上傳當下。不接受未來的日期。搬舊內容時才會用到。
 - Body 上限 25 MB。單檔 HTML，收什麼就吐什麼 — 不會被 render 或套 template。
 
+出錯時先看訊息：`missing or malformed bearer token` 是標頭沒送到或格式不對（多半是
+多行指令被拆斷、或變數是空的），跟 token 對不對無關，不要因此輪替；`invalid token`
+才是 token 本身的問題；`slug belongs to another group` 是這個 slug 的 owner 是別組。
+完整對照見 [`docs/troubleshooting.md`](docs/troubleshooting.md)，token 的發放與輪替見
+[`docs/token-rotation.md`](docs/token-rotation.md)。
+
 回應：
 
 ```json

@@ -151,9 +151,13 @@ versioning，覆寫就是永久消失。現實中最可能觸發的不是惡意�
 
 | key | 值 | 用途 |
 |---|---|---|
-| `idx:{slug}` | `{visibility, title, updatedAt}` | portal 列表 |
+| `idx:{slug}` | `{visibility, owner, title, sandbox, updatedAt, style}` | portal 列表與 `GET /v1/a` |
 
 存在的理由：R2 `list()` 要拉全部物件的 metadata，數量上來會慢。
+
+索引是 R2 metadata 的副本，**不是授權依據**。覆寫與刪除的判準一律讀 R2 物件的
+`customMetadata`（§4.2 的 `owner`）。每次 PUT 會同時寫 R2 與 KV，兩邊可能不同步，
+所以列表上的欄位只能拿來看，不能拿來推斷寫不寫得動。見 `docs/troubleshooting.md` §3。
 
 **規模門檻**：artifact 數 < 500 時 KV 夠用。要 tag／全文搜尋時再換 D1，這個遷移只影響 index 層。
 
