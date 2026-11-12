@@ -37,6 +37,15 @@ ai-roi.html  →  https://imitator.ai-apps.work/r/ai-roi
 
 上限 25 MB。
 
+### 被退回「slug 屬於別的 group」時
+
+最常見的是想用 inbox 更新 v1 遷移過來、或從 CLI 推的舊報告。它們的 owner 多半是
+`rd`，inbox 這把 token 改不了。擋下來的是 Worker，所以換成網頁上傳、`git push` 或
+任何 GitHub 工具都一樣會被退。要更新原網址，就用 owner 那組的 token 從 CLI 推，
+檔案可以直接從 `inbox/rejected/` 的 raw 網址抓，不用先 clone。指令與其他選項見
+[`docs/troubleshooting.md`](../docs/troubleshooting.md) §3。推成功後把
+`inbox/rejected/` 裡那份刪掉。
+
 ## 設定（只需要做一次）
 
 1. **repo secret**：Settings → Secrets and variables → Actions → New repository
