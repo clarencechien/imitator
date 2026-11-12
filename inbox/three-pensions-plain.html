@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="對帳 — 把薪資單上看得到與看不到的三行扣款，一行一行對給剛工作到快退休的上班族看">
+<meta name="imitator-reference" content="1990 年代公司發的密封式薪資條 — 撕邊拆開後的內頁，淡綠底紋、點陣印表機的等寬數字、應發與應扣分兩欄、複寫紙的藍紫字">
+<meta name="imitator-paper" content="hsl(140 24% 94%)">
+<meta name="imitator-accent" content="hsl(266 42% 40%)">
+<title>三筆退休金，只有一筆寫著你的名字｜勞保、勞退、國保白話版</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  對帳 — 把薪資單上看得到與看不到的三行扣款，一行一行對給剛工作到快退休的上班族看。
+   REFERENCE: 1990 年代公司發的密封式薪資條 — 撕邊拆開後的內頁，淡綠底紋、點陣印表機的等寬數字、
+              應發與應扣分兩欄、複寫紙的藍紫字。
+   PAPER:     薪資條內頁的淡綠防偽底紋 — hsl(140 24% 94%)。
+   VOICE:     複寫紫只給數字欄、標號與連結；點線對齊的明細列；粗黑體標題；等寬體的欄位名。
+   NOT:       懶人包。沒有圖示、沒有恐嚇式紅字，每個數字都附算式或出處。
+   RECENT:    paper 204° 44° 350° · accent 328° 22° 222°（agent-arch-6、taguri、fomo-flyer；沒有 token，
+              從 archive 的 git 歷史讀）— 140° 與 266° 都離得夠遠，不用改。 */
+:root {
+  --paper: hsl(140 24% 94%); --card: hsl(140 32% 98%);
+  --ink: hsl(150 22% 11%); --ink-2: hsl(150 10% 27%); --mist: hsl(150 6% 37%);
+  --rule: hsl(140 16% 84%); --rule-hard: hsl(140 13% 70%);
+  --accent: hsl(266 42% 40%); --accent-soft: hsl(266 44% 91%);
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --disp: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(150 14% 9%); --card: hsl(150 12% 13%);
+    --ink: hsl(140 14% 90%); --ink-2: hsl(140 8% 73%); --mist: hsl(140 6% 60%);
+    --rule: hsl(150 10% 20%); --rule-hard: hsl(150 9% 31%);
+    --accent: hsl(266 62% 79%); --accent-soft: hsl(266 28% 22%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(150 14% 9%); --card: hsl(150 12% 13%);
+  --ink: hsl(140 14% 90%); --ink-2: hsl(140 8% 73%); --mist: hsl(140 6% 60%);
+  --rule: hsl(150 10% 20%); --rule-hard: hsl(150 9% 31%);
+  --accent: hsl(266 62% 79%); --accent-soft: hsl(266 28% 22%);
+}
+pre { font-family: var(--mono); }
+.display { font-weight: 900; letter-spacing: -.01em; line-height: 1.12; }
+h2 { font-weight: 900; }
+
+/* 薪資條的明細列：欄位名、點線、金額 */
+.slip { background: var(--card); border: 1px solid var(--rule); border-top: 2px dashed var(--rule-hard);
+        padding: var(--sp-4) var(--sp-5); margin-block: var(--sp-5); }
+.slip .head { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .14em; color: var(--mist); margin: 0 0 var(--sp-2); }
+.slip .row { display: flex; align-items: baseline; gap: .6em; padding: .3em 0; font-size: var(--fs-sm); }
+.slip .row .k { flex: 0 1 auto; min-width: 0; }
+.slip .row .dots { flex: 1 1 1.5em; min-width: 1.5em; border-bottom: 1px dotted var(--rule-hard); transform: translateY(-.3em); }
+.slip .row .v { flex: none; font-family: var(--mono); font-weight: 500; color: var(--accent); font-variant-numeric: tabular-nums; }
+.slip .row.sum { border-top: 1px solid var(--rule-hard); margin-top: .4em; padding-top: .6em; font-weight: 700; }
+.slip .row.dim .k, .slip .row.dim .v { color: var(--mist); }
+.slip p { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-3) 0 0; }
+
+.card h3 { margin-top: 0; }
+.card .tag { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; color: var(--accent); display: block; margin-bottom: var(--sp-1); }
+.card ul { padding-left: 1.2em; margin-bottom: 0; font-size: var(--fs-sm); }
+.card p { font-size: var(--fs-sm); }
+
+/* 試算器 */
+.calc { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); margin-block: var(--sp-5); }
+.calc .grid { display: grid; gap: var(--sp-3) var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr)); }
+.calc .grid > * { min-width: 0; }
+.calc label { display: block; font-size: var(--fs-sm); color: var(--ink-2); }
+.calc input, .calc select { display: block; width: 100%; margin-top: .3em; padding: .5em .7em; min-height: 44px;
+  font: inherit; font-family: var(--mono); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule-hard); border-radius: 6px; }
+.calc .out { margin-top: var(--sp-5); }
+.calc .slip { border: 0; border-top: 2px dashed var(--rule-hard); background: transparent; padding: var(--sp-4) 0 0; }
+@media (max-width: 40rem) { .calc { padding: var(--sp-4); } .slip { padding: var(--sp-3) var(--sp-4); } }
+.src { font-size: var(--fs-sm); color: var(--ink-2); }
+.src li + li { margin-top: .3em; }
+</style>
+
+<body>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+<div class="progress"></div>
+<main class="report">
+
+<p class="eyebrow">退休三部曲 · 1 / 3 · 2026-11</p>
+<h1 class="display">三筆退休金，<br>只有一筆<br>寫著<em>你的名字</em></h1>
+<p class="lede">勞保、勞退和國保常被當成同一件事。其實是三筆性質不同的錢：兩筆是大家共用的保險，一筆是你自己的存款。搞混的代價，小的是少領幾十萬，大的是繳了二十幾年、家人最後只領到十萬。這篇用 2026 年 11 月查得到的數字，把三筆錢講到你可以自己算。</p>
+<p class="byline">v0.1 · 資料截至 2026-11-12 · 改寫自〈台灣勞保、勞退與國保終極解析〉</p>
+
+<div class="slip reveal">
+  <p class="head">給趕時間的人 · 四行</p>
+  <div class="row"><span class="k">勞保是保險，錢在共用的池子裡，領的是活多久領多久的年金</span></div>
+  <div class="row"><span class="k">勞退是存款，錢在你名下的專戶，沒領完家人可以領回</span></div>
+  <div class="row"><span class="k">勞保倒掉的機率很低，被改少的機率不低，規劃時先打七折</span></div>
+  <div class="row"><span class="k">自提 6%：稅率 12% 以上或 50 歲以後，幾乎都划算</span></div>
+</div>
+
+<section>
+<p class="eyebrow">01 · 三個帳戶</p>
+<h2>先分清楚哪一筆是誰的</h2>
+<p>上班族每個月的薪資單上，通常只看得到一行「勞保費」。同一個月裡，雇主還替你付了另外兩筆，金額比你看到的那一行大得多。以月薪 45,800 元的人為例：</p>
+
+<div class="slip">
+  <p class="head">2026 年 · 月薪 45,800 元 · 每月</p>
+  <div class="row"><span class="k">你付的勞保費（薪資單上看得到）</span><span class="dots"></span><span class="v">1,145</span></div>
+  <div class="row dim"><span class="k">雇主付的勞保費</span><span class="dots"></span><span class="v">4,008</span></div>
+  <div class="row dim"><span class="k">雇主提繳的勞退 6%</span><span class="dots"></span><span class="v">2,748</span></div>
+  <div class="row sum"><span class="k">你沒看到的兩行合計</span><span class="dots"></span><span class="v">6,756</span></div>
+  <p>勞保費＝投保薪資 × 12.5% × 分攤比例（勞工 20%、雇主 70%、政府 10%）。勞退是雇主另外提繳，依法不能從你的薪水扣。</p>
+</div>
+
+<p>這三行分別流進兩個地方。勞保費進「勞保基金」，和全台一千多萬名勞工的錢混在一起。勞退那 2,748 元進「你的個人專戶」，帳上寫著你的名字。沒有工作、也沒有其他社會保險的期間，還會出現第三個帳戶：國保。</p>
+
+<div class="cols wide stagger">
+  <div class="card">
+    <span class="tag">保險 · 共用的池子</span>
+    <h3>勞保</h3>
+    <p>買到的是三樣東西：65 歲起活多久領多久的老年年金、在職期間的失能與死亡保障、生育與傷病給付。錢不在你名下，沒領到的部分不會變成遺產。</p>
+    <p>2026 年費率 12.5%（含就業保險 1%），2027 年起 13%，已到現行法定上限。投保薪資最高只算到 45,800 元。</p>
+  </div>
+  <div class="card">
+    <span class="tag">存款 · 你的專戶</span>
+    <h3>勞退（新制）</h3>
+    <p>雇主每月至少提繳薪資的 6%，你可以自己再加 1% 到 6%。專戶跟著人走，換工作不會歸零。</p>
+    <p>60 歲可以領，不必離職。60 歲前過世，專戶裡的本金和收益由遺屬或你指定的人一次領回。</p>
+  </div>
+  <div class="card">
+    <span class="tag">替代品 · 沒有勞保時</span>
+    <h3>國保</h3>
+    <p>25 到 65 歲、沒有勞保、農保、公保、軍保的人，會收到國保繳款單。2026 年每月自付 1,329 元（月投保金額 21,103 元 × 10.5% × 自付六成）。</p>
+    <p>保費低，保障也薄。離職後從勞保掉到國保，是後面第 04 節要講的那個洞。</p>
+  </div>
+</div>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>你想知道的</th><th>勞保</th><th>勞退</th><th>國保</th></tr></thead>
+<tbody>
+<tr><td>性質</td><td>社會保險</td><td>個人儲蓄專戶</td><td>社會保險</td></tr>
+<tr><td>錢在誰名下</td><td>勞保基金，全體共用</td><td>你自己</td><td>國保基金，全體共用</td></tr>
+<tr><td>退休領什麼</td><td>終身年金，65 歲起</td><td>專戶裡有多少領多少，60 歲起</td><td>終身年金，65 歲起</td></tr>
+<tr><td>領多久</td><td>到過世為止</td><td>領完為止</td><td>到過世為止</td></tr>
+<tr><td>提早過世</td><td>在保期間才有死亡給付，條件多</td><td>餘額全數由遺屬領回</td><td>喪葬給付 5 個月，遺屬年金條件多</td></tr>
+<tr><td>主要風險</td><td>制度改革，給付被調整</td><td>投資報酬高低</td><td>金額本來就少</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">02 · 能領多少</p>
+<h2>勞保年金只有一條公式</h2>
+<p>勞保老年年金怎麼算，絕大多數人適用這一條：</p>
+<pre>每月年金 ＝ 平均月投保薪資 × 年資 × 1.55%</pre>
+<p>「平均月投保薪資」取你整段加保期間最高的 60 個月平均，不必是最後五年。年資滿 15 年才能領年金。另有一條給年資短、薪資低的人用的公式（× 0.775% 再加 3,000 元），勞保局會自動挑高的那個發。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>平均月投保薪資</th><th class="num">年資 15 年</th><th class="num">25 年</th><th class="num">30 年</th><th class="num">35 年</th><th class="num">40 年</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">30,300 元</td><td class="num">7,045</td><td class="num">11,741</td><td class="num">14,090</td><td class="num">16,438</td><td class="num">18,786</td></tr>
+<tr><td class="nowrap">38,200 元</td><td class="num">8,882</td><td class="num">14,802</td><td class="num">17,763</td><td class="num">20,724</td><td class="num">23,684</td></tr>
+<tr><td class="nowrap">45,800 元（上限）</td><td class="num">10,648</td><td class="num">17,748</td><td class="num">21,297</td><td class="num">24,846</td><td class="num">28,396</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>三件事要記得。第一，投保薪資上限是 45,800 元，月薪十萬和月薪四萬六的人，勞保年金一樣多，薪水越高，勞保能取代的比例越低。第二，<span class="mark">一個人做滿 40 年、全程頂格，也只有 28,396 元</span>。第三，現實比表格低：勞保局統計，2025 年有 201.5 萬人在領老年年金，平均每月 19,312 元，超過一半的人領不到 2 萬，月領 4 萬以上只有 8,348 人。</p>
+
+<h3>幾歲領</h3>
+<p>民國 51 年次以後出生的人，法定請領年齡是 65 歲。可以提早或延後，最多各 5 年，每年增減 4%。60 歲領打八折，70 歲領多兩成。算損益兩平很簡單：提早 5 年領的人，會被 65 歲才領的人在 85 歲追上；延到 70 歲領的人，要到 95 歲才追上 65 歲領的人。2024 年生命表上，65 歲男性平均還有 18.4 年、女性 22.4 年。</p>
+
+<h3>勞退專戶會累積到多少</h3>
+<p>勞退沒有公式，領多少看兩件事：放進去多少、基金賺多少。下表用「今天的幣值」估，假設薪資跟著物價走、扣掉通膨後每年實質報酬 3% 或 5%。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>月薪</th><th class="num">做 25 年 · 實質 3%</th><th class="num">25 年 · 5%</th><th class="num">做 35 年 · 3%</th><th class="num">35 年 · 5%</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">4 萬</td><td class="num">106 萬</td><td class="num">141 萬</td><td class="num">177 萬</td><td class="num">266 萬</td></tr>
+<tr><td class="nowrap">6 萬</td><td class="num">160 萬</td><td class="num">211 萬</td><td class="num">265 萬</td><td class="num">399 萬</td></tr>
+<tr><td class="nowrap">8 萬</td><td class="num">213 萬</td><td class="num">281 萬</td><td class="num">353 萬</td><td class="num">532 萬</td></tr>
+<tr><td class="nowrap">10 萬</td><td class="num">266 萬</td><td class="num">351 萬</td><td class="num">441 萬</td><td class="num">665 萬</td></tr>
+</tbody>
+</table>
+</div>
+<p>表上只算雇主那 6%。自己再提 6%，數字直接乘以二。月薪 6 萬的夫妻兩人都自提滿、做滿 35 年，用保守的 3% 算，兩個專戶合計約 1,060 萬。下一篇會用到這個數字。</p>
+<p>基金實際成績：2013 年到 2026 年 9 月，年化報酬約 8%（名目）。近三年特別好，2023 年 12.6%、2024 年 16.16%、2025 年 15.6%，2026 年前 9 月 30.43%。也有賠錢的年份，2015 年 −0.09%、2018 年 −2.07%、2022 年 −6.67%。</p>
+
+<div class="note warn">
+  <p class="head">勞退「月領」領完就沒了</p>
+  <p>提繳年資滿 15 年的人可以選月領。很多人以為那是終身俸，實際上它是把專戶餘額依平均餘命攤成定期給付，按季發，攤完為止。活得比平均久，後面那幾年就沒有這筆錢。勞保年金才是活多久領多久。兩者名字像，性質相反。</p>
+</div>
+
+<h3>國保能領多少</h3>
+<p>國保老年年金有兩條公式擇優：A 式是月投保金額 × 年資 × 0.65% 再加 4,049 元，B 式是月投保金額 × 年資 × 1.3%。以 2026 年的 21,103 元算，繳 10 年約 5,421 元、20 年約 6,792 元、40 年約 10,974 元。行政院版修法草案要把 4,049 元提高到 5,000 元，立法院 10 月審查後送黨團協商，寫稿時還沒三讀。</p>
+</section>
+
+<section>
+<p class="eyebrow">03 · 會不會倒</p>
+<h2>倒的機率很低，被改的機率不低</h2>
+<p>先看壞消息。勞保是「現在工作的人繳錢，付給現在退休的人」，人口老化之後入不敷出。最近一次精算推估基金 2031 年用完，潛藏負債 13.23 兆元。費率 2027 年調到 13% 之後，就碰到法律寫的上限，再調要修法。</p>
+<p>再看這幾年實際發生的事。政府從 2020 年開始用預算撥補，第一年 200 億，2024 到 2026 年每年 1,300 億，2027 年預算再編 1,300 億，八年合計 6,470 億。基金規模從 2025 年底約 1.3 兆，到 2026 年 9 月底是 1 兆 6,812 億，前 9 月收益率 27.14%。2025 年 12 月 30 日，立法院三讀修正《勞工保險條例》，把撥補寫成法定財源，並在第 69 條明定「勞工保險之財務，由中央政府負最後支付責任」，至少每三年檢討一次財務。</p>
+<div class="pull reveal">法律保證的是「政府會付」。付多少，幾歲開始付，依哪幾年的薪水算，法律沒有保證。</div>
+<p>所以比較實際的判斷是：年金歸零幾乎不會發生，給付條件被調整則隨時可能。2017 年行政院送過一版改革草案，方向是提高費率上限、把「最高 60 個月平均」拉長到 180 個月。那一版沒有通過，問題還在。</p>
+<p>對個人來說，最務實的做法只有一個：<span class="mark">規劃退休時，把自己算出來的勞保年金打七折，看計畫還撐不撐得住。</span>下一篇會示範，一對夫妻的年金從足額變七折，結果差多少。</p>
+</section>
+
+<section>
+<p class="eyebrow">04 · 最大的洞</p>
+<h2>離職轉國保，保障掉一大截</h2>
+<p>2026 年 5 月《鏡週刊》報導一個案例。一位單身男性在勞保投保約 18 年，投保薪資 23,800 元，後來因病無法工作而離職，改繳國保，勞保加國保合計 28 年。他 54 歲病逝，八十多歲的父母最後只領到國保的喪葬給付 98,805 元。新聞標題寫「保費充公」。實際上是三道門同時關上。</p>
+<ol>
+  <li><strong>過世時已經不是勞保被保險人。</strong>勞保的死亡給付只給「在保期間」發生的事故。如果他過世時還在保，家屬可以領喪葬津貼加遺屬津貼，最高 35 個月的平均投保薪資，以 23,800 元算約 83 萬元；最高級距 45,800 元的人約 160 萬元。</li>
+  <li><strong>還沒到能領老年給付的條件。</strong>年金要 65 歲。2009 年以前就有年資的人可以選「一次請領」，但退職時要符合「年資滿 15 年且年滿 55 歲」「年資滿 25 年且年滿 50 歲」這類條件，他離職時不到 50 歲。</li>
+  <li><strong>國保的遺屬年金和父母自己的年金只能擇一。</strong>母親已經在領國保老年年金，依規定不能再加領兒子的遺屬年金。</li>
+</ol>
+<p>有一筆錢這三道門關不住：勞退專戶。只要過去的雇主有提繳，專戶裡的錢就是他的財產，遺屬可以在 10 年內向勞保局申請一次領回。報導沒有提到這一筆，家屬值得去查。</p>
+<p>同一年 10 月，《工商時報》刊了一個試算：投保 45,800 元、年資 22 年的人，52 歲離職。之後如果還有勞保身分，54 歲身故家屬可領約 160 萬；如果轉國保，只有喪葬給付約 10 萬。同一個人，差 150 萬。</p>
+
+<h3>合法留在勞保裡的幾條路</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>你的狀況</th><th>可以怎麼做</th><th>要注意</th></tr></thead>
+<tbody>
+<tr><td>生病或受傷，暫時不能上班</td><td>請公司辦留職停薪續保，先不要離職</td><td>普通傷病最長 1 年，職業災害最長 2 年</td></tr>
+<tr><td>育嬰留職停薪</td><td>申請續保</td><td>年資照算</td></tr>
+<tr><td>年資滿 15 年，被公司資遣</td><td>可自願續保，一路保到能領老年給付</td><td>投保薪資固定在離職時那一級</td></tr>
+<tr><td>離職後改接案、自己開業</td><td>加入本業的職業工會投保</td><td>必須真的在做這一行。掛名加保被查到，年資取消、保費不退</td></tr>
+<tr><td>重病，身體已達失能標準</td><td>在還有勞保身分時申請失能給付</td><td>這是在保期間的權利，退保超過一年就請不到</td></tr>
+</tbody>
+</table>
+</div>
+<p>勞保條例還有一條緩衝：在保期間發生的傷病，退保後一年內因為同一個傷病失能或死亡，仍然可以請領。超過一年就沒有了。</p>
+<p>單身、沒有子女的人要多想一步。社會保險的遺屬給付是照「配偶、子女、父母」的順序設計的，兄弟姊妹要證明受你扶養才領得到。想把錢留給特定的人，勞退專戶可以指定請領人，其餘要靠自己的存款和商業保險安排。</p>
+</section>
+
+<section>
+<p class="eyebrow">05 · 自提 6%</p>
+<h2>划不划算，看三件事</h2>
+<p>勞退除了雇主那 6%，你可以自己從薪水再提 1% 到 6%。2026 年 7 月的自提率是 20.13%，五個人裡只有一個在提。2026 年 8 月 1 日起，雇主不能拒絕你的自提申請，公司不辦可以直接向勞保局申報。比例一年可以調兩次，隨時能停。</p>
+
+<h3>第一件事：稅</h3>
+<p>自提的錢不算當年的薪資所得，等於這筆收入先不用繳稅。省多少看你的稅率級距。2026 年所得適用的級距是：淨所得 61 萬以下 5%、61 到 138 萬 12%、138 到 277 萬 20%、277 到 519 萬 30%。單身、只有薪資收入的人，年薪大約 107 萬以下都還在 5% 那一級。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>月薪</th><th class="num">一年自提 6%</th><th class="num">稅率 5% 省</th><th class="num">12% 省</th><th class="num">20% 省</th><th class="num">30% 省</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">4 萬</td><td class="num">28,800</td><td class="num">1,440</td><td class="num">3,456</td><td class="num">5,760</td><td class="num">8,640</td></tr>
+<tr><td class="nowrap">6 萬</td><td class="num">43,200</td><td class="num">2,160</td><td class="num">5,184</td><td class="num">8,640</td><td class="num">12,960</td></tr>
+<tr><td class="nowrap">8 萬</td><td class="num">57,600</td><td class="num">2,880</td><td class="num">6,912</td><td class="num">11,520</td><td class="num">17,280</td></tr>
+<tr><td class="nowrap">10 萬</td><td class="num">72,000</td><td class="num">3,600</td><td class="num">8,640</td><td class="num">14,400</td><td class="num">21,600</td></tr>
+<tr><td class="nowrap">15 萬（上限）</td><td class="num">108,000</td><td class="num">5,400</td><td class="num">12,960</td><td class="num">21,600</td><td class="num">32,400</td></tr>
+</tbody>
+</table>
+</div>
+<p>領出來的時候多半也不用繳稅。一次領的免稅額度是「年資 × 20.6 萬」，做 30 年的人專戶在 618 萬以內全免；月領每年 89.4 萬以內免稅。對多數人來說，這筆稅是真的省掉，不只是延後。</p>
+<p>換個角度看更清楚。稅率 12% 的人存 100 元進專戶，實際只少拿 88 元，等於一進場就先賺 13.6%。把這個起跑優勢攤到每一年：</p>
+<div class="table-scroll plain">
+<table>
+<thead><tr><th>你的稅率</th><th class="num">離 60 歲還有 35 年</th><th class="num">25 年</th><th class="num">10 年</th><th class="num">5 年</th></tr></thead>
+<tbody>
+<tr><td>5%</td><td class="num">每年 +0.15%</td><td class="num">+0.21%</td><td class="num">+0.51%</td><td class="num">+1.03%</td></tr>
+<tr><td>12%</td><td class="num">+0.37%</td><td class="num">+0.51%</td><td class="num">+1.29%</td><td class="num">+2.59%</td></tr>
+<tr><td>20%</td><td class="num">+0.64%</td><td class="num">+0.90%</td><td class="num">+2.26%</td><td class="num">+4.56%</td></tr>
+<tr><td>30%</td><td class="num">+1.02%</td><td class="num">+1.44%</td><td class="num">+3.63%</td><td class="num">+7.39%</td></tr>
+</tbody>
+</table>
+</div>
+<p>稅率越高、離 60 歲越近，自提越划算。25 歲、稅率 5% 的人，節稅帶來的好處一年只有 0.15%，幾乎可以忽略。55 歲、稅率 20% 的人，一年多 4.56%，沒有理由不提。</p>
+
+<h3>第二件事：報酬</h3>
+<p>反對自提最常見的理由是「勞退基金賺太少，不如自己買 ETF」。這句話在十年前比較站得住。看 02 節的數字，2013 年以來基金年化約 8%，而且有一層保障：領的時候結算，整段期間的收益如果低於兩年期定存利率，差額由國庫補。要注意那是「全期結算」，單一年度還是會賠。</p>
+<p>所以報酬不是好理由。真正的代價在第三件事。</p>
+
+<h3>第三件事：鎖到 60 歲</h3>
+<p>自提的錢 60 歲前領不出來，買房不行，結婚和失業也不行，只有失能等少數情況例外。你也不能決定它買什麼。自己投資的錢隨時能動，這個彈性值多少，每個人不一樣。</p>
+
+<div class="note good">
+  <p class="head">怎麼決定</p>
+  <p>稅率 12% 以上，提滿。50 歲以後，不管稅率多少都提滿，鎖的時間短，節稅年化高，還有保證收益。稅率 5%，離 60 歲還有二三十年，手上又有買房或創業計畫的人，先顧緊急預備金和頭期款，自提可以從 1% 到 3% 開始。如果你很清楚自己存不住錢，那就不用算了，自提是最省力的強迫儲蓄。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">06 · 三個年齡</p>
+<h2>現在該做什麼</h2>
+<div class="cols wide">
+  <div class="card">
+    <span class="tag">22–30 歲</span>
+    <h3>剛開始工作</h3>
+    <ul>
+      <li>上勞保局 e 化服務系統或 App，確認公司有照實際薪資投保。高薪低報會同時吃掉你的勞保年金和勞退。</li>
+      <li>看一眼勞退專戶，雇主的 6% 有沒有每個月進來。</li>
+      <li>換工作的空窗期會收到國保繳款單，要繳。欠費 10 年內可以補，超過就永遠少那段年資。</li>
+      <li>接案或自己開業，加入本業的職業工會，不要讓勞保斷掉。</li>
+      <li>自提先從 1% 到 3% 開始，稅率升到 12% 再提滿。</li>
+    </ul>
+  </div>
+  <div class="card">
+    <span class="tag">30–40 歲</span>
+    <h3>工作一陣子</h3>
+    <ul>
+      <li>用 02 節的公式算一次自己 65 歲的勞保年金，再算一個七折版本。這是你退休生活的地板。</li>
+      <li>夫妻合計所得落在 12% 以上，兩個人的自提都提滿。</li>
+      <li>育嬰留停、生病留停，記得請公司辦續保。</li>
+      <li>離職創業前，先想好勞保要掛在哪裡。</li>
+      <li>你是家裡主要收入來源，或單身想照顧父母手足，補一張定期壽險和失能險。社會保險留給他們的很有限。</li>
+    </ul>
+  </div>
+  <div class="card">
+    <span class="tag">55–65 歲</span>
+    <h3>快要退休</h3>
+    <ul>
+      <li>勞保幾歲領：夫妻裡年金較高、家族較長壽的那一位，盡量等到 65 歲。年金保的是「活太久」。</li>
+      <li>2009 年以前有年資的人可以選一次領。30 年年資、頂格的人一次領約 206 萬，年金每月 21,297 元，領滿 8 年多就超過。</li>
+      <li>勞退 60 歲就能領。一次領的免稅額度是年資 × 20.6 萬。領出來怎麼管理，看下兩篇。</li>
+      <li>被資遣且年資滿 15 年，辦續保，不要直接轉國保。</li>
+      <li>和另一半一起算「剩一個人時」的年金，數字會比想像中少，見下方。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="slip">
+  <p class="head">夫妻都有勞保年金 · 其中一人先走之後</p>
+  <div class="row"><span class="k">兩人都在：先生 28,400 ＋ 太太 13,600</span><span class="dots"></span><span class="v">42,000</span></div>
+  <div class="row"><span class="k">太太先走：先生繼續領自己的</span><span class="dots"></span><span class="v">28,400</span></div>
+  <div class="row"><span class="k">先生先走：太太在「自己的 13,600」和「先生的一半 14,200」之間擇一</span><span class="dots"></span><span class="v">14,200</span></div>
+  <p>配偶的遺屬年金是原年金的一半，而且不能和自己的老年年金同時領。請領遺屬年金原則上要年滿 55 歲、婚姻滿一年。家庭收入最多會掉到原來的三分之一，生活費卻不會跟著掉那麼多。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">07 · 自己算</p>
+<h2>把你的數字放進來</h2>
+<div class="calc" id="calc">
+  <div class="grid">
+    <label>平均月投保薪資（元，上限 45,800）<input id="c-s" type="number" inputmode="numeric" value="45800" min="0" max="45800" step="100"></label>
+    <label>退休時勞保年資（年）<input id="c-y" type="number" inputmode="numeric" value="35" min="0" max="50"></label>
+    <label>幾歲開始領（60–70）<input id="c-a" type="number" inputmode="numeric" value="65" min="60" max="70"></label>
+    <label>目前月薪（元）<input id="c-w" type="number" inputmode="numeric" value="60000" min="0" step="1000"></label>
+    <label>自提比例（0–6%）<input id="c-p" type="number" inputmode="numeric" value="6" min="0" max="6"></label>
+    <label>所得稅率<select id="c-t"><option value="5">5%</option><option value="12" selected>12%</option><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option></select></label>
+    <label>離 60 歲還有幾年<input id="c-n" type="number" inputmode="numeric" value="25" min="1" max="45"></label>
+    <label>假設實質年報酬（%）<input id="c-r" type="number" inputmode="decimal" value="3" min="0" max="10" step="0.5"></label>
+  </div>
+  <div class="out">
+    <div class="slip" style="margin:0">
+      <p class="head">試算結果 · 今天的幣值</p>
+      <div class="row"><span class="k">勞保年金，足額</span><span class="dots"></span><span class="v" id="o-pen">…</span></div>
+      <div class="row"><span class="k">勞保年金，打七折</span><span class="dots"></span><span class="v" id="o-pen7">…</span></div>
+      <div class="row"><span class="k">自提每年省下的所得稅</span><span class="dots"></span><span class="v" id="o-tax">…</span></div>
+      <div class="row"><span class="k">節稅換算成每年多出的報酬</span><span class="dots"></span><span class="v" id="o-boost">…</span></div>
+      <div class="row"><span class="k">60 歲時專戶，只有雇主 6%（從現在起算）</span><span class="dots"></span><span class="v" id="o-er">…</span></div>
+      <div class="row sum"><span class="k">60 歲時專戶，加上自提</span><span class="dots"></span><span class="v" id="o-all">…</span></div>
+      <p>勞退月提繳工資上限 15 萬元。試算不含你已經累積的專戶餘額，也不是勞保局的核定結果。</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section>
+<p class="eyebrow">08 · 下一篇</p>
+<h2>地板知道了，接下來算缺口</h2>
+<p>這篇算出來的勞保年金，是退休後每個月不必動用存款就會進來的錢。它有多高，直接決定你還要自己存多少。下一篇用一對年金合計 4.2 萬的夫妻做模擬，看他們帶著一千萬退休會發生什麼事，以及年金打七折時差多少。</p>
+<p><a href="https://imitator.ai-apps.work/r/retire-floor-basics">接著讀：一千萬夠不夠，先問地板有多硬（基礎篇）</a></p>
+
+<details class="datatable">
+<summary>這一版和原版差在哪裡</summary>
+<ul class="src">
+  <li>個案改依《鏡週刊》原報導：勞保約 18 年、國保約 10 年，合計 28 年。原版寫的「勞保 24 年、49 歲退保」和報導對不上，24 年是另一則《工商時報》試算的數字。</li>
+  <li>原版建議「離職後立刻找職業工會加保」。工會加保限實際做這一行的人，重病無法工作的人不符合資格。這裡改成留職停薪續保、資遣續保與失能給付。</li>
+  <li>「生前搶領失能給付」原版稱為法律漏洞。它是在保期間本來就有的權利，改用中性寫法。</li>
+  <li>拿掉「改革提案投票」和票數，那些數字沒有來源。原版說勞退「金額可能高達數十萬至上百萬」是推測，這裡只寫查得到的事。</li>
+  <li>數字全部更新到 2026 年：費率、國保月投保金額 21,103 元、115 年度稅率級距與退職所得免稅額、基金規模與撥補金額。</li>
+  <li>風險模擬器換成可以驗算的試算器，新增「自提划不划算」和三個年齡的做法。</li>
+</ul>
+</details>
+
+<details class="datatable">
+<summary>數字出處（查核日 2026-11-12）</summary>
+<ul class="src">
+  <li>2027 年勞保費率與投保薪資級距：<a href="https://www.ctee.com.tw/news/20260826701025-430104">工商時報 2026-08-26</a></li>
+  <li>撥補金額與基金規模：<a href="https://udn.com/news/story/7238/9780466">經濟日報 2026-09-28</a>；潛藏負債：<a href="https://news.pts.org.tw/article/734790">公視新聞</a></li>
+  <li>勞保條例 2025-12-30 三讀內容：<a href="https://ec.ltn.com.tw/article/breakingnews/5293737">自由財經</a></li>
+  <li>勞保老年年金 2025 年統計：<a href="https://www.cna.com.tw/news/ahel/202602250062.aspx">中央社 2026-02-25</a></li>
+  <li>請領年齡與增減給、平均餘命：<a href="https://www.storm.mg/lifestyle/11151961">風傳媒</a></li>
+  <li>勞動基金 2026 年前 9 月績效：<a href="https://news.cnyes.com/news/id/6643688">鉅亨網 2026-11-02</a>；歷年收益率整理：<a href="https://havocfuture.tw/labor-pension-fund-track">勞退基金績效追蹤</a></li>
+  <li>自提新規與節稅試算：<a href="https://www.businessweekly.com.tw/focus/blog/3022120">商業周刊</a>、<a href="https://www.bnext.com.tw/article/91636/labor-pension-self-contribution-2026">數位時代</a></li>
+  <li>115 年度免稅額、扣除額：<a href="https://www.mof.gov.tw/singlehtml/384fb3077bb349ea973e7fc6f13b6974?cntId=34b463dc8f1b49f29d440d92a6fd5139">財政部公告</a>；級距與退職所得免稅額：<a href="https://cpacorey.com/income-tax-level-2026/">蔡佳峻會計師整理</a></li>
+  <li>國保 2026 年保費與修法進度：<a href="https://www.storm.mg/article/11128853">風傳媒</a>、<a href="https://www.storm.mg/lifestyle/11172382">風傳媒 2026-10-14</a></li>
+  <li>個案：<a href="https://www.mirrormedia.mg/story/20260515money001">鏡週刊 2026-05-15</a>、<a href="https://www.ctee.com.tw/news/20261003700459-430401">工商時報 2026-10-03</a></li>
+  <li>續保規定與職業工會加保資格：<a href="https://www.mol.gov.tw/1607/1632/1640/80705/post">勞動部</a>、<a href="https://www.mol.gov.tw/1607/1632/1640/16943/post">勞動部</a>；遺屬年金折半與擇一：<a href="https://wantrich.chinatimes.com/news/20260618900001-420501">旺得富理財網</a></li>
+  <li>勞退月領為定期給付：bysq 研究 v4 於 2026-09 向勞保局資料查證的紀錄</li>
+</ul>
+</details>
+
+<p class="byline">本文是制度說明與試算，不是個人理財或法律建議。實際請領資格與金額以勞保局核定為準。</p>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const num = (id, lo, hi) => { let v = parseFloat($(id).value); if (!isFinite(v)) v = 0; return Math.min(hi, Math.max(lo, v)); };
+  const fmt = n => Math.round(n).toLocaleString('zh-TW');
+  function run() {
+    const s = num('c-s', 0, 45800), y = num('c-y', 0, 60), a = num('c-a', 60, 70);
+    const w = Math.min(num('c-w', 0, 1e7), 150000), p = num('c-p', 0, 6) / 100;
+    const t = parseFloat($('c-t').value) / 100, n = num('c-n', 1, 45), r = num('c-r', 0, 10) / 100;
+    const base = Math.max(s * y * 0.0155, s * y * 0.00775 + 3000);
+    const pen = y >= 15 ? base * (1 + 0.04 * (a - 65)) : 0;
+    $('o-pen').textContent = y >= 15 ? fmt(pen) + ' 元／月' : '年資未滿 15 年，領一次金';
+    $('o-pen7').textContent = y >= 15 ? fmt(pen * 0.7) + ' 元／月' : '—';
+    const self = w * p * 12;
+    $('o-tax').textContent = fmt(self * t) + ' 元';
+    $('o-boost').textContent = p > 0 ? '+' + ((Math.pow(1 / (1 - t), 1 / n) - 1) * 100).toFixed(2) + '%' : '—';
+    const i = Math.pow(1 + r, 1 / 12) - 1, m = n * 12;
+    const fv = c => i > 0 ? c * (Math.pow(1 + i, m) - 1) / i : c * m;
+    $('o-er').textContent = fmt(fv(w * 0.06) / 1e4) + ' 萬';
+    $('o-all').textContent = fmt(fv(w * (0.06 + p)) / 1e4) + ' 萬';
+  }
+  document.querySelectorAll('#calc input, #calc select').forEach(el => el.addEventListener('input', run));
+  run();
+})();
+</script>
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
