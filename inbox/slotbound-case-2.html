@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="新作速報的查核版 — Fable 5.2 上市週的一句話 3D 遊戲潮：是真的嗎、多少錢、算哪一種野心">
+<meta name="imitator-reference" content="1990 年代電玩雜誌的新作速報頁：淡藍染色再生紙、單色靛墨、規格欄和粗黑標題">
+<meta name="imitator-paper" content="hsl(208 46% 92%)">
+<meta name="imitator-accent" content="hsl(238 56% 36%)">
+<title>一句話的遊戲，八小時的帳單 — Slotbound 案卷 · 下</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Noto+Sans+TC:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  新作速報的查核版 — Fable 5.2 上市那一週，社群被「一句話做出 3D 遊戲」洗版。
+              這篇逐項查：是真的嗎、多少錢、算哪一種野心。讀者是看過那些影片、想知道該不該當真的人。
+   REFERENCE: 1990 年代電玩雜誌的新作速報與攻略頁 — 內頁用染色的再生紙，單色墨印，
+              每款遊戲配一格規格欄（機種、容量、價格），標題是粗黑的窄體字。
+              這篇做的事跟那種頁面一樣：一款一款列規格，只是把「價格」那一欄填上真的帳單。
+   PAPER:     雜誌內頁的淡藍再生紙 hsl(208 46% 92%)。這類雜誌一本裡會夾好幾種染色紙，
+              藍色那一疊通常拿來印資訊欄和速報，所以色相落在 208° 是材料決定的，不是冷灰。
+              原本選的是桃色那一疊（340°），發佈前檢查撞到剛上線的 who-is-using，整疊換掉。
+              深色模式是打烊後的遊樂場：帶藍的近黑，字是偏冷的淺色。
+   VOICE:     Archivo 粗黑當標題和數字，Space Mono 當規格欄和路標，內文 Noto Sans TC。
+              靛藍只給標題那個詞、關卡編號和連結，因為那種雜誌的單色頁就是一種墨。
+   NOT:       不是遊戲評測，不替任何一款打分數。也不是模型評測，不比誰比較強。
+   RECENT:    paper 350° 48° 18° · accent 158° 52° 230°（who-is-using、same-ledger、knowing-is-dear）
+              加上同時發佈的上篇 paper 140° · accent 346°。
+              — 紙 208° 離最近的 140° 有 68°；靛藍 238° 離 230° 只有 8°，但 knowing-is-dear
+              在上篇和 who-is-using 進來之後已經不在最近三篇內；離最近三篇的 158° 有 80°。 */
+
+:root {
+  --pulp: hsl(208 46% 92%);
+  --indigo: hsl(238 56% 36%);
+  --paper: var(--pulp);
+  --card: hsl(208 50% 96%);
+  --ink: hsl(225 32% 11%);
+  --ink-2: hsl(222 16% 26%);
+  --mist: hsl(215 12% 36%);
+  --rule: hsl(208 30% 81%);
+  --rule-hard: hsl(210 20% 62%);
+  --accent: var(--indigo);
+  --accent-soft: hsl(238 60% 89%);
+  --disp: "Archivo", "Noto Sans TC", sans-serif;
+  --sans: "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Space Mono", ui-monospace, Menlo, monospace;
+  --radius: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(222 28% 8%); --card: hsl(222 24% 11%);
+    --ink: hsl(210 30% 89%); --ink-2: hsl(212 14% 73%); --mist: hsl(214 10% 61%);
+    --rule: hsl(222 18% 19%); --rule-hard: hsl(222 14% 31%);
+    --accent: hsl(232 82% 79%); --accent-soft: hsl(236 36% 22%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(222 28% 8%); --card: hsl(222 24% 11%);
+  --ink: hsl(210 30% 89%); --ink-2: hsl(212 14% 73%); --mist: hsl(214 10% 61%);
+  --rule: hsl(222 18% 19%); --rule-hard: hsl(222 14% 31%);
+  --accent: hsl(232 82% 79%); --accent-soft: hsl(236 36% 22%);
+}
+
+pre { font-family: var(--mono); }
+.display { font-weight: 800; }
+h2, h3 { font-weight: 800; }
+
+/* 刊頭：雜誌頁眉 */
+.masthead {
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist);
+  border-top: 4px solid var(--ink); border-bottom: 1px solid var(--rule-hard);
+  padding: var(--sp-2) 0; margin-bottom: var(--sp-6);
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-1) var(--sp-4); max-width: none;
+}
+.masthead b { color: var(--ink); font-weight: 700; }
+
+.eyebrow { font-family: var(--mono); }
+
+/* 規格欄：雜誌上每款遊戲旁邊那一格 */
+.spec { border: 2px solid var(--ink); background: var(--card); margin-block: var(--sp-5); max-width: var(--measure); }
+.spec .cap { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; background: var(--ink); color: var(--paper); padding: var(--sp-1) var(--sp-3); margin: 0; }
+.spec dl { display: grid; grid-template-columns: minmax(0, 7.5em) minmax(0, 1fr); margin: 0; }
+.spec dt, .spec dd { margin: 0; padding: var(--sp-2) var(--sp-3); border-top: 1px solid var(--rule); min-width: 0; font-size: var(--fs-sm); }
+.spec dt { font-family: var(--mono); color: var(--mist); letter-spacing: .04em; }
+.spec dd { color: var(--ink); }
+
+th { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .05em; font-weight: 700; }
+td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.table-scroll { border-radius: var(--radius); border-color: var(--rule-hard); }
+.stat { border-radius: var(--radius); }
+.stat .label { font-family: var(--mono); letter-spacing: .04em; }
+.stat .value { font-weight: 800; }
+.hero { font-weight: 800; color: var(--accent); }
+.pull { font-family: var(--disp); font-weight: 700; }
+.verdict { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .05em; color: var(--mist); }
+.src { font-size: var(--fs-sm); color: var(--ink-2); }
+.src li { margin-bottom: var(--sp-1); }
+ol.src { padding-left: 1.4em; }
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+  <p class="masthead"><span><b>新作速報 · 查核版</b></span><span>2026 年 11 月 · 第 2 回</span></p>
+
+  <p class="eyebrow">案卷 · AI × 小遊戲 · 下 · 2026-11</p>
+  <h1 class="display">一句話的遊戲，<br>八小時的<em>帳單</em></h1>
+  <p class="lede">上篇的主角花了十三個月。Fable 5.2 上市那天，Anthropic 的一位工程師貼出一關射擊遊戲，說只下了一句指令。同一則貼文也附了帳單：模型自己跑了八小時，約 550 美元。一週之內，社群上數得出來的可玩作品超過一百六十件。這篇查三件事：是真的嗎、多少錢、這算哪一種野心。</p>
+  <p class="byline">整理自英、中、韓、日文報導與公開原始碼 · 數字以 2026-11-16 查得為準 · 帳單多為當事人自己公布</p>
+
+  <div class="tiles wide stagger">
+    <div class="stat"><p class="label">人下的指令</p><div class="value">1 句</div><div class="delta">之後沒有任何回饋</div></div>
+    <div class="stat"><p class="label">模型連續工作</p><div class="value">8 小時</div><div class="delta">做出一個小關卡</div></div>
+    <div class="stat"><p class="label">讀進去的 token</p><div class="value">4.45 億</div><div class="delta">寫出來的約 270 萬</div></div>
+    <div class="stat"><p class="label">折合 API 費用</p><div class="value">約 550 美元</div><div class="delta">當事人自己公布</div></div>
+  </div>
+
+  <section>
+    <p class="eyebrow">STAGE 01 · 洗版 · THE FLOOD</p>
+    <h2>兩個月內的第二次</h2>
+    <p>這種場面今年秋天已經看過一次。9 月 3 日 OpenAI 發表 GPT-6 Astra，接下來那個週末，X 上滿是一句話做出來的 3D 遊戲。最常被轉貼的例子是一位開發者說他 45 分鐘就拿到一款能玩的遊戲，只用掉每週額度的百分之幾。還有人用 24 分鐘把整座杭州搬進網頁。</p>
+    <p>11 月 9 日 18:58（UTC），Anthropic 發表 Claude Fable 5.2。同一天，Anthropic 自己的員工貼了兩種東西。一種是影片，就是下面會講的恐龍短片。另一種是能玩的遊戲：發表後三分鐘，做產品的 Felix Rieseberg 貼出第一批作品，網頁標題就叫 Three Games，頁尾註明都是初稿，沒有人給過回饋。當天稍晚，他把其中一款射擊遊戲《Saltline》單獨貼出來，附上 token 數和費用，七分鐘後再貼出那句指令。到 11 月 14 日，那則貼文有四百三十多萬次觀看。</p>
+    <p>接下來的幾天，同樣的事在中文圈重演。有人整理的清單在一週內收了 165 件點得開的作品，其中 82 件是遊戲，另外還有 119 支展示影片。也有人架了專門的網站，把三十多款作品連同指令原文一起陳列。Saltline 上線兩天，簡體中文圈就出現改了名字和文字的中文版，整款遊戲包成一個 HTML 檔在網路硬碟流傳。</p>
+
+    <div class="note">
+      <p class="head">恐龍那一支，是另一條路線</p>
+      <p>這一波常被說成是「官方的恐龍 demo」帶起來的。恐龍短片確實有，也確實是上市當天貼的：18 秒，一群恐龍聚在史前的水塘邊。作者 Jeremy Berman 在 Anthropic 做強化學習研究，他引用官方的發表貼文，補了一句說明，說這是 Fable 寫 Python 去操控 Blender，從零做出來的。兩天內約有 28 萬次觀看。</p>
+      <p>有兩點跟流傳的說法不一樣。第一，它不在官方的發表頁上，那一頁沒有提到恐龍，所以它是員工的個人貼文，跟 Saltline 一樣。第二，它用的是 Blender，沒有用 three.js。成品是一支算好的影片，不能玩，也沒有即時算圖這回事。指令、花了多久、花了多少錢，他都沒有公布。順帶一提，他跟後面帳單表裡做出上萬美元遊戲的 Matthew Berman 是不同的人。</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">STAGE 02 · 查核 · IS IT TRUE</p>
+    <h2>「只用 three.js，沒有 3D 物件」是真的嗎</h2>
+    <p>先把話說準。three.js 是一套讓瀏覽器畫 3D 的函式庫。流傳的說法是，這些遊戲除了它以外什麼都沒載入，沒有建模軟體做出來的模型檔，也沒有圖片和音效檔。</p>
+    <p>這不等於「沒有 3D 物件」。畫面上的貨櫃和機器狗仍然是 3D 模型，差別在來源。它們沒有對應的檔案，全是遊戲啟動時由程式當場算出來的：形狀由函式組出來，表面的鏽和積水由著色器算，聲音由合成器產生。這種做法叫程序化生成，在繪圖領域是幾十年的老技術。至於「即時算圖」，任何 3D 遊戲都是即時算的，不是這一波才有。</p>
+
+    <h3>先分清楚兩條路線</h3>
+    <p>洗版的作品其實走兩條路，常被混在一起講。</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>路線</th><th>模型寫的是</th><th>成品</th><th>代表作</th></tr></thead>
+        <tbody>
+          <tr><td class="nowrap">Blender</td><td>操控建模軟體的 Python 腳本</td><td>一支算好的影片，不能互動</td><td>恐龍短片、Bugatti 跑車</td></tr>
+          <tr><td class="nowrap">three.js</td><td>在瀏覽器裡執行的程式</td><td>打開網頁就能玩</td><td>Saltline</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>兩條路的共同點是素材都由程式寫出來，沒有人動手建模。差別在算圖的時間點。Blender 那條路是事先一格一格算好，所以畫面可以很細，也需要顯示卡花時間去算。three.js 那條路才是邊玩邊算。「只用 three.js」和「即時算圖」講的是後者，恐龍屬於前者。</p>
+
+    <h3>我自己打開來看了</h3>
+    <p>Rieseberg 說，所有貼圖和模型都是函式，原始碼就在 HTML 裡，誰都可以檢查。有人在討論區提出合理的懷疑：1.4 MB 的單一檔案，從外面看不出裡面是不是藏了一大串編碼過的圖片。所以我把 GitHub 上的公開副本抓下來，用程式掃了一遍。</p>
+
+    <div class="spec">
+      <p class="cap">SPEC · SALTLINE 公開副本</p>
+      <dl>
+        <dt>檔案</dt><dd>單一 HTML，1,423,569 位元組</dd>
+        <dt>組成</dt><dd>一段程式。前半是 three.js 本身，後面約 48% 是遊戲和生成用的程式</dd>
+        <dt>內嵌圖片</dt><dd>0 個。也沒有任何長串的編碼資料</dd>
+        <dt>載入器</dt><dd>整個檔案沒有模型載入器。遊戲那一半也沒有呼叫圖片、貼圖或音訊的載入器</dd>
+        <dt>外部資源</dt><dd>只有頁首的 Google Fonts 字型。遊戲程式裡沒有任何網址</dd>
+        <dt>遊戲程式裡</dt><dd>一千多個函式。貼圖有 12 張，全是程式當場畫出來的。正弦函數出現三百多次，雜訊函式近兩百次</dd>
+      </dl>
+    </div>
+
+    <p>結論是這句話對 Saltline 成立。另一份獨立的檢查看的是 3.6 MB 的原始頁面，同樣沒找到模型載入器和外部模型。要說明的是，我看的是別人轉存的副本，不是原始頁面，做的也只是靜態掃描，沒有一行一行讀。</p>
+
+    <h3>但它不是每一款都成立，也不是這次才有</h3>
+    <p>同一波裡被歸給 Fable 5.2 的作品，做法差很多：</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>作品</th><th>素材怎麼來</th></tr></thead>
+        <tbody>
+          <tr><td>Saltline</td><td>全部由程式生成，用 three.js</td></tr>
+          <tr><td>What the Water Keeps</td><td>3D 素材用 Tripo 生成，配樂用 Suno</td></tr>
+          <tr><td>X 上的一則 FPS 教學串</td><td>步驟裡直接載入現成的步槍模型檔</td></tr>
+          <tr><td>fal Agent 的賽車示範</td><td>先生成概念圖和 3D 模型，再寫程式</td></tr>
+          <tr><td>Abyssal Garden</td><td>全部由程式生成，而且指令明文禁用 three.js</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>「不靠素材」也不是 Fable 5.2 才開始的。9 月 Astra 那一波，那位 45 分鐘做出遊戲的開發者事後補充，他的作品同樣只用 three.js、沒有外部素材。當時還有一款火車模擬器標榜沒有匯入任何模型。再往前，6 月 Fable 5 上市時，就有人用 three.js 的基本幾何形狀拼出一架波音 747。</p>
+    <p>十月還有一個更硬的例子。一位開發者用 Claude Code 搭上一代的 Opus 5.5，做了一片即時算圖的海，連 three.js 都沒用，整個包成一個檔案。它比 Fable 5.2 早三個星期。</p>
+
+    <h3>同一片海，轉述和說明文件各說各的</h3>
+    <p>這片海值得多看一眼，因為它示範了包裝是怎麼長出來的。把一篇轉述報導和作者自己寫的說明文件並排：</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>項目</th><th>轉述報導</th><th>作者的說明文件</th></tr></thead>
+        <tbody>
+          <tr><td class="nowrap">模型</td><td>Opus 3.5</td><td>Claude Code 搭 Opus 5.5</td></tr>
+          <tr><td class="nowrap">時間</td><td>只花 30 分鐘</td><td>沒有提</td></tr>
+          <tr><td class="nowrap">人的參與</td><td>完全由模型生成</td><td>中途給過回饋，主要在雲。體積雲因此換成平面雲層，後來又修了邊緣的鋸齒</td></tr>
+          <tr><td class="nowrap">大小</td><td>61 KB 的單一檔案</td><td>壓縮後 61 KB，沒壓縮是 102 KB。原始碼是好幾個檔案，再打包成一個</td></tr>
+          <tr><td class="nowrap">效能</td><td>高幀率</td><td>2560×1440、RTX 5070 Ti，每幀 6 到 8 毫秒，量的時候還有別的程式在用顯示卡</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>技術本身是真的，而且比轉述寫的更紮實。海浪用的是電影和遊戲業界的正規做法，六層頻譜疊出一公里到幾毫米的波長，海面網格延伸到 160 公里，大氣也照著論文的方法算。每幀 6 到 8 毫秒，換算大約是每秒 125 到 165 幀。</p>
+    <p>誇大的是外面那一層。時間是轉述加上去的，模型名稱寫錯，人給過的回饋不見了。報導寫的作者名字跟 repo 的帳號也對不上，我無法確認是不是同一個人。這跟 Saltline 的「一句指令」是同一種現象：作品是真的，傳出去的那句話比作品簡單。</p>
+    <p>還有一點要算進去。這類題目對模型特別有利。海浪和大氣的演算法都有論文和大量公開的實作，目標又只有「越逼真越好」，沒有產品上的限制。作者自己列了侷限：只有開放的海面，沒有海岸，水上也沒有任何物體。要放進遊戲，海得讓船浮起來。遊戲引擎 Phaser 的海面套件做的就是這一段，船尾的浪、船頭的水花、船身隨浪起伏、鏡頭潛到水下，那是另一種工程。</p>
+    <p>所以這一次真正不一樣的地方有兩個，都跟技術無關。一是有人把帳單貼出來了。二是成品是一個打得開的單一檔案，誰都能檢查，也誰都能改。</p>
+
+    <h3>為什麼都長得像雨夜的貨櫃碼頭</h3>
+    <p>語言模型的手是程式碼。它不會捏黏土，但會寫函式，所以它擅長的畫面是能用幾何和數學描述的東西：貨櫃、鋼架、無人機、雨和反光。玩過的人回報的毛病也在同一個方向。有人指出小物件互相穿插，樓梯懸在半空，模型乍看合理、停下來細看就不對。也有人一進遊戲滑鼠就失控，根本沒辦法玩。一份整理上市週作品的教學說，最常見的問題是卡頓和操作。</p>
+    <p>討論區裡最短的一句評語是：這不是遊戲，是技術展示。那句指令本身也只要求一個很小的關卡。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">STAGE 03 · 帳單 · THE BILL</p>
+    <h2>一句話要多少錢</h2>
+
+    <div class="hero reveal">約 550 美元</div>
+    <p class="byline">Saltline：一句指令，八小時，一個小關卡。</p>
+
+    <p>這個數字的結構比總額有意思。模型寫出來的只有約 270 萬 token，讀進去的卻有 4.45 億，相差一百六十多倍。原因是它每做一步，都要把先前的工作重新讀一遍，然後改一點、跑一次、看結果。八小時就是這個迴圈轉了八小時。</p>
+    <p>帳單沒有變成天價，靠的是快取。重複讀的內容按快取價計費，每百萬 token 0.2 美元，是正常輸入價 8 美元的四十分之一。有人替他算過，同樣的 token 如果完全不走快取，要三千六百多美元。</p>
+    <p>把查得到的帳單排在一起：</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>作品</th><th class="num">模型工作時間</th><th class="num">折合 API 費用</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td>有人照做的一句話 FPS</td><td class="num nowrap">41 分鐘</td><td class="num nowrap">約 16 美元</td><td>73 輪，661 萬輸入 token，快取命中九成。不走快取要 61 美元</td></tr>
+          <tr><td>Saltline</td><td class="num nowrap">8 小時</td><td class="num nowrap">約 550 美元</td><td>事後作者再花約兩小時修武器模型和音效</td></tr>
+          <tr><td>Aiden's Revenge</td><td class="num nowrap">一整夜</td><td class="num nowrap">未公布</td><td>估計 3.4 億 token，圖片和音效另外計費</td></tr>
+          <tr><td>仿《戰爭機器》的一關</td><td class="num nowrap">43 小時 48 分</td><td class="num nowrap">約 14,710 美元</td><td>86.3 億 token</td></tr>
+          <tr><td>仿《糖豆人》的多人遊戲</td><td class="num nowrap">71 小時</td><td class="num nowrap">約 13,000 美元</td><td>超過 90 億 token</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>同樣叫「一句話做出遊戲」，帳單從 16 美元到一萬四千美元，差了九百多倍。做出上萬美元那兩款的人自己也說，成品還有生硬的動畫和沒修的錯誤。價格跟那句話無關，跟模型跑多久有關。指令是一句，計費單位是小時。</p>
+    <p>多數人付的是訂閱費，用的是方案裡的額度。額度也有上限。Pro 方案用 Fable 只有一週的試用，而且最多吃掉每週額度的一半，11 月 16 日之後要另外付費。有人回報在每月 200 美元的方案上，一個晚上就用掉 Fable 額度的四分之一。那款 97 KB 的海底世界，模型實際只工作了兩三個小時，卻因為額度限制拖了三天才做完。</p>
+    <p>Blender 那條路的帳單比較零散。那輛 Bugatti 是一句指令加一張參考圖，跑了大約兩個半小時。有一支 13 個鏡頭的短片公布了算圖費用，租 10 張雲端顯示卡，52 分鐘，5.75 美元。恐龍短片的作者沒有公布自己的數字，只說了一句預測：很快就會有人用 Python 做出整部電腦動畫電影，花費是幾千美元。</p>
+    <p>對照這個站上先前的紀錄：十月跑三題 three.js 小場景，一共 50 分鐘，大約 15 萬 token。</p>
+
+    <p class="pull reveal">指令是一句，計費單位是小時。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">STAGE 04 · 野心 · WHICH RUNG</p>
+    <h2>這算哪一種野心，第幾階</h2>
+    <p>巧的是，做出 Saltline 的 Rieseberg，就是十月那篇〈How to be more ambitious〉的作者。這個站上讀過那篇，寫成〈記住了第一招，漏掉了第五招〉。拿他自己的尺來量他自己的作品，最公平。</p>
+    <p>他把野心拆成四種。速度是同一件事花更少時間。高度是往上問目標背後的目標。深度是用頂尖專家的方法把一件事做到極致。廣度是動用別的領域的做法。</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>野心</th><th>Saltline 有嗎</th><th>依據</th></tr></thead>
+        <tbody>
+          <tr><td class="nowrap">速度</td><td>有，而且是主體</td><td>一個小關卡從幾個月變成八小時</td></tr>
+          <tr><td class="nowrap">深度</td><td>確定有一招</td><td>指令要求 3A 等級的寫實畫面，這是「訂不合理的目標」。至於有沒有外部裁判，他沒有交代用了什麼工具</td></tr>
+          <tr><td class="nowrap">廣度</td><td>有一點</td><td>著色器、音效合成、關卡設計本來是三種人的工作</td></tr>
+          <tr><td class="nowrap">高度</td><td>沒有</td><td>指令是一件任務，後面沒有另一個目標</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>如果要問它在第幾階，梯子在高度那一節。他用一份季度檢討簡報示範了三階。第一階是讓模型理解整門生意，回答這一季什麼變了、為什麼。第二階是要它找出最急的三個決策。第三階是質疑這場會議為什麼存在，設計更好的做法，再用歷史資料證明。</p>
+    <p>照這把尺，「做一款射擊遊戲給我」還沒踏上第一階。它是一件任務，做完就做完了，沒有人問這款遊戲要給誰玩、為什麼要有它。<span class="mark">洗版的那一百多件作品，野心幾乎都花在速度上，高度是零。</span></p>
+    <p>有意思的是，廠商要的正是野心。Aiden's Revenge 的作者說，他拿到提前試用資格時，對方請他拿最有野心的用法來試。他最後做的是外甥畫在紙上的那款遊戲。</p>
+    <p>這不算批評，Rieseberg 自己就標過限制：高度適合有最終結果要追的事，對創作型的工作效果比較差。他給的判斷方法是，你會不會為這件事開會。沒有人會為一個技術展示開會。</p>
+
+    <h3>裁判還是不夠</h3>
+    <p>深度的第五招，是不要讓模型評自己，要有模型以外的東西來判。這一波有紀錄可查的做法比以前進步：模型會自己開瀏覽器、截圖、讀錯誤訊息，沒有錯誤才收工。那位照做的作者把流程畫得很清楚，寫程式、開頁面、截圖自檢、讀回錯誤，四步一圈。</p>
+    <p>十月那片海走得更遠。作者讓模型把截圖交給另外的評審代理來看，說明文件裡寫明，這樣它就不是在替自己打分。即使如此，把體積雲換掉的決定，還是作者自己看了之後下的。</p>
+    <p>截圖也看不出滑鼠會不會失控，或是樓梯懸在半空。這些是人玩了三十秒才發現的。同一位作者也老實寫了：他的 14 個音效只檢查過有沒有爆音和無聲，沒有人真的聽過。這個站上十月那份試飛報告的標題，在這裡又成立了一次：跑從來不是問題，看才是。</p>
+
+    <h3>轉貼的人和付帳的人</h3>
+    <p>〈記住了第一招〉裡補過一張表，講人的信心從哪裡來。最強的來源是自己做成過一次，其次才是看別人做成。洗版是後者的工業化：一百六十件作品，幾百萬次觀看，全是看別人做成。</p>
+    <p>這一波裡走了前一條路的人不多，但看得出差別。那位照做的作者花了折合 47 美元的額度，跑了四個實驗，把指令、腳本和每一筆帳都公開，連哪裡做壞了都列出來。他拿到的東西，跟轉貼影片的人拿到的不是同一種。</p>
+    <p>傳得最遠的那句話是「一句指令」。沒跟著傳出去的是八小時、4.45 億 token，以及一套能讓模型自己測試的工具。上次漏掉的是第五招，這次漏掉的是帳單。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">STAGE 05 · 自己的一次 · MY OWN RUN</p>
+    <h2>我自己付過的那一次</h2>
+    <p>上一節說，看別人做成和自己做成是兩回事。所以這裡要交代我自己的那一次。Astra 那一波之後，10 月 29 日晚上，我也用 GPT-6 Astra 開了一個題目：一架紙飛機，一片沒有邊的海。<a href="https://github.com/clarencechien/endless-sea">程式</a>是公開的，<a href="https://clarencechien.github.io/endless-sea/">打開網頁</a>就能飛。</p>
+    <p>提交紀錄留下了那一晚的樣子。第一次提交在台北時間晚上 9:28，只有一片海和一架飛機。到半夜 12 點多，一共提交了 9 次，多了配樂和島嶼，也有了手機體感和五個章節。接下來那一件讓它自己跑，提交時間是早上 7:08。之後斷斷續續又做了三天，加了森林和窗景兩個分支，前後共 25 次提交。</p>
+
+    <div class="spec">
+      <p class="cap">SPEC · ENDLESS SEA</p>
+      <dl>
+        <dt>期間</dt><dd>2026-10-29 到 11-11，其中 5 天有提交</dd>
+        <dt>第一晚</dt><dd>21:28 到隔天 09:40，13 次提交</dd>
+        <dt>海的部分</dt><dd>素材全由程式生成，沒有外部模型和貼圖，字型用系統內建</dd>
+        <dt>模型</dt><dd>GPT-6 Astra</dd>
+        <dt>借來的</dt><dd>海面的做法、雜訊函式的核心、森林分支的整套算圖函式庫、窗景分支的照片</dd>
+        <dt>自動測試</dt><dd>海的部分 11 個檔案，會自己開瀏覽器截圖、檢查著色器錯誤</dd>
+        <dt>帳單</dt><dd>沒有留下 token 紀錄</dd>
+        <dt>用途</dt><dd>驗自己的野心。不賣，也不能賣</dd>
+      </dl>
+    </div>
+
+    <p>拿它對照前面幾節，有三件事對得上。</p>
+
+    <h3>「只用 three.js」撐不了多久</h3>
+    <p>海和天空可以全用程式算，這跟 Saltline 是同一條路。但一想要別的東西，就得借。海面的寫法參考了前面那片十月的海，也就是 Noniv 公開的 web-ocean。雲用的雜訊核心來自 Ashima Arts 和 Stefan Gustavson 的開源程式。想要一片森林，用的是 Victor Zakharov 的算圖函式庫。想要窗外真的有風景，用的是 Poly Haven 和 Matthew Petroff 的照片。</p>
+    <p>一個 repo 裡，STAGE 02 那張表上的幾種素材來源全出現了。「不靠素材」是一個題目剛好適合時的結果，不是一種能一路用下去的做法。</p>
+
+    <h3>借和抄，差在帳上有沒有寫</h3>
+    <p>上篇的山寨是把別人的東西搬走，換個名字，什麼都不說。這裡每一樣借來的東西都留了紀錄：授權條款原文放在 repo 裡，函式庫鎖定在特定版本而且沒有改動，每張照片有來源和授權的清單。模型做得到這件事，前提是有人要求。</p>
+    <p>不過我自己也漏了一筆。參考 web-ocean 這件事，repo 裡沒有寫。而且我借的只有做法。原因很實際：原版要 WebGPU 和夠力的顯示卡，在我手上的裝置跑不動。沒辦法直接拿來用，只能請 Astra 照那個方向，用 WebGL 2 重寫一個跑得動的版本。它用的是正規的頻譜模擬，我的只是視覺上的近似，說明文件也寫了這一點。</p>
+    <p>這一筆有個細節值得記下來。那片海是 Claude 做的，公開十二天後，被我用 Astra 借去。一家模型做出來的東西，另一家的模型馬上就能接著用。這跟上篇那位開發者的處境是同一個問題的兩面：別人的做法太容易拿來用，記帳就變成唯一的界線。</p>
+
+    <h3>要人看的那一眼</h3>
+    <p>提交訊息裡留著問題是怎麼被發現的。「打散海面的格子紋」「把天空留在畫面裡」「設定之後恢復手動飛行」，這幾條修的都是畫面上看得到、測試卻不會報錯的毛病。測試能確認著色器沒有報錯、畫面有在動。海面看起來像不像海，要人打開來飛一下才知道。</p>
+    <p>說明文件倒是寫得很老實：海浪只是視覺上的近似，模擬測試不等於實機驗收，60 幀的目標還沒驗過。這些句子比畫面更有用，因為它們標出了哪裡還沒有人看過。</p>
+    <h3>能驗野心，不能拿來賣</h3>
+    <p>所以這個作品的用途很清楚。它可以拿來驗自己的野心：一晚能做到哪裡、早上該看什麼，這兩件事我是自己量過的。這次看 Fable 5.2 的洗版，判斷那些影片該信幾分，用的就是那幾個晚上的經驗。</p>
+    <p>但它不能拿來賣。海面的做法是借的，畫面只是近似，換一台裝置能不能順跑還沒驗過，也沒有任何人在等它。上篇的 Slotbound 賣得動，靠的是上市前就在等的那十萬人。這裡一個都沒有。</p>
+    <p>至於階梯，它同樣沒有踏上第一階。它是一個讓人發呆用的東西，沒有更上層的目標。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">STAGE 06 · 接回上篇 · BACK TO THE CASE</p>
+    <h2>做變便宜之後，剩下什麼貴</h2>
+    <p>上篇的結論是，玩法好改也就好抄，最後擋住山寨的是有一群人認得你。這一篇把同一件事往前推了一格，連我自己那一次也算在內。</p>
+    <p>Slotbound 被搬上手機花了別人兩個月。Saltline 被改成中文版只花了兩天，因為它本來就是一個打得開的檔案，作者還請大家自己檢查原始碼。能檢查就能改。單一 HTML 檔是目前最容易驗證的遊戲形式，也是最容易被拿走的。</p>
+    <p>上篇那款完整的遊戲，花了一個人十三個月。這一篇的小關卡，是 550 美元，照做的人是 16 美元。兩者不是同一種東西，但方向很清楚：能動的東西會多到看不完。討論區裡有人說得很白：他想看的是第一款能在 Steam 上賺到錢的。到目前為止，我查不到這一波有哪一款賣了錢。</p>
+    <p>起點那則心得說，這陣浪潮讓他想到付費手機遊戲剛興起、還有空間的那幾年，很短，但確實有過。兩篇查下來，那個空間現在長這樣：</p>
+    <ul>
+      <li><strong>做，便宜了。</strong>一句話加幾小時的額度，就有一個能動的東西。</li>
+      <li><strong>看，還是貴的。</strong>模型測得出有沒有錯誤，測不出好不好玩。要有人玩，而且要玩得夠久。</li>
+      <li><strong>被認得，最貴。</strong>Slotbound 在上市前就有十萬人在等。這件事沒有任何一句指令做得出來。</li>
+    </ul>
+    <p>所以回答「這也是野心嗎」。是，但它是最便宜的那一種。便宜到一個人可以花幾個晚上，只為了知道自己做不做得到。能拿來驗野心的東西，離能拿來賣的東西還很遠。速度的野心已經內建在模型裡，按一下就有。往上的那幾階，要先回答這款遊戲為什麼該存在，而這個問題從頭到尾都是人的。</p>
+
+    <div class="note">
+      <p class="head">這一篇證明不了的事</p>
+      <p>Saltline 的時間、token 和費用都是作者自己公布的約略數字，沒有公開紀錄可以核對，他本人是模型廠商的員工。我檢查的是第三方轉存的副本。這篇的查核和初稿也用了 Fable 5.2，等於請當事的模型查自己的上市潮，讀的時候請把這一點算進去。各家的美元數字多半是照 API 價回推的估算，不是實際付出的錢。恐龍短片沒有公布指令、時間和費用，它有沒有經過人手修改也不知道。這一波作品有沒有任何一款賺到錢，也沒有資料。</p>
+    </div>
+    <p class="verdict">本篇接續上篇<a href="https://imitator.ai-apps.work/r/slotbound-case">〈玩法好改，也就好抄〉</a>。相關的兩篇：〈記住了第一招，漏掉了第五招〉與<a href="https://imitator.ai-apps.work/r/harness-probe-report">〈跑從來不是問題，看才是〉</a>。</p>
+  </section>
+
+  <hr>
+
+  <section>
+    <p class="eyebrow">SOURCES · 來源</p>
+    <ol class="src">
+      <li><a href="https://thenewstack.io/claude-fable-game-demos/">The New Stack：Fable 5.2 一句話做出射擊遊戲，八小時、550 美元</a>（Saltline、素材來源不一、事後修改）</li>
+      <li><a href="https://cellcog.ai/blog/fable-5-2-one-shot-game-cost/">CellCog：Saltline 的時間線與帳單拆解</a>（發文時間、觀看數、快取試算）</li>
+      <li><a href="https://github.com/realcodebear/saltline-fable-5.2">GitHub：Saltline 公開副本</a>（本篇檢查的檔案）</li>
+      <li><a href="https://help.apiyi.com/en/fable-5-2-saltline-3-6mb-webgl-page-en.html">Apiyi：另一份 Saltline 原始碼檢查</a></li>
+      <li><a href="https://github.com/wquguru/fable52-fps-repro">GitHub：fable52-fps-repro</a>（照做的四個實驗與完整帳單）</li>
+      <li><a href="https://decrypt.co/382897/anthropic-claude-fable-5-2-and-mythos-5-2-impressive-and-expensive">Decrypt：Fable 5.2 很厲害也很貴</a>（定價、訂閱限制、上萬美元的兩款）</li>
+      <li><a href="https://vibegamer.io/blog/claude-fable-5-2-threejs-3d-game">Vibegamer：用 Fable 5.2 做 three.js 遊戲的教學</a>（上市週作品的共同點與常見問題）</li>
+      <li><a href="https://github.com/fengyiqicoder/awesome-fable-5.2/blob/main/all/games.md">GitHub：awesome-fable-5.2</a>（作品清單與數量）</li>
+      <li><a href="https://fable52.games/">fable52.games</a>（作品陳列站、中文改版）</li>
+      <li><a href="https://linux.do/t/topic/3154330">LINUX DO：單一 HTML 的中文版 FPS</a></li>
+      <li><a href="https://news.ycombinator.com/item?id=50444850">Hacker News：Saltline 討論串</a>、<a href="https://news.ycombinator.com/item?id=50469007">fable52.games 討論串</a>、<a href="https://news.ycombinator.com/item?id=50429068">上市討論串</a></li>
+      <li><a href="https://wccftech.com/claude-fable-5-2-creates-stunning-underwater-world-in-just-97-kb-runs-at-180-fps-without-a-game-engine/">Wccftech：97 KB 的海底世界 Abyssal Garden</a></li>
+      <li><a href="https://x.com/rewind02/status/2120175295659426063">X @rewind02：FPS 教學串</a>、<a href="https://creatorstoolbox.com/@scout/post/n_2c68fv98clzw8">fal Agent 的賽車示範</a></li>
+      <li><a href="https://x.com/jeremyberman/status/2119870801730245009">X @jeremyberman：恐龍短片與「Fable 寫 Python 操控 Blender」的說明</a>、<a href="https://x.com/minchoi/status/2120193920189759993">X @minchoi：上市 24 小時的十個例子</a></li>
+      <li><a href="https://apimodels.app/claude-fable-5-2-prompts/blender">APIMODELS：Fable 5.2 的 Blender 作品整理</a>（恐龍短片的長度與觀看數、其他作品的時間與費用）</li>
+      <li><a href="https://www.anthropic.com/claude-fable-and-mythos-5-2">Anthropic：Fable 5.2 與 Mythos 5.2 發表頁</a>（沒有提到恐龍）</li>
+      <li><a href="https://aituts.com/gpt6-astra-game-demos/">Aituts：GPT-6 Astra 的 3D 作品整理</a>、<a href="https://decrypt.co/377514/openai-gpt-6-astra-review-shockingly-good">Decrypt：Astra 上市週</a>、<a href="https://x.com/i/trending/2096209432053190780">X：45 分鐘那款的補充說明</a></li>
+      <li><a href="https://www.howtouselinux.com/post/gpt-6-astra-three-js-is-breaking-the-internet-10-mind-blowing-3d-projects-with-live-demos-open-source-code">Astra 波的程序化火車模擬器</a>、<a href="https://www.modemguides.com/blogs/ai-news/claude-fable-5-demos-first-week">Fable 5 第一週：基本形狀拼的 747</a></li>
+      <li><a href="https://www.talkesport.com/editorials/claude-fable-5-2-games-ai-game-development/">TalkEsport：Fable 5.2 的發表時間</a>、<a href="https://gori.me/it/172262">gori.me：外甥的手繪企劃書</a></li>
+      <li><a href="https://github.com/Noniv/web-ocean">GitHub：Noniv/web-ocean</a>（說明文件）、<a href="https://en.gamegpu.com/news/zhelezo/razrabotchik-sozdal-interaktivnyj-3d-okean-razmerom-61-kilobajt-v-odnom-fajle-html">GameGPU 的轉述報導</a>、<a href="https://phaser.io/packs/watermax.md">Phaser：Watermax 海面套件</a></li>
+      <li><a href="https://github.com/clarencechien/endless-sea">GitHub：endless-sea</a>（提交紀錄、說明文件、第三方授權）與<a href="https://clarencechien.github.io/endless-sea/">線上版</a></li>
+      <li><a href="https://imitator.ai-apps.work/r/harness-probe-report">本站：〈跑從來不是問題，看才是〉</a>與〈記住了第一招，漏掉了第五招〉</li>
+    </ol>
+  </section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
