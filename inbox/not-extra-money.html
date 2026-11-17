@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="對帳 — 把「存股領息」當成一本存摺來對：存入是配息，支出是生活費，結存是剩下的本">
+<meta name="imitator-reference" content="1990 年代台灣郵局的存簿儲金簿內頁 — 淡綠底紋紙，日期／摘要／支出／存入／結存一欄一欄，點陣印表機的等寬數字，櫃員的藍色日期戳">
+<meta name="imitator-paper" content="hsl(128 30% 94%)">
+<meta name="imitator-accent" content="hsl(222 62% 36%)">
+<title>股息不是多出來的錢</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+/* ───────── this report's voice ─────────
+   REGISTER:  對帳 — 把「存股領息」當成一本存摺來對：存入是配息，支出是生活費，結存是剩下的本。
+              讀者是正在存 0056 的人，和還在 0050／0056 之間選的人。
+   REFERENCE: 1990 年代台灣郵局的存簿儲金簿內頁 — 淡綠底紋紙，日期／摘要／支出／存入／結存一欄一欄，
+              點陣印表機打出來的等寬數字，櫃員蓋的藍色日期戳。
+   PAPER:     存簿內頁的淡綠底紋紙 — hsl(128 30% 94%)。
+   VOICE:     粗黑體的表頭式標題、等寬體的數字欄；配息做成存摺上的一筆一筆存入，
+              判定用一枚藍色日期戳蓋在迷思旁邊。
+   NOT:       理財雜誌的封面。沒有金幣、沒有向上的箭頭、沒有「月領 N 萬」。
+   RECENT:    paper 276° 24° 52° · accent 158° 15° 282° — 紙 128°、戳 222° 都不撞，不用改。 */
+:root {
+  --paper: hsl(128 30% 94%);
+  --card: hsl(128 36% 97.5%);
+  --ink: hsl(150 22% 11%);
+  --ink-2: hsl(150 10% 27%);
+  --mist: hsl(150 7% 36%);
+  --rule: hsl(128 20% 84%);
+  --rule-hard: hsl(128 16% 70%);
+  --accent: hsl(222 62% 36%);       /* 櫃員日期戳的藍 */
+  --accent-soft: hsl(220 46% 89%);
+  --disp: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 2px;
+}
+/* 夜裡翻同一本存摺：墨綠近黑 */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(140 16% 7.5%); --card: hsl(140 14% 11%);
+    --ink: hsl(128 14% 90%); --ink-2: hsl(128 8% 73%); --mist: hsl(128 6% 61%);
+    --rule: hsl(140 10% 19%); --rule-hard: hsl(140 10% 29%);
+    --accent: hsl(220 84% 78%); --accent-soft: hsl(222 34% 21%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(140 16% 7.5%); --card: hsl(140 14% 11%);
+  --ink: hsl(128 14% 90%); --ink-2: hsl(128 8% 73%); --mist: hsl(128 6% 61%);
+  --rule: hsl(140 10% 19%); --rule-hard: hsl(140 10% 29%);
+  --accent: hsl(220 84% 78%); --accent-soft: hsl(222 34% 21%);
+}
+pre { font-family: var(--mono); }
+figure { margin-inline: 0; }
+.display { font-weight: 900; letter-spacing: -.02em; }
+h2 { font-weight: 700; }
+
+/* 存摺：等寬數字、細橫線、最後一列是合計 */
+table.passbook td, table.passbook th { font-family: var(--mono); font-size: var(--fs-sm); }
+table.passbook td.memo { font-family: var(--sans); }
+table.passbook tr.sum td { border-top: 1px solid var(--rule-hard); font-weight: 500; }
+td.num, th.num { font-variant-numeric: tabular-nums; }
+td.lead { font-weight: 700; }
+
+/* 日期戳：蓋在迷思標題下的判定 */
+.stamp {
+  display: inline-block; white-space: nowrap;
+  font: 500 var(--fs-xs)/1 var(--mono); letter-spacing: .12em;
+  color: var(--accent); border: 1.5px solid var(--accent); border-radius: 2px;
+  padding: .42em .6em .36em; transform: rotate(-2deg); margin: 0 0 var(--sp-3);
+}
+.pull { font-style: normal; }
+.sources { font-size: var(--fs-sm); color: var(--ink-2); padding-left: 1.2em; }
+.sources li + li { margin-top: var(--sp-1); }
+.colophon { font: var(--fs-xs)/1.7 var(--mono); color: var(--mist); letter-spacing: .04em; border-top: 1px solid var(--rule-hard); padding-top: var(--sp-4); margin-top: var(--sp-7); }
+
+.report .table-scroll.narrow, .report > section > .table-scroll.narrow { margin-inline: 0; max-width: var(--measure); }
+table.passbook td.memo { min-width: 10em; }
+
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<header>
+  <p class="eyebrow">分散筆記 · 番外 · 2026-11</p>
+  <h1 class="display">股息不是<br><em>多出來</em>的錢</h1>
+  <p class="lede">0056 今年含息漲了六成，配息創下新高。這篇把 2008 年以來的帳重對一次，看為了股息而選，在存錢和花錢兩個階段各付出什麼。</p>
+  <p class="byline">資料截至 2026-11-13 收盤 · 金額單位為新台幣萬元 · 未計稅費</p>
+</header>
+
+<section>
+<p class="eyebrow reveal">01 · 今年這一筆</p>
+<h2>存股變飆股的一年</h2>
+<p>0056 是台灣最多人存的高股息 ETF，受益人超過 160 萬。2024 和 2025 兩年，它的含息報酬是 7.1% 和 12.1%，同期 0050 是 48.7% 和 36.9%。今年它翻身了。</p>
+
+<div class="tiles stagger">
+  <div class="stat"><p class="label">0056 今年含息</p><div class="value">+60.1%</div><div class="delta">算到 11/13</div></div>
+  <div class="stat"><p class="label">0050 今年含息</p><div class="value">+59.4%</div><div class="delta">算到 11/13</div></div>
+  <div class="stat"><p class="label">10 月配息裡的價差</p><div class="value">82%</div><div class="delta">股利只占 18%</div></div>
+</div>
+
+<p>它今年的存摺長這樣。</p>
+
+<div class="table-scroll narrow reveal">
+<table class="passbook">
+  <thead><tr><th>除息日</th><th>摘要</th><th class="num nowrap">存入（每股）</th><th class="num nowrap">當次殖利率</th></tr></thead>
+  <tbody>
+    <tr><td class="nowrap">2026-01-22</td><td class="memo">配息</td><td class="num nowrap">0.866</td><td class="num nowrap">2.27%</td></tr>
+    <tr><td class="nowrap">2026-04-23</td><td class="memo">配息</td><td class="num nowrap">1.000</td><td class="num nowrap">2.35%</td></tr>
+    <tr><td class="nowrap">2026-07-21</td><td class="memo">配息</td><td class="num nowrap">1.350</td><td class="num nowrap">2.70%</td></tr>
+    <tr><td class="nowrap">2026-10-22</td><td class="memo">配息（1.411 元是價差）</td><td class="num nowrap">1.720</td><td class="num nowrap">2.93%</td></tr>
+    <tr class="sum"><td class="nowrap">全年</td><td class="memo">四筆合計</td><td class="num nowrap">4.936</td><td class="num nowrap"></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>第四筆 1.72 元是改成季配以來最高的一次，換算年化配息率約 12%。這 1.72 元裡，成分股發下來的股利只占 18%，另外 82% 是基金賣股賺到的價差。</p>
+<p>價差從哪裡來？0056 在 6 月的定期審核納入南亞、南亞科和華邦電。南亞今年股價漲了大約四倍，到 11 月初已經是 0056 的第一大持股，占 8.6%。存股族自己沒有換股，是指數規則替他們換的。</p>
+<p>11 月，飆股的另一面也來了。除息前收盤 58.75 元，11 月 6 日收 49.91 元，那一週跌了 10.64%。11 月 13 日收 53.00 元。</p>
+<p><span class="mark">一年賺六成、一週跌一成，這是飆股的走法，存股的人當初要的並不是這個。</span></p>
+</section>
+
+<section>
+<p class="eyebrow reveal">02 · 迷思一</p>
+<h2>0056 是分散嗎</h2>
+<p class="stamp">判定 · 對一半</p>
+<p>先看持股。0056 有 50 檔，最大的一檔 8.6%，前十大合計 44%。0050 光是台積電一檔就超過五成。照這個標準，0056 比 0050 分散。</p>
+<p>分散還有第二層意思，就是持有整個市場，不對任何一邊下注。這一層 0056 沒有做到。它不持有台灣最大的那家公司，金融、電腦周邊和半導體三個產業合計占 66%，名單每半年還會換一次。</p>
+<p>結果是它每一年和 0050 的差距都很大，而且方向不固定。</p>
+
+<figure class="reveal">
+  <p class="title">0056 每年比 0050 多賺或少賺幾個百分點</p>
+  <p class="subtitle">年度含息報酬相減。往上是 0056 贏，往下是 0056 輸；2026 年算到 11/13。</p>
+  <div class="chart">
+<svg viewBox="0 0 640 252" role="img" aria-label="2008 到 2026 年，0056 的年度含息報酬減去 0050 的差距。19 年裡 8 年為正、11 年為負，最大是 2023 年的正 29.3 個百分點，最小是 2024 年的負 41.6 個百分點。">
+<line class="grid" x1="48" x2="628" y1="192.5" y2="192.5"/>
+<text class="axis" x="40" y="196.5" text-anchor="end">−40</text>
+<line class="grid" x1="48" x2="628" y1="147.0" y2="147.0"/>
+<text class="axis" x="40" y="151.0" text-anchor="end">−20</text>
+<line class="grid" x1="48" x2="628" y1="101.5" y2="101.5"/>
+<text class="axis" x="40" y="105.5" text-anchor="end">0</text>
+<line class="grid" x1="48" x2="628" y1="56.1" y2="56.1"/>
+<text class="axis" x="40" y="60.1" text-anchor="end">+20</text>
+<rect class="bar" x="54.3" y="101.5" width="18" height="11.1" style="fill:var(--c1)"/>
+<rect class="bar" x="84.8" y="71.1" width="18" height="30.5" style="fill:var(--c1)"/>
+<text class="axis" x="93.8" y="242" text-anchor="middle">2009</text>
+<rect class="bar" x="115.3" y="87.9" width="18" height="13.6" style="fill:var(--c1)"/>
+<rect class="bar" x="145.8" y="95.2" width="18" height="6.4" style="fill:var(--c1)"/>
+<rect class="bar" x="176.4" y="101.5" width="18" height="6.8" style="fill:var(--c1)"/>
+<text class="axis" x="185.4" y="242" text-anchor="middle">2012</text>
+<rect class="bar" x="206.9" y="101.5" width="18" height="15.0" style="fill:var(--c1)"/>
+<rect class="bar" x="237.4" y="101.5" width="18" height="17.0" style="fill:var(--c1)"/>
+<rect class="bar" x="267.9" y="101.3" width="18" height="1.0" style="fill:var(--c1)"/>
+<text class="axis" x="276.9" y="242" text-anchor="middle">2015</text>
+<rect class="bar" x="298.5" y="101.5" width="18" height="15.7" style="fill:var(--c1)"/>
+<rect class="bar" x="329.0" y="101.5" width="18" height="12.5" style="fill:var(--c1)"/>
+<rect class="bar" x="359.5" y="88.8" width="18" height="12.7" style="fill:var(--c1)"/>
+<text class="axis" x="368.5" y="242" text-anchor="middle">2018</text>
+<rect class="bar" x="390.1" y="101.5" width="18" height="7.5" style="fill:var(--c1)"/>
+<rect class="bar" x="420.6" y="101.5" width="18" height="51.8" style="fill:var(--c1)"/>
+<rect class="bar" x="451.1" y="101.5" width="18" height="5.5" style="fill:var(--c1)"/>
+<text class="axis" x="460.1" y="242" text-anchor="middle">2021</text>
+<rect class="bar" x="481.6" y="91.5" width="18" height="10.0" style="fill:var(--c1)"/>
+<rect class="bar" x="512.2" y="35.0" width="18" height="66.6" style="fill:var(--c1)"/>
+<text class="label" x="521.2" y="29.0" text-anchor="middle">+29.3</text>
+<rect class="bar" x="542.7" y="101.5" width="18" height="94.5" style="fill:var(--c1)"/>
+<text class="axis" x="551.7" y="242" text-anchor="middle">2024</text>
+<text class="label" x="551.7" y="211.1" text-anchor="middle">−41.6</text>
+<rect class="bar" x="573.2" y="101.5" width="18" height="56.4" style="fill:var(--c1)"/>
+<rect class="bar" x="603.7" y="100.0" width="18" height="1.6" style="fill:var(--c1)"/>
+<text class="axis" x="612.7" y="242" text-anchor="middle">2026</text>
+</svg>
+  </div>
+  <details class="datatable">
+    <summary>逐年數字</summary>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th class="num">年度</th><th class="num">0056</th><th class="num">0050</th><th class="num">差距（百分點）</th></tr></thead>
+      <tbody>
+<tr><td class="num nowrap">2008</td><td class="num nowrap">−48.1%</td><td class="num nowrap">−43.2%</td><td class="num nowrap">−4.9</td></tr>
+<tr><td class="num nowrap">2009</td><td class="num nowrap">+87.3%</td><td class="num nowrap">+73.9%</td><td class="num nowrap">+13.4</td></tr>
+<tr><td class="num nowrap">2010</td><td class="num nowrap">+19.0%</td><td class="num nowrap">+12.9%</td><td class="num nowrap">+6.0</td></tr>
+<tr><td class="num nowrap">2011</td><td class="num nowrap">−13.0%</td><td class="num nowrap">−15.8%</td><td class="num nowrap">+2.8</td></tr>
+<tr><td class="num nowrap">2012</td><td class="num nowrap">+9.4%</td><td class="num nowrap">+12.4%</td><td class="num nowrap">−3.0</td></tr>
+<tr><td class="num nowrap">2013</td><td class="num nowrap">+4.9%</td><td class="num nowrap">+11.6%</td><td class="num nowrap">−6.6</td></tr>
+<tr><td class="num nowrap">2014</td><td class="num nowrap">+9.5%</td><td class="num nowrap">+16.9%</td><td class="num nowrap">−7.5</td></tr>
+<tr><td class="num nowrap">2015</td><td class="num nowrap">−5.9%</td><td class="num nowrap">−6.1%</td><td class="num nowrap">+0.1</td></tr>
+<tr><td class="num nowrap">2016</td><td class="num nowrap">+11.7%</td><td class="num nowrap">+18.7%</td><td class="num nowrap">−6.9</td></tr>
+<tr><td class="num nowrap">2017</td><td class="num nowrap">+12.9%</td><td class="num nowrap">+18.4%</td><td class="num nowrap">−5.5</td></tr>
+<tr><td class="num nowrap">2018</td><td class="num nowrap">+0.7%</td><td class="num nowrap">−4.9%</td><td class="num nowrap">+5.6</td></tr>
+<tr><td class="num nowrap">2019</td><td class="num nowrap">+29.7%</td><td class="num nowrap">+33.0%</td><td class="num nowrap">−3.3</td></tr>
+<tr><td class="num nowrap">2020</td><td class="num nowrap">+8.8%</td><td class="num nowrap">+31.6%</td><td class="num nowrap">−22.8</td></tr>
+<tr><td class="num nowrap">2021</td><td class="num nowrap">+19.4%</td><td class="num nowrap">+21.8%</td><td class="num nowrap">−2.4</td></tr>
+<tr><td class="num nowrap">2022</td><td class="num nowrap">−18.4%</td><td class="num nowrap">−22.8%</td><td class="num nowrap">+4.4</td></tr>
+<tr><td class="num nowrap">2023</td><td class="num nowrap">+58.0%</td><td class="num nowrap">+28.7%</td><td class="num nowrap">+29.3</td></tr>
+<tr><td class="num nowrap">2024</td><td class="num nowrap">+7.1%</td><td class="num nowrap">+48.7%</td><td class="num nowrap">−41.6</td></tr>
+<tr><td class="num nowrap">2025</td><td class="num nowrap">+12.1%</td><td class="num nowrap">+36.9%</td><td class="num nowrap">−24.8</td></tr>
+<tr><td class="num nowrap">2026（到 11/13）</td><td class="num nowrap">+60.1%</td><td class="num nowrap">+59.4%</td><td class="num nowrap">+0.7</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </details>
+</figure>
+
+<p>19 年裡，0056 贏 0050 的有 8 年，輸的有 11 年。差距最大的兩年剛好連在一起，2023 年贏 29 個百分點，2024 年輸 42 個百分點。</p>
+<p>這裡要替 0056 說一句公道話。2024 年那 42 個百分點，主要是台積電漲了 81%，而 0050 有一半是它。主篇說過，0050 這幾年的好成績是押中台積電的成績。<span class="chip soft">接回主篇 06</span></p>
+<p><span class="mark">所以這張圖比的是兩種不同的集中，沒有哪一邊是整個市場。</span></p>
+</section>
+
+<section>
+<p class="eyebrow reveal">03 · 迷思二</p>
+<h2>0056 是 smart beta 嗎</h2>
+<p class="stamp">判定 · 是</p>
+<p>Smart beta 指的是不照市值，改用別的規則來選股和決定權重的指數。0056 追蹤的臺灣高股息指數，從市值前 150 大的公司裡，挑出未來一年預估殖利率最高的 50 檔，權重也照殖利率排。它完全符合這個定義。</p>
+<p>這個標籤帶來三個後果，買之前該知道。</p>
+<ul>
+  <li><b>它是一個賭注。</b>賭的是預估殖利率高的股票，之後表現會比較好。這個賭注有時候連贏好幾年，有時候連輸好幾年，2024 和 2025 就是連輸。</li>
+  <li><b>它會換股，換股有成本。</b>成分股一年審核兩次。依 2025 年的整理，0056 的總費用率約 0.6%，0050 約 0.2%。</li>
+  <li><b>它容易換到剛賺大錢的公司。</b>預估殖利率會變高，常常是因為那家公司當年獲利暴增。今年納入南亞和記憶體股就是這條規則的結果，這一次押對了。這一點是我的推論，指數編製文件不會這樣寫。</li>
+</ul>
+<p>Smart beta 本身沒有問題。麻煩在很多人買 0056 的理由是領息安穩，實際買到的卻是一套會換股、會大起大落的選股策略。</p>
+</section>
+
+<section>
+<p class="eyebrow reveal">04 · 迷思三</p>
+<h2>0056 的股息很穩嗎</h2>
+<p class="stamp">判定 · 不穩</p>
+<p>假設 2008 年初拿 1,000 萬買 0056，當時股價 25.75 元，可以買 388 張。之後一張都不賣，只花配息。再假設生活費第一年 50 萬，之後每年隨物價加 3%。</p>
+
+<figure class="reveal">
+  <p class="title">388 張 0056，每年領到多少配息</p>
+  <p class="subtitle">單位萬元。長條是當年配息，階梯線是隨物價調高的生活費。</p>
+  <div class="chart">
+<svg viewBox="0 0 640 256" role="img" aria-label="2008 年初用 1,000 萬買進 388 張 0056，之後每年領到的配息，對照第一年 50 萬、每年加 3% 的生活費。19 年裡有 11 年配息低於生活費，2008 與 2010 年為零。">
+<line class="grid" x1="48" x2="600" y1="226.0" y2="226.0"/>
+<text class="axis" x="40" y="230.0" text-anchor="end">0</text>
+<line class="grid" x1="48" x2="600" y1="174.5" y2="174.5"/>
+<text class="axis" x="40" y="178.5" text-anchor="end">50</text>
+<line class="grid" x1="48" x2="600" y1="123.0" y2="123.0"/>
+<text class="axis" x="40" y="127.0" text-anchor="end">100</text>
+<line class="grid" x1="48" x2="600" y1="71.5" y2="71.5"/>
+<text class="axis" x="40" y="75.5" text-anchor="end">150</text>
+<line class="grid" x1="48" x2="600" y1="20.0" y2="20.0"/>
+<text class="axis" x="40" y="24.0" text-anchor="end">200</text>
+<text class="label" x="62.5" y="220.0" text-anchor="middle">0</text>
+<rect class="bar" x="82.6" y="146.0" width="18" height="80.0" style="fill:var(--c1)"/>
+<text class="axis" x="91.6" y="246" text-anchor="middle">2009</text>
+<text class="label" x="120.6" y="220.0" text-anchor="middle">0</text>
+<rect class="bar" x="140.7" y="138.0" width="18" height="88.0" style="fill:var(--c1)"/>
+<rect class="bar" x="169.7" y="174.0" width="18" height="52.0" style="fill:var(--c1)"/>
+<text class="axis" x="178.7" y="246" text-anchor="middle">2012</text>
+<rect class="bar" x="198.8" y="192.0" width="18" height="34.0" style="fill:var(--c1)"/>
+<rect class="bar" x="227.8" y="186.0" width="18" height="40.0" style="fill:var(--c1)"/>
+<rect class="bar" x="256.9" y="186.0" width="18" height="40.0" style="fill:var(--c1)"/>
+<text class="axis" x="265.9" y="246" text-anchor="middle">2015</text>
+<rect class="bar" x="285.9" y="174.0" width="18" height="52.0" style="fill:var(--c1)"/>
+<rect class="bar" x="315.0" y="188.0" width="18" height="38.0" style="fill:var(--c1)"/>
+<rect class="bar" x="344.1" y="168.0" width="18" height="58.0" style="fill:var(--c1)"/>
+<text class="axis" x="353.1" y="246" text-anchor="middle">2018</text>
+<rect class="bar" x="373.1" y="154.0" width="18" height="72.0" style="fill:var(--c1)"/>
+<rect class="bar" x="402.2" y="162.0" width="18" height="64.0" style="fill:var(--c1)"/>
+<rect class="bar" x="431.2" y="154.0" width="18" height="72.0" style="fill:var(--c1)"/>
+<text class="axis" x="440.2" y="246" text-anchor="middle">2021</text>
+<rect class="bar" x="460.3" y="142.0" width="18" height="84.0" style="fill:var(--c1)"/>
+<rect class="bar" x="489.3" y="138.0" width="18" height="88.0" style="fill:var(--c1)"/>
+<rect class="bar" x="518.4" y="80.8" width="18" height="145.2" style="fill:var(--c1)"/>
+<text class="axis" x="527.4" y="246" text-anchor="middle">2024</text>
+<rect class="bar" x="547.4" y="71.1" width="18" height="154.9" style="fill:var(--c1)"/>
+<rect class="bar" x="576.5" y="28.5" width="18" height="197.5" style="fill:var(--c1)"/>
+<text class="axis" x="585.5" y="246" text-anchor="middle">2026</text>
+<polyline class="line" style="stroke:var(--c2)" points="48.0,174.5 77.1,174.5 77.1,173.0 106.1,173.0 106.1,171.4 135.2,171.4 135.2,169.8 164.2,169.8 164.2,168.0 193.3,168.0 193.3,166.3 222.3,166.3 222.3,164.5 251.4,164.5 251.4,162.7 280.4,162.7 280.4,160.8 309.5,160.8 309.5,158.8 338.5,158.8 338.5,156.8 367.6,156.8 367.6,154.7 396.6,154.7 396.6,152.6 425.7,152.6 425.7,150.4 454.7,150.4 454.7,148.1 483.8,148.1 483.8,145.8 512.8,145.8 512.8,143.4 541.9,143.4 541.9,140.9 570.9,140.9 570.9,138.3 600.0,138.3"/>
+<text class="label" x="606" y="142.3">85</text>
+<text class="label" x="585.5" y="22.5" text-anchor="middle">192</text>
+</svg>
+  </div>
+  <div class="legend">
+    <span class="key"><span class="swatch" style="background:var(--c1)"></span>當年配息</span>
+    <span class="key"><span class="swatch" style="background:var(--c2)"></span>需要的生活費</span>
+  </div>
+  <details class="datatable">
+    <summary>逐年數字</summary>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th class="num">年度</th><th class="num">每股配息（元）</th><th class="num">388 張領到</th><th class="num">生活費</th><th>夠不夠</th></tr></thead>
+      <tbody>
+<tr><td class="num nowrap">2008</td><td class="num nowrap">0</td><td class="num nowrap">0.0</td><td class="num nowrap">50.0</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2009</td><td class="num nowrap">2</td><td class="num nowrap">77.7</td><td class="num nowrap">51.5</td><td class="nowrap">夠</td></tr>
+<tr><td class="num nowrap">2010</td><td class="num nowrap">0</td><td class="num nowrap">0.0</td><td class="num nowrap">53.0</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2011</td><td class="num nowrap">2.2</td><td class="num nowrap">85.4</td><td class="num nowrap">54.6</td><td class="nowrap">夠</td></tr>
+<tr><td class="num nowrap">2012</td><td class="num nowrap">1.3</td><td class="num nowrap">50.5</td><td class="num nowrap">56.3</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2013</td><td class="num nowrap">0.85</td><td class="num nowrap">33.0</td><td class="num nowrap">58.0</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2014</td><td class="num nowrap">1</td><td class="num nowrap">38.8</td><td class="num nowrap">59.7</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2015</td><td class="num nowrap">1</td><td class="num nowrap">38.8</td><td class="num nowrap">61.5</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2016</td><td class="num nowrap">1.3</td><td class="num nowrap">50.5</td><td class="num nowrap">63.3</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2017</td><td class="num nowrap">0.95</td><td class="num nowrap">36.9</td><td class="num nowrap">65.2</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2018</td><td class="num nowrap">1.45</td><td class="num nowrap">56.3</td><td class="num nowrap">67.2</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2019</td><td class="num nowrap">1.8</td><td class="num nowrap">69.9</td><td class="num nowrap">69.2</td><td class="nowrap">夠</td></tr>
+<tr><td class="num nowrap">2020</td><td class="num nowrap">1.6</td><td class="num nowrap">62.1</td><td class="num nowrap">71.3</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2021</td><td class="num nowrap">1.8</td><td class="num nowrap">69.9</td><td class="num nowrap">73.4</td><td class="nowrap">不夠</td></tr>
+<tr><td class="num nowrap">2022</td><td class="num nowrap">2.1</td><td class="num nowrap">81.6</td><td class="num nowrap">75.6</td><td class="nowrap">夠</td></tr>
+<tr><td class="num nowrap">2023</td><td class="num nowrap">2.2</td><td class="num nowrap">85.4</td><td class="num nowrap">77.9</td><td class="nowrap">夠</td></tr>
+<tr><td class="num nowrap">2024</td><td class="num nowrap">3.63</td><td class="num nowrap">141.0</td><td class="num nowrap">80.2</td><td class="nowrap">夠</td></tr>
+<tr><td class="num nowrap">2025</td><td class="num nowrap">3.872</td><td class="num nowrap">150.4</td><td class="num nowrap">82.6</td><td class="nowrap">夠</td></tr>
+<tr><td class="num nowrap">2026</td><td class="num nowrap">4.936</td><td class="num nowrap">191.7</td><td class="num nowrap">85.1</td><td class="nowrap">夠</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </details>
+</figure>
+
+<p>19 年裡有 11 年，配息不夠付生活費。2008 和 2010 兩年一毛都沒有配。2011 年領到 85 萬，兩年後只剩 33 萬，少了六成。</p>
+<p>最近三年配息大增，靠的是行情。前面提過，今年 10 月那一筆有八成是價差。行情不好的年份，這一塊會消失。</p>
+<p>再往下看一層。配息那天，股價會扣掉同樣的金額。今年 10 月 22 日除息 1.72 元，到現在股價還沒有漲回除息前的位置。</p>
+
+<p class="pull reveal">配息是把你帳上的錢，換一個口袋交給你。</p>
+
+<p>它讓人安心，是因為錢進戶頭的時候不用自己按下賣出。這個感覺是真的，那筆錢卻沒有多出來。配息裡屬於股利的部分還要併入所得課稅，單筆達兩萬元再扣一筆補充保費；自己賣股實現的價差，目前不課所得稅。</p>
+</section>
+
+<section>
+<p class="eyebrow reveal">05 · 累積期</p>
+<h2>存錢的時候</h2>
+<p>存錢階段的計算方式很單純。每年年初投入 12 萬，配息全部再投入，一路算到 2026 年 11 月 13 日。</p>
+
+<div class="table-scroll narrow">
+<table>
+  <thead><tr><th class="num">開始存</th><th class="num">累計投入</th><th class="num">0050</th><th class="num">0056</th><th class="num">相差</th></tr></thead>
+  <tbody>
+<tr><td class="num nowrap">2008 年初</td><td class="num nowrap">228</td><td class="num nowrap">1,823</td><td class="num nowrap">1,060</td><td class="num nowrap">763</td></tr>
+<tr><td class="num nowrap">2012 年初</td><td class="num nowrap">180</td><td class="num nowrap">1,157</td><td class="num nowrap">695</td><td class="num nowrap">462</td></tr>
+<tr><td class="num nowrap">2016 年初</td><td class="num nowrap">132</td><td class="num nowrap">646</td><td class="num nowrap">425</td><td class="num nowrap">221</td></tr>
+<tr><td class="num nowrap">2020 年初</td><td class="num nowrap">84</td><td class="num nowrap">282</td><td class="num nowrap">204</td><td class="num nowrap">78</td></tr>
+<tr><td class="num nowrap">2023 年初</td><td class="num nowrap">48</td><td class="num nowrap">134</td><td class="num nowrap">100</td><td class="num nowrap">34</td></tr>
+<tr><td class="num nowrap">2025 年初</td><td class="num nowrap">24</td><td class="num nowrap">45</td><td class="num nowrap">41</td><td class="num nowrap">4</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>從 2008 年開始存的人，同樣投入 228 萬，放在 0050 是 1,823 萬，放在 0056 是 1,060 萬。2008 到 2025 共 18 個起點，0050 全部領先。</p>
+<p>換一種切法，只看任意連續十年。2008 年以來有 10 個十年區間，0056 贏了其中 1 個，是 2014 到 2023 年，贏不到 5%。</p>
+<p><span class="mark">累積期的人不需要現金，領到的配息還是得買回去。高配息在這個階段帶不來好處，只多一道手續和稅。</span></p>
+</section>
+
+<section>
+<p class="eyebrow reveal">06 · 提領期</p>
+<h2>花錢的時候</h2>
+<p>花錢階段沿用原本那篇回測的設定。2008 年初 1,000 萬，第一年提領 50 萬，之後每年加 3%，配息不夠就賣股補足。</p>
+
+<figure class="reveal">
+  <p class="title">每年提領之後，還剩多少</p>
+  <p class="subtitle">單位萬元。2008 年初各 1,000 萬；最後一點是 2026/11/13，當年的提領還沒扣。</p>
+  <div class="chart">
+<svg viewBox="0 0 640 268" role="img" aria-label="2008 年初 1,000 萬、每年提領並隨通膨調高之下，0050 與 0056 的資產變化。到 2026 年 11 月 13 日，0050 剩 3,536 萬，0056 剩 1,346 萬。">
+<line class="grid" x1="52" x2="548" y1="236.0" y2="236.0"/>
+<text class="axis" x="44" y="240.0" text-anchor="end">0</text>
+<line class="grid" x1="52" x2="548" y1="175.4" y2="175.4"/>
+<text class="axis" x="44" y="179.4" text-anchor="end">1,000</text>
+<line class="grid" x1="52" x2="548" y1="114.9" y2="114.9"/>
+<text class="axis" x="44" y="118.9" text-anchor="end">2,000</text>
+<line class="grid" x1="52" x2="548" y1="54.3" y2="54.3"/>
+<text class="axis" x="44" y="58.3" text-anchor="end">3,000</text>
+<text class="axis" x="52.0" y="256" text-anchor="start">2008 初</text>
+<text class="axis" x="156.4" y="256" text-anchor="middle">2011</text>
+<text class="axis" x="260.8" y="256" text-anchor="middle">2015</text>
+<text class="axis" x="365.3" y="256" text-anchor="middle">2019</text>
+<text class="axis" x="469.7" y="256" text-anchor="middle">2023</text>
+<text class="axis" x="548.0" y="256" text-anchor="middle">2026</text>
+<polyline class="line" style="stroke:var(--c1)" points="52.0,175.4 78.1,204.6 104.2,184.6 130.3,181.1 156.4,193.1 182.5,191.2 208.6,189.5 234.7,185.3 260.8,192.0 286.9,187.7 313.1,182.7 339.2,189.4 365.3,178.2 391.4,164.2 417.5,153.1 443.6,176.6 469.7,164.2 495.8,134.2 521.9,101.6 548.0,21.9"/>
+<circle class="dot" cx="548" cy="21.9" r="5" style="fill:var(--c1)"/>
+<text class="label" x="560" y="25.9">3,536 萬</text>
+<polyline class="line" style="stroke:var(--c2)" points="52.0,175.4 78.1,207.6 104.2,185.9 130.3,179.6 156.4,190.2 182.5,189.4 208.6,190.6 234.7,189.9 260.8,196.3 286.9,195.5 313.1,194.3 339.2,198.0 365.3,190.9 391.4,191.3 417.5,187.1 443.6,200.6 469.7,184.9 495.8,186.1 521.9,185.1 548.0,154.5"/>
+<circle class="dot" cx="548" cy="154.5" r="5" style="fill:var(--c2)"/>
+<text class="label" x="560" y="158.5">1,346 萬</text>
+</svg>
+  </div>
+  <div class="legend">
+    <span class="key"><span class="swatch" style="background:var(--c1)"></span>0050</span>
+    <span class="key"><span class="swatch" style="background:var(--c2)"></span>0056</span>
+  </div>
+  <details class="datatable">
+    <summary>逐年數字</summary>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th class="num">時點</th><th class="num">0050</th><th class="num">0056</th></tr></thead>
+      <tbody>
+<tr><td class="num nowrap">2008 初</td><td class="num nowrap">1,000</td><td class="num nowrap">1,000</td></tr>
+<tr><td class="num nowrap">2008 底</td><td class="num nowrap">518</td><td class="num nowrap">469</td></tr>
+<tr><td class="num nowrap">2009 底</td><td class="num nowrap">849</td><td class="num nowrap">827</td></tr>
+<tr><td class="num nowrap">2010 底</td><td class="num nowrap">906</td><td class="num nowrap">931</td></tr>
+<tr><td class="num nowrap">2011 底</td><td class="num nowrap">708</td><td class="num nowrap">756</td></tr>
+<tr><td class="num nowrap">2012 底</td><td class="num nowrap">740</td><td class="num nowrap">770</td></tr>
+<tr><td class="num nowrap">2013 底</td><td class="num nowrap">768</td><td class="num nowrap">750</td></tr>
+<tr><td class="num nowrap">2014 底</td><td class="num nowrap">838</td><td class="num nowrap">762</td></tr>
+<tr><td class="num nowrap">2015 底</td><td class="num nowrap">726</td><td class="num nowrap">655</td></tr>
+<tr><td class="num nowrap">2016 底</td><td class="num nowrap">798</td><td class="num nowrap">668</td></tr>
+<tr><td class="num nowrap">2017 底</td><td class="num nowrap">880</td><td class="num nowrap">689</td></tr>
+<tr><td class="num nowrap">2018 底</td><td class="num nowrap">770</td><td class="num nowrap">627</td></tr>
+<tr><td class="num nowrap">2019 底</td><td class="num nowrap">954</td><td class="num nowrap">744</td></tr>
+<tr><td class="num nowrap">2020 底</td><td class="num nowrap">1,185</td><td class="num nowrap">738</td></tr>
+<tr><td class="num nowrap">2021 底</td><td class="num nowrap">1,369</td><td class="num nowrap">808</td></tr>
+<tr><td class="num nowrap">2022 底</td><td class="num nowrap">981</td><td class="num nowrap">584</td></tr>
+<tr><td class="num nowrap">2023 底</td><td class="num nowrap">1,185</td><td class="num nowrap">844</td></tr>
+<tr><td class="num nowrap">2024 底</td><td class="num nowrap">1,681</td><td class="num nowrap">824</td></tr>
+<tr><td class="num nowrap">2025 底</td><td class="num nowrap">2,219</td><td class="num nowrap">841</td></tr>
+<tr><td class="num nowrap">2026/11/13</td><td class="num nowrap">3,536</td><td class="num nowrap">1,346</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </details>
+</figure>
+
+<p>兩邊都撐過來了。算到今年 11 月 13 日，0050 這邊剩 3,536 萬，0056 剩 1,346 萬。</p>
+<p>0056 的過程比結果驚險。2022 年底它只剩 584 萬，隔年要提領的 78 萬占了 13%，照這個速度本金撐不了幾年。把它救回來的是 2023 年的 58% 和今年的 60%，也就是兩個飆股年。</p>
+<p>同一段時間，0050 的提領比率從 5% 降到不到 4%。本金長得比提領快，往後每一年都比前一年安全。</p>
+<p>把第 04 節那位只花配息的人也放進來。他 19 年領到的配息合計 1,320 萬，其中 11 年不夠用，手上的 388 張現在值 2,058 萬。0050 那一邊每年都領足，18 年提領合計 1,171 萬，剩下 3,536 萬。</p>
+<p><span class="mark">每年領足的 0050，剩下的比省著花的 0056 還多。</span></p>
+<p>提領期該看的是總報酬夠不夠，還有它落在哪幾年。股息只是其中一種領法。</p>
+</section>
+
+<section>
+<p class="eyebrow reveal">07 · 這本帳的限制</p>
+<h2>這些數字不能替你說的事</h2>
+<ul>
+  <li><b>0050 贏，不代表市值型一定贏。</b>這 19 年 0050 的領先，很大一部分來自台積電。比較對象如果換成不含台積電的台股，差距應該會小很多。那份資料我手上沒有，這一句只是推論。</li>
+  <li><b>0056 沒有失敗。</b>2008 年在金融海嘯前進場，每年領 5% 再加物價，到今天帳面上的本金比當初還多。它輸的是比較。</li>
+  <li><b>樣本只有一個市場、19 年。</b>這段期間剛好包含 2023 年以來的 AI 行情。</li>
+  <li><b>計算方式是簡化的。</b>用年度含息報酬逐年計算，提領放在年底，沒有算所得稅、補充保費和交易成本。和綠角用逐筆配息算的結果比，我的 0050 低約 4%，0056 低約 1%。</li>
+  <li><b>2026 年還沒過完。</b>今年的報酬只算到 11 月 13 日，今年的提領也還沒扣。</li>
+  <li><b>和原本那篇的差別。</b>原篇的資料停在 2025 年上半年，配息是先留成現金、隔年才拿來用。這一篇把配息直接再投入，所以同一個時點的數字比原篇高：2024 年底，原篇是 1,386 萬和 785 萬，這裡是 1,681 萬和 824 萬。</li>
+</ul>
+<p>還有一件回測量不到的事。有人在大跌的時候按不下賣出，卻能安心領配息。對這樣的人，高股息是一種紀律工具，代價就是前面這些數字。知道代價之後還是選它，是一個講得通的決定。</p>
+<p>主篇的結論是不用猜誰會贏。這一篇補上後半句：也不必為了領息的安心感，去買一套替你猜的規則。</p>
+</section>
+
+<section>
+<p class="eyebrow">附 · 出處</p>
+<ul class="sources">
+  <li>年度含息報酬：2008–2019 取自<a href="https://luffydad.com/0050-vs-0056/">魯爸的整理</a>；0056 的 2020–2025 取自<a href="https://www.businesstoday.com.tw/article/category/183013/post/202606270011/">今周刊引用的 Lipper 資料</a>；0050 的 2020–2023 取自 <a href="https://smart.businessweekly.com.tw/Reading/IndepArticle.aspx?ID=6015813">Smart 智富</a>，2024、2025 取自今周刊（<a href="https://www.businesstoday.com.tw/article/category/183008/post/202502170001/">2025/2</a>、<a href="https://www.businesstoday.com.tw/article/category/183013/post/202603160029/">2026/3</a>）</li>
+  <li>歷年配息與除息前股價：玩股網（<a href="https://www.wantgoo.com/stock/etf/0056/dividend-policy/ex-dividend">0056</a>、<a href="https://www.wantgoo.com/stock/etf/0050/dividend-policy/ex-dividend">0050</a>）；2008 年起始股價與逐筆再投入的對帳基準：<a href="https://greenhornfinancefootnote.blogspot.com/2024/01/00500056the-cost-of-high-dividend-yields.html">綠角財經筆記</a></li>
+  <li>2026 年收盤價：<a href="https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&amp;date=20261117&amp;stockNo=0056">臺灣證券交易所</a></li>
+  <li>0056 的持股、產業比重、選股規則、6 月換股、10 月配息來源與 11 月走勢：<a href="https://blog.bei-sin.com/stock-knowledge/0056-dividend-payout-yield-constituent-stocks/">北信的整理（2026/11）</a>；配息與受益人數：<a href="https://udn.com/news/story/123006/9788473">聯合報，2026/10/1</a></li>
+  <li>費用率：<a href="https://www.pocket.tw/school/articles/3663/">口袋學堂</a>；配息課稅：<a href="https://news.tvbs.com.tw/life/3190129">TVBS 的報稅整理</a></li>
+  <li>十年報酬的獨立對照：MoneyDJ（<a href="https://www.moneydj.com/ETF/X/Basic/Basic0008.xdjhtm?etfid=0050.TW">0050</a>、<a href="https://www.moneydj.com/ETF/X/Basic/Basic0008.xdjhtm?etfid=0056.TW">0056</a>），到 11/16 分別是 +652% 和 +360%</li>
+  <li>原本的回測頁：<a href="https://imitator.ai-apps.work/r/0050vs0056">0050 vs 0056 退休提領策略</a>；主篇：<a href="https://imitator.ai-apps.work/r/winners-win-themselves">不用猜，贏家會自己贏</a></li>
+</ul>
+</section>
+
+<p class="colophon">這是資料整理與個人筆記，不是投資建議。回測是歷史模擬，不代表未來。</p>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;   // state in a variable
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
