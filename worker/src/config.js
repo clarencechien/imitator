@@ -8,13 +8,18 @@ const CACHE_TTL_MS = 60_000; // spec §4.1：輪替後最多一分鐘生效
 const EMPTY = Object.freeze({ version: 1, groups: {} });
 
 // isolate global scope 快取。每個請求都打一次 R2 既慢又是 class B 計費操作。
+//
+// 只快取「結果」，不快取「進行中的 promise」。以前有個 inflight 讓同時進來的
+// 請求共用同一次 R2 讀取，但 promise 屬於建立它的那個請求：那個請求一被取消，
+// promise 就永遠不會 settle（handle_cross_request_promise_resolution），而
+// inflight 只在 finally 裡清 —— 於是整個 isolate 之後所有請求都 await 它、立刻
+// 丟例外，portal 全部 500，直到 isolate 被回收（2026-11-17）。快取冷的那一瞬間
+// 多打幾次 R2 是可以接受的代價；哨兵值輪替本來就靠 If-Match 防併發，不靠這裡。
 let cached = null; // { data, etag, at }
-let inflight = null;
 
 /** 測試用：清掉 isolate 快取。 */
 export function resetConfigCache() {
   cached = null;
-  inflight = null;
 }
 
 function days(value, fallback) {
@@ -35,11 +40,7 @@ function isoIn(daysAhead, now = Date.now()) {
  */
 export async function loadConfig(env, origin) {
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.data;
-  if (inflight) return inflight;
-  inflight = fetchConfig(env, origin).finally(() => {
-    inflight = null;
-  });
-  return inflight;
+  return fetchConfig(env, origin);
 }
 
 async function fetchConfig(env, origin) {

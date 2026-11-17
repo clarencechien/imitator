@@ -515,6 +515,17 @@ host 沒有辦法分辨安全與不安全的插值，所以那是 `STYLE.md` 第
 - **讀取的授權先看 KV 索引，再用 R2 的 `customMetadata` 覆核一次。** KV 是
   最終一致的，改過 visibility 的物件可能有最多一分鐘的舊值；覆核不花額外的
   I/O，因為物件已經在手上，而且 body 在覆核之後才送出。
+- **isolate 全域只放「結果」，不放「進行中的 promise」。** promise 屬於建立它
+  的那個請求；那個請求被取消（使用者按了重新整理、關掉分頁），promise 就永遠
+  不會 settle，別的請求 await 它會立刻丟
+  `This promise was created by a request that has since ended`。
+  2026-11-17 就是這樣：`loadConfig` 用一個 `inflight` 讓同時進來的請求共用
+  一次 R2 讀取，第一個請求被取消後 `inflight` 再也清不掉，同一個 isolate 裡
+  所有要讀 config 的請求（portal 首頁首當其衝）都回 500，`cpuTimeMs` 0，
+  直到 isolate 被回收才自己好。現在快取冷的時候每個請求自己讀一次 R2；
+  哨兵值輪替的併發本來就靠 `If-Match`，不靠這裡。
+  症狀對照：日誌裡先有一筆 `outcome: canceled`，之後同一個 `scriptVersion`
+  連續 500、`wallTimeMs` 0，又在幾分鐘後自己恢復 —— 就是這一類。
 
 ---
 

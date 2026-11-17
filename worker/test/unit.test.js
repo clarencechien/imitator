@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { b64urlDecodeToString, b64urlEncode, randomSecret, safeEqual } from '../src/crypto.js';
-import { notExpired, writeToken } from '../src/config.js';
+import { loadConfig, notExpired, resetConfigCache, writeToken } from '../src/config.js';
 import { parseBearer, readCookie } from '../src/session.js';
 import { canRead, decodeHeaderValue } from '../src/artifacts.js';
 
@@ -27,6 +27,33 @@ describe('crypto', () => {
     const a = randomSecret();
     expect(a).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(a).not.toBe(randomSecret());
+  });
+});
+
+describe('groups.json 快取不跨請求共用 promise', () => {
+  // 2026-11-17 事故：一個被使用者取消的請求在 loadConfig 裡建了 inflight promise，
+  // 請求結束後那個 promise 永遠不會 settle（handle_cross_request_promise_resolution），
+  // 而 inflight 只在 finally 裡清，於是同一個 isolate 之後所有要讀 config 的請求
+  // 都 await 它、立刻丟例外，portal 整片 500，直到 isolate 被回收。
+  const CONFIG = JSON.stringify({ version: 1, groups: {} });
+  const fakeEnv = (get) => ({ R2_BUCKET: { get } });
+
+  it('前一個呼叫永遠不會完成時，下一個呼叫照樣拿得到 config', async () => {
+    resetConfigCache();
+    let calls = 0;
+    const env = fakeEnv(() => {
+      calls += 1;
+      // 第一次：模擬發起它的請求已經被取消，promise 永遠停在 pending
+      if (calls === 1) return new Promise(() => {});
+      return Promise.resolve({ etag: 'e', text: async () => CONFIG });
+    });
+    loadConfig(env, 'https://x'); // 不 await：它就是那個被取消的請求
+    const data = await Promise.race([
+      loadConfig(env, 'https://x'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('被上一個請求的 promise 卡住')), 500)),
+    ]);
+    expect(data.groups).toEqual({});
+    expect(calls).toBe(2);
   });
 });
 
