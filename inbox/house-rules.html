@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="桌邊告示 — 張東民五戰五勝，沒有一條規則是他寫的；沿著韓國的考場、選秀和年金，看規則在誰手上、誰能改，不寫任何一局">
+<meta name="imitator-reference" content="1980 年代拉斯維加斯 21 點牌桌的桌布 — 綠色毛氈、弧形燙印的兩行莊家規則、一排下注圈、桌角壓克力立牌上的最低下注額">
+<meta name="imitator-paper" content="hsl(150 28% 89%)">
+<meta name="imitator-accent" content="hsl(42 90% 25%)">
+<title>規則都是別人寫的 — 張東民、韓國的考場，和一張不是你的牌桌</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* REGISTER:  桌邊告示 — 張東民五戰五勝，沒有一條規則是他寫的；沿著韓國的考場、選秀和年金，看規則在誰手上、誰能改。不寫任何一局，讀者是沒看過節目的人。
+   REFERENCE: 1980 年代拉斯維加斯 21 點牌桌的桌布 — 綠色毛氈、弧形燙印的兩行莊家規則、一排下注圈、桌角壓克力立牌上的最低下注額。
+   PAPER:     牌桌的毛氈 — 綠，因為規則是直接印在你放籌碼的那塊布上，hsl(150 28% 89%)。
+   VOICE:     燙金只給桌布上的印字用：標題那個詞、節號、連結。宋體標題，等寬體的印字與欄名。
+   NOT:       人物專訪，也不是賽事回顧。沒有任何一局的過程；勵志的話一句都不放。
+   RECENT:    paper 86° 52° 340° · accent 8° 268° 125° — 150° 離 86° 有 64°，42° 離 8° 有 34°，不用改。 */
+
+:root {
+  --paper: hsl(150 28% 89%);
+  --card: hsl(148 30% 94%);
+  --ink: hsl(156 30% 10%);
+  --ink-2: hsl(156 16% 24%);
+  --mist: hsl(156 10% 33%);
+  --rule: hsl(150 20% 76%);
+  --rule-hard: hsl(150 18% 58%);
+  --accent: hsl(42 90% 25%);          /* --gilt：桌布上的燙金字 */
+  --accent-soft: hsl(46 62% 82%);
+  --gilt: var(--accent);
+  --disp: "Noto Serif TC", "Songti TC", Georgia, serif;
+  --serif: "Noto Serif TC", "Songti TC", Georgia, serif;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(152 24% 8%);
+    --card: hsl(152 20% 11%);
+    --ink: hsl(140 18% 90%);
+    --ink-2: hsl(140 10% 76%);
+    --mist: hsl(140 6% 62%);
+    --rule: hsl(152 14% 20%);
+    --rule-hard: hsl(152 12% 32%);
+    --accent: hsl(44 78% 66%);
+    --accent-soft: hsl(44 32% 20%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(152 24% 8%);
+  --card: hsl(152 20% 11%);
+  --ink: hsl(140 18% 90%);
+  --ink-2: hsl(140 10% 76%);
+  --mist: hsl(140 6% 62%);
+  --rule: hsl(152 14% 20%);
+  --rule-hard: hsl(152 12% 32%);
+  --accent: hsl(44 78% 66%);
+  --accent-soft: hsl(44 32% 20%);
+}
+
+pre { font-family: var(--mono); }
+.display { font-weight: 900; letter-spacing: -.01em; }
+h2 { font-family: var(--disp); }
+
+/* 桌角的立牌：一行等寬體 */
+.placard { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist);
+  border: 1px solid var(--rule-hard); background: var(--card); padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-5);
+  display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5); justify-content: space-between; }
+
+/* 桌布示意圖 */
+figure { margin-inline: 0; }
+.felt { border: 1px solid var(--rule-hard); background: var(--card); border-radius: var(--radius); padding: var(--sp-3); }
+.felt svg { display: block; width: 100%; max-width: 28rem; height: auto; margin-inline: auto; }
+.felt .print { font-family: var(--mono); fill: var(--gilt); letter-spacing: .08em; }
+.felt .lbl { font-family: var(--sans); fill: var(--mist); }
+.felt .ring { fill: none; stroke: var(--gilt); stroke-width: 1.5; }
+.felt .edge { fill: none; stroke: var(--rule-hard); stroke-width: 1.5; }
+.felt .lead { stroke: var(--rule-hard); stroke-width: 1; }
+
+/* 改版紀錄與三層表 */
+.layers td:first-child, .edition td:first-child { font-family: var(--mono); font-size: var(--fs-sm); }
+.spoiler { font-family: var(--mono); font-size: var(--fs-xs); color: var(--paper); background: var(--ink-2); padding: .1em .45em; border-radius: 3px; margin-left: .4em; white-space: nowrap; }
+
+.ref { font-family: var(--mono); font-size: .68em; vertical-align: super; line-height: 0; margin-left: .12em; }
+.ref a { text-decoration: none; }
+.ref + .ref { margin-left: .3em; }
+.sources { font-size: var(--fs-sm); color: var(--ink-2); padding-left: 1.8em; }
+.sources li { overflow-wrap: anywhere; }
+
+@media (max-width: 40rem) {
+  table.edition { min-width: 40rem; }
+  table.layers { min-width: 34rem; }
+}
+</style>
+
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+  <p class="placard"><span>番外 · HOUSE RULES</span><span>不含劇透</span><span>2026-11-20</span></p>
+  <p class="eyebrow">番外 · 韓綜 × 人生 · 2026-11</p>
+  <h1 class="display">規則都是<br><em>別人</em>寫的</h1>
+  <p class="lede">張東民在五個生存節目裡拿了五次冠軍，沒有一條規則出自他的手。這篇不講他怎麼贏，講他所在的韓國怎麼把考試、選秀和退休都辦成有規則的比賽，為什麼下了班還要看更狠的比賽，還有那些規則握在誰手上。</p>
+  <p class="byline">v0.2 · 〈片尾那一行製作著作換了名字〉〈手藝帶得走，版權帶不走〉的番外 · 不寫任何一局</p>
+
+  <section>
+    <p class="eyebrow reveal">00 · 桌邊告示 · NOTICE</p>
+    <h2>先講這篇不寫什麼</h2>
+    <p>整篇只用到一個比賽結果：張東民以玩家身分完整參加過五個生存節目，五個的冠軍都是他<sup class="ref"><a href="#s1">1</a></sup>。韓國媒體介紹他常從這一句開始，這裡也拿它當前提。哪一局怎麼解，誰和誰結盟，誰在第幾集出局，一律不寫。《魔鬼的計謀3》正在 Netflix 分三週上線<sup class="ref"><a href="#s45">45</a></sup>，最後四集 11 月 24 日才公開<sup class="ref"><a href="#s46">46</a></sup>，開播之後的發展這裡不碰。</p>
+    <div class="note">
+      <p class="head">想看場面的人</p>
+      <p>他怎麼贏，要自己看才有意思，最後一節列了幾個入口。這份報告寫的是場外的事，裡面的轉述都是二手的。每個數字後面有來源，值得點進去看原文怎麼寫，再決定要信多少。</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">01 · 玩家 · THE PLAYER</p>
+    <h2>他的本事是讀別人寫的規則</h2>
+    <p>那五個節目分屬 tvN 和 Wavve 兩個平台<sup class="ref"><a href="#s1">1</a></sup>，玩法從個人賽、兩個村子對抗的團體賽<sup class="ref"><a href="#s2">2</a></sup>，一路到辨別新聞真假。每一套規則都是製作單位設計的。張東民在裡面做的事只有一種，就是把別人寫好的規則讀懂，而且讀得比同場的人透。這是我的讀法，沒有哪個來源這樣定義他，同不同意可以看完節目再說。</p>
+    <p>做節目的人對他的評價很高。《The Genius》和《魔鬼的計謀》的製作人鄭鍾淵說他是腦力生存史上最強的玩家<sup class="ref"><a href="#s3">3</a></sup>，在第三季記者會上還拿喬丹來比。張東民自己在同一場記者會的說法是：「惡魔的計畫，請來了惡魔。」<sup class="ref"><a href="#s4">4</a></sup></p>
+    <p>他進這一行的方式也是一場考試。2004 年，他考上 KBS 第 19 期公開招考的搞笑藝人<sup class="ref"><a href="#s5">5</a></sup>。這種招考在公開喜劇的全盛期，一次有超過三千人報名<sup class="ref"><a href="#s6">6</a></sup>。2025 年的第 34 期有 450 人報名，錄取 14 人，大約 32 人取 1 人<sup class="ref"><a href="#s7">7</a></sup>。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">02 · 考場 · THE EXAM HALL</p>
+    <h2>韓國把很多事都辦成一場考試</h2>
+    <p>這篇定稿的前一天，11 月 19 日，是韓國 2027 學年度大學修學能力試驗的考試日<sup class="ref"><a href="#s8">8</a></sup>，中文媒體多半簡稱修能。</p>
+    <div class="tiles wide stagger">
+      <div class="stat"><p class="label">修能報名人數</p><div class="value">55.2 萬</div><div class="delta">551,864 人，比前一年少 2,310 人</div></div>
+      <div class="stat"><p class="label">其中的重考生與同等學力</p><div class="value">19.6 萬</div><div class="delta">佔 35.6%，23 年來最多</div></div>
+      <div class="stat"><p class="label">2025 年中小學補習支出</p><div class="value">27.5 兆韓元</div><div class="delta">比前一年少 5.7%</div></div>
+      <div class="stat"><p class="label">有補習的學生每月花費</p><div class="value">60.4 萬韓元</div><div class="delta">首次超過 60 萬</div></div>
+    </div>
+    <p>先看考試。報名總數在減少<sup class="ref"><a href="#s9">9</a></sup>，重考的人卻是 2004 學年度以來最多<sup class="ref"><a href="#s10">10</a></sup>。韓國媒體給的解釋是制度：2028 學年度起大學入學制度要改，今年是現行考法的最後一屆<sup class="ref"><a href="#s11">11</a></sup>。想用熟悉的規則再考一次的人，都擠在這一年。</p>
+    <p>再看補習。韓國把校外補習叫「私教育」，2025 年的總支出比前一年少，參與率也掉到 75.7%<sup class="ref"><a href="#s13">13</a></sup>。可是還在補的學生，每人每月花得比以前更多<sup class="ref"><a href="#s12">12</a></sup>。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">03 · 地獄朝鮮 · HELL JOSEON</p>
+    <h2>人生已經是比賽，下了班還看比賽</h2>
+    <p>2015 年 9 月前後，「헬조선」這個詞在韓國網路上快速傳開<sup class="ref"><a href="#s50">50</a></sup>，中文多半譯成地獄朝鮮。同一年流行的還有兩個詞。「金湯匙、土湯匙」說的是出身決定起跑點，「N 拋世代」說的是年輕人一項一項放棄，從戀愛、結婚到生育<sup class="ref"><a href="#s51">51</a></sup>。那年年底一份對 2,015 名大學生的調查裡，「金湯匙」是他們當年最常用的新詞，「헬조선」排第二<sup class="ref"><a href="#s52">52</a></sup>。</p>
+    <p>這是十年前的詞。它描述的處境，現在還查得到數字。2025 年韓國官方的社會調查裡，57.7% 的成年人認為自己往上一個階層的可能性低<sup class="ref"><a href="#s53">53</a></sup>。2026 年 10 月，15 到 29 歲的就業率是 42.9%，連續 30 個月下滑，是 2020 年 10 月以來最低<sup class="ref"><a href="#s54">54</a></sup>。也有往回走的數字：2025 年的總生育率回到 0.80，連兩年上升<sup class="ref"><a href="#s55">55</a></sup>，不過韓國仍是 OECD 裡唯一低於 1 的國家<sup class="ref"><a href="#s56">56</a></sup>。</p>
+    <p>在這樣的地方，很紅的一種節目是把人淘汰掉的節目，韓國媒體在 2024 年就說生存節目的市場已經飽和<sup class="ref"><a href="#s14">14</a></sup>。《魔鬼的計謀》第二季是 14 個人關在一起七天<sup class="ref"><a href="#s57">57</a></sup>，第三季加到 16 個人<sup class="ref"><a href="#s4">4</a></sup>。人生裡的淘汰是慢的，多半也看不見。考試一年一次，職缺沒上也不會有人當眾唸出你的名字。節目把這件事壓成幾天，而且當場宣布。</p>
+    <p>平常已經在比的人，休息時為什麼還要看別人比，韓國的評論者給過幾種解釋。文化評論人 하재근 的說法是，韓國的社會競爭強度在先進國家裡偏高，輸掉的人挫折感也重，觀眾看別人撐到最後拿走大獎，得到的是一種代替的滿足<sup class="ref"><a href="#s14">14</a></sup>。更早在 2011 年，《首爾新聞》談選秀熱時引過一位學者的分析：選秀把決定優勝者的過程攤開來，強調憑實力，而大眾心裡一直懷疑成功背後靠的是人脈<sup class="ref"><a href="#s15">15</a></sup>。評論人 정덕현 看得更暗一點，他認為這類節目重演的是壓縮成長留下的後遺症，現在推動它的主要是怕被擠到線外的恐懼，往上爬的慾望反而退到後面<sup class="ref"><a href="#s58">58</a></sup>。</p>
+    <p>정덕현 舉的例子是《黑白大廚》：80 位沒有名氣的廚師叫黑湯匙，20 位名廚叫白湯匙<sup class="ref"><a href="#s58">58</a></sup>。這套叫法和 2015 年的金湯匙、土湯匙是同一個比喻，節目直接把它做成了賽制 <span class="chip">接回下篇</span>。</p>
+    <p>節目裡還有一條人生沒有的要求：每個人都得想贏。《魔鬼的計謀》第二季挨罵，其中一項是觀眾懷疑有玩家並沒有真的想贏。鄭鍾淵的回應是，他從前稱讚張東民，看中的正是求勝心強，但他不認為每個參賽者都非得如此<sup class="ref"><a href="#s59">59</a></sup>。從那一季的反應看，觀眾要的比較接近前者。</p>
+    <p><span class="mark">生存節目賣的是一場規則公開、當場開票、人人拚到底的考試。</span>張東民是這種考試裡贏最多次的人。</p>
+    <p>反方向的節目也有。정덕현 在同一篇文章裡說，比賽看多了會累，《一日三餐》這種只是煮三頓飯的節目受歡迎，是對競爭的反作用<sup class="ref"><a href="#s58">58</a></sup>。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">04 · 公平 · FAIR PLAY</p>
+    <h2>規則公開，不保證有人照著走</h2>
+    <p>韓國觀眾在這件事上有過一次很貴的教訓。Mnet 的選秀節目《Produce 101》從 2016 年開播，最重要的一條規則是出道名單由觀眾投票決定，節目把觀眾叫做「國民製作人」<sup class="ref"><a href="#s16">16</a></sup>。2019 年節目被懷疑票數造假，後來查出四季全部動過手腳<sup class="ref"><a href="#s17">17</a></sup>。</p>
+    <p>2021 年 3 月 11 日，韓國大法院判決確定：製作人 안준영 處有期徒刑 2 年，追繳 3,700 多萬韓元<sup class="ref"><a href="#s18">18</a></sup>，總製作人 김용범 處 1 年 8 個月<sup class="ref"><a href="#s19">19</a></sup>。二審時，法院唸出了 12 名因為造假而被淘汰的練習生姓名，還准了一位觀眾的求償，金額是一則簡訊投票的費用 100 韓元。法院的說明是，這筆錢的意義在於確認整件事是對觀眾的詐欺<sup class="ref"><a href="#s20">20</a></sup>。</p>
+    <p>我的推論是，這件事讓韓國觀眾對「局是不是斜的」格外敏感，不過兩者之間我沒有找到直接的調查資料。看得到的是後來的現象：張東民每贏一次，同樣的問題就出現一次。他拿下《血之遊戲3》之後，得上談話節目回應自己和製作團隊有交情的質疑<sup class="ref"><a href="#s21">21</a></sup>。《Betting on Fact》播完，製作人被問這是不是一開始就傾斜的局，製作人否認<sup class="ref"><a href="#s22">22</a></sup>。</p>
+    <p>腦力生存節目自己也出過事。《魔鬼的計謀》第二季在 2025 年 5 月播完，批評隨著集數升高，除了前面說的求勝心，還集中在結盟的打法、獎勵的使用時機和工作人員介入比賽<sup class="ref"><a href="#s23">23</a></sup>。鄭鍾淵受訪時說，難聽的話應該衝著他來，別衝著參賽者<sup class="ref"><a href="#s24">24</a></sup>，也承認其中一個環節從觀眾的角度看，確實可以說不公平<sup class="ref"><a href="#s25">25</a></sup>。韓國娛樂媒體 텐아시아 的專欄則認為，問題不只在玩家身上，遊戲結構和剪接都有責任<sup class="ref"><a href="#s26">26</a></sup>。</p>
+    <p>第三季的規則改了。先前的玩家只要手上的 piece 歸零就直接出局，這一季取消了這一條，淘汰只看比賽結果，生活棟和監獄棟之間的人員流動也變多<sup class="ref"><a href="#s4">4</a></sup>。那篇專欄把這些改動解讀成對觀眾反應的回應<sup class="ref"><a href="#s26">26</a></sup>。觀眾的不滿能讓規則改，動手改的仍然是製作單位。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">05 · 沒寫的 · UNWRITTEN</p>
+    <h2>最會讀規則的人，栽在沒人寫下來的那一條</h2>
+    <p>2014 年，張東民和兩位搭檔主持的 Podcast 裡有貶低女性的發言<sup class="ref"><a href="#s27">27</a></sup>。這些話當時就讓他道歉過一次，節目也停了<sup class="ref"><a href="#s29">29</a></sup>。隔年 4 月，他成為 MBC《無限挑戰》新成員的熱門人選，同一批錄音被重新翻出來，他在 4 月 14 日退出候選<sup class="ref"><a href="#s28">28</a></sup>。</p>
+    <p>2016 年 4 月，他在 tvN《喜劇大聯盟》演的一齣短劇被批評嘲弄單親家庭的孩子。單親家庭團體以侮辱罪對他和製作團隊提告，tvN 道歉並停掉那個單元<sup class="ref"><a href="#s31">31</a></sup>。團體五天後撤告<sup class="ref"><a href="#s32">32</a></sup>，他退出了幾個節目<sup class="ref"><a href="#s33">33</a></sup>。</p>
+    <p>兩件事有個共同點。同樣的話，他站的舞台越大，代價越高。遊戲的規則開場有人唸給你聽，什麼話能拿來當笑點卻沒有人唸，罰則還會跟著你的位置調整。</p>
+    <p>這一段不替他開脫。那些話該不該罵到退出，韓國當年就有兩種意見<sup class="ref"><a href="#s30">30</a></sup>，這裡不重審。和主線有關的只有一點：他擅長的是寫在紙上、有人當場解釋的那種規則。我的看法是，讓他在遊戲裡佔上風的敢講和敢衝撞，到了另一套沒寫出來的規則底下就成了負債。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">06 · 改版 · NEW EDITION</p>
+    <h2>規則會改，有些改法早就寫在規則裡</h2>
+    <p>把前面提過的幾條規則排在一起，再加上兩條和退休有關的。</p>
+    <div class="table-scroll">
+      <table class="edition">
+        <thead><tr><th>規則</th><th>改了什麼</th><th>誰定的，什麼時候</th></tr></thead>
+        <tbody>
+          <tr><td>韓國修能</td><td>2028 學年度起入學制度改版，2027 學年度是現行考法最後一屆<sup class="ref"><a href="#s11">11</a></sup></td><td>教育部</td></tr>
+          <tr><td>韓國國民年金</td><td>保費率從 9% 起每年加 0.5 個百分點，2033 年到 13%。所得替代率 2026 年起定在 43%<sup class="ref"><a href="#s34">34</a></sup></td><td>國會，2025 年 3 月 20 日通過。保費率是 27 年來第一次調<sup class="ref"><a href="#s35">35</a></sup></td></tr>
+          <tr><td>台灣勞保老年年金</td><td>請領年齡逐步提高，2024 年是 64 歲，2026 年起 65 歲<sup class="ref"><a href="#s37">37</a></sup></td><td>年金制度上路時就寫明要逐步提高到 65 歲<sup class="ref"><a href="#s38">38</a></sup></td></tr>
+          <tr><td>KBS 搞笑藝人公開招考</td><td>《搞笑演唱會》2020 年 6 月停播<sup class="ref"><a href="#s40">40</a></sup>，2023 年節目復播才有第 33 期，和上一期隔了五年<sup class="ref"><a href="#s39">39</a></sup></td><td>KBS</td></tr>
+          <tr><td>《魔鬼的計謀》淘汰辦法</td><td>piece 歸零就出局的規定取消，只看比賽結果<sup class="ref"><a href="#s4">4</a></sup></td><td>製作單位，第三季</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>第三列最值得看。勞保的 65 歲在年金制度上路時就寫進去了<sup class="ref"><a href="#s38">38</a></sup>，讀到那一條的人很多年前就知道自己幾歲能領。韓國年金這次的調整也有類似的細節：43% 只適用 2026 年以後繳的年資，已經在領的人不受影響<sup class="ref"><a href="#s36">36</a></sup>。</p>
+    <p>第四列是張東民自己走過的門。他 2004 年考進去的那個招考，後來跟著節目一起停了三年多<sup class="ref"><a href="#s39">39</a></sup>。</p>
+    <p><span class="mark">讀規則的時候，值得多讀兩條：誰有權改，改的時候舊帳怎麼算。</span></p>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">07 · 莊家 · THE HOUSE</p>
+    <h2>他要去寫規則了，牌桌還是別人的</h2>
+    <p>2026 年 4 月，Netflix 一個新的腦力生存節目開始招募參賽者。規則由張東民設計，導演是做《血之遊戲》系列的 현정완<sup class="ref"><a href="#s41">41</a></sup>，預定 7、8 月開拍<sup class="ref"><a href="#s42">42</a></sup>。他給的理由是，製作團隊有自己看不到的死角，那些縫隙要靠真的贏過的人來補<sup class="ref"><a href="#s41">41</a></sup>。</p>
+    <p>這看起來像玩家變成了莊家，其實中間還隔一層。拿 21 點的牌桌來看最清楚。</p>
+    <figure class="reveal">
+      <div class="felt">
+        <svg viewBox="0 0 420 330" role="img" aria-label="21 點牌桌的示意圖：桌布上弧形印著莊家規則，下方是一排下注圈">
+          <path class="edge" d="M 20 24 L 400 24 Q 400 300 210 300 Q 20 300 20 24 Z"/>
+          <path id="felt-a1" d="M 75 70 Q 210 150 345 70" fill="none"/>
+          <path id="felt-a2" d="M 85 100 Q 210 176 335 100" fill="none"/>
+          <path id="felt-a3" d="M 100 142 Q 210 208 320 142" fill="none"/>
+          <text class="lbl" x="210" y="48" text-anchor="middle" font-size="14">發牌員站這一側，照下面的印字做</text>
+          <text class="print" font-size="13"><textPath href="#felt-a1" startOffset="50%" text-anchor="middle">DEALER MUST DRAW TO 16</textPath></text>
+          <text class="print" font-size="13"><textPath href="#felt-a2" startOffset="50%" text-anchor="middle">AND STAND ON ALL 17'S</textPath></text>
+          <text class="print" font-size="13"><textPath href="#felt-a3" startOffset="50%" text-anchor="middle">INSURANCE PAYS 2 TO 1</textPath></text>
+          <circle class="ring" cx="95" cy="216" r="15"/>
+          <circle class="ring" cx="150" cy="245" r="15"/>
+          <circle class="ring" cx="210" cy="255" r="15"/>
+          <circle class="ring" cx="270" cy="245" r="15"/>
+          <circle class="ring" cx="325" cy="216" r="15"/>
+          <text class="lbl" x="210" y="322" text-anchor="middle" font-size="14">玩家坐這一側，籌碼放進圈裡</text>
+        </svg>
+      </div>
+      <figcaption>示意圖，照 21 點牌桌常見的印字畫的。燙金的字由賭場印上去：發牌員 16 點以下要補牌，17 點以上停牌；保險一賠二。</figcaption>
+    </figure>
+    <p>發牌員每天站在桌子後面，看起來像是主持這張桌子的人，可是他沒有選擇，桌布上印什麼就做什麼。印字的是賭場，桌子和桌上的規則都是賭場的。</p>
+    <div class="table-scroll">
+      <table class="layers">
+        <thead><tr><th>位置</th><th>在節目裡</th><th>在人生裡</th><th>對規則能做什麼</th></tr></thead>
+        <tbody>
+          <tr><td>玩家</td><td>參賽者</td><td>考生、投保人、借款人</td><td>讀</td></tr>
+          <tr><td>出題的</td><td>設計遊戲的人</td><td>命題的人、起草條文的人</td><td>寫，寫完交給別人核定</td></tr>
+          <tr><td>莊家</td><td>平台和握有版權的公司</td><td>立法和主管機關、銀行</td><td>決定採不採用、改不改、桌子收不收</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>張東民從第一層走到第二層。第三層沒有動，節目是 Netflix 的。這一點接回這個系列的上下篇 <span class="chip">接回上下篇</span>：<a href="https://imitator.ai-apps.work/r/credit-line-changed">〈片尾那一行製作著作換了名字〉</a>追的是片尾「製作著作」那一行寫誰的名字，<a href="https://imitator.ai-apps.work/r/nameless-made-famous">〈手藝帶得走，版權帶不走〉</a>算的是《黑白大廚》紅了之後好處分給誰。</p>
+    <p>第二層的人自己也在移動。11 月 18 日韓國媒體報導，鄭鍾淵要離開製作《魔鬼的計謀》的公司 TEO，另外成立新公司<sup class="ref"><a href="#s43">43</a></sup>。</p>
+    <p class="pull reveal">讀規則讀到最好的人，下一步是替別人的牌桌寫規則。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">08 · 未結 · OPEN</p>
+    <h2>留在桌上的問題</h2>
+    <p>他設計的節目還沒播出。一個最會找縫隙的人寫出來的規則，縫隙會比較少，還是會留更多空間給和他同一型的玩家，現在沒有人知道。</p>
+    <p>他在第三季開播前說過，只要還活著，就不會從生存節目退休<sup class="ref"><a href="#s44">44</a></sup>。所以接下來他會同時坐在兩個位置上，一邊讀別人的規則，一邊替別人寫。</p>
+    <p>大多數人一輩子坐在第一層，面對的是考試簡章、保單條款和貸款契約。他的例子只示範了一件事：同樣坐在第一層，有人會把規則讀完。他的新節目播出以後，這一節要重寫。</p>
+  </section>
+
+  <section>
+    <p class="eyebrow reveal">09 · 自己去看 · GO SEE</p>
+    <h2>場面在別的地方</h2>
+    <p>這篇沒有寫任何一局。想知道他到底怎麼贏的，有幾個入口。</p>
+    <ul>
+      <li><strong>節目本身。</strong>《魔鬼的計謀》在 Netflix 上，第三季 11 月 24 日播完<sup class="ref"><a href="#s45">45</a></sup><sup class="ref"><a href="#s46">46</a></sup>。他先前奪冠的幾個節目出自 tvN 和 Wavve，台灣有沒有正式上架，這一版沒有查。</li>
+      <li><strong>台灣的報導。</strong>這篇的起點是 GQ 台灣寫他在第三季表現的文章<sup class="ref"><a href="#s48">48</a></sup>，不過我寫的時候讀不到那個頁面，沒辦法轉述它的論點。Marie Claire 台灣有一篇開播前的介紹<sup class="ref"><a href="#s47">47</a></sup>。</li>
+      <li><strong>韓國的評論。</strong>텐아시아 談第二季爭議的專欄<sup class="ref"><a href="#s26">26</a></sup>會提到第二季的結果，《韓國日報》對第三季的評論<sup class="ref"><a href="#s49">49</a></sup>會提到前幾集。</li>
+    </ul>
+    <div class="note warn">
+      <p class="head">這份報告可能錯在哪</p>
+      <ul>
+        <li>「他的本事是讀規則」和「敢講在場外成了負債」都是我的讀法，來源沒有這樣寫。</li>
+        <li>「Produce 101 讓觀眾對公平更敏感」是推論，沒有直接的調查資料。</li>
+        <li>「地獄朝鮮」是 2015 年的流行語，這一版沒有查它現在還有多少人在用。放進來是因為它描述的處境仍查得到數字。</li>
+        <li>黑湯匙和金湯匙、土湯匙是同一個比喻，這是我的觀察，정덕현 的文章沒有直接這樣寫。</li>
+        <li>修能的數字是報名人數，實際到考人數要等官方公布。</li>
+        <li>來源多半是韓國娛樂媒體，標題常帶著比賽結果。清單裡標了「含劇透」的，點之前想一下。</li>
+        <li>21 點牌桌的印字各家賭場不完全一樣，圖只是示意。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">-- · 來源 · SOURCES</p>
+    <ol class="sources">
+      <li id="s1"><a href="https://tvreport.co.kr/entertainment/article/1082840/">TV리포트：張東民的五個冠軍節目</a><span class="spoiler">含劇透</span></li>
+      <li id="s2"><a href="https://www.xportsnews.com/article_nview/886894">엑스포츠뉴스：《Society Game 2》的規則</a></li>
+      <li id="s3"><a href="https://www.tenasia.co.kr/article/2026102025854">텐아시아：鄭鍾淵談找張東民的理由</a></li>
+      <li id="s4"><a href="https://news.jkn.co.kr/post/1072331">재경일보：第三季記者會與規則改動</a></li>
+      <li id="s5"><a href="https://www.segye.com/newsView/20250724517317">세계일보：KBS 第 19 期公開招考</a></li>
+      <li id="s6"><a href="https://www.newstomato.com/RealTime/RealTimeDetail.aspx?no=1113304">뉴스토마토：全盛期招考報名超過三千人</a></li>
+      <li id="s7"><a href="https://www.ytn.co.kr/_ln/0117_202503101716241959">YTN：KBS 第 34 期，450 人報名、錄取 14 人</a></li>
+      <li id="s8"><a href="https://eiec.kdi.re.kr/policy/materialView.do?num=255989">KDI 經濟資訊中心（教育部公告）：2027 學年度修能 11 月 19 日</a></li>
+      <li id="s9"><a href="https://www.mt.co.kr/policy/2026/09/08/2026090810102413804">머니투데이：修能報名 551,864 人</a></li>
+      <li id="s10"><a href="https://www.insight.co.kr/news/572457">인사이트：非在校考生 196,473 人，佔 35.6%</a></li>
+      <li id="s11"><a href="https://www.segye.com/newsView/20240814518988">세계일보：2028 改制前最後一屆現行修能</a></li>
+      <li id="s12"><a href="https://www.newsis.com/view/NISX20260312_0003545499">뉴시스：2025 年私教育支出 27.5 兆韓元、參與學生每月 60.4 萬</a></li>
+      <li id="s13"><a href="https://www.index.go.kr/unify/idx-info.do?idxCd=2697">e-나라지표：私教育參與率 75.7%</a></li>
+      <li id="s14"><a href="https://www.mydaily.co.kr/page/view/2024091117422471383">마이데일리：為什麼偏偏是生存節目</a></li>
+      <li id="s15"><a href="https://seoul.co.kr/news/plan/2011/03/26/20110326001010">서울신문（2011）：選秀熱與公平社會</a></li>
+      <li id="s16"><a href="https://nocutnews.co.kr/news/5451106">노컷뉴스：《Produce 101》的「國民製作人」規則與二審</a></li>
+      <li id="s17"><a href="https://ytn.co.kr/_ln/0117_202005291708118546">YTN：四季都有造假</a></li>
+      <li id="s18"><a href="https://www.lawtimes.co.kr/news/168549">법률신문：大法院判決確定</a></li>
+      <li id="s19"><a href="https://www.munhwa.com/article/11231000">문화일보：兩名製作人的刑期</a></li>
+      <li id="s20"><a href="https://www.newdaily.co.kr/site/data/html/2020/11/18/2020111800183.html">뉴데일리：二審公開 12 人名單、准許 100 韓元求償</a></li>
+      <li id="s21"><a href="https://enews.imbc.com/News/ViewAmp/450452">iMBC：張東民回應與製作團隊交情的質疑</a><span class="spoiler">含劇透</span></li>
+      <li id="s22"><a href="https://enews.imbc.com/News/RetrieveNewsInfo/504675">iMBC：《Betting on Fact》製作人專訪</a><span class="spoiler">含劇透</span></li>
+      <li id="s23"><a href="https://news.tf.co.kr/read/ogmeta/2212047.htm">더팩트：《魔鬼的計謀》第二季的批評</a><span class="spoiler">含劇透</span></li>
+      <li id="s24"><a href="https://www.osen.co.kr/article/G1112578387">OSEN：鄭鍾淵談第二季的批評</a><span class="spoiler">含劇透</span></li>
+      <li id="s25"><a href="https://enews.imbc.com/News/RetrieveNewsInfo/462585">iMBC：鄭鍾淵回應各項爭議</a><span class="spoiler">含劇透</span></li>
+      <li id="s26"><a href="https://www.tenasia.co.kr/article/2026110584114">텐아시아：專欄，第二季爭議該由誰負責</a><span class="spoiler">含劇透</span></li>
+      <li id="s27"><a href="https://www.osen.co.kr/article/G1110125229">OSEN：Podcast 發言被重新翻出（2015）</a></li>
+      <li id="s28"><a href="https://www.osen.co.kr/article/G1110126522">OSEN：退出《無限挑戰》候選的聲明</a></li>
+      <li id="s29"><a href="https://www.osen.co.kr/article/G1110126490">OSEN：當時已道歉並停播</a></li>
+      <li id="s30"><a href="https://www.osen.co.kr/article/G1110126661">OSEN：評論，有必要罵到退出嗎</a></li>
+      <li id="s31"><a href="https://www.tenasia.co.kr/article/2016040763374">텐아시아：短劇被單親家庭團體提告</a></li>
+      <li id="s32"><a href="https://www.tenasia.co.kr/article/2016041281554">텐아시아：團體撤告</a></li>
+      <li id="s33"><a href="https://www.allkpop.com/article/2016/04/jang-dong-min-leaves-comedy-big-league-and-a-look-at-myself-after-his-controversial-skit">allkpop：退出《喜劇大聯盟》等節目</a></li>
+      <li id="s34"><a href="https://www.newsis.com/view/NISX20250320_0003106817">뉴시스：國民年金法修正案通過</a></li>
+      <li id="s35"><a href="https://mohw.go.kr/menu.es?mid=a10714060000">韓國保健福祉部：年金改革說明</a></li>
+      <li id="s36"><a href="https://www.segye.com/newsView/20250401509555">세계일보：43% 適用對象</a></li>
+      <li id="s37"><a href="https://www.mol.gov.tw/1607/1632/1633/88127/">勞動部：2026 年起勞保老年年金請領年齡 65 歲</a></li>
+      <li id="s38"><a href="https://www.mol.gov.tw/1607/1632/1640/71722/">勞動部（2024）：年金制度實施時已明定逐步提高至 65 歲</a></li>
+      <li id="s39"><a href="https://isplus.com/article/view/isp202312190004">일간스포츠：KBS 第 33 期，隔五年</a></li>
+      <li id="s40"><a href="https://sports.khan.co.kr/article/202109091530003/amp">스포츠경향：《搞笑演唱會》2020 年 6 月停播</a></li>
+      <li id="s41"><a href="https://twig24.com/news/entertainments/broadcasting/2026/04/08/20260408500143">twig24：張東民設計的 Netflix 新節目</a></li>
+      <li id="s42"><a href="https://isplus.com/article/view/isp202604080038">일간스포츠：招募期間與預定開拍時間</a></li>
+      <li id="s43"><a href="https://www.joynews24.com/view/2027595">조이뉴스24：鄭鍾淵離開 TEO</a></li>
+      <li id="s44"><a href="https://www.starnewskorea.com/en/star/2026/11/05/2026110511082397666">Star News：不從生存節目退休</a></li>
+      <li id="s45"><a href="https://about.netflix.com/ko/news/the-devils-plan-dead-again-teaser">Netflix：《魔鬼的計謀：死亡重啟》作品資訊</a></li>
+      <li id="s46"><a href="https://www.xportsnews.com/article/2220771">엑스포츠뉴스：第三季上線排程</a><span class="spoiler">含劇透</span></li>
+      <li id="s47"><a href="https://www.marieclaire.com.tw/entertainment/tvshow/97002">Marie Claire 台灣：第三季開播前介紹</a></li>
+      <li id="s48"><a href="https://www.gq.com.tw/article/devils-plan-season-3-dong-min">GQ 台灣：張東民在第三季的表現（這一版未能讀取）</a><span class="spoiler">可能含劇透</span></li>
+      <li id="s49"><a href="https://hankookilbo.com/news/article/A2026111118140005398">한국일보：第三季評論</a><span class="spoiler">含劇透</span></li>
+      <li id="s50"><a href="https://weekly.khan.co.kr/article/201512220934241">주간경향（2015）：年度關鍵字「헬조선」</a></li>
+      <li id="s51"><a href="https://weekly.khan.co.kr/article/201604181808181">주간경향（2016）：N 拋世代是什麼</a></li>
+      <li id="s52"><a href="https://www.segye.com/newsView/20151224000736">세계일보（2015）：大學生最常用新詞調查</a></li>
+      <li id="s53"><a href="https://www.segye.com/newsView/20251111517028">세계일보：2025 年社會調查，57.7% 認為階層上升可能性低</a></li>
+      <li id="s54"><a href="https://www.newstomato.com/ReadNews.aspx?no=1320128">뉴스토마토：2026 年 10 月青年就業率 42.9%</a></li>
+      <li id="s55"><a href="https://www.newsis.com/view/NISX20260225_0003525439">뉴시스：2025 年總生育率 0.80，連兩年回升</a></li>
+      <li id="s56"><a href="https://www.khan.co.kr/article/202602252018005/">경향신문：OECD 唯一低於 1</a></li>
+      <li id="s57"><a href="https://www.xportsnews.com/article/2006067">엑스포츠뉴스：第二季 14 人合宿七天</a><span class="spoiler">含劇透</span></li>
+      <li id="s58"><a href="https://www.kocca.kr/n_content/kocca_vol34/vol34/02.html">韓國文化內容振興院（정덕현）：K 內容的階級論</a><span class="spoiler">可能含劇透</span></li>
+      <li id="s59"><a href="https://enews.imbc.com/News/ViewAmp/462586">iMBC：鄭鍾淵談求勝心</a><span class="spoiler">含劇透</span></li>
+    </ol>
+  </section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
