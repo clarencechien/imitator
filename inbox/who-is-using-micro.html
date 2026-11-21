@@ -1,0 +1,1250 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="電話費帳單 — 同一通電話三種費率：月租吃到飽、團體月租、按量計費。把四家 AI 的訂閱額度當成費用明細來對，吃到飽那一格旁邊印著公平使用">
+<meta name="imitator-reference" content="2000 年代初台灣行動電話帳單的費用明細頁 — 淡橘色網底、月租費／通話費／優惠折抵一項一項、點陣印表機的等寬數字、應繳金額欄的洋紅套色、頁尾一行小字的公平使用條款">
+<meta name="imitator-paper" content="hsl(24 60% 94%)">
+<meta name="imitator-accent" content="hsl(325 62% 31%)">
+<title>月租沒變，單價在改 — 分層讀法番外二</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@700&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+</style>
+<style>
+/* REGISTER:  電話費帳單 — 同一通電話有三種費率：月租吃到飽、團體月租、按量計費。把四家 AI 的訂閱額度當成一張帳單的費用明細來對，吃到飽那一格旁邊印著公平使用。
+   REFERENCE: 2000 年代初台灣行動電話帳單的費用明細頁 — 淡橘色網底、月租費／通話費／優惠折抵一項一項、點陣印表機的等寬數字、應繳金額欄的洋紅套色、頁尾一行小字的公平使用條款。
+   PAPER:     帳單明細頁的淡橘網底，hsl(24 60% 94%)。深色不是反相，是帳單信封內襯的藍黑防窺紋。
+   VOICE:     費用明細的格線與項次；等寬體填數字；洋紅只給路標、連結與標題裡那個字；推算、自算、未驗沿用總經篇的蓋章式標籤。
+   NOT:       價格比較網站或選購指南。沒有推薦方案、沒有星等、沒有「最划算」。
+   RECENT:    paper 168° 150° 86° · accent 215° 42° 8°（讀 repo archive 的 git 歷史，不含 CLI 直推的報告）— 24° 與 325° 都離得夠遠。
+              總經篇〈貨到哪，票開給誰，誰在用〉是 350°／158°，也錯開了。 */
+:root {
+  --paper: hsl(24 60% 94%);
+  --card: hsl(26 72% 97.5%);
+  --ink: hsl(20 26% 12%);
+  --ink-2: hsl(20 13% 29%);
+  --mist: hsl(20 9% 39%);
+  --rule: hsl(24 42% 85%);
+  --rule-hard: hsl(24 28% 68%);
+  --accent: hsl(325 62% 31%);          /* 應繳金額欄的洋紅 */
+  --accent-soft: hsl(325 46% 90%);
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --serif: "Songti TC", "PMingLiU", "Noto Serif TC", Georgia, serif;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "Courier New", ui-monospace, Menlo, monospace;
+  --radius: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(218 30% 11%); --card: hsl(218 26% 15%);
+    --ink: hsl(28 34% 92%); --ink-2: hsl(28 16% 77%); --mist: hsl(28 10% 63%);
+    --rule: hsl(218 22% 22%); --rule-hard: hsl(218 18% 36%);
+    --accent: hsl(325 64% 78%); --accent-soft: hsl(325 30% 22%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(218 30% 11%); --card: hsl(218 26% 15%);
+  --ink: hsl(28 34% 92%); --ink-2: hsl(28 16% 77%); --mist: hsl(28 10% 63%);
+  --rule: hsl(218 22% 22%); --rule-hard: hsl(218 18% 36%);
+  --accent: hsl(325 64% 78%); --accent-soft: hsl(325 30% 22%);
+}
+
+pre { font-family: var(--mono); }
+.display { font-weight: 900; letter-spacing: -.02em; }
+.display .nb { display: inline-block; }
+h2 { font-weight: 900; letter-spacing: -.01em; }
+h3 { font-weight: 700; margin-top: var(--sp-6); }
+.eyebrow + h3 { margin-top: var(--sp-2); }
+.pull { font-weight: 700; }
+a.chip { color: var(--paper); text-decoration: none; }
+.note .head { font-family: var(--mono); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .12em; color: var(--accent); }
+td .sub { display: block; }
+td.num, th.num { font-family: var(--mono); }
+
+/* 帳單的費用明細：三種費率並排 */
+.bill { background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius); }
+.bill-top { display: flex; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; padding: .5rem var(--sp-4); border-bottom: 2px solid var(--ink); font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; color: var(--mist); }
+.bill-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.bill-cell { min-width: 0; padding: var(--sp-4); border-right: 1px dashed var(--rule-hard); }
+.bill-cell:last-child { border-right: 0; }
+.bill-cell .no { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; color: var(--mist); }
+.bill-cell .q { font-family: var(--disp); font-weight: 900; font-size: 1.5rem; line-height: 1.3; margin: .2rem 0 .1rem; }
+.bill-cell .term { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .04em; color: var(--accent); }
+.bill-cell ul { list-style: none; padding: 0; margin: var(--sp-4) 0 0; border-top: 1px solid var(--rule); }
+.bill-cell li { margin: 0; padding: .5rem 0; border-bottom: 1px solid var(--rule); font-size: var(--fs-sm); line-height: 1.6; color: var(--ink-2); }
+.bill-cell li b { color: var(--ink); font-weight: 700; }
+.bill-due { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-3); margin-top: var(--sp-3); font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+.bill-due b { font-size: 1.25rem; letter-spacing: 0; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.bill figcaption { margin: 0; padding: .7rem var(--sp-4); border-top: 2px solid var(--ink); }
+@media (max-width: 46rem) {
+  .bill-grid { grid-template-columns: minmax(0, 1fr); }
+  .bill-cell { border-right: 0; border-bottom: 1px dashed var(--rule-hard); }
+  .bill-cell:last-child { border-bottom: 0; }
+}
+
+/* 蓋章式標籤：推算、自算、未驗（沿用總經篇） */
+.stamp { font-family: var(--mono); font-size: .68em; font-weight: 600; letter-spacing: .1em; border: 1.5px solid currentColor; border-radius: 2px; padding: 0 .35em; margin: 0 .15em; vertical-align: .12em; white-space: nowrap; color: var(--ink-2); }
+.stamp.unv { border-style: double; border-width: 3px; }
+.stamp.own { color: var(--accent); }
+sup.ref { font-family: var(--mono); font-size: .66em; line-height: 0; color: var(--mist); }
+sup.ref a { text-decoration: none; }
+
+/* 判讀：和事實分開放 */
+.verdict { border: 2px solid var(--accent); border-radius: var(--radius); padding: var(--sp-4) var(--sp-5); margin: var(--sp-5) 0; background: var(--card); }
+.verdict .head { font-family: var(--mono); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .14em; color: var(--accent); margin: 0 0 var(--sp-2); }
+.verdict p:last-child { margin-bottom: 0; }
+
+/* 帳單頁尾的小字 */
+.fineprint { font-family: var(--mono); font-size: var(--fs-xs); line-height: 1.7; letter-spacing: .02em; color: var(--mist); border-top: 1px dashed var(--rule-hard); padding-top: var(--sp-3); }
+
+caption { caption-side: top; text-align: left; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em; color: var(--mist); padding: .65rem .9rem; border-bottom: 1px solid var(--rule); }
+.reflist, .plainlist { font-size: var(--fs-sm); line-height: 1.7; padding-left: 2.2em; }
+.reflist li { overflow-wrap: anywhere; }
+.reflist .lv { font-family: var(--mono); font-size: .78em; letter-spacing: .06em; color: var(--accent); margin-left: .3em; white-space: nowrap; }
+.reflist a { font-family: var(--mono); font-size: .82em; }
+.colophon { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); border-top: 1px solid var(--rule); padding-top: var(--sp-4); margin-top: var(--sp-6); }
+.stat .value { font-family: var(--mono); }
+/* 多欄表在手機上橫向捲，不把欄擠成一字一行 */
+.table-scroll table.c3 { min-width: 30rem; }
+.table-scroll table.c4 { min-width: 38rem; }
+.table-scroll table.c5 { min-width: 46rem; }
+.table-scroll table.c6 { min-width: 54rem; }
+
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<p class="eyebrow">分層讀法 · 番外二 · 2026-11</p>
+<h1 class="display"><span class="nb">月租沒變，</span><span class="nb"><em>單價</em>在改</span></h1>
+<p class="lede">2026 年 11 月 20 日有一張圖在流傳：Claude 的 100 美元月費，用滿可以抵 API 牌價 4,640 美元的量。同一個方案，10 月有人量到 5,725 美元。月費一直是 100 美元。訂閱的月費印在價目表上，單價藏在額度裡。額度多大沒有公布，而且一直在改。</p>
+<p class="byline">分層讀法番外二 · 資料截至 2026-11-20 · v0.3 · 番外一《<a href="https://imitator.ai-apps.work/r/who-is-using">貨到哪，票開給誰，誰在用</a>》 · 下篇《<a href="https://imitator.ai-apps.work/r/no-exchange-rate">沒有匯率</a>》</p>
+
+<div class="note">
+<p class="head">先講清楚的四件事</p>
+<p>本文由 Claude（Anthropic 開發的 AI）撰寫。文中比較四家廠商，Anthropic 是其中一家，而且它的倍數最高。本文只排量測數字與各家公告，中立性仍應打折閱讀。</p>
+<p>每個數字後面的編號連到文末出處，並標來源等級。排序沿用〈沒有匯率〉：揭露 ＞ 調查 ＞ 分析師 ＞ 轉述 ＞ 部落格。</p>
+<p>另外有三種章。<span class="stamp est">推算</span>是別人估的，有假設。<span class="stamp own">自算</span>是本文拿別人的數字做的加減乘除。<span class="stamp unv">未驗</span>是查不到出處，或沒有人實測。蓋了章的數字不能當事實引用，全部列在項 09。</p>
+<p>這是第三版。第一版的標題問「誰把額度用滿」，那個問題本文的材料答不了。第二版起只主張一件事：訂閱的實際單價由廠商單方面決定，而且事前看不到。第三版對著番外一重寫了項 08。改了哪些地方列在文末。</p>
+</div>
+
+<figure class="bill wide reveal" aria-label="同一百美元的三種費率">
+<div class="bill-top"><span>費用明細 · CLAUDE CODE · OPUS 5.5</span><span>同一個工具，三種單價</span></div>
+<div class="bill-grid">
+  <div class="bill-cell">
+    <div class="no">01 · 月租吃到飽</div>
+    <div class="q">個人 Max</div>
+    <div class="term">100 美元／月</div>
+    <div class="bill-due"><span>用滿可抵</span><b>4,640–5,725</b></div>
+    <ul>
+      <li><b>額度</b>：Pro 的 5 倍，每 5 小時與每週各一道上限</li>
+      <li><b>Fable</b>：最多用到週額度的一半</li>
+      <li><b>月租抵通話</b>：另附 100 美元 API credits</li>
+      <li><b>單價</b>：看你用掉額度的幾成，事前算不出來</li>
+    </ul>
+  </div>
+  <div class="bill-cell">
+    <div class="no">02 · 團體月租</div>
+    <div class="q">Team Premium 席</div>
+    <div class="term">125 美元／席／月，年繳 100</div>
+    <div class="bill-due"><span>用滿可抵</span><b>沒有人量過</b></div>
+    <ul>
+      <li><b>額度</b>：標準席的 5 倍，每席各算，不能互轉</li>
+      <li><b>週額度</b>：官方沒有公布</li>
+      <li><b>月租抵通話</b>：全隊共用，上限 500 美元</li>
+      <li><b>單價</b>：同上，而且連天花板都沒有人量</li>
+    </ul>
+  </div>
+  <div class="bill-cell">
+    <div class="no">03 · 按量計費</div>
+    <div class="q">Enterprise</div>
+    <div class="term">座位 20 美元 + 用量照 API 牌價</div>
+    <div class="bill-due"><span>花 100 可抵</span><b>100</b></div>
+    <ul>
+      <li><b>額度</b>：沒有每席上限，也沒有附送的量</li>
+      <li><b>門檻</b>：最少 20 席，年繳</li>
+      <li><b>官方平均</b>：每位開發者每月 150 到 250 美元</li>
+      <li><b>單價</b>：就是牌價，算得出來</li>
+    </ul>
+  </div>
+</div>
+<figcaption>同一個工具、同一個模型。金額單位是美元，「可抵」指照 API 公開牌價換算的用量。公司實際要選的是中間與右邊兩格。出處見項 01 到項 03。</figcaption>
+</figure>
+
+<section id="i01">
+<p class="eyebrow reveal">項 01 · 怎麼量</p>
+<h2>把額度表從零打到滿，再照牌價算</h2>
+
+<p>那張圖是 Paweł Huryn 做的，標題是「訂閱比 API 多買到多少用量」。<sup class="ref">[<a href="#ref-1">1</a>]</sup> 他的做法寫在公開的 repo 裡。<sup class="ref">[<a href="#ref-2">2</a>]</sup></p>
+
+<ul>
+<li>讀每家 client 自己回報的週額度百分比。Claude Code 是 <code>rate_limit_event</code> 裡的 <code>seven_day.utilization</code>，Codex 是 <code>rate_limits.primary.used_percent</code>。</li>
+<li>量測期間的每一次模型呼叫，從 client 的 log 撈出來，照實際提供服務的模型的 API 牌價計價。client 自己印的費用欄位不採用。</li>
+<li>算出額度表每走 1% 值多少美元，乘以 100 是一週，再乘以 30.4375 ÷ 7 是一個月，最後除以月費。</li>
+</ul>
+
+<p>所以「46.4 倍」的意思是，把 100 美元方案一個月的額度全部用完，同樣的呼叫改走 API，帳單是 4,640 美元。</p>
+
+<div class="table-scroll">
+<table class="c5">
+<caption>圖上的六列（v1，2026-11）</caption>
+<thead><tr><th>方案與模型</th><th class="num">月費</th><th class="num">倍數</th><th>量測日</th><th>圖上自己的附註</th></tr></thead>
+<tbody>
+<tr><td>Claude Max<span class="sub">Opus 5.5 · Claude Code</span></td><td class="num nowrap">$100</td><td class="num nowrap">46.4×</td><td class="nowrap">11/19</td><td>量測範圍 45.2 到 47.6</td></tr>
+<tr><td>Claude Max<span class="sub">Fable 5.2 · Claude Code</span></td><td class="num nowrap">$100</td><td class="num nowrap">27.3×</td><td class="nowrap">11/19–20</td><td>Fable 可能只能用半週，只算 Fable 是 13.6 倍</td></tr>
+<tr><td>Google AI Ultra<span class="sub">Gemini 4 Neon · Antigravity CLI</span></td><td class="num nowrap">$99.99</td><td class="num nowrap">25.8×</td><td class="nowrap">11/19–20</td><td>CLI 的 token 計數偏低 10% 到 38%，可能是 28 到 41 倍</td></tr>
+<tr><td>The X Subscription, Premium<span class="sub">Grok 4.7 · Grok Build</span></td><td class="num nowrap">$30</td><td class="num nowrap">20.3×</td><td class="nowrap">11/19–20</td><td>low effort 下量的</td></tr>
+<tr><td>ChatGPT Pro<span class="sub">GPT-6.1 Sol · Codex CLI</span></td><td class="num nowrap">$100</td><td class="num nowrap">10.25×</td><td class="nowrap">10/1</td><td>歷史數字</td></tr>
+<tr><td>Muse Code High Usage<span class="sub">Muse Spark 1.3 · Muse Code</span></td><td class="num nowrap">$15</td><td class="num nowrap">9.3×</td><td class="nowrap">10/1</td><td>無</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">本文打不開 X 上的原貼文，上表讀自讀者轉來的圖檔。<sup class="ref">[<a href="#ref-1">1</a>]</sup> 圖註寫明兩個前提：假設整週的額度都用得到，Claude Max 附的每月 100 美元 API credits 沒有算進去。</p>
+
+<p>Huryn 自己列了四個限制。<sup class="ref">[<a href="#ref-2">2</a>]</sup> 倍數假設整週都能用滿，但 Claude 另有 5 小時窗，可能先卡住。結果跟工作內容有關：同樣是 Claude，短的平行 session 約六成是 5 分鐘 cache 寫入，量到 45 倍上下；長的歷史 session 有 78% 是 cache 讀取，量到 62 倍上下。10 月那一輪多數方案只跑一次。計價用的是 API 牌價，是 API 使用者會付的錢，跟廠商的成本無關。</p>
+
+<div class="verdict">
+<p class="head">判讀</p>
+<p>這個數字可以重做，方法和 10 月的資料都公開。它量的是某一天的天花板。六列的量測日、模型與設定都不同，橫向排名要保留。額度多大要靠外面的人這樣量，這件事本身就是下面幾項的起點。</p>
+</div>
+</section>
+
+<section id="i02">
+<p class="eyebrow reveal">項 02 · 三把尺</p>
+<h2>同一個方案，量出來不一樣</h2>
+
+<p>做過同一件事的不只一個人。把查得到的量測照日期排開，Claude 和 ChatGPT 各一張表。倍數欄凡是本文自己用「每月金額 ÷ 月費」換算的，蓋自算章。</p>
+
+<div class="table-scroll">
+<table class="c5">
+<caption>Claude 個人方案</caption>
+<thead><tr><th>誰量的</th><th>何時</th><th>方案</th><th class="num">每月 API 等值</th><th class="num">倍數</th></tr></thead>
+<tbody>
+<tr><td>she-llac<span class="sub">逆推內部 credits</span></td><td class="nowrap">2026-01</td><td>Max 5x</td><td class="num">未列</td><td class="num nowrap">13.5–36.7× <sup class="ref">[<a href="#ref-54">54</a>]</sup></td></tr>
+<tr><td>SemiAnalysis<span class="sub">寫的是最高可到</span></td><td class="nowrap">2026-06</td><td>Max 200 美元</td><td class="num nowrap">最高 8,000</td><td class="num nowrap">至多 40× <span class="stamp own">自算</span> <sup class="ref">[<a href="#ref-8">8</a>]</sup></td></tr>
+<tr><td>@kunchenguid<span class="sub">用掉約 5 個百分點外推</span></td><td class="nowrap">2026-09 前</td><td>Max 20x</td><td class="num nowrap">約 7,200</td><td class="num nowrap">36× <sup class="ref">[<a href="#ref-12">12</a>]</sup></td></tr>
+<tr><td>Huryn</td><td class="nowrap">10/1–3</td><td>Pro、Max 20x</td><td class="num">未列</td><td class="num nowrap">42.0×、45.3× <sup class="ref">[<a href="#ref-2">2</a>]</sup></td></tr>
+<tr><td>SemiAnalysis</td><td class="nowrap">10/5</td><td>Pro、Max 5x、Max 20x</td><td class="num nowrap">1,178、5,725、11,726</td><td class="num nowrap">58.9、57.3、58.6× <span class="stamp own">自算</span> <sup class="ref">[<a href="#ref-7">7</a>]</sup></td></tr>
+<tr><td>Wokey<span class="sub">18 個帳號，按 92% cache 讀取估</span></td><td class="nowrap">11/09–16</td><td>Ultra（原 Max 20x）</td><td class="num nowrap">6,830</td><td class="num nowrap">34.2× <span class="stamp own">自算</span> <sup class="ref">[<a href="#ref-10">10</a>]</sup></td></tr>
+<tr><td>Huryn</td><td class="nowrap">11/19</td><td>Max 100 美元</td><td class="num nowrap">4,640</td><td class="num nowrap">46.4× <sup class="ref">[<a href="#ref-1">1</a>]</sup></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="table-scroll">
+<table class="c5">
+<caption>ChatGPT 個人方案（Codex）</caption>
+<thead><tr><th>誰量的</th><th>何時</th><th>方案</th><th class="num">每月 API 等值</th><th class="num">倍數</th></tr></thead>
+<tbody>
+<tr><td>SemiAnalysis<span class="sub">寫的是最高可到</span></td><td class="nowrap">2026-06</td><td>Pro 200 美元</td><td class="num nowrap">最高 14,000</td><td class="num nowrap">至多 70× <span class="stamp own">自算</span> <sup class="ref">[<a href="#ref-8">8</a>]</sup></td></tr>
+<tr><td>@kunchenguid</td><td class="nowrap">2026-09 前</td><td>Pro 20x</td><td class="num nowrap">約 6,750</td><td class="num nowrap">33.8× <sup class="ref">[<a href="#ref-12">12</a>]</sup></td></tr>
+<tr><td>FinOps LLM<span class="sub">6 個完整週窗</span></td><td class="nowrap">9/27–10/8</td><td>Pro 100</td><td class="num nowrap">約 760</td><td class="num nowrap">7.6× <sup class="ref">[<a href="#ref-13">13</a>]</sup></td></tr>
+<tr><td>Huryn</td><td class="nowrap">10/1</td><td>Pro 100</td><td class="num">未列</td><td class="num nowrap">10.25× <sup class="ref">[<a href="#ref-2">2</a>]</sup></td></tr>
+<tr><td>InventiveHQ<span class="sub">各兩個窗</span></td><td class="nowrap">10/4</td><td>Pro 100、Pro 200</td><td class="num nowrap">1,440–1,640、約 2,800</td><td class="num nowrap">14–16×、14× <sup class="ref">[<a href="#ref-14">14</a>]</sup></td></tr>
+<tr><td>SemiAnalysis</td><td class="nowrap">10/5</td><td>Plus、Pro 100、Pro 200</td><td class="num nowrap">211、1,055、2,084</td><td class="num nowrap">10.6、10.6、10.4× <span class="stamp own">自算</span> <sup class="ref">[<a href="#ref-7">7</a>]</sup></td></tr>
+<tr><td>Wokey<span class="sub">7 個帳號</span></td><td class="nowrap">10/26–11/2</td><td>Pro 200</td><td class="num nowrap">2,519</td><td class="num nowrap">12.6× <span class="stamp own">自算</span> <sup class="ref">[<a href="#ref-11">11</a>]</sup></td></tr>
+<tr><td>一則影片摘要</td><td class="nowrap">10/29 之後</td><td>Pro 200</td><td class="num nowrap">約 4,300</td><td class="num nowrap">21.5× <span class="stamp unv">未驗</span> <sup class="ref">[<a href="#ref-15">15</a>]</sup></td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">SemiAnalysis 兩份報告都在付費牆後，本文讀到的是其他媒體的轉述。6 月那兩列是「最高可到」，10 月那幾列是一般估計，兩種數字不能直接相除。Wokey 那一列的量測週剛好跨過 10 月 29 日。最後一列是影片的文字摘要，原始量測方法不明。Huryn 11 月 19 日的貼文仍寫 OpenAI 約 10.5 倍，並預告 Gemini 初估 25.2 到 26.2 倍。<sup class="ref">[<a href="#ref-4">4</a>]</sup></p>
+
+<p>數字不一樣，原因查得到三個。</p>
+
+<p>第一個是 cache 比例。項 01 提過，同一個方案從 45 倍到 62 倍，差別只在讀取和寫入各占多少。Wokey 用 92% cache 讀取的比例估出 34 倍，SemiAnalysis 用它自己的 agentic 工作負載估出 58 倍，兩個都說得通。</p>
+
+<p>第二個是日期。項 05 會排出來，四家的額度在這一年半裡一直在動。同一個 ChatGPT Pro，6 月、10 月初、10 月底是三個不同的東西。</p>
+
+<p>第三個是「5x」「20x」指的窗不同。Claude 的 200 美元方案過去叫 Max 20x，20 倍指的是 5 小時窗。SemiAnalysis 量到它的週額度是 Pro 的 10.0 倍<span class="stamp own">自算</span>，Wokey 量到 9.7 倍，<sup class="ref">[<a href="#ref-7">7</a>]</sup><sup class="ref">[<a href="#ref-10">10</a>]</sup> 官方的價目頁現在也直接寫每週是 Pro 的 10 倍。<sup class="ref">[<a href="#ref-16">16</a>]</sup><sup class="ref">[<a href="#ref-18">18</a>]</sup></p>
+
+<div class="verdict">
+<p class="head">判讀</p>
+<p>Claude 的個人方案用滿，幾把尺落在 34 到 59 倍。ChatGPT 在 10 月初是 10 倍上下，10 月 29 日加倍之後還沒有人用同一套方法重量，圖上那一列 10.25 倍是加倍之前的數字。這段時間兩家的月費都沒有動。倍數會動是因為額度在動，而額度多大只能靠外面的人量。</p>
+</div>
+</section>
+
+<section id="i03">
+<p class="eyebrow reveal">項 03 · 帳單抬頭</p>
+<h2>同一個工具，三種單價</h2>
+
+<p>先看 Anthropic 自己的價目頁。<sup class="ref">[<a href="#ref-16">16</a>]</sup></p>
+
+<ul>
+<li><b>Max</b>，每月 100 美元。用量是 Pro 的 5 倍，每 5 小時與每週各算一次。Fable 最多用到週額度的 50%。附每月 100 美元的 API credits。</li>
+<li><b>Team</b>，標準席年繳每月 20 美元、月繳 25 美元，用量「比 Pro 多」。Premium 席年繳 100、月繳 125，是標準席的 5 倍。全隊共用的 API credits 每月最多 500 美元。</li>
+<li><b>Enterprise</b>，每席每月 20 美元，年繳，最少 20 席。用量照 API 牌價計。</li>
+</ul>
+
+<p>Team 的「比 Pro 多」是多多少，價目頁沒寫。幾份整理 Help Center 的第三方文章寫的是每個 session 1.25 倍，Premium 席 6.25 倍，每席各算，不能互轉。<sup class="ref">[<a href="#ref-19">19</a>]</sup> 照這個數字除一下月費：Pro 是 1 ÷ 20，Max 是 5 ÷ 100，Team 月繳的兩種席是 1.25 ÷ 25 和 6.25 ÷ 125，四個答案都是 0.05。<span class="stamp own">自算</span> 月繳的 Team 席，每一美元買到的 session 額度跟個人方案一樣，年繳便宜兩成。</p>
+
+<p>但 session 額度只是其中一道上限。Team 的週額度沒有公布，本文也沒有找到任何人照項 01 的方法量過 Team 席。「Team 也是四十幾倍」只能是推算。<span class="stamp unv">未驗</span></p>
+
+<p>Enterprise 這一格不用量。Anthropic 的說法是 Claude、Claude Code 與 Cowork 的用量全部另外照標準 API 費率計，沒有每席上限，也沒有附送的 token。<sup class="ref">[<a href="#ref-20">20</a>]</sup><sup class="ref">[<a href="#ref-19">19</a>]</sup> 花 100 美元的用量就是 100 美元。加上 20 美元座位費，是花 120 拿 100，0.83 倍。<span class="stamp own">自算</span> 舊合約的 seat-based Enterprise 在續約前保留每席額度，計費方式跟 Team 一樣。<sup class="ref">[<a href="#ref-19">19</a>]</sup><sup class="ref">[<a href="#ref-17">17</a>]</sup></p>
+
+<p>公司實際面對的選擇在中間與右邊。Team 最多 150 席，<sup class="ref">[<a href="#ref-59">59</a>]</sup> 超過就只有 Enterprise。150 席以內的公司要在 Team 與 Enterprise 之間選，而 Team 這一格沒有人量過。這張帳單上最該有數字的地方是空的。</p>
+
+<h3>按量付費的人實際花多少</h3>
+
+<p>Anthropic 的文件有一段平均數：企業部署裡，每位開發者每個活躍日的成本約 13 美元，每月 150 到 250 美元，九成使用者每個活躍日低於 30 美元。<sup class="ref">[<a href="#ref-17">17</a>]</sup></p>
+
+<figure class="wide reveal">
+<p class="title">一位開發者一個月，照 API 牌價是多少</p>
+<p class="subtitle">單位美元。上面三列是官方數字與本文換算，下面兩列是把 100 美元方案用滿的量測。</p>
+<div class="chart">
+<svg viewBox="0 0 640 262" role="img" aria-label="五個金額的橫條圖：100、150 到 250、660、4,640、5,725 美元">
+  <line class="grid" x1="10" y1="14" x2="10" y2="232"/>
+  <line class="grid" x1="210" y1="14" x2="210" y2="232"/>
+  <line class="grid" x1="410" y1="14" x2="410" y2="232"/>
+  <line class="grid" x1="610" y1="14" x2="610" y2="232"/>
+  <text class="axis" x="10" y="250">0</text>
+  <text class="axis" x="210" y="250" text-anchor="middle">2,000</text>
+  <text class="axis" x="410" y="250" text-anchor="middle">4,000</text>
+  <text class="axis" x="610" y="250" text-anchor="end">6,000</text>
+
+  <text class="label" x="10" y="26">Enterprise 上花 100 美元的用量 · 100</text>
+  <rect class="bar" x="10" y="32" width="10" height="12" fill="var(--c1)"/>
+  <text class="label" x="10" y="70">企業部署的平均（官方）· 150–250</text>
+  <rect class="bar" x="10" y="76" width="25" height="12" fill="var(--c1)"/>
+  <text class="label" x="10" y="114">九成使用者的上緣（每活躍日 30 × 22 日）· 660</text>
+  <rect class="bar" x="10" y="120" width="66" height="12" fill="var(--c1)"/>
+  <text class="label" x="10" y="158">Max 100 美元用滿（Huryn，11/19）· 4,640</text>
+  <rect class="bar" x="10" y="164" width="464" height="12" fill="var(--c1)"/>
+  <text class="label" x="10" y="202">Max 100 美元用滿（SemiAnalysis，10/5）· 5,725</text>
+  <rect class="bar" x="10" y="208" width="572.5" height="12" fill="var(--c1)"/>
+</svg>
+</div>
+<details class="datatable">
+<summary>這張圖的數字</summary>
+<div class="table-scroll plain">
+<table>
+<thead><tr><th>列</th><th class="num">美元／月</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td>Enterprise 上花 100 美元的用量</td><td class="num">100</td><td>定義</td></tr>
+<tr><td>企業部署的平均</td><td class="num">150–250</td><td>Anthropic 文件 <sup class="ref">[<a href="#ref-17">17</a>]</sup></td></tr>
+<tr><td>九成使用者的上緣</td><td class="num">660</td><td>每活躍日 30 美元 × 22 日 <span class="stamp own">自算</span></td></tr>
+<tr><td>Max 100 美元用滿</td><td class="num">4,640</td><td>Huryn <sup class="ref">[<a href="#ref-1">1</a>]</sup></td></tr>
+<tr><td>Max 100 美元用滿</td><td class="num">5,725</td><td>SemiAnalysis（轉述）<sup class="ref">[<a href="#ref-7">7</a>]</sup></td></tr>
+</tbody>
+</table>
+</div>
+</details>
+<figcaption>橫軸到 6,000 美元。平均那一列畫到 250。每月 22 個活躍日是本文的假設。</figcaption>
+</figure>
+
+<p>把這幾個數字放在一起算。<span class="stamp own">自算</span></p>
+
+<ul>
+<li>平均的開發者在 Enterprise 上連座位費是每月 170 到 270 美元，是 Max 月費的 1.7 到 2.7 倍。</li>
+<li>九成的人每月不到 660 美元，占 Max 天花板的 11% 到 14%。</li>
+<li>照 API 計價的用量超過每月 80 美元，大約 6 個平均的活躍日，100 美元的 Max 就比 Enterprise 便宜。</li>
+</ul>
+
+<p>這幾行有一個限制。這群人是按量付費的，按量付費的人會省著用，換成吃到飽之後用量多半會變。所以它只能回答一個問題：照他們現在的用量，帳單印哪一種抬頭比較便宜。它不能拿來推估訂閱者實際用掉多少。</p>
+
+<h3>其他三家的公司價</h3>
+
+<p>OpenAI 的 Business 標準席年繳每月 20 美元，Work 與 Codex 的額度跟 Plus 同級。Premium 席年繳 100 美元，是標準席的 5 倍，沒有 5 小時限制。<sup class="ref">[<a href="#ref-53">53</a>]</sup><sup class="ref">[<a href="#ref-34">34</a>]</sup> Enterprise 與 Edu 改用 credits，沒有固定的用量上限，credits 對 API 牌價怎麼換算，本文沒有查到公開數字。<sup class="ref">[<a href="#ref-34">34</a>]</sup> Google 的企業版沒有公布用量限制。<sup class="ref">[<a href="#ref-52">52</a>]</sup> xAI 沒有查到對應的公司方案。</p>
+
+<div class="verdict">
+<p class="head">判讀</p>
+<p>同一個工具、同一個模型，單價跟著帳單抬頭換。個人與 Team 的單價要看你用掉額度的幾成，額度多大又沒有公布，所以訂閱的單價事前算不出來。Enterprise 的單價算得出來，就是牌價。多付的錢買到的是可預期、沒有上限，以及 SCIM、稽核紀錄這類管理功能。<sup class="ref">[<a href="#ref-58">58</a>]</sup></p>
+</div>
+</section>
+
+<section id="i04">
+<p class="eyebrow reveal">項 04 · 誰在用</p>
+<h2>廠商為什麼一直調：線索有四條，都不夠硬</h2>
+
+<p>額度為什麼要一直改，最直接的解釋是用量集中在少數人身上。這一節的證據是全篇最弱的，先把四條線索和各自的毛病列出來。</p>
+
+<ul>
+<li><b>Anthropic 自己講過兩次。</b>2025 年 7 月加週上限時，它估受影響的訂閱者不到 5%，理由是帳號共用、轉售，以及有人把 Claude 放在背景 24 小時跑。<sup class="ref">[<a href="#ref-22">22</a>]</sup><sup class="ref">[<a href="#ref-23">23</a>]</sup> 它還舉了一個例子：有人訂 200 美元的方案，用掉數萬美元的量。<sup class="ref">[<a href="#ref-24">24</a>]</sup> 2026 年 3 月尖峰時段加扣時，它估約 7% 的使用者會撞到原本撞不到的上限。<sup class="ref">[<a href="#ref-30">30</a>]</sup> 毛病：兩個數字都是當時的上限、當時的訂閱者，一個是一年多前的。</li>
+<li><b>買高價方案的比例。</b>a16z 第七版的消費者 AI 榜引用 YipitData 的美國面板資料。Claude 的付費者裡，7.3% 訂了最貴的個人方案 Max，100 美元起跳。Google 對應的比例是 1.3%，ChatGPT 是 1.1%。<sup class="ref">[<a href="#ref-21">21</a>]</sup> 毛病：這是誰付比較多錢，不是誰用比較多。</li>
+<li><b>分析師的估計。</b>SemiAnalysis 10 月的報告說，訂閱只占 Anthropic 整體營收約一成，卻可能吃掉四成以上的推論算力。<sup class="ref">[<a href="#ref-6">6</a>]</sup><span class="stamp est">推算</span> 照這兩個比例換算，每一美元訂閱營收占用的算力是其他營收的 6 倍。<span class="stamp own">自算</span> 毛病：只有一家這樣估，細節在付費牆後。6 倍可以是少數人拉高的，也可以是人人都用到那個水準，單看這個數字分不出來。</li>
+<li><b>貼出來的帳單。</b>有人在 100 美元的 Max 上 21 天用掉 2,976 美元。<sup class="ref">[<a href="#ref-56">56</a>]</sup> 有人在 200 美元的 ChatGPT Pro 上 19 天跑了 5,961 美元，只算沒有走 cache 的輸入輸出是 2,045 美元。<sup class="ref">[<a href="#ref-55">55</a>]</sup> Huryn 較早的一篇寫的是一個月 1,588 美元，用 200 美元的方案付掉，約 8 倍。<sup class="ref">[<a href="#ref-57">57</a>]</sup> 毛病：願意貼帳單的人本來就偏重度。</li>
+</ul>
+
+<p>項 03 那組企業平均數不能算第五條。那群人按量付費，用量受價格約束。</p>
+
+<p>四條放在一起，「重度使用者是少數、但占掉可觀的算力」是合理的猜測，本文沒有證明。訂閱者實際用量的分布，四家都沒有公布過。</p>
+
+<div class="verdict">
+<p class="head">判讀</p>
+<p>誰把額度用滿，這篇答不出來。能說的只有：廠商自己講過重度使用是少數，分析師估這少數占掉不小的算力。下一項的紀錄有收也有放，收的時候是在壓這群人的成本，放的時候是在搶同一群人。把額度看成廠商手上可以調的變數，比看成專門對付誰的工具，更符合紀錄。</p>
+</div>
+</section>
+
+<section id="i05">
+<p class="eyebrow reveal">項 05 · 公平使用</p>
+<h2>四家的額度，一年半動了 26 次</h2>
+
+<p>行動電話的吃到飽，合約最後一頁有一條公平使用，超過某個量就降速。AI 訂閱的那一條不在合約裡，在更新紀錄、Help Center 和主管的貼文裡，而且一直在改。下面四張表只收查得到日期與出處的動作。方向欄分三種：收是訂閱者拿到的變少，放是變多，規則是改了誰能用、怎麼算。</p>
+
+<div class="table-scroll">
+<table class="c4">
+<caption>Anthropic</caption>
+<thead><tr><th>日期</th><th>動作</th><th>方向</th><th>出處</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2025-08-28</td><td>在 5 小時窗之上加兩個週上限，一個算整體，一個只算 Opus。7 月 28 日預告</td><td class="nowrap">收</td><td class="nowrap"><sup class="ref">[<a href="#ref-22">22</a>]</sup><sup class="ref">[<a href="#ref-23">23</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-01-09</td><td>伺服器端擋掉第三方工具用訂閱登入。先前有帳號因此被濫用偵測停權，事後解除</td><td class="nowrap">規則</td><td class="nowrap"><sup class="ref">[<a href="#ref-25">25</a>]</sup><sup class="ref">[<a href="#ref-26">26</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-02-19</td><td>文件明寫：個人方案的登入憑證不得用在第三方工具</td><td class="nowrap">規則</td><td class="nowrap"><sup class="ref">[<a href="#ref-27">27</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-03-27</td><td>平日尖峰時段，5 小時額度扣得比較快。週上限不變</td><td class="nowrap">收</td><td class="nowrap"><sup class="ref">[<a href="#ref-30">30</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-04-04</td><td>OpenClaw 這類第三方 harness 不再吃訂閱額度，改扣另外計價的 extra usage。補發一次等同月費的 credit</td><td class="nowrap">規則</td><td class="nowrap"><sup class="ref">[<a href="#ref-28">28</a>]</sup><sup class="ref">[<a href="#ref-29">29</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-05-06</td><td>Claude Code 的 5 小時額度加倍，取消尖峰加扣</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-30">30</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-05-13</td><td>Claude Code 的週額度促銷加 50%，到 9 月 13 日</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-30">30</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-09-14</td><td>改成永久加 25%。跟前一天比少 16.7% <span class="stamp own">自算</span></td><td class="nowrap">收</td><td class="nowrap"><sup class="ref">[<a href="#ref-30">30</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-10-07</td><td>Max 兩級與 Team 開始附每月 API credits</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-31">31</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-10-22</td><td>SemiAnalysis 量到兩個 Max 20x 帳號不一樣：一個的 5 小時窗多 19%，週預算少 20%。Anthropic 的工程師當天回應額度沒有變</td><td class="nowrap">不明</td><td class="nowrap"><sup class="ref">[<a href="#ref-9">9</a>]</sup><sup class="ref">[<a href="#ref-32">32</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-10-30</td><td>Max 20x 改名 Ultra。驗證過的帳號拿掉 5 小時限制，驗證由系統依帳號與付款紀錄自動判定。週額度寫明是 Pro 的 10 倍</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-18">18</a>]</sup><sup class="ref">[<a href="#ref-16">16</a>]</sup></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="table-scroll">
+<table class="c4">
+<caption>OpenAI</caption>
+<thead><tr><th>日期</th><th>動作</th><th>方向</th><th>出處</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2026-04-09</td><td>推出 100 美元的 Pro，Codex 額度是 Plus 的 5 倍</td><td class="nowrap">新方案</td><td class="nowrap"><sup class="ref">[<a href="#ref-33">33</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-07-12</td><td>拿掉 Plus、Business、Pro 的 5 小時窗，週上限不變</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-34">34</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-08-25</td><td>Plus 的 5 小時窗恢復，Pro 維持沒有</td><td class="nowrap">收</td><td class="nowrap"><sup class="ref">[<a href="#ref-34">34</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-09-10</td><td>暫停 Pro 200 的新申購與升級</td><td class="nowrap">收</td><td class="nowrap"><sup class="ref">[<a href="#ref-34">34</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-09-29</td><td>推出 500 美元的 Pro。Pro 200 重新開放，同價但額度較低，舊訂戶收到通知 10 月 29 日後一起降</td><td class="nowrap">收</td><td class="nowrap"><sup class="ref">[<a href="#ref-33">33</a>]</sup><sup class="ref">[<a href="#ref-34">34</a>]</sup><sup class="ref">[<a href="#ref-36">36</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-10-29</td><td>取消調降。Pro 100、Pro 500 與 Business Premium 的 Work 與 Codex 額度加倍，Pro 200 較低的那份補到跟較高的一樣</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-35">35</a>]</sup><sup class="ref">[<a href="#ref-36">36</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-10-31</td><td>Help Center 公告：12 月起 Plus、Pro、Business 的 ChatGPT 與 Codex 共用一份額度，Instant 聊天不扣。另有報導指付費帳號加了卡片與裝置數上限</td><td class="nowrap">規則</td><td class="nowrap"><sup class="ref">[<a href="#ref-37">37</a>]</sup><sup class="ref">[<a href="#ref-38">38</a>]</sup><sup class="ref">[<a href="#ref-39">39</a>]</sup></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="table-scroll">
+<table class="c4">
+<caption>Google</caption>
+<thead><tr><th>日期</th><th>動作</th><th>方向</th><th>出處</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2025-12-05</td><td>Antigravity 的付費方案改成每 5 小時刷新的配額，免費方案改成週配額。理由是需求太大</td><td class="nowrap">收</td><td class="nowrap"><sup class="ref">[<a href="#ref-41">41</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-02 中旬</td><td>AI Ultra 訂閱者用 OpenClaw 以 OAuth 接 Gemini，帳號被限制或停權。Google 的說法是惡意使用量暴增，拖垮服務品質</td><td class="nowrap">規則</td><td class="nowrap"><sup class="ref">[<a href="#ref-42">42</a>]</sup><sup class="ref">[<a href="#ref-43">43</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-05-19</td><td>Gemini app 從每日則數改成按用掉的算力計，每 5 小時刷新，直到週上限。同時推出 100 美元的 Ultra，頂級方案從 250 降到 200 美元</td><td class="nowrap">規則</td><td class="nowrap"><sup class="ref">[<a href="#ref-44">44</a>]</sup><sup class="ref">[<a href="#ref-45">45</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-05-21</td><td>反彈之後，Antigravity 付費方案的 Gemini 額度調成三倍，重置週配額。隔天再調三倍，合計是調降後的 9 倍</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-46">46</a>]</sup></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="table-scroll">
+<table class="c4">
+<caption>xAI</caption>
+<thead><tr><th>日期</th><th>動作</th><th>方向</th><th>出處</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2026-08-26</td><td>Grok Bot 開放給所有 SuperGrok 與 Cursor Pro 訂戶，重置週上限</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-48">48</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-10-12</td><td>推出 The X Subscription。Grok、Grok Bot、Cursor 共用一個週池</td><td class="nowrap">規則</td><td class="nowrap"><sup class="ref">[<a href="#ref-48">48</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-11-01</td><td>萬聖節週末，使用者的用量表跳到 100%。Musk 回覆：服務 Grok Bot 的成本相對營收高到撐不下去。媒體報導這次調降是刻意的</td><td class="nowrap">收</td><td class="nowrap"><sup class="ref">[<a href="#ref-49">49</a>]</sup><sup class="ref">[<a href="#ref-50">50</a>]</sup></td></tr>
+<tr><td class="nowrap">2026-11-09</td><td>重置所有 Grok Bot 使用者的週上限。新的池子多大沒有公布，官方的用量頁停在 10 月 11 日</td><td class="nowrap">放</td><td class="nowrap"><sup class="ref">[<a href="#ref-48">48</a>]</sup></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>四張表合計 26 個動作。收 8 次，放 9 次，改規則 7 次，另有一次新方案、一次方向不明。<span class="stamp own">自算</span> 方向是本文自己判的，9 月 14 日那一筆最難歸類：比起促銷前是多了 25%，比起前一天是少了。</p>
+
+<p>同一段時間，月費幾乎沒有動。就本文查到的，Anthropic 與 OpenAI 既有方案的價格都沒改過，Google 動過一次，頂級方案從 250 降到 200 美元。</p>
+
+<div class="verdict">
+<p class="head">判讀</p>
+<p>四家沒有一家的額度穩定超過幾個月，而且收和放的次數差不多。Anthropic 改最多次，兩個方向都改過。OpenAI 先放、再收、被罵之後退回一半，是四家裡唯一公開把調降收回去的。Google 換了計量單位，幾天內又把額度調高到調降後的 9 倍。xAI 併池不到三週就砍。月費沒變，變的都是月費買到的量。</p>
+</div>
+</section>
+
+<section id="i06">
+<p class="eyebrow reveal">項 06 · 管什麼</p>
+<h2>四家都有的規則，只有兩條</h2>
+
+<div class="table-scroll">
+<table class="c5">
+<caption>四家各管什麼（2026-11-20）</caption>
+<thead><tr><th>管的東西</th><th>Anthropic</th><th>OpenAI</th><th>Google</th><th>xAI</th></tr></thead>
+<tbody>
+<tr><td>週上限</td><td>有</td><td>有</td><td>有</td><td>有</td></tr>
+<tr><td>額度的絕對值</td><td>不公布</td><td>不公布</td><td>不公布</td><td>不公布</td></tr>
+<tr><td>聊天與寫程式</td><td>一直同池。Fable 另有上限</td><td>Work 與 Codex 同池，12 月起跟 ChatGPT 併成一池</td><td>各產品各有上限</td><td>10 月 12 日起同池</td></tr>
+<tr><td>5 小時窗</td><td>Pro、Max 有。驗證過的 Ultra 沒有</td><td>Pro 沒有。Plus 與 Business 標準席有</td><td>有，刷新到週上限為止</td><td>未查到</td></tr>
+<tr><td>訂閱登入第三方工具</td><td>禁止，改另外計價</td><td>承認個人這樣用</td><td>2 月封過一波</td><td>未查到</td></tr>
+<tr><td>認帳號</td><td>Ultra 自動驗證</td><td>卡片與裝置數上限</td><td>未查到</td><td>未查到</td></tr>
+<tr><td>超過額度之後</td><td>usage credits，照 API 牌價</td><td>credits</td><td>AI credits</td><td>預付加值</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">出處同項 05，另見 OpenAI 對第三方工具的態度、<sup class="ref">[<a href="#ref-40">40</a>]</sup> Google 各產品各有上限的說明、<sup class="ref">[<a href="#ref-47">47</a>]</sup> 以及四家的超額計價。<sup class="ref">[<a href="#ref-19">19</a>]</sup><sup class="ref">[<a href="#ref-34">34</a>]</sup><sup class="ref">[<a href="#ref-47">47</a>]</sup><sup class="ref">[<a href="#ref-48">48</a>]</sup> 「未查到」是本文沒有找到公開說明，不代表沒有這條規則。</p>
+
+<p>照這張表數，四家都有的只有最上面兩列：都設週上限，都不公布它多大。</p>
+
+<p>其他幾列各有例外。</p>
+
+<ul>
+<li><b>併池</b>是三家。Anthropic 從一開始就是同一池，xAI 10 月併，OpenAI 12 月要併，Google 各產品各算。OpenAI 沒有說併完的池子多大，只說預期多數人不會比現在更常等額度重置。<sup class="ref">[<a href="#ref-38">38</a>]</sup></li>
+<li><b>5 小時窗</b>在最貴的一級被拿掉，OpenAI 的 Pro 是 7 月，Anthropic 的 Ultra 是 10 月。別的地方是加上去：Google 在 2025 年 12 月與 2026 年 5 月各加一次，OpenAI 的 Plus 在 8 月恢復。</li>
+<li><b>擋第三方工具</b>是兩家，另一家反著走。Anthropic 1 月的說法是，這類流量偽裝成官方 client，缺少遙測，難以除錯與判斷限速。<sup class="ref">[<a href="#ref-25">25</a>]</sup> Google 的說法是惡意使用量暴增，拖累其他使用者。<sup class="ref">[<a href="#ref-42">42</a>]</sup><sup class="ref">[<a href="#ref-43">43</a>]</sup> 媒體的讀法比較直接：這些工具讓訂閱者用月租價去跑很長的自動迴圈。<sup class="ref">[<a href="#ref-26">26</a>]</sup> OpenAI 則承認個人可以用 ChatGPT 登入第三方 harness。<sup class="ref">[<a href="#ref-40">40</a>]</sup></li>
+<li><b>認帳號</b>查得到的也是兩家。Anthropic 2025 年的第一封信就點名帳號共用與轉售，<sup class="ref">[<a href="#ref-22">22</a>]</sup> 一年後只對系統認定過的 Ultra 帳號拿掉 5 小時限制，說明頁寫的目的是防詐欺與濫用。<sup class="ref">[<a href="#ref-18">18</a>]</sup> OpenAI 同一個月對付費帳號加上卡片與裝置數的上限。<sup class="ref">[<a href="#ref-39">39</a>]</sup></li>
+</ul>
+
+<p class="pull">四家都只給倍數，不給數字。</p>
+
+<div class="verdict">
+<p class="head">判讀</p>
+<p>四家沒有走同一條路。共同的只有兩件事：都有週上限，都不說它多大。價目頁上寫的是「Pro 的 5 倍」「Plus 的 20 倍」這種相對值，基準是多少沒有人講，所以外面才需要有人拿額度表去量。規則各家自己訂，寫在更新紀錄裡，訂閱者事前看不到數字，事後也只看得到百分比。</p>
+</div>
+</section>
+
+<section id="i07">
+<p class="eyebrow reveal">項 07 · 不是匯率</p>
+<h2>連倍數的分子，也是廠商訂的</h2>
+
+<p><a class="chip" href="https://imitator.ai-apps.work/r/no-exchange-rate">接回〈沒有匯率〉</a></p>
+
+<p>倍數的分子是 API 牌價。牌價是廠商自己訂的，三家差很多。每百萬 token 的輸入與輸出，GPT-6.1 Sol 是 2 與 10 美元，Opus 5.5 是 4 與 20，Fable 5.2 是 8 與 40。<sup class="ref">[<a href="#ref-34">34</a>]</sup><sup class="ref">[<a href="#ref-51">51</a>]</sup><sup class="ref">[<a href="#ref-52">52</a>]</sup></p>
+
+<p>起點那張圖上就有一個例子。Fable 的牌價是 Opus 的兩倍。同一份週額度，如果額度表只數 token，換成美元應該變兩倍。如果額度表照牌價扣，換成美元應該一樣。圖上兩種都不是：Opus 是 46.4 倍，Fable 是 27.3 倍，少了四成。<sup class="ref">[<a href="#ref-1">1</a>]</sup> 照這個比例，同一份額度能跑的 Fable token 大約是 Opus 的三成。<span class="stamp own">自算</span> 這個換算假設兩次量測的 cache 比例相近。額度表對每個模型怎麼扣，Anthropic 沒有公布，另外還有 Fable 最多用到週額度一半的上限。<sup class="ref">[<a href="#ref-16">16</a>]</sup></p>
+
+<p>第二個例子只能當例子看。Huryn 另外做了一個修 bug 的測試：兩個 repo，埋 105 個 bug，讓模型自己找、自己修，記錄修到幾個、花多少 API 費用。<sup class="ref">[<a href="#ref-5">5</a>]</sup></p>
+
+<div class="table-scroll">
+<table class="c4">
+<caption>Bug Hunt 的四個設定</caption>
+<thead><tr><th>模型與 effort</th><th class="num">修到幾個</th><th class="num">一輪的 API 費用</th><th class="num">每個 bug</th></tr></thead>
+<tbody>
+<tr><td>GPT-6.1 Sol（max）</td><td class="num">44.3</td><td class="num nowrap">$5.88</td><td class="num nowrap">$0.13 <span class="stamp own">自算</span></td></tr>
+<tr><td>Opus 5.5（max）</td><td class="num">41.7</td><td class="num nowrap">$58.53</td><td class="num nowrap">$1.40 <span class="stamp own">自算</span></td></tr>
+<tr><td>Fable 5.2（xhigh）</td><td class="num">49</td><td class="num nowrap">$61.01</td><td class="num nowrap">$1.25 <span class="stamp own">自算</span></td></tr>
+<tr><td>Fable 5.2（max）</td><td class="num">58</td><td class="num nowrap">$139.65</td><td class="num nowrap">$2.41 <span class="stamp own">自算</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>照這張表，同樣是 100 美元的方案，Claude Max 用滿約可跑 79 輪 Opus，ChatGPT Pro 加倍前約 174 輪 Sol。<span class="stamp own">自算</span> 倍數是 46 比 10，輪數是 79 比 174。這只是一個作者的一個測試，每個設定跑一到三次，Sol 修到的數量也比 Fable 開到 max 少 14 個。它不能說明哪一家划算，只能說明倍數和工作量是兩種單位。牌價也會動，Huryn 自己就提醒 GPT-6.1 Sol 現在的 cache 讀取價可能是暫時的。<sup class="ref">[<a href="#ref-3">3</a>]</sup></p>
+
+<div class="verdict">
+<p class="head">判讀</p>
+<p>倍數是三個數字算出來的：月費、額度、牌價。三個都是廠商訂的，只有額度不公布，額度表對不同模型怎麼扣也不公布。跨廠商比倍數，比到的有一大塊是各家的定價方式。〈沒有匯率〉說 token 成本和完成的工作之間缺一頁換算表，這裡是同一個缺口。</p>
+</div>
+</section>
+
+<section id="i08">
+<p class="eyebrow reveal">項 08 · 接回番外一</p>
+<h2>兩篇接得上的地方，都在帳號</h2>
+
+<p>番外一〈貨到哪，票開給誰，誰在用〉讀的是晶片與模型的三個地址。這一篇讀的是訂閱的帳。兩篇問的「誰」不在同一條軸上：那一篇問國籍與控制權，這一篇問用量輕重，以及帳號後面是不是同一個人。接得上的地方有三個。</p>
+
+<h3>一、個人訂閱報帳</h3>
+
+<p>番外一欄 06 引過 7 月的一則報導：字節讓工程師報帳個人訂閱，再用 VPN 連線。<sup class="ref">[<a href="#ref-60">60</a>]</sup> 那一篇把它當成繞過公司那扇門的路。照這一篇項 03 的算法，個人訂閱剛好也是三種抬頭裡單價最低的一格。同一個做法，一邊繞資格，一邊省錢。帳單印的是個人，用的是公司，這就是「票開給誰」和「誰在用」對不上，只是發生在訂閱這一層。字節這樣做是為了哪一個，報導沒有說。</p>
+
+<h3>二、管的單位都是帳號</h3>
+
+<div class="table-scroll">
+<table class="c3">
+<caption>兩篇的事件排在一起</caption>
+<thead><tr><th>日期</th><th>事件</th><th>寫在哪一篇</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2025-07-28</td><td>Anthropic 加週上限的信，點名帳號共用與轉售</td><td class="nowrap">這一篇項 04</td></tr>
+<tr><td class="nowrap">2026-02</td><td>Anthropic 公布三家中國實驗室的蒸餾行為，約 24,000 個假帳號</td><td class="nowrap">番外一欄 06</td></tr>
+<tr><td class="nowrap">2026-04-02</td><td>Claude Code 帶著偵測中國時區與 proxy 的程式碼，7 月 1 日移除。Anthropic 稱那是防帳號濫用與蒸餾的實驗</td><td class="nowrap">番外一欄 06</td></tr>
+<tr><td class="nowrap">2026-06-10</td><td>Anthropic 致函參議員，指另一批近 25,000 個假帳號</td><td class="nowrap">番外一欄 06</td></tr>
+<tr><td class="nowrap">2026-10-30</td><td>Ultra 只對系統驗證過的帳號拿掉 5 小時限制</td><td class="nowrap">這一篇項 05</td></tr>
+<tr><td class="nowrap">2026-10-31</td><td>OpenAI 對付費帳號加上卡片與裝置數上限</td><td class="nowrap">這一篇項 05</td></tr>
+<tr><td class="nowrap">2026-11-12</td><td>Anthropic 新版支援地區政策生效。所在地、註冊地、控制權任一不符就不得使用</td><td class="nowrap">番外一欄 06</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">番外一的各列出處見該篇。<sup class="ref">[<a href="#ref-60">60</a>]</sup></p>
+
+<p>番外一欄 05 的判讀寫過，美國的新規則看一座資料中心給出去的算力總量，Anthropic 看每一個帳號。這一篇的額度也是一個帳號一份。兩篇的事件排在一起，對象相同，時間相鄰，Ultra 的驗證和新版地區政策只差兩週。</p>
+
+<p>能說的只到這裡。Anthropic 驗證帳號是為了成本、為了資格，還是兩者都有，沒有公開說法。本文不把它們寫成同一套政策。</p>
+
+<h3>三、公司自己換過算法，總量沒有人公布</h3>
+
+<div class="table-scroll">
+<table class="c3">
+<caption>兩篇對照</caption>
+<thead><tr><th></th><th>番外一：晶片與模型</th><th>這一篇：訂閱與額度</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">帳面上看得到</td><td>輝達的分區營收，先按開票地，後來改按客戶總部</td><td>月費，以及「Pro 的 5 倍」這種相對倍數</td></tr>
+<tr><td class="nowrap">公司自己換過的算法</td><td>開票地換成客戶總部，同一年的中國占比從 13.1% 變成 19.2%。番外一標的是推算</td><td>「20x」指的是 5 小時窗，週額度是 Pro 的 10 倍</td></tr>
+<tr><td class="nowrap">帳面上看不到</td><td>晶片實際在哪、誰在用、總量</td><td>額度多大、額度表怎麼扣、用量怎麼分布</td></tr>
+<tr><td class="nowrap">外面的人怎麼補</td><td>個案報導與推算</td><td>拿額度表去量</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>接不上的地方</h3>
+
+<ul>
+<li><b>算力。</b>「算力有限的時候，訂閱額度是廠商最快能調的一個閥」這個說法，靠的是 SemiAnalysis 一家的估計與 Musk 的公開說法。<sup class="ref">[<a href="#ref-6">6</a>]</sup><span class="stamp est">推算</span><sup class="ref">[<a href="#ref-49">49</a>]</sup> 番外一談的是跨境的資格，沒有談實驗室自己的算力夠不夠。這個說法跟那一篇無關。</li>
+<li><b>買得到的人。</b>番外一替〈沒有匯率〉補過一句：對中資控股的買方，Claude 是買不到。這一篇的倍數與單價，同樣只適用於買得到的人。</li>
+</ul>
+
+<h3>番外一要跟著補的地方</h3>
+
+<div class="table-scroll">
+<table class="c3">
+<caption>對照番外一</caption>
+<thead><tr><th>位置</th><th>原本怎麼寫</th><th>這一篇補了什麼</th></tr></thead>
+<tbody>
+<tr><td>欄 06，7 月 3 日那一列</td><td>字節讓工程師報帳個人訂閱，再用 VPN 連線</td><td>個人訂閱也是單價最低的抬頭。繞資格和省錢是同一個做法</td></tr>
+<tr><td>欄 05 的判讀</td><td>Anthropic 看每一個帳號</td><td>額度一個帳號一份。10 月 30 日起，5 小時限制也按帳號有沒有通過驗證來分</td></tr>
+<tr><td>欄 07「公司自己訂的」</td><td>輝達的客戶比例，Anthropic 的三個地址</td><td>訂閱額度也是公司自己訂的規則。四家都不公布數值</td></tr>
+<tr><td>欄 10「現在還不能說的」</td><td>政策擋掉多少使用</td><td>訂閱者的用量分布同樣沒有公開數字</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">番外一在 v0.4 把這四列補進了它的欄 08，其他欄位沒有改。</p>
+
+<div class="verdict">
+<p class="head">判讀</p>
+<p>兩篇寫的是同一種落差：帳面上的數字對不上實際的使用。番外一發生在晶片與國界，這一篇發生在帳號與月費。接點都在帳號上：帳單印誰的名字，帳號後面是誰，一個帳號能用多少。〈沒有匯率〉第 06 節寫過，座位授權還在，但裡面被換成了用量點數。Enterprise 的 20 美元座位費就是換完之後剩下的那個座位，單價是明的。個人訂閱是還沒被換掉的最後一種：付月租、吃到飽、旁邊印著公平使用。這一年半四家改的，都是那一行小字。</p>
+</div>
+<p class="fineprint">公平使用：本方案之用量上限得依系統容量調整。使用非官方工具、共用或轉售帳號者，不適用月租費率。上限之實際數值不另行公告。<br>（這一段是本文仿帳單小字寫的摘要，不是任何一家的條款原文。）</p>
+</section>
+
+<section id="i09">
+<p class="eyebrow reveal">項 09 · 推算清冊</p>
+<h2>蓋了章的數字，一筆一筆列</h2>
+
+<div class="table-scroll">
+<table class="c4">
+<caption>推算、自算與未驗</caption>
+<thead><tr><th>數字</th><th>誰算的</th><th>怎麼算</th><th>能不能引用</th></tr></thead>
+<tbody>
+<tr><td>Max 100 美元用滿是 4,640 美元，46.4 倍</td><td>Huryn</td><td>額度表百分比與 log，單次量測</td><td>可以，要帶日期與「用滿」兩個字</td></tr>
+<tr><td>Claude 三個方案 57 到 59 倍</td><td>SemiAnalysis，本文換算</td><td>每月金額 ÷ 月費。原文付費，本文讀轉述</td><td>方向可以</td></tr>
+<tr><td>Ultra 34 倍</td><td>Wokey，本文換算</td><td>18 個帳號，按 92% cache 讀取估</td><td>可以，要註明流量比例</td></tr>
+<tr><td>ChatGPT Pro 200 在 6 月至多 70 倍</td><td>SemiAnalysis，本文換算</td><td>「最高可到 14,000」÷ 200</td><td>不能跟 10 月的估計相除，一個是上限，一個是一般值</td></tr>
+<tr><td>ChatGPT Pro 加倍後約 20 倍</td><td>本文</td><td>加倍前的量測 × 2</td><td>不行，沒有實測</td></tr>
+<tr><td>Pro 200 加倍後約 4,300 美元</td><td>一則影片摘要</td><td>方法不明</td><td>不行</td></tr>
+<tr><td>訂閱占一成營收、四成以上算力</td><td>SemiAnalysis</td><td>它自己的模型，細節在付費牆後</td><td>只能當估計</td></tr>
+<tr><td>每美元訂閱營收占 6 倍算力</td><td>本文</td><td>(40 ÷ 10) ÷ (60 ÷ 90)</td><td>跟著上一列走，推不出用量分布</td></tr>
+<tr><td>Team 月繳每美元的 session 額度跟 Pro 相同</td><td>本文</td><td>1.25 ÷ 25 與 6.25 ÷ 125</td><td>1.25 倍出自第三方整理，官方只寫「比 Pro 多」</td></tr>
+<tr><td>Team 席也是四十幾倍</td><td>本文</td><td>假設週額度同比例</td><td>不行，沒有人量過</td></tr>
+<tr><td>Enterprise 連座位費 0.83 倍</td><td>本文</td><td>100 ÷ 120</td><td>可重算，議價後的折扣不明</td></tr>
+<tr><td>平均開發者在 Enterprise 是 Max 月費的 1.7 到 2.7 倍</td><td>本文</td><td>(150 到 250 + 20) ÷ 100</td><td>只適用按量付費者現在的用量</td></tr>
+<tr><td>九成使用者每月不到 660 美元</td><td>本文</td><td>30 × 22 個活躍日</td><td>22 日是假設</td></tr>
+<tr><td>26 個動作，收 8、放 9、規則 7</td><td>本文</td><td>項 05 四張表逐列判方向</td><td>方向是本文判的，換人判會差一兩筆</td></tr>
+<tr><td>同一份額度的 Fable token 約是 Opus 的三成</td><td>本文</td><td>(27.3 ÷ 46.4) ÷ 2</td><td>假設 cache 比例相近，只能當量級</td></tr>
+<tr><td>79 輪對 174 輪</td><td>本文</td><td>4,640 ÷ 58.53 與 1,025 ÷ 5.88</td><td>單一測試，只能當例子</td></tr>
+<tr><td>Google AI Ultra 可能是 28 到 41 倍</td><td>Huryn 的圖註</td><td>修正 CLI 偏低的 token 計數</td><td>他自己標為可能</td></tr>
+<tr><td>9 月的週額度比前一天少 16.7%</td><td>本文</td><td>1.25 ÷ 1.5 − 1</td><td>可重算</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="i10">
+<p class="eyebrow reveal">項 10 · 現在能說什麼</p>
+<h2>三種把握，分開放</h2>
+
+<h3>有出處就能說的</h3>
+<ul>
+<li>Claude 的個人訂閱把額度用滿，照 API 牌價值月費的數十倍。三組獨立量測落在 34 到 59 倍。</li>
+<li>Claude Enterprise 的用量照 API 牌價，另收座位費。</li>
+<li>2025 年 8 月到 2026 年 11 月，四家都動過額度，有收有放。四家都有週上限，都不公布它多大。</li>
+<li>Anthropic 與 Google 都擋過用訂閱登入第三方工具的帳號。OpenAI 承認個人這樣用。</li>
+<li>OpenAI 在 10 月 29 日取消對 Pro 200 的調降，並把另外兩級與 Business Premium 加倍。</li>
+<li>Musk 公開說，砍 Grok Bot 的額度是因為成本相對營收太高。</li>
+</ul>
+
+<h3>帶著假設才能說的</h3>
+<ul>
+<li>訂閱的實際單價由廠商單方面決定。依據是額度不公布，以及一年半 26 次的改動紀錄。</li>
+<li>重度使用者是少數，但占掉不小的算力。依據是 Anthropic 兩次的說法與 SemiAnalysis 一家的估計。</li>
+<li>Team 席每一美元買到的額度跟個人方案相近。依據是第三方整理的 session 倍數，沒有實測。</li>
+<li>額度表對貴的模型扣得比牌價比例更重。依據是圖上 Opus 與 Fable 兩列。</li>
+</ul>
+
+<h3>現在還不能說的</h3>
+<ul>
+<li>訂閱者實際用量的分布，也就是誰把額度用滿。</li>
+<li>廠商在訂閱上賠多少。牌價不是成本。</li>
+<li>按完成的工作算，哪一家的 100 美元方案比較划算。</li>
+<li>Enterprise 議價之後的實際單價。</li>
+<li>Team 席與 OpenAI Business 席的倍數。</li>
+<li>xAI 砍完之後的新額度，以及 OpenAI 12 月併池後的池子大小。</li>
+<li>Google 的倍數怎麼走。目前只有 Huryn 一個點。</li>
+<li>1 月與 2 月被停權的帳號有多少。</li>
+<li>Anthropic 的帳號驗證和地區政策是不是同一套做法。</li>
+</ul>
+
+<h3>會改變判斷的訊號</h3>
+<ul>
+<li>任何一家公布額度的絕對值。這篇的主張就要重寫。</li>
+<li>有人在 10 月 29 日之後，用同一套方法重量 ChatGPT Pro。</li>
+<li>有人照同一套方法量 Team 席或 Business 席。</li>
+<li>OpenAI 12 月有沒有公布共用池的大小。</li>
+<li>xAI 有沒有更新用量頁，寫出新的池子。</li>
+<li>任何一家再調 API 牌價。倍數會跟著動，額度不一定。</li>
+<li>Anthropic 或 OpenAI 的公開財務文件有沒有拆出訂閱的營收占比與毛利。</li>
+</ul>
+</section>
+
+<section id="refs">
+<p class="eyebrow reveal">出處</p>
+<h2>出處與等級</h2>
+<p>共 60 筆。等級排序：揭露（官方頁面與文件）＞ 調查 ＞ 分析師 ＞ 轉述 ＞ 部落格。標「當事人」的是廠商自己的頁面，或被完整貼出的廠商信件。量測類的來源多半是個人或小團隊自己做的，本文一律標部落格，可信度看它有沒有公開方法與原始資料。</p>
+<ol class="reflist">
+<li id="ref-1">Paweł Huryn，X 貼文與圖「How much more AI usage does a subscription buy than the API?」v1，2026-11-20。本文無法開啟貼文，數字讀自圖檔。<span class="lv">部落格</span><br><a href="https://x.com/PawelHuryn/status/2123650574373605874" rel="noopener">https://x.com/PawelHuryn/status/2123650574373605874</a></li>
+<li id="ref-2">Paweł Huryn，subscription-multipliers（量測方法與 10 月結果），GitHub，2026-10。<span class="lv">部落格</span><br><a href="https://github.com/phuryn/experiments/tree/main/subscription-multipliers" rel="noopener">https://github.com/phuryn/experiments/tree/main/subscription-multipliers</a></li>
+<li id="ref-3">Paweł Huryn，Stop Overpaying for Your AI Subscription，The Product Compass，2026-10。<span class="lv">部落格</span><br><a href="https://www.productcompass.pm/p/ai-subscription-api-value" rel="noopener">https://www.productcompass.pm/p/ai-subscription-api-value</a></li>
+<li id="ref-4">Paweł Huryn，X，Gemini 4 Neon 測試串，含訂閱倍數的預告，2026-11-19。<span class="lv">部落格</span><br><a href="https://x.com/PawelHuryn/status/2123351354303300052" rel="noopener">https://x.com/PawelHuryn/status/2123351354303300052</a></li>
+<li id="ref-5">Paweł Huryn，X，Fable 5.2 各 effort 的 Bug Hunt 成績與花費，2026-11-10。<span class="lv">部落格</span><br><a href="https://x.com/PawelHuryn/status/2120130385283518640" rel="noopener">https://x.com/PawelHuryn/status/2120130385283518640</a></li>
+<li id="ref-6">SemiAnalysis，Anthropic Subscriptions Offer 5x+ More Value Than OpenAI，2026-10-05。付費文章，本文只讀到公開段落。<span class="lv">分析師</span><br><a href="https://newsletter.semianalysis.com/p/anthropic-subscriptions-offer-5x" rel="noopener">https://newsletter.semianalysis.com/p/anthropic-subscriptions-offer-5x</a></li>
+<li id="ref-7">Best CAD Papers（轉述 SemiAnalysis），各方案的 API 等值金額，2026-10-06。<span class="lv">轉述</span><br><a href="https://bestcadpapers.com/software-qa-development/what-semianalysis-found-about-the-5x-and-ai-subscription-prices/" rel="noopener">https://bestcadpapers.com/software-qa-development/what-semianalysis-found-about-the-5x-and-ai-subscription-prices/</a></li>
+<li id="ref-8">TechJack Solutions（轉述 SemiAnalysis 6 月報告），200 美元方案用滿的 API 等值，2026-06。<span class="lv">轉述</span><br><a href="https://techjacksolutions.com/ai-brief/a-200-subscription-costs-openai-up-to-14000-in-compute-semia/" rel="noopener">https://techjacksolutions.com/ai-brief/a-200-subscription-costs-openai-up-to-14000-in-compute-semia/</a></li>
+<li id="ref-9">FourWeekMBA（轉述 SemiAnalysis），兩個 Max 20x 帳號的 5 小時窗與週預算，2026-10。<span class="lv">轉述</span><br><a href="https://fourweekmba.com/ai-same-200-claude-plan-two-limits-one-gets-20-less-a-week/" rel="noopener">https://fourweekmba.com/ai-same-200-claude-plan-two-limits-one-gets-20-less-a-week/</a></li>
+<li id="ref-10">Wokey，Claude Usage Limits (November 2026)，18 個帳號的每週實測，2026-11。<span class="lv">部落格</span><br><a href="https://wokey.ai/claude-usage-limits" rel="noopener">https://wokey.ai/claude-usage-limits</a></li>
+<li id="ref-11">Autorouter（轉述 Wokey），ChatGPT Plus 與 Pro 200 的 Codex 等值，2026-11。<span class="lv">轉述</span><br><a href="https://autorouter.com/blog/codex-pricing" rel="noopener">https://autorouter.com/blog/codex-pricing</a></li>
+<li id="ref-12">Agent.Space（轉述 @kunchenguid），四個旗艦方案的 API 等值，2026-09。<span class="lv">轉述</span><br><a href="https://agent.space/blog/llm-subscription-token-value" rel="noopener">https://agent.space/blog/llm-subscription-token-value</a></li>
+<li id="ref-13">FinOps LLM，ChatGPT Pro 100 的 Codex 實測與 Pro 200 調降試算，2026-10-09。<span class="lv">部落格</span><br><a href="https://finopsllm.com/research/chatgpt-pro-200-codex-cut-10x" rel="noopener">https://finopsllm.com/research/chatgpt-pro-200-codex-cut-10x</a></li>
+<li id="ref-14">InventiveHQ，How Much Codex Does a ChatGPT Plan Buy? I Measured It，2026-10-04。<span class="lv">部落格</span><br><a href="https://inventivehq.com/blog/codex-subscription-usage-measured" rel="noopener">https://inventivehq.com/blog/codex-subscription-usage-measured</a></li>
+<li id="ref-15">daily.dev（影片摘要），加倍後 Pro 200 約 4,300 美元，2026-11。<span class="lv">部落格</span><br><a href="https://daily.dev/posts/openai-is-getting-desperate-xsjabctuo" rel="noopener">https://daily.dev/posts/openai-is-getting-desperate-xsjabctuo</a></li>
+<li id="ref-16">Anthropic，Claude 價目頁，讀取 2026-11-20。<span class="lv">揭露・當事人</span><br><a href="https://claude.com/pricing" rel="noopener">https://claude.com/pricing</a></li>
+<li id="ref-17">Anthropic，Claude Code Docs：Manage costs effectively，讀取 2026-11-20。<span class="lv">揭露・當事人</span><br><a href="https://code.claude.com/docs/en/costs" rel="noopener">https://code.claude.com/docs/en/costs</a></li>
+<li id="ref-18">Anthropic Help Center，What is the Ultra plan?，2026-11。<span class="lv">揭露・當事人</span><br><a href="https://support.claude.com/en/articles/17728952-what-is-the-ultra-plan" rel="noopener">https://support.claude.com/en/articles/17728952-what-is-the-ultra-plan</a></li>
+<li id="ref-19">Morph，Claude Team Plan Pricing (November 2026)，Team 席的 session 倍數與 Enterprise 兩種計費，2026-11。<span class="lv">轉述</span><br><a href="https://www.morphllm.com/claude-code-team-pricing" rel="noopener">https://www.morphllm.com/claude-code-team-pricing</a></li>
+<li id="ref-20">Coworker，Claude Enterprise Pricing in 2026，引 Anthropic 對用量計價的說明，2026-10。<span class="lv">轉述</span><br><a href="https://coworker.ai/blog/claude-enterprise-pricing" rel="noopener">https://coworker.ai/blog/claude-enterprise-pricing</a></li>
+<li id="ref-21">a16z，The Top 100 Gen AI Consumer Apps — 7th Edition，2026-10。<span class="lv">分析師</span><br><a href="https://a16z.com/100-gen-ai-apps-7/" rel="noopener">https://a16z.com/100-gen-ai-apps-7/</a></li>
+<li id="ref-22">Hacker News（貼出 Anthropic 給訂閱者的信），Claude Code weekly rate limits，2025-07-28。<span class="lv">當事人</span><br><a href="https://news.ycombinator.com/item?id=44713757" rel="noopener">https://news.ycombinator.com/item?id=44713757</a></li>
+<li id="ref-23">TechCrunch，Anthropic unveils new rate limits to curb Claude Code power users，2025-07-28。<span class="lv">調查</span><br><a href="https://techcrunch.com/2025/07/28/anthropic-unveils-new-rate-limits-to-curb-claude-code-power-users/" rel="noopener">https://techcrunch.com/2025/07/28/anthropic-unveils-new-rate-limits-to-curb-claude-code-power-users/</a></li>
+<li id="ref-24">Simon Willison（引 Anthropic 的 X 串），2025-07-28。<span class="lv">轉述</span><br><a href="https://simonwillison.net/2025/Jul/28/anthropic/" rel="noopener">https://simonwillison.net/2025/Jul/28/anthropic/</a></li>
+<li id="ref-25">iThome，OpenCode 使用者以 Claude 訂閱登入第三方工具遭停權，Anthropic 加強阻擋，2026-01。<span class="lv">轉述</span><br><a href="https://www.ithome.com.tw/news/173288" rel="noopener">https://www.ithome.com.tw/news/173288</a></li>
+<li id="ref-26">VentureBeat，Anthropic cracks down on unauthorized Claude usage by third-party harnesses，2026-01。<span class="lv">調查</span><br><a href="https://venturebeat.com/technology/anthropic-cracks-down-on-unauthorized-claude-usage-by-third-party-harnesses" rel="noopener">https://venturebeat.com/technology/anthropic-cracks-down-on-unauthorized-claude-usage-by-third-party-harnesses</a></li>
+<li id="ref-27">The Register，Anthropic: No, absolutely not, you may not use third-party harnesses with Claude subs，2026-02-20。<span class="lv">調查</span><br><a href="https://www.theregister.com/2026/02/20/anthropic_clarifies_ban_third_party_claude_access" rel="noopener">https://www.theregister.com/2026/02/20/anthropic_clarifies_ban_third_party_claude_access</a></li>
+<li id="ref-28">Hacker News（貼出 Anthropic 的信），4 月 4 日起訂閱額度不適用 OpenClaw 等第三方 harness，2026-04。<span class="lv">當事人</span><br><a href="https://news.ycombinator.com/item?id=47633396" rel="noopener">https://news.ycombinator.com/item?id=47633396</a></li>
+<li id="ref-29">Computerworld，Anthropic cuts OpenClaw access from Claude subscriptions, offers credits to ease transition，2026-04。<span class="lv">調查</span><br><a href="https://www.computerworld.com/article/4154440/anthropic-cuts-openclaw-access-from-claude-subscriptions-offers-credits-to-ease-transition-2.html" rel="noopener">https://www.computerworld.com/article/4154440/anthropic-cuts-openclaw-access-from-claude-subscriptions-offers-credits-to-ease-transition-2.html</a></li>
+<li id="ref-30">ClaudeKit，Claude Limits Changelog，逐條附官方或媒體連結，檢查日 2026-10-25。<span class="lv">部落格</span><br><a href="https://claudekit.ai/guides/claude-limits-changelog/" rel="noopener">https://claudekit.ai/guides/claude-limits-changelog/</a></li>
+<li id="ref-31">QCode，Claude Pro / Max / Ultra vs an API Key，含 10 月 7 日起附 API credits，2026-11。<span class="lv">部落格</span><br><a href="https://qcode.cc/en/claude-pro-max-vs-api-key" rel="noopener">https://qcode.cc/en/claude-pro-max-vs-api-key</a></li>
+<li id="ref-32">Sumus，Claude Usage Limits: Pro &amp; Max Caps Explained，含 10 月 22 日的量測與 Anthropic 工程師的回應，2026-11。<span class="lv">部落格</span><br><a href="https://sumus.im/blog/claude-usage-limits" rel="noopener">https://sumus.im/blog/claude-usage-limits</a></li>
+<li id="ref-33">Atlas Cloud，ChatGPT Plus vs Pro，Pro 各級的時間表，2026-11。<span class="lv">部落格</span><br><a href="https://atlascloud.ai/blog/tips/chatgpt-plus-vs-pro" rel="noopener">https://atlascloud.ai/blog/tips/chatgpt-plus-vs-pro</a></li>
+<li id="ref-34">Morph，OpenAI Codex Pricing 2026，7 月到 10 月的年表與 API 牌價，2026-11。<span class="lv">轉述</span><br><a href="https://www.morphllm.com/codex-pricing" rel="noopener">https://www.morphllm.com/codex-pricing</a></li>
+<li id="ref-35">gHacks，OpenAI Doubles ChatGPT Pro and Business Premium Usage Limits After Dropping a Planned Pro 200 Cut，2026-10-30。<span class="lv">轉述</span><br><a href="https://www.ghacks.net/2026/10/30/openai-doubles-chatgpt-pro-and-business-premium-usage-limits-after-dropping-a-planned-pro-200-cut/" rel="noopener">https://www.ghacks.net/2026/10/30/openai-doubles-chatgpt-pro-and-business-premium-usage-limits-after-dropping-a-planned-pro-200-cut/</a></li>
+<li id="ref-36">GrowthCab，ChatGPT Pro 20x Is Back，對照 X 貼文與官方說明的讀法，2026-11。<span class="lv">部落格</span><br><a href="https://www.growthcab.com/chatgpt-pro-subscription-pause" rel="noopener">https://www.growthcab.com/chatgpt-pro-subscription-pause</a></li>
+<li id="ref-37">OpenAI Help Center，Understanding ChatGPT and Codex usage limits，2026-11。本文只讀到搜尋摘要。<span class="lv">揭露・當事人</span><br><a href="https://help.openai.com/en/articles/20001625" rel="noopener">https://help.openai.com/en/articles/20001625</a></li>
+<li id="ref-38">The New Stack，OpenAI’s new shared usage limit pits ChatGPT against Codex，2026-11-02。<span class="lv">調查</span><br><a href="https://thenewstack.io/openai-chatgpt-codex-shared-limits/" rel="noopener">https://thenewstack.io/openai-chatgpt-codex-shared-limits/</a></li>
+<li id="ref-39">mean.ceo，ChatGPT and Codex Will Share One Usage Limit From December，含卡片與裝置上限，2026-11。<span class="lv">部落格</span><br><a href="https://mean.ceo/tpost/chatgpt-codex-shared-limits" rel="noopener">https://mean.ceo/tpost/chatgpt-codex-shared-limits</a></li>
+<li id="ref-40">AQ.dev，Can a Coding Harness Get Your Account Banned?，2026-09。<span class="lv">部落格</span><br><a href="https://aq.dev/guides/coding-harness-ban-risk/" rel="noopener">https://aq.dev/guides/coding-harness-ban-risk/</a></li>
+<li id="ref-41">Cloudspress，Google Antigravity’s Rate Limits Explained After Its 2026 Plan Changes，2026-09。<span class="lv">部落格</span><br><a href="https://www.cloudspress.com/google-antigravitys-rate-limits-explained-after-its-2026-plan-changes/" rel="noopener">https://www.cloudspress.com/google-antigravitys-rate-limits-explained-after-its-2026-plan-changes/</a></li>
+<li id="ref-42">The Register，Google Antigravity falls to Earth under OpenClaw-fueled compute load，2026-02-23。<span class="lv">調查</span><br><a href="https://www.theregister.com/2026/02/23/google_antigravity_compute_burden/" rel="noopener">https://www.theregister.com/2026/02/23/google_antigravity_compute_burden/</a></li>
+<li id="ref-43">VentureBeat，Google clamps down on Antigravity ‘malicious usage’, cutting off OpenClaw users，2026-02-23。<span class="lv">調查</span><br><a href="https://venturebeat.com/orchestration/google-clamps-down-on-antigravity-malicious-usage-cutting-off-openclaw-users" rel="noopener">https://venturebeat.com/orchestration/google-clamps-down-on-antigravity-malicious-usage-cutting-off-openclaw-users</a></li>
+<li id="ref-44">Google，Everything new in our Google AI subscriptions, fresh from I/O 2026，2026-05-19。<span class="lv">揭露・當事人</span><br><a href="https://blog.google/products-and-platforms/products/google-one/google-ai-subscriptions/" rel="noopener">https://blog.google/products-and-platforms/products/google-one/google-ai-subscriptions/</a></li>
+<li id="ref-45">9to5Google，Gemini app now has compute-based usage limits as AI Ultra now starts at $100，2026-05-19。<span class="lv">轉述</span><br><a href="https://9to5google.com/2026/05/19/google-ai-ultra-100/" rel="noopener">https://9to5google.com/2026/05/19/google-ai-ultra-100/</a></li>
+<li id="ref-46">Android Authority，Google gives Antigravity users another major Gemini quota boost，2026-05-22。<span class="lv">調查</span><br><a href="https://www.androidauthority.com/gemini-antigravity-limits-increased-3670209/" rel="noopener">https://www.androidauthority.com/gemini-antigravity-limits-increased-3670209/</a></li>
+<li id="ref-47">Google One Help，Use Google AI Ultra benefits，2026-10。<span class="lv">揭露・當事人</span><br><a href="https://support.google.com/googleone/answer/16286513?hl=en" rel="noopener">https://support.google.com/googleone/answer/16286513?hl=en</a></li>
+<li id="ref-48">Reason Machines，Grok Bot Usage Limit Changes: Dated Tracker，2026-11。<span class="lv">部落格</span><br><a href="https://reasonmachines.com/grokbot/usage-limit-changes" rel="noopener">https://reasonmachines.com/grokbot/usage-limit-changes</a></li>
+<li id="ref-49">TechRadar，Elon Musk says Grok Bot was throttled because costs were ‘unsustainably high’，2026-11。<span class="lv">轉述</span><br><a href="https://techradar.com/ai-platforms-assistants/elon-musk-says-grok-bot-was-throttled-because-costs-were-unsustainably-high-as-users-call-the-move-a-rug-pull" rel="noopener">https://techradar.com/ai-platforms-assistants/elon-musk-says-grok-bot-was-throttled-because-costs-were-unsustainably-high-as-users-call-the-move-a-rug-pull</a></li>
+<li id="ref-50">BetaNews，Grok Bot users hit weekly limits as Musk says serving costs ran too high，2026-11-05。<span class="lv">轉述</span><br><a href="https://betanews.com/article/grok-bot-usage-limits/" rel="noopener">https://betanews.com/article/grok-bot-usage-limits/</a></li>
+<li id="ref-51">Developers Digest，AI Coding Tools Pricing Comparison 2026，Opus 5.5 的 API 牌價，2026-10。<span class="lv">轉述</span><br><a href="https://www.developersdigest.tech/blog/ai-coding-tools-pricing-2026" rel="noopener">https://www.developersdigest.tech/blog/ai-coding-tools-pricing-2026</a></li>
+<li id="ref-52">Justin McKelvey，AI Usage Limits by Plan，Fable 5.2 的 API 牌價與 Gemini 企業版，2026-11。<span class="lv">轉述</span><br><a href="https://justinmckelvey.com/blog/ai-usage-limits" rel="noopener">https://justinmckelvey.com/blog/ai-usage-limits</a></li>
+<li id="ref-53">Justin McKelvey，ChatGPT Usage Limits，Business 兩種席的額度，2026-11。<span class="lv">轉述</span><br><a href="https://justinmckelvey.com/blog/chatgpt-usage-limits" rel="noopener">https://justinmckelvey.com/blog/chatgpt-usage-limits</a></li>
+<li id="ref-54">Let’s Data Science（轉述 she-llac），Claude 訂閱的 API 等值逆推，2026-01。<span class="lv">轉述</span><br><a href="https://www.letsdatascience.com/news/anthropic-undercuts-api-with-better-subscription-value-486b8a20" rel="noopener">https://www.letsdatascience.com/news/anthropic-undercuts-api-with-better-subscription-value-486b8a20</a></li>
+<li id="ref-55">norml.studio，$200 AI Plan vs $5,961 API Usage，2026-09。<span class="lv">部落格</span><br><a href="https://norml.studio/blog/ai-subscription-vs-api-pricing" rel="noopener">https://norml.studio/blog/ai-subscription-vs-api-pricing</a></li>
+<li id="ref-56">Matt Macosko，Pulling 10x My Subscription Value Out of Claude，DEV Community，2026。<span class="lv">部落格</span><br><a href="https://dev.to/matt_macosko_f3829cfd86b8/pulling-10x-my-subscription-value-out-of-claude-while-quietly-building-the-backup-plan-168f" rel="noopener">https://dev.to/matt_macosko_f3829cfd86b8/pulling-10x-my-subscription-value-out-of-claude-while-quietly-building-the-backup-plan-168f</a></li>
+<li id="ref-57">Paweł Huryn，Claude Code Pricing: Subscriptions vs API，The Product Compass，2026。<span class="lv">部落格</span><br><a href="https://www.productcompass.pm/p/claude-code-pricing" rel="noopener">https://www.productcompass.pm/p/claude-code-pricing</a></li>
+<li id="ref-58">Runbear，Claude Enterprise Pricing 2026，Enterprise 保留的管理功能，2026-11。<span class="lv">轉述</span><br><a href="https://runbear.io/posts/claude-enterprise-pricing-mid-market" rel="noopener">https://runbear.io/posts/claude-enterprise-pricing-mid-market</a></li>
+<li id="ref-59">Morph，Claude Code Pricing &amp; Cost (2026)，Team 的席數上下限，2026-11。<span class="lv">轉述</span><br><a href="https://www.morphllm.com/claude-code-pricing" rel="noopener">https://www.morphllm.com/claude-code-pricing</a></li>
+<li id="ref-60">本站，〈貨到哪，票開給誰，誰在用〉（分層讀法番外一）v0.4，欄 01、05、06。各事件的原始出處列在該篇文末。<span class="lv">本站</span><br><a href="https://imitator.ai-apps.work/r/who-is-using" rel="noopener">https://imitator.ai-apps.work/r/who-is-using</a></li>
+</ol>
+</section>
+
+<section id="colophon">
+<p class="eyebrow reveal">附記 · 揭露與時效</p>
+<h3>利益揭露</h3>
+<p>本文由 Claude（Anthropic 開發的 AI）撰寫，寫作時用的就是文中比較的其中一家產品。Anthropic 在倍數上排第一，在改動次數上也排第一，兩件事本文都照出處寫，選材仍可能偏向。項 05 與項 06 只排事件與各方說法，不評誰對。請自行開出處查證。</p>
+<h3>資料與時效</h3>
+<p>資料截至 2026 年 11 月 20 日。起點那張圖的 X 貼文本文打不開，六列數字讀自讀者轉來的圖檔。Huryn 的 repo 說明仍是 10 月那一輪，11 月的新數字本文沒有對到原始檔。SemiAnalysis 的兩份報告在付費牆後，金額取自其他媒體的轉述。OpenAI 的 Help Center 只讀到搜尋摘要與媒體引述。Anthropic 的價目頁與 Claude Code 文件是直接讀的。額度每幾週就動一次，本文的任何倍數過一個月都可能不成立。</p>
+<h3>修訂紀錄</h3>
+<ul>
+<li>v0.1（11 月 20 日）：首版，標題〈月租一百，誰打掉四千六〉。</li>
+<li>v0.2（11 月 21 日）：改主張與標題。第一版問「誰把額度用滿」，材料答不了。這一版只主張訂閱的單價由廠商單方面決定、事前看不到。具體改動如下。
+  <ul>
+  <li>項 04 降為配角，四條線索各自的毛病寫明。拿掉「廠商的動作幾乎都在對付少數人」這句，它跟項 05 有收有放的紀錄矛盾。</li>
+  <li>項 05 每個動作加方向欄，並數出收 8、放 9、規則 7。</li>
+  <li>項 06 拿掉「限量、限工具、認人」三步的說法。四家共同的只有兩條，其餘各有例外。「5 小時窗退場」改成只在最貴一級。</li>
+  <li>項 07 改正一句錯的。第一版說 Fable 那一列「額度沒有變」，但圖上換算的美元也少了四成，代表額度表對 Fable 扣得更重。79 輪對 174 輪降為例子。</li>
+  <li>項 02 與項 09 拿掉「ChatGPT 從 70 倍掉到 10 倍」。6 月的數字是上限，10 月的是一般估計，不能相除。</li>
+  <li>項 03 補上公司實際的選擇是 Team 對 Enterprise，而 Team 沒有人量過。企業平均數加註只適用按量付費者。</li>
+  <li>項 08 的三欄對照改成「帳面上看得到與看不到」。</li>
+  </ul>
+</li>
+<li>v0.3（11 月 21 日）：對著番外一全文重寫項 08。
+  <ul>
+  <li>接點改成三個：個人訂閱報帳、管的單位都是帳號、公司自己換過算法而總量沒有人公布。</li>
+  <li>改正對照表的一格。第二版寫番外一「帳面上看得到出貨地」，那一篇講的是帳上只有開票地與客戶總部，晶片實際在哪看不到。</li>
+  <li>「算力有限，額度是閥」的說法標明跟番外一無關。補上倍數只適用於買得到的人。</li>
+  <li>加一張番外一要跟著補的地方。系列名改成分層讀法番外二。</li>
+  </ul>
+</li>
+</ul>
+<p class="colophon">分層讀法 · 番外二 · v0.3 · 2026.11.21</p>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;   // state in a variable
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
