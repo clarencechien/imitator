@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="補登存摺 — 把存股傳說當成一本沒補登的存摺：拿當年的名單去刷，看每一戶的結存">
+<meta name="imitator-reference" content="1980 年代台灣銀行活期儲蓄存款存摺的內頁 — 日期、摘要、支出、存入、結存五欄，點線橫格，最右邊一格行員認證章">
+<meta name="imitator-paper" content="hsl(348 42% 95%)">
+<meta name="imitator-accent" content="hsl(226 62% 32%)">
+<title>傳說裡會贏的，是名單上的台積電</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+
+/* ───────── this report's voice ─────────
+   REGISTER:  補登存摺 — 把存股傳說當成一本沒補登的存摺：拿當年的名單去刷，看每一戶的結存。
+              讀者是聽過「存中華電、存統一會贏 0050」、手上也有幾檔存股的台灣散戶。
+   REFERENCE: 1980 年代台灣銀行活期儲蓄存款存摺的內頁 — 日期、摘要、支出、存入、結存五欄，
+              點線橫格，最右邊一格行員認證章。
+   PAPER:     存摺內頁的防偽底紋紙 — 淡粉，hsl(348 42% 95%)。底紋印得很淡，遠看就是一層粉。
+   VOICE:     粉紅底紋配藍黑油墨。黑體封面字，數字一律等寬體，像點陣印表機補登出來的；
+              表格用點線橫格，最後一欄蓋行員章，章上寫贏、輸或下市。
+   NOT:       看盤軟體，也不是理財 App。沒有紅綠漲跌色，沒有圓餅圖，數字是帳，不是行情。
+   RECENT:    paper 200° 262° 210° · accent 8° 8° 22° — 紙 348°、墨 226° 都離得夠遠，不用改。
+              同系列主篇是紫紙 276° 配墨綠 158°，也不撞。 */
+:root {
+  --paper: hsl(348 42% 95%);
+  --card: hsl(348 52% 98%);
+  --ink: hsl(230 30% 13%);
+  --ink-2: hsl(230 15% 29%);
+  --mist: hsl(232 9% 39%);
+  --rule: hsl(348 30% 86%);
+  --rule-hard: hsl(348 22% 72%);
+  --accent: hsl(226 62% 32%);        /* 行員章與鋼筆的藍黑墨水 */
+  --accent-soft: hsl(226 46% 89%);
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --disp: "IBM Plex Mono", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: var(--disp);
+  --radius: 4px;                      /* 存摺是直角的本子 */
+  --fs-display: clamp(2rem, 1.1rem + 4.4vw, 4.4rem);
+}
+/* 夜裡的同一本存摺：暖粉近黑，不是灰 */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(348 16% 8%); --card: hsl(348 14% 12%);
+    --ink: hsl(348 14% 91%); --ink-2: hsl(348 8% 75%); --mist: hsl(348 6% 63%);
+    --rule: hsl(348 12% 20%); --rule-hard: hsl(348 12% 31%);
+    --accent: hsl(222 72% 77%); --accent-soft: hsl(224 30% 20%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(348 16% 8%); --card: hsl(348 14% 12%);
+  --ink: hsl(348 14% 91%); --ink-2: hsl(348 8% 75%); --mist: hsl(348 6% 63%);
+  --rule: hsl(348 12% 20%); --rule-hard: hsl(348 12% 31%);
+  --accent: hsl(222 72% 77%); --accent-soft: hsl(224 30% 20%);
+}
+pre { font-family: var(--mono); }
+.display { font-weight: 900; letter-spacing: -.01em; line-height: 1.14; }
+h2 { font-weight: 700; }
+
+/* 存摺第一頁：戶名、開戶日、補登日 */
+.book {
+  background: var(--card);
+  border: 1px solid var(--rule-hard);
+  border-top: 6px solid var(--accent);
+  border-radius: var(--radius);
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+.book .eyebrow { margin-top: 0; }
+.book .lede { margin-bottom: var(--sp-5); }
+.book-fields {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px dotted var(--rule-hard); margin: 0;
+}
+.book-fields > div { min-width: 0; padding: var(--sp-3) var(--sp-3) 0 0; }
+.book-fields > div + div { border-left: 1px dotted var(--rule-hard); padding-left: var(--sp-3); }
+.book-fields dt { font: var(--fs-xs)/1.4 var(--mono); letter-spacing: .1em; color: var(--mist); }
+.book-fields dd { margin: .15em 0 0; font: 500 var(--fs-sm)/1.5 var(--mono); color: var(--ink-2); }
+@media (max-width: 40rem) {
+  .book { padding: var(--sp-4) var(--sp-4) var(--sp-3); }
+  .book-fields { grid-template-columns: minmax(0, 1fr); }
+  .book-fields > div + div { border-left: 0; padding-left: 0; border-top: 1px dotted var(--rule-hard); margin-top: var(--sp-3); }
+}
+
+/* 存摺橫格：點線，數字等寬 */
+table.ledger th, table.ledger td { border-bottom: 1px dotted var(--rule-hard); vertical-align: middle; }
+table.ledger thead th { border-bottom: 1px solid var(--rule-hard); font-size: var(--fs-xs); letter-spacing: .04em; }
+table.ledger td.num { font-family: var(--mono); font-weight: 500; white-space: nowrap; }
+table.ledger td.who { white-space: nowrap; }
+table.ledger tr.ref td { background: var(--accent-soft); font-weight: 700; }
+table.ledger .gap { border-left: 1px solid var(--rule-hard); }
+
+/* 行員章：字寫在章上，不靠顏色分 */
+.seal {
+  display: inline-block; white-space: nowrap;
+  font: 500 var(--fs-xs)/1 var(--sans); letter-spacing: .08em;
+  color: var(--ink-2); border: 1.5px solid var(--rule-hard);
+  padding: .38em .6em .36em; border-radius: 999px;
+}
+.seal.win { color: var(--paper); background: var(--accent); border-color: var(--accent); font-weight: 700; }
+.seal.out { border-style: dashed; color: var(--mist); }
+
+.hero { color: var(--accent); }
+.hero-cap { font-size: var(--fs-sm); color: var(--ink-2); margin-top: 0; }
+.pull { font-weight: 700; }
+.sources { font-size: var(--fs-sm); color: var(--ink-2); padding-left: 1.2em; }
+.sources li + li { margin-top: var(--sp-1); }
+.colophon { font: var(--fs-xs)/1.7 var(--mono); color: var(--mist); letter-spacing: .04em; border-top: 1px dotted var(--rule-hard); padding-top: var(--sp-4); margin-top: var(--sp-7); }
+figure { margin-inline: 0; }
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<main class="report">
+
+<header class="book">
+  <p class="eyebrow">分散筆記 · 番外 · 2026-11</p>
+  <h1 class="display">傳說裡會贏的，<br>是名單上的<em>台積電</em></h1>
+  <p class="lede">「存中華電、存統一，長期會贏 0050」這類說法一直有人轉。這篇把當年真的有人抱著的名單找出來，扣掉稅和手續費，補登到 2026 年 11 月，看每一本存摺的結存。</p>
+  <dl class="book-fields">
+    <div><dt>開戶日</dt><dd>2004｜2010｜2011 年初</dd></div>
+    <div><dt>補登日</dt><dd>10 月均價｜11/20 收盤</dd></div>
+    <div><dt>記帳口徑</dt><dd>稅後，含手續費與證交稅</dd></div>
+  </dl>
+</header>
+
+<section>
+<p class="eyebrow reveal">01 · 開戶</p>
+<h2>傳說是這樣說的</h2>
+<p>存股圈有幾個流傳很久的說法。存中華電二十年，報酬跟 0050 差不多，波動還比較小。存統一的人早就贏過大盤。再擴大一點，就是「雙中雙台」這類定存股名單，買了放著，每年領息就好。</p>
+<p>這些說法有個共同點，都是事後回頭挑的。現在看起來很穩的那一檔，二十年前只是很多選項裡的一個。要檢驗傳說，得回到當年，看那時候的人手上實際抱著什麼。</p>
+<p>美國有現成的做法。1970 年代初的「漂亮五十」（Nifty Fifty）是當時公認買了不用賣的五十檔股票。華頓商學院的 Jeremy Siegel 在 1998 年把這份名單拿出來，從 1972 年 12 月的高點買進，一路算到 1998 年 8 月。名單是當年的，結果是後來的，中間沒有後見之明可以插手。這篇照同樣的方式做一次台灣版。</p>
+
+<div class="note">
+  <p class="head">這本存摺怎麼記</p>
+  <p>股利照現行稅制課稅。併入綜合所得再抵減 8.5%，或 28% 分開計稅，兩種取稅少的那個。主表用 12% 級距，另外跑一次 30%。配股按面額 10 元計入股利所得，二代健保補充保費單筆滿 2 萬元才扣。</p>
+  <p>手續費 0.1425% 打六折，股息再投入也照收。最後一天全部賣出，個股扣 0.3% 證交稅，ETF 扣 0.1%。</p>
+  <p>存法有兩種，開戶時一次放 100 萬，或每月存 1 萬。補登日也列兩個，2026 年 10 月的月均價，和 11 月 20 日的收盤價。11 月台股大跌，0050 從 10 月均價 109.93 元跌到 84.45 元，少了 23%。只列一個日期，結論會跟著那一天的行情走。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow reveal">02 · 單戶</p>
+<h2>先看中華電和統一自己的存摺</h2>
+<p>表裡的數字是每年報酬率跟 0050 差幾個百分點。正的是贏，負的是輸，兩邊都用同一段時間、同一種存法。</p>
+
+<div class="table-scroll">
+<table class="ledger">
+  <thead>
+    <tr><th rowspan="2">戶名</th><th colspan="2" class="num">一次放 100 萬</th><th colspan="2" class="num gap">每月存 1 萬</th></tr>
+    <tr><th class="num">到 10 月</th><th class="num">到 11/20</th><th class="num gap">到 10 月</th><th class="num">到 11/20</th></tr>
+  </thead>
+  <tbody>
+<tr><td>中華電<span class="sub">2004 年 1 月開戶</span></td><td class="num">−4.0</td><td class="num">−2.3</td><td class="num">−8.2</td><td class="num">−5.9</td></tr>
+<tr><td>中華電<span class="sub">2010 年 1 月開戶</span></td><td class="num">−7.7</td><td class="num">−5.4</td><td class="num">−12.5</td><td class="num">−9.1</td></tr>
+<tr><td>統一<span class="sub">2004 年 1 月開戶</span></td><td class="num">−0.2</td><td class="num">+0.9</td><td class="num">−5.6</td><td class="num">−4.0</td></tr>
+<tr><td>統一<span class="sub">2010 年 1 月開戶</span></td><td class="num">−6.0</td><td class="num">−4.4</td><td class="num">−12.7</td><td class="num">−10.3</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>十六個格子裡，中華電的八格全部落後。統一有一格是正的，2004 年 1 月一次買進、算到 11 月 20 日，每年贏 0.9 個百分點。同一筆錢算到 10 月，是每年輸 0.2 個百分點。</p>
+<p>統一那一格值得拆開看。2004 年 1 月各放 100 萬，稅後的結存如下。</p>
+
+<div class="table-scroll">
+<table class="ledger">
+  <thead><tr><th>補登日</th><th class="num">統一</th><th class="num">0050</th></tr></thead>
+  <tbody>
+<tr><td class="nowrap">2012 年底</td><td class="num">640 萬</td><td class="num">154 萬</td></tr>
+<tr><td class="nowrap">2019 年底</td><td class="num">1,285 萬</td><td class="num">330 萬</td></tr>
+<tr><td class="nowrap">2026 年 10 月</td><td class="num">1,761 萬</td><td class="num">1,834 萬</td></tr>
+<tr><td class="nowrap">2026/11/20</td><td class="num">1,706 萬</td><td class="num">1,409 萬</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>統一的領先是在 2012 年以前拉開的。股價從 2004 年初的 15 元漲到 2012 年底的 53 元，之後十四年只再漲到 75 元。0050 在 2026 年 10 月已經追過去，11 月那一跌才又落到後面。</p>
+<p>把開戶年份從 2004 一路換到 2021，一次買進的只有 2004、2005、2006 這三年在 11 月 20 日贏，算到 10 月則沒有任何一年贏。每月存 1 萬的，每一個開戶年份都輸。<span class="mark">「存統一贏 0050」要同時符合三個條件才成立，開戶在 2006 年以前，錢一次放足，補登日剛好落在大跌之後。</span></p>
+
+<h3>傳說大概是哪一段留下來的</h3>
+<p>把時間切成三段，每段各自從頭一次放 100 萬，年化報酬是這樣。</p>
+
+<div class="table-scroll">
+<table class="ledger">
+  <thead><tr><th>戶名</th><th class="num">2004–2012</th><th class="num">2013–2019</th><th class="num">2020–2026/10</th><th class="num">2020–2026/11/20</th></tr></thead>
+  <tbody>
+<tr><td class="who">0050</td><td class="num">4.9%</td><td class="num">11.5%</td><td class="num">28.4%</td><td class="num">23.2%</td></tr>
+<tr><td class="who">中華電</td><td class="num">12.5%</td><td class="num">7.1%</td><td class="num">8.9%</td><td class="num">9.9%</td></tr>
+<tr><td class="who">統一</td><td class="num">23.2%</td><td class="num">10.7%</td><td class="num">4.5%</td><td class="num">4.0%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>2004 到 2012 年中間有一次金融海嘯，0050 九年下來年化只有 4.9%，中華電和統一都大贏。那幾年開始存股的人，親身經驗確實是存股比較好，傳說很可能就是這一段留下來的。2020 年以後方向反過來，差距也更大。</p>
+</section>
+
+<section>
+<p class="eyebrow reveal">03 · 熱門戶</p>
+<h2>今天最多人存的那幾檔</h2>
+<p>證交所每個月公布定期定額的交易戶數，2025 年 12 月的前二十名個股裡有十二檔是金融股。從裡面挑六檔金控，再加兩檔高股息 ETF，用同樣的規則算。起點是各檔資料最早可以回測的月份，數字一樣是每年跟 0050 差幾個百分點。</p>
+
+<div class="table-scroll">
+<table class="ledger">
+  <thead>
+    <tr><th rowspan="2">戶名</th><th colspan="2" class="num">一次放 100 萬</th><th colspan="2" class="num gap">每月存 1 萬</th></tr>
+    <tr><th class="num">到 10 月</th><th class="num">到 11/20</th><th class="num gap">到 10 月</th><th class="num">到 11/20</th></tr>
+  </thead>
+  <tbody>
+<tr><td>玉山金<span class="sub">2004-01 起</span></td><td class="num">−2.1</td><td class="num">−1.7</td><td class="num">−2.0</td><td class="num">−1.5</td></tr>
+<tr><td>中信金<span class="sub">2004-01 起</span></td><td class="num">−2.7</td><td class="num">−1.7</td><td class="num">−1.9</td><td class="num">−0.5</td></tr>
+<tr><td>兆豐金<span class="sub">2004-01 起</span></td><td class="num">−4.1</td><td class="num">−2.7</td><td class="num">−5.6</td><td class="num">−3.8</td></tr>
+<tr><td>華南金<span class="sub">2004-01 起</span></td><td class="num">−3.6</td><td class="num">−2.4</td><td class="num">−4.0</td><td class="num">−2.4</td></tr>
+<tr><td>第一金<span class="sub">2004-01 起</span></td><td class="num">−4.7</td><td class="num">−3.8</td><td class="num">−5.3</td><td class="num">−4.2</td></tr>
+<tr><td>合庫金<span class="sub">2012-01 起</span></td><td class="num">−8.7</td><td class="num">−6.9</td><td class="num">−11.0</td><td class="num">−8.3</td></tr>
+<tr><td>元大高股息 0056<span class="sub">2008-01 起</span></td><td class="num">−4.1</td><td class="num">−4.0</td><td class="num">−5.0</td><td class="num">−4.9</td></tr>
+<tr><td>國泰永續高股息 00878<span class="sub">2020-08 起</span></td><td class="num">−7.1</td><td class="num">−5.2</td><td class="num">−10.4</td><td class="num">−7.4</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>三十二格沒有一格是正的，落後最少的每年 0.5 個百分點，最多的 11.0 個百分點。這份名單是照今天的人氣挑的，等於已經用了後見之明，結果還是這樣。</p>
+
+<div class="note">
+  <p class="head">有一個要交代的例外</p>
+  <p>玉山金整段算下來是輸的。但如果改成從 2004 年起每個月都開一戶、各抱滿十五年，94 個開戶月份裡有 79% 贏過同期的 0050。它輸在最近這幾年。所以這張表不能讀成金控從來沒贏過，比較準確的讀法是贏的時段已經過去一陣子了。</p>
+</div>
+</section>
+
+<section>
+<p class="eyebrow reveal">04 · 名冊</p>
+<h2>2011 年，年輕人的存摺裡是這二十檔</h2>
+<p>前面兩節的名單都是今天回頭挑的。集保結算所在 2021 年公布過一份資料，是 2011 年 20 到 29 歲股民的庫存排行，依持有人數排出前二十名。這是當年真的被抱著的名單。</p>
+<p>第一名是中鋼，每一百個年輕股民有十七個持有。台積電排第十五，持有比例 2.2%，只比力晶前面一名。完整名單在下一節的表裡。</p>
+<p>做法跟 Siegel 一樣。2011 年 1 月把 100 萬平分給二十檔，每檔 5 萬，之後不調整，股利各自買回原來那一檔。下市的算歸零。新光金在 2025 年 7 月併入台新金，照換股比例換成台新新光金繼續抱。</p>
+
+<div class="table-scroll">
+<table class="ledger">
+  <thead><tr><th>開戶與存法</th><th>補登日</th><th class="num">名單年化</th><th class="num">0050 年化</th><th class="num">每年差</th></tr></thead>
+  <tbody>
+<tr><td>2011 年 1 月<span class="sub">一次放 100 萬</span></td><td class="nowrap">10 月均價</td><td class="num">12.2%</td><td class="num">16.6%</td><td class="num">−4.4</td></tr>
+<tr><td>2011 年 1 月<span class="sub">一次放 100 萬</span></td><td class="nowrap">11/20 收盤</td><td class="num">10.6%</td><td class="num">14.6%</td><td class="num">−4.0</td></tr>
+<tr><td>2011 年 1 月<span class="sub">每月存 1 萬</span></td><td class="nowrap">10 月均價</td><td class="num">17.1%</td><td class="num">21.6%</td><td class="num">−4.5</td></tr>
+<tr><td>2011 年 1 月<span class="sub">每月存 1 萬</span></td><td class="nowrap">11/20 收盤</td><td class="num">14.2%</td><td class="num">18.7%</td><td class="num">−4.5</td></tr>
+<tr><td>2012 年 1 月<span class="sub">一次放 100 萬</span></td><td class="nowrap">10 月均價</td><td class="num">14.3%</td><td class="num">19.0%</td><td class="num">−4.7</td></tr>
+<tr><td>2012 年 1 月<span class="sub">一次放 100 萬</span></td><td class="nowrap">11/20 收盤</td><td class="num">12.4%</td><td class="num">16.8%</td><td class="num">−4.4</td></tr>
+<tr><td>2012 年 1 月<span class="sub">每月存 1 萬</span></td><td class="nowrap">10 月均價</td><td class="num">17.9%</td><td class="num">22.6%</td><td class="num">−4.7</td></tr>
+<tr><td>2012 年 1 月<span class="sub">每月存 1 萬</span></td><td class="nowrap">11/20 收盤</td><td class="num">14.7%</td><td class="num">19.4%</td><td class="num">−4.7</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>2011 年 1 月的 100 萬，放到 2026 年 11 月 20 日，名單是 490 萬，0050 是 861 萬。算到 10 月是 614 萬對 1,121 萬。</p>
+<p>開戶年份換成 2012 年，存法換成每月 1 萬，每年落後都在 4.0 到 4.7 個百分點之間。稅率級距換成 30%，落後是 4.1 到 4.8 個百分點，幾乎一樣。0050 自己也配息，稅兩邊都要繳，所以稅不是差距的來源。</p>
+</section>
+
+<section>
+<p class="eyebrow reveal">05 · 結存</p>
+<h2>二十本存摺，各自剩多少</h2>
+<p>這一節把上一節那 100 萬拆開來看。100 萬平分給二十檔，每一檔分到的就是 5 萬，下面是每一個 5 萬各自的結存。</p>
+
+<figure class="reveal">
+  <p class="title">2011 年 1 月各放 5 萬，2026 年 11 月 20 日的結存</p>
+  <p class="subtitle">依 2011 年的庫存名次排列。稅後，含股利再投入。直線是同一筆 5 萬買 0050 的結存。</p>
+  <div class="chart">
+<svg viewBox="0 0 640 464" role="img" aria-label="2011 年 1 月各放 5 萬，到 2026 年 11 月 20 日的稅後結存。中鋼 4.7 萬；鴻海 20.8 萬；友達 6.1 萬；聯電 48.6 萬；奇美電 5.5 萬；國泰金 20.0 萬；宏碁 2.9 萬；開發金 22.3 萬；新光金 14.3 萬；旺宏 10.6 萬；第一金 21.3 萬；中華電 18.3 萬；勝華 0.0 萬；富邦金 44.4 萬；台積電 203.9 萬；力晶 0.0 萬；兆豐金 26.5 萬；彰銀 13.7 萬；華映 0.0 萬；華航 6.0 萬。同一筆 5 萬買 0050 是 43.4 萬。">
+<line class="grid" x1="132.0" x2="132.0" y1="28" y2="434"/>
+<text class="axis" x="132.0" y="450" text-anchor="middle">0</text>
+<line class="grid" x1="238.4" x2="238.4" y1="28" y2="434"/>
+<text class="axis" x="238.4" y="450" text-anchor="middle">50</text>
+<line class="grid" x1="344.7" x2="344.7" y1="28" y2="434"/>
+<text class="axis" x="344.7" y="450" text-anchor="middle">100</text>
+<line class="grid" x1="451.1" x2="451.1" y1="28" y2="434"/>
+<text class="axis" x="451.1" y="450" text-anchor="middle">150</text>
+<line class="grid" x1="557.5" x2="557.5" y1="28" y2="434"/>
+<text class="axis" x="557.5" y="450" text-anchor="middle">200</text>
+<text class="axis" x="600" y="450" text-anchor="end" dx="34">萬元</text>
+<text class="axis" x="124" y="45" text-anchor="end">1　中鋼</text>
+<rect class="bar" x="132" y="34" width="9.9" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="65" text-anchor="end">2　鴻海</text>
+<rect class="bar" x="132" y="54" width="44.3" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="85" text-anchor="end">3　友達</text>
+<rect class="bar" x="132" y="74" width="13.1" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="105" text-anchor="end">4　聯電</text>
+<rect class="bar" x="132" y="94" width="103.3" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="125" text-anchor="end">5　奇美電</text>
+<rect class="bar" x="132" y="114" width="11.7" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="145" text-anchor="end">6　國泰金</text>
+<rect class="bar" x="132" y="134" width="42.4" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="165" text-anchor="end">7　宏碁</text>
+<rect class="bar" x="132" y="154" width="6.1" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="185" text-anchor="end">8　開發金</text>
+<rect class="bar" x="132" y="174" width="47.3" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="205" text-anchor="end">9　新光金</text>
+<rect class="bar" x="132" y="194" width="30.3" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="225" text-anchor="end">10　旺宏</text>
+<rect class="bar" x="132" y="214" width="22.6" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="245" text-anchor="end">11　第一金</text>
+<rect class="bar" x="132" y="234" width="45.4" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="265" text-anchor="end">12　中華電</text>
+<rect class="bar" x="132" y="254" width="38.9" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="285" text-anchor="end">13　勝華</text>
+<text class="label" x="138" y="285">下市，0</text>
+<text class="axis" x="124" y="305" text-anchor="end">14　富邦金</text>
+<rect class="bar" x="132" y="294" width="94.5" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="325" text-anchor="end">15　台積電</text>
+<rect class="bar" x="132" y="314" width="433.8" height="13" style="fill:var(--c1)"/>
+<text class="label" x="557.8" y="309" text-anchor="end" style="font-weight:700">台積電 203.9 萬</text>
+<text class="axis" x="124" y="345" text-anchor="end">16　力晶</text>
+<text class="label" x="138" y="345">下市，0</text>
+<text class="axis" x="124" y="365" text-anchor="end">17　兆豐金</text>
+<rect class="bar" x="132" y="354" width="56.3" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="385" text-anchor="end">18　彰銀</text>
+<rect class="bar" x="132" y="374" width="29.1" height="13" style="fill:var(--c1)"/>
+<text class="axis" x="124" y="405" text-anchor="end">19　華映</text>
+<text class="label" x="138" y="405">下市，0</text>
+<text class="axis" x="124" y="425" text-anchor="end">20　華航</text>
+<rect class="bar" x="132" y="414" width="12.7" height="13" style="fill:var(--c1)"/>
+<line x1="224.3" x2="224.3" y1="20" y2="434" style="stroke:var(--ink-2);stroke-width:1.5"/>
+<text class="label" x="230.3" y="24" style="font-weight:700">同樣 5 萬買 0050：43.4 萬</text>
+</svg>
+  </div>
+  <details class="datatable">
+    <summary>圖表資料：二十檔的結存與年化</summary>
+    <div class="table-scroll">
+    <table class="ledger">
+      <thead><tr><th class="num">名次</th><th>股票</th><th class="num">2011 持有比例</th><th class="num">到 10 月（萬）</th><th class="num">到 11/20（萬）</th><th class="num">年化（到 11/20）</th><th>對 0050</th></tr></thead>
+      <tbody>
+<tr><td class="num">1</td><td>中鋼</td><td class="num">17.3%</td><td class="num">5.3</td><td class="num">4.7</td><td class="num">−0.4%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">2</td><td>鴻海</td><td class="num">6.4%</td><td class="num">24.6</td><td class="num">20.8</td><td class="num">9.4%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">3</td><td>友達</td><td class="num">4.9%</td><td class="num">9.8</td><td class="num">6.1</td><td class="num">1.3%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">4</td><td>聯電</td><td class="num">4.0%</td><td class="num">82.5</td><td class="num">48.6</td><td class="num">15.4%</td><td><span class="seal win">贏</span></td></tr>
+<tr><td class="num">5</td><td>奇美電（今群創）</td><td class="num">3.5%</td><td class="num">9.3</td><td class="num">5.5</td><td class="num">0.6%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">6</td><td>國泰金</td><td class="num">3.2%</td><td class="num">23.3</td><td class="num">20.0</td><td class="num">9.1%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">7</td><td>宏碁</td><td class="num">3.1%</td><td class="num">3.5</td><td class="num">2.9</td><td class="num">−3.4%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">8</td><td>開發金（今凱基金）</td><td class="num">3.0%</td><td class="num">28.2</td><td class="num">22.3</td><td class="num">9.9%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">9</td><td>新光金（併入台新新光金）</td><td class="num">2.8%</td><td class="num">17.6</td><td class="num">14.3</td><td class="num">6.8%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">10</td><td>旺宏</td><td class="num">2.7%</td><td class="num">19.3</td><td class="num">10.6</td><td class="num">4.9%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">11</td><td>第一金</td><td class="num">2.7%</td><td class="num">23.4</td><td class="num">21.3</td><td class="num">9.6%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">12</td><td>中華電</td><td class="num">2.6%</td><td class="num">17.1</td><td class="num">18.3</td><td class="num">8.5%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">13</td><td>勝華</td><td class="num">2.5%</td><td class="num">0.0</td><td class="num">0.0</td><td class="num">—</td><td><span class="seal out">下市</span></td></tr>
+<tr><td class="num">14</td><td>富邦金</td><td class="num">2.4%</td><td class="num">51.2</td><td class="num">44.4</td><td class="num">14.8%</td><td><span class="seal win">贏</span></td></tr>
+<tr><td class="num">15</td><td>台積電</td><td class="num">2.2%</td><td class="num">250.7</td><td class="num">203.9</td><td class="num">26.4%</td><td><span class="seal win">贏</span></td></tr>
+<tr><td class="num">16</td><td>力晶</td><td class="num">2.1%</td><td class="num">0.0</td><td class="num">0.0</td><td class="num">—</td><td><span class="seal out">下市</span></td></tr>
+<tr><td class="num">17</td><td>兆豐金</td><td class="num">2.0%</td><td class="num">26.4</td><td class="num">26.5</td><td class="num">11.1%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">18</td><td>彰銀</td><td class="num">1.9%</td><td class="num">15.6</td><td class="num">13.7</td><td class="num">6.6%</td><td><span class="seal">輸</span></td></tr>
+<tr><td class="num">19</td><td>華映</td><td class="num">1.9%</td><td class="num">0.0</td><td class="num">0.0</td><td class="num">—</td><td><span class="seal out">下市</span></td></tr>
+<tr><td class="num">20</td><td>華航</td><td class="num">1.9%</td><td class="num">5.7</td><td class="num">6.0</td><td class="num">1.1%</td><td><span class="seal">輸</span></td></tr>
+      </tbody>
+      <tfoot>
+<tr><td class="num">—</td><td>0050（同樣 5 萬）</td><td class="num">—</td><td class="num">56.5</td><td class="num">43.4</td><td class="num">14.6%</td><td></td></tr>
+      </tfoot>
+    </table>
+    </div>
+  </details>
+</figure>
+
+<div class="tiles stagger">
+  <div class="stat"><p class="label">贏過 0050</p><div class="value">3 / 20</div><div class="delta">算到 10 月是 2 / 20</div></div>
+  <div class="stat"><p class="label">下市</p><div class="value">3 / 20</div><div class="delta">勝華、力晶、華映</div></div>
+  <div class="stat"><p class="label">台積電占名單結存</p><div class="value">42%</div><div class="delta">算到 10 月是 41%</div></div>
+</div>
+
+<p>下市的三檔裡，勝華在 2014 年底停止買賣，隔年 4 月法院裁定重整。力晶 2012 年 12 月下櫃。華映 2019 年 5 月下市，最後一個交易日收在 0.17 元。另外有 2 檔還在交易，但將近十六年後連本金 5 萬都不到。</p>
+<p>贏過 0050 的，算到 11 月 20 日是台積電、聯電和富邦金，算到 10 月只剩台積電和聯電。</p>
+
+<p class="pull">當年排第一的中鋼，5 萬存了將近十六年是 4.7 萬。排第十五的台積電是 204 萬。</p>
+
+<p>名單的結存有四成來自台積電那一格。把它從名單拿掉，剩下十九檔每年落後 0050 的幅度會擴大到 7.4 到 7.7 個百分點。</p>
+</section>
+
+<section>
+<p class="eyebrow reveal">06 · 反例</p>
+<h2>有一份名單贏了</h2>
+<p>2010 年前後流傳的「雙中雙台」是中華電、中鋼、台積電、台塑四檔，財報狗部落格有一篇用到 2009 年殖利率資料的文章，就拿這四檔當定存股的例子。把 100 萬平分給這四檔，結果跟前一節不一樣。</p>
+
+<div class="table-scroll">
+<table class="ledger">
+  <thead><tr><th>開戶</th><th>補登日</th><th class="num">一次放</th><th class="num">每月存</th></tr></thead>
+  <tbody>
+<tr><td class="who">2010 年 1 月</td><td class="nowrap">10 月均價</td><td class="num">+2.2</td><td class="num">−1.9</td></tr>
+<tr><td class="who">2010 年 1 月</td><td class="nowrap">11/20 收盤</td><td class="num">+2.6</td><td class="num">−1.1</td></tr>
+<tr><td class="who">2004 年 1 月</td><td class="nowrap">10 月均價</td><td class="num">+1.9</td><td class="num">+0.6</td></tr>
+<tr><td class="who">2004 年 1 月</td><td class="nowrap">11/20 收盤</td><td class="num">+2.3</td><td class="num">+1.2</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>表裡是每年報酬率跟 0050 差幾個百分點。2010 年 1 月一次放 100 萬，到 2026 年 11 月 20 日是 1,441 萬，同期的 0050 是 981 萬，每年贏 2.2 到 2.6 個百分點。這是整篇唯一在兩個補登日都贏的名單。</p>
+
+<p class="hero">88%</p>
+<p class="hero-cap">雙中雙台的 1,441 萬裡，有 1,267 萬是台積電那一格。算到 10 月是 89%。</p>
+
+<div class="table-scroll">
+<table class="ledger">
+  <thead><tr><th>戶名</th><th class="num">2010 年 1 月存入</th><th class="num">到 10 月</th><th class="num">到 11/20</th></tr></thead>
+  <tbody>
+<tr><td class="who">中華電</td><td class="num">25 萬</td><td class="num">102 萬</td><td class="num">109 萬</td></tr>
+<tr><td class="who">中鋼</td><td class="num">25 萬</td><td class="num">28 萬</td><td class="num">24 萬</td></tr>
+<tr><td class="who">台積電</td><td class="num">25 萬</td><td class="num">1,558 萬</td><td class="num">1,267 萬</td></tr>
+<tr><td class="who">台塑</td><td class="num">25 萬</td><td class="num">58 萬</td><td class="num">41 萬</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>拿掉台積電，剩下三檔從 2010 年起每年輸 0050 9.4 到 10.8 個百分點。<span class="mark">這份名單會贏，是因為四檔裡剛好有一檔是台積電。</span></p>
+<p>每月存 1 萬的版本，從 2010 年開戶是小輸，每年 1.1 到 1.9 個百分點。原因在存法。每個月的 1 萬固定平分四檔，台積電漲上去以後，新的錢還是只有四分之一買它，另外四分之三繼續買另外三檔。</p>
+</section>
+
+<section>
+<p class="eyebrow reveal">07 · 對照戶</p>
+<h2>美國的漂亮五十，和 0050 這一本</h2>
+<p>Siegel 算出來的結果是，漂亮五十從 1972 年底的高點買進、抱到 1998 年 8 月，年化報酬在 12.2% 到 12.5% 之間，要看中間有沒有再平衡。同期的 S&amp;P 500 是 12.7%。那份名單裡有可口可樂和菲利普莫里斯，也有後來聲請破產的柯達和拍立得，合起來只輸指數不到一個百分點。</p>
+<p>台灣這份 2011 年的名單每年輸 4 個百分點以上，差得多。兩份名單的組成不一樣，2011 年年輕股民手上的面板股和記憶體股比較多，這可能是原因之一，這裡沒有進一步驗證。</p>
+<p>0050 這一本也要照同樣的標準看。截至 2026 年 11 月 11 日，台積電占 0050 的 58.7%。0050 這十幾年贏過多數名單，靠的同樣是台積電。如果台積電接下來長期走弱，0050 也會跟著受傷，這一點存 0050 的人要知道。</p>
+<p>兩邊的差別在於怎麼抱到它。2011 年買 0050 的人不需要認得台積電，指數照市值加權，漲上來的那一檔自己會變大。存名單的人得在它排第十五名的時候親手把它挑進去，還要在中鋼和面板股都比它熱門的那幾年抱得住。<span class="chip">接回主篇</span> 這就是<a href="https://imitator.ai-apps.work/r/winners-win-themselves">〈不用猜，贏家會自己贏〉</a>講的那件事，換了一份台灣的名單再看一次。</p>
+</section>
+
+<section>
+<p class="eyebrow reveal">08 · 備註欄</p>
+<h2>這本帳記不到的地方</h2>
+<p>名單只有兩份。集保那份是 20 到 29 歲的股民，不能代表所有存股的人。雙中雙台是媒體和部落格上的說法，沒有正式出處，成員也有別的版本。</p>
+<p>下市算歸零，對力晶偏嚴。力晶下櫃後繼續營運，一直抱著的股東後來拿回多少，這裡沒有算。不過就算那 5 萬後來值 100 萬，名單的結存也只是 590 萬，還是低於 0050 的 861 萬。</p>
+<p>所有金額都是名目金額，沒有扣通膨。名單和 0050 比的是同一段時間，通膨兩邊扣的一樣多，誰贏誰不受影響。受影響的是單看一檔的數字，例如中鋼那 4.7 萬，算進這些年的物價，實際購買力比帳面還少。</p>
+<p>100 萬、每月 1 萬和每檔 5 萬只是記帳的單位。報酬率本身跟金額無關，會跟金額有關的只有兩個細節，二代健保單筆股利滿 2 萬元才扣，手續費最低 1 元。把一次放的金額從 10 萬換到 1 億、每月存的金額從 3,000 元換到 10 萬元重跑，名單每年落後 0050 的幅度變動不到 0.1 個百分點。</p>
+<p>價格用的是每月成交均價，最後一筆才用 11 月 20 日收盤價。定期定額實際的扣款日和成交價會有出入。</p>
+<p>稅是拿今天的規則回頭算。2018 年以前是兩稅合一，高所得的人當年實際繳的稅跟這裡不同。以中華電 2004 年那一戶來說，級距從 12% 換成 30%，每年落後從 2.3 變成 2.7 個百分點。</p>
+<p>現金增資的認股權當作照理論價值賣掉。新光金換股拿到的特別股按面額當成現金。中華電 2007 到 2011 年四次現金減資退還的股款有算進去，那筆錢不課稅。</p>
+<p>程式和資料都放在 <a href="https://github.com/clarencechien/winners-on-the-list">GitHub</a>，只要有 Python 就能重跑，不用裝其他套件。照說明的順序跑完，產出的報告會跟這一頁逐位元組相同。記帳規則、資料來源和上面這些人工判斷，都寫在那邊的說明裡。想換一份名單、換開戶日或換稅率級距，改幾行就能自己算。</p>
+<p>最後，這是一段已經發生的歷史。2004 到 2012 年抱著中華電和統一的人是真的贏，接下來十六年哪一檔會是台積電，這些表回答不了。這篇能說的只有一件事，名單會不會贏，要看裡面有沒有那一檔，而那一檔在當年並不顯眼。</p>
+</section>
+
+<section>
+<p class="eyebrow">附 · 出處</p>
+<ul class="sources">
+  <li>本篇的回測程式與資料：<a href="https://github.com/clarencechien/winners-on-the-list">github.com/clarencechien/winners-on-the-list</a></li>
+  <li>2011 年 20–29 歲股民庫存前二十名（集保結算所）：<a href="https://www.bnext.com.tw/article/61843/bank-stock-2020">數位時代，2021/3</a>（含完整榜單圖）、<a href="https://ec.ltn.com.tw/article/breakingnews/3467715">自由財經</a>、<a href="https://www.ctee.com.tw/news/20210315700289-430298">工商時報</a></li>
+  <li>月成交均價與收盤價：<a href="https://www.twse.com.tw/rwd/zh/afterTrading/FMSRFK?date=20110101&amp;stockNo=2330&amp;response=json">證交所個股月成交資訊</a>、<a href="https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY?date=20261101&amp;stockNo=0050&amp;response=json">個股日成交資訊</a>；力晶用<a href="https://www.tpex.org.tw/zh-tw/mainboard/trading/info/stock-pricing.html">櫃買中心個股日成交資訊</a></li>
+  <li>除權息與減資：<a href="https://www.twse.com.tw/rwd/zh/exRight/TWT49U?startDate=20110101&amp;endDate=20111231&amp;response=json">證交所除權除息計算結果表</a>與各筆明細、<a href="https://www.twse.com.tw/rwd/zh/reducation/TWTAUU?startDate=20110101&amp;endDate=20261120&amp;response=json">減資恢復買賣參考價</a>；2004 年的幾筆配股和中華電早年減資的股數比例，取自 Yahoo Finance 的分割紀錄</li>
+  <li>漂亮五十：Siegel, J. (1998). <a href="https://www.aaii.com/journal/article/valuing-growth-stocks-revisiting-the-nifty-fifty">Valuing Growth Stocks: Revisiting the Nifty Fifty</a>. <i>AAII Journal</i>（每月再平衡 12.5%）；12.2% 對 12.7% 的數字見<a href="https://theinvestmentsblog.blogspot.com/2012/11/nifty-fifty.html">這篇轉述</a></li>
+  <li>雙中雙台：<a href="https://statementdog.com/blog/archives/479">財報狗〈定存股退休股（以雙中雙台為例）〉</a></li>
+  <li>定期定額交易戶數排行：<a href="https://money.udn.com/money/story/5607/9259869">經濟日報，2025 年 12 月統計</a></li>
+  <li>0050 的台積電比重：<a href="https://www.pocket.tw/main/etf-zone/0050?market=tw">口袋證券 ETF 專區，成分股資料日 2026/11/11</a></li>
+  <li>下市與合併：<a href="https://tw.stock.yahoo.com/news/%E5%8B%9D%E8%8F%AF%E9%87%8D%E6%95%B4%E7%8D%B2%E5%87%86%E5%B0%87%E4%B8%8B%E5%B8%82-%E5%82%B5%E6%AC%8A%E5%8F%8A%E8%82%A1%E6%9D%B1%E6%AC%8A5-7%E8%B5%B7%E7%94%B3%E5%A0%B1-023532214.html">勝華重整（鉅亨網）</a>、<a href="https://finance.technews.tw/2019/05/10/cptt-last-day-of-stock-market/">華映最後交易日（科技新報）</a>、<a href="https://technews.tw/2024/09/11/special-shares/">新光金換股條件</a>、<a href="https://smart.businessweekly.com.tw/Reading/IndepArticle.aspx?ID=6019825">新光金停止交易與合併日</a></li>
+</ul>
+</section>
+
+<p class="colophon">v0.2 · 這是資料整理與個人筆記，不是投資建議。報酬率由上列資料自行計算，2026 年的數字截至 11 月 20 日。</p>
+
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;   // state in a variable
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
