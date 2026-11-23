@@ -53,6 +53,8 @@ public 並把原始檔搬進 `archive/report/`。手機上用瀏覽器開 GitHub
 `inbox/README.md`。
 
 
+找系列、現行版與被取代的舊版：先讀 [`docs/series-map.md`](docs/series-map.md)，別在 372 個檔名裡 grep。
+
 ## 產生報告的 prompt 要交代一件事
 
 **把 <https://github.com/clarencechien/imitator/blob/main/style/STYLE.md> 給模型讀。**
