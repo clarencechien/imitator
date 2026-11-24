@@ -80,7 +80,7 @@ Q19 第一版稿（`research/runs/2026-W47/api/Q19-report.html`）尚未發佈�
 
 ## 自動研究（bot 發佈）
 
-- `ai-headcount-ledger`（2026-11-23，Q02，只在 R2）：AI 省了人，年報裡對得到哪一格（七家公司對帳）。是 W47 第一批公開的自動研究。
+- `ai-headcount-ledger`（2026-11-23，Q02；v0.3 起走 inbox，原稿在 `research/ai-headcount-ledger/`）：AI 省了人，年報裡對得到哪一格（七家公司對帳）。是 W47 第一批公開的自動研究。
 - 其餘自動研究依 `research/questions.md` 排隊，發佈後在這裡補一行。
 
 ## 2025 冷飯重製（新取代舊）
