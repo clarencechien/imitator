@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-origin" content="autoresearch Q18">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="當票 — 把 AI 機房的借款當成一張當票來讀：借多少、誰借的、押了什麼、利息幾分、流當誰賠">
+<meta name="imitator-reference" content="1970 年代台灣當鋪的複寫當票：淡黃薄紙、紫色複寫字、一欄一欄的質押品與利息">
+<meta name="imitator-paper" content="hsl(50 42% 93%)">
+<meta name="imitator-accent" content="hsl(268 42% 36%)">
+<title>蓋機房的錢，開始用借的 · 自動研究</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700&family=Noto+Sans+TC:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+</style>
+<style>
+/* REGISTER:  當票 — 把 AI 機房的借款當成一張當票來讀：借多少、誰借的、押了什麼、利息幾分、流當誰賠。
+              讀者是手上有保單、有海外債、有台股的一般人。
+   REFERENCE: 1970 年代台灣當鋪的複寫當票 — 淡黃薄紙、紫色複寫字、一欄一欄的質押品與利息，
+              每一欄有編號，欄名用小字。
+   PAPER:     當票的薄黃紙 — 放久了偏黃不偏紅，hsl(50 42% 93%)。
+   VOICE:     複寫紙的紫只給欄號、連結和標題裡那個「借」字；宋體標題；等寬體的欄名。
+   NOT:       儀表板，也不是券商研究報告。沒有互動元件，圖只有三張，數字是憑據。
+   RECENT:    paper 196° 352° 348° · accent 8° 228° 226° — 紙 50° 離最近的 352° 有 58°，
+              紫 268° 離最近的 228° 有 40°，不用改。 */
+:root {
+  --paper: hsl(50 42% 93%);
+  --card: hsl(50 52% 96.5%);
+  --ink: hsl(250 18% 14%);
+  --ink-2: hsl(250 9% 28%);
+  --mist: hsl(48 8% 36%);
+  --rule: hsl(48 26% 82%);
+  --rule-hard: hsl(48 22% 66%);
+  --accent: hsl(268 42% 36%);      /* --carbon：複寫紙的紫 */
+  --accent-soft: hsl(268 42% 90%);
+  --disp: "Noto Serif TC", Georgia, serif;
+  --serif: "Noto Serif TC", Georgia, serif;
+  --sans: "Noto Sans TC", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(48 14% 8%);
+    --card: hsl(48 12% 11.5%);
+    --ink: hsl(48 24% 88%);
+    --ink-2: hsl(48 12% 73%);
+    --mist: hsl(48 8% 60%);
+    --rule: hsl(48 10% 21%);
+    --rule-hard: hsl(48 10% 32%);
+    --accent: hsl(268 62% 81%);
+    --accent-soft: hsl(268 26% 22%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(48 14% 8%);
+  --card: hsl(48 12% 11.5%);
+  --ink: hsl(48 24% 88%);
+  --ink-2: hsl(48 12% 73%);
+  --mist: hsl(48 8% 60%);
+  --rule: hsl(48 10% 21%);
+  --rule-hard: hsl(48 10% 32%);
+  --accent: hsl(268 62% 81%);
+  --accent-soft: hsl(268 26% 22%);
+}
+.own { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .04em; color: var(--mist); white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+
+<article class="report">
+<p class="ar-tag" style="font:500 .8rem/1.4 var(--mono, monospace);letter-spacing:.08em;color:var(--accent);border:1px solid var(--rule-hard);display:inline-block;padding:.2em .6em;border-radius:4px;margin:0 0 var(--sp-4, 1rem)">AUTORESEARCH · 自動研究初稿 · Q18</p>
+
+<p class="eyebrow">當票 · AI 機房融資 · 2026-11-23</p>
+<h1 class="display">蓋機房的錢，<br>開始用<em>借</em>的</h1>
+<p class="lede">科技巨頭現金很多，這句話到 2025 年大致還對。2026 年，五家最大的雲端公司花在機房的資本支出，大約三分之一靠新借的債。更大的一塊不在它們帳上，在租約和保證裡。巨頭自己借得到、利息低。替它們蓋機房、買晶片的第二層公司，到 2026 年 10 月已經快借不到錢。</p>
+<p class="byline">資料截至 2026-11-23 · 金額未註明者為美元 · 標「自己算的」是本文用原始數字再算一層</p>
+
+<div class="tiles stagger">
+  <div class="stat"><p class="label">AI 相關發債，2022-11 到 2026-10 累計</p><p class="value">6,800 億＋</p><p class="delta">2023 年全年約 1,300 億</p></div>
+  <div class="stat"><p class="label">占美國非金融業投資級發債</p><p class="value">約 31%</p><p class="delta">2023 年不到 6%</p></div>
+  <div class="stat"><p class="label">七家公司帳外的租約與承諾（未折現）</p><p class="value">3 兆＋</p><p class="delta">帳上公開債務餘額約 1.1 兆</p></div>
+  <div class="stat"><p class="label">同一家公司拿晶片借錢的加碼利差</p><p class="value">2.25 → 5.5</p><p class="delta">個百分點，看租客是誰</p></div>
+</div>
+<p class="byline">四格都出自 <a href="https://www.federalreserve.gov/publications/files/financial-stability-report-20261113.pdf">Fed《金融穩定報告》2026-11</a> 與 CoreWeave 新聞稿，連結在下文各節。</p>
+
+<p>當鋪的當票有固定幾欄：借多少、誰借的、押了什麼、利息幾分、到期贖不回怎麼辦。這篇照這幾欄讀 AI 機房的借款。每一欄先講答案，再給數字。</p>
+
+<!-- ───────────────────────── 欄一 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">欄一 · 金額</p>
+<h2>借了多少</h2>
+
+<p>看得到的部分，四年累計超過 6,800 億美元。看不到的部分比這個大。</p>
+
+<p>美國聯準會（Fed）在 2026 年 11 月的《金融穩定報告》第一次為機房的槓桿寫了專欄。它把跟 AI 機房有關的借款叫做「先進運算相關債務」。從 2022 年 11 月到 2026 年 10 月，這類發債累計超過 6,800 億美元，2023 年全年只有約 1,300 億（<a href="https://www.federalreserve.gov/publications/files/financial-stability-report-20261113.pdf">Fed，Box 2.2</a>）。這個數字包含公開發行和查得到的私募債券，不含完全不公開的私下配售，所以是下限。</p>
+
+<p>發債的主力是信用好的科技公司。這類借款占美國非金融業「投資級」（信用評等在 BBB− 以上）發債的比重，2023 年不到 6%，2026 年約 31%。還沒還的公開債務餘額，Fed 估計超過 1.1 兆美元（同上）。</p>
+
+<p>國際貨幣基金（IMF）用全球口徑算，得到同一個方向。大型雲端業者占全球投資級公司債發行的比重，2024 年以前不到 1%，現在是 10%（<a href="https://www.imf.org/-/media/files/publications/gfsr/2026/october/english/ch1.pdf">IMF《全球金融穩定報告》2026-10，第 1 章</a>）。國際清算銀行（BIS）算的是五家最大的美國雲端公司，到 2026 年 9 月這一年已經發了 2,220 億美元的債，多數是長天期，相當於同期美國長期公債發行量的一成以上（<a href="https://www.bis.org/publications/bulletin-140-building-ai-credit-structures-and-spillovers.pdf">BIS Bulletin 140，2026-10-27</a>）。</p>
+
+<h3>不在帳上的那一塊</h3>
+
+<p>Fed 把七家公司（Alphabet、Amazon、Broadcom、Meta、微軟、Nvidia、Oracle）財報附註裡的承諾加起來。已經簽約、還沒開始起租的租約超過 1 兆美元。照付不議合約（不管用不用都要付錢）和殘值保證這類其他承諾超過 2 兆美元。Fed 說這些承諾「成長得比負債還快」（<a href="https://www.federalreserve.gov/publications/files/financial-stability-report-20261113.pdf">Fed，Box 2.2 Figure C</a>）。</p>
+
+<p>Fed 自己加了一個但書。這些數字沒有折現，不能直接跟帳上的債務相比。把這個但書記著，粗略對照一下：帳外承諾合計超過 3 兆，是帳上公開債務餘額 1.1 兆的 2.7 倍以上 <span class="own">自己算的</span>。</p>
+
+<p>不同機構算出來的數字不一樣，差在算幾家公司、有沒有折現、算到哪一天。全部並列在下面。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>指標</th><th>誰算的</th><th class="num">數字</th><th>範圍與期間</th></tr></thead>
+<tbody>
+<tr><td rowspan="3">巨頭 2026 年發債</td><td><a href="https://www.federalreserve.gov/publications/files/financial-stability-report-20261113.pdf">Fed</a></td><td class="num nowrap">超過 1,500 億</td><td>營運機房的最大投資級公司，年初到第三季</td></tr>
+<tr><td><a href="https://www.bis.org/publications/bulletin-140-building-ai-credit-structures-and-spillovers.pdf">BIS</a></td><td class="num nowrap">2,220 億</td><td>五大雲端業者，到 2026-09</td></tr>
+<tr><td>S&amp;P（經 <a href="https://fortune.com/2026/07/31/ai-debt-hypescalers-capex-capital-spending-hidden-borrowing-bond-issuance/">Fortune 2026-07-31</a>）</td><td class="num nowrap">2,250 億</td><td>含 Nvidia 等相關公司，到年中。全年步調約 4,000 億</td></tr>
+<tr><td rowspan="2">巨頭 2025 年發債</td><td><a href="https://www.bis.org/publ/qtrpdf/r_qt2603u.htm">BIS 季報 2026-03</a></td><td class="num nowrap">超過 1,000 億</td><td>五家，多數期限五年以上</td></tr>
+<tr><td>Hepp（<a href="https://www.chicagobooth.edu/review/2026/august/how-worried-should-we-be-about-ai-debt">芝加哥大學布斯商學院</a>）</td><td class="num nowrap">約 1,200 億</td><td>2020–24 年平均每年約 280 億</td></tr>
+<tr><td rowspan="3">未起租租約</td><td><a href="https://www.federalreserve.gov/publications/files/financial-stability-report-20261113.pdf">Fed</a></td><td class="num nowrap">超過 1 兆</td><td>七家，未折現，到 2026 Q2</td></tr>
+<tr><td>Moody's（經 <a href="https://www.bis.org/publications/bulletin-140-building-ai-credit-structures-and-spillovers.pdf">BIS</a>）</td><td class="num nowrap">約 8,200 億</td><td>機房租約承諾共 1.2 兆，其中 8,200 億未起租，到 2026 年中</td></tr>
+<tr><td>S&amp;P（經 <a href="https://www.chicagobooth.edu/review/2026/august/how-worried-should-we-be-about-ai-debt">Hepp</a>）</td><td class="num nowrap">約 6,750 億</td><td>巨頭已簽未起租</td></tr>
+<tr><td>2026 年 AI 相關投資級發債預估</td><td><a href="https://www.dallasfed.org/research/economics/2026/0210-searls-aifinancing">Dallas Fed 2026-02-10</a></td><td class="num nowrap">中心值約 3,000 億</td><td>華爾街估計。換算成十年期債券最多約 3,600 億，約為美國公債存續期間供給的八分之一</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>錢的來源也在變。Fed 的說法是，債務的組成從「大多是公司債」變成公開債、私募債、結構型商品和專案融資的混合。芝加哥大學的 Stefan Hepp 在 2026 年 7 月的工作論文裡估了一張存量表，五項合計約 1.07 兆美元 <span class="own">自己算的</span>：</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>資金來源</th><th class="num">金額（美元）</th><th class="num">占比</th></tr></thead>
+<tbody>
+<tr><td>巨頭自己發的無擔保公司債</td><td class="num">約 5,200 億</td><td class="num">49%</td></tr>
+<tr><td>專案融資與機房融資</td><td class="num">約 2,500 億</td><td class="num">23%</td></tr>
+<tr><td>私募信貸（不經銀行、由基金直接放款）</td><td class="num">約 2,000 億</td><td class="num">19%</td></tr>
+<tr><td>基礎設施與資產擔保證券</td><td class="num">約 600 億</td><td class="num">6%</td></tr>
+<tr><td>以晶片等資產擔保、借給算力公司的貸款</td><td class="num">約 350 億</td><td class="num">3%</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">來源：<a href="https://www.chicagobooth.edu/review/2026/august/how-worried-should-we-be-about-ai-debt">Chicago Booth Review 2026-08-07</a>。占比是自己算的。私募信貸那一項，作者註明是他自己的估計，不是觀察到的總額。</p>
+
+<p>這張表的讀法是，一半的錢還是巨頭用自己的名字借的，風險最低。另一半已經分散到專案、基金和擔保貸款裡，欄三和欄四講的就是這一半。</p>
+</section>
+
+<!-- ───────────────────────── 欄二 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">欄二 · 借款人</p>
+<h2>巨頭自己：帳上借一點，帳外簽很多</h2>
+
+<p>一般人的直覺是巨頭現金多到用不完。拿公司自己的現金流量表來對，2026 年這個直覺不成立了。</p>
+
+<p>業界整理的版本先看一眼。FactSet 算五大雲端業者（Alphabet、Amazon、Meta、微軟、Oracle），新增債務占資本支出的比重，2024 會計年度約 9%，到 2026 年 6 月前的十二個月約 32%。同期資本支出約 4,900 億美元，2020 年是 950 億，2026 會計年度估計超過 6,900 億（<a href="https://insight.factset.com/hyperscalers-tap-external-financing-as-ai-capex-outruns-cash-flow">FactSet 2026-07-23</a>）。拿 32% 乘 4,900 億，一年新借的債大約 1,570 億美元 <span class="own">自己算的</span>。</p>
+
+<p>再拿兩家公司的原始財報自己算一次，看機房支出吃掉多少營業現金流（本業收進來的現金）。</p>
+
+<figure class="reveal">
+<p class="title">資本支出占營業現金流的比重</p>
+<p class="subtitle">超過 100% 表示本業賺的現金不夠付機房的錢</p>
+<div class="chart">
+<svg viewBox="0 0 640 190" role="img" aria-label="資本支出占營業現金流：Meta 2025 前九月 63%，2026 前九月 89%，2026 第三季 106%，Oracle 過去四季 161%">
+  <line class="grid" x1="230" y1="14" x2="230" y2="150"/>
+  <line class="grid" x1="322.5" y1="14" x2="322.5" y2="150"/>
+  <line class="grid" x1="415" y1="14" x2="415" y2="150" style="stroke:var(--rule-hard)"/>
+  <line class="grid" x1="507.5" y1="14" x2="507.5" y2="150"/>
+  <line class="grid" x1="600" y1="14" x2="600" y2="150"/>
+  <text class="label" x="220" y="36" text-anchor="end">Meta 2025 前九月</text>
+  <rect class="bar" x="230" y="22" width="116" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="220" y="70" text-anchor="end">Meta 2026 前九月</text>
+  <rect class="bar" x="230" y="56" width="164" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="220" y="104" text-anchor="end">Meta 2026 第三季</text>
+  <rect class="bar" x="230" y="90" width="197" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="220" y="138" text-anchor="end">Oracle 過去四季</text>
+  <rect class="bar" x="230" y="124" width="298" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="534" y="138">161%</text>
+  <text class="axis" x="230" y="168" text-anchor="middle">0%</text>
+  <text class="axis" x="322.5" y="168" text-anchor="middle">50%</text>
+  <text class="axis" x="415" y="168" text-anchor="middle">100%</text>
+  <text class="axis" x="507.5" y="168" text-anchor="middle">150%</text>
+  <text class="axis" x="600" y="168" text-anchor="middle">200%</text>
+</svg>
+</div>
+<details class="datatable"><summary>圖的數字</summary>
+<div class="table-scroll">
+<table>
+<thead><tr><th>公司與期間</th><th class="num">資本支出（億美元）</th><th class="num">營業現金流（億美元）</th><th class="num">比重</th></tr></thead>
+<tbody>
+<tr><td>Meta 2025 前九月</td><td class="num">500.8</td><td class="num">795.9</td><td class="num">62.9%</td></tr>
+<tr><td>Meta 2026 前九月</td><td class="num">858.2</td><td class="num">968.7</td><td class="num">88.6%</td></tr>
+<tr><td>Meta 2026 第三季</td><td class="num">349.1</td><td class="num">327.9</td><td class="num">106.5%</td></tr>
+<tr><td>Oracle 2025-09 到 2026-08 四季</td><td class="num">756.6</td><td class="num">469.4</td><td class="num">161.2%</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+<figcaption>比重是自己算的。Meta 的資本支出含融資租賃本金。來源：<a href="https://www.sec.gov/Archives/edgar/data/1326801/000162828026066773/meta-20260930.htm">Meta 10-Q（到 2026-09-30）</a>、<a href="https://investor.atmeta.com/investor-news/press-release-details/2026/Meta-Reports-Third-Quarter-2026-Results/default.aspx">Meta 第三季新聞稿</a>、<a href="https://investor.oracle.com/investor-news/news-details/2026/Oracle-Announces-Q1-Results-Driven-by-Triple-Digit-Growth-in-Cloud-Infrastructure-Revenues/default.aspx">Oracle Q1 FY27 新聞稿</a>。</figcaption>
+</figure>
+
+<h3>Meta：帳上多借 222 億，帳外多簽幾千億</h3>
+
+<p>Meta 是五家裡現金最厚的之一，所以拿它當例子最能說明問題。2026 年第三季，它的資本支出 349.1 億美元，營業現金流 327.9 億，自由現金流（營業現金流扣掉資本支出）是 −21.2 億。前九個月合計還是正的，110.5 億（<a href="https://investor.atmeta.com/investor-news/press-release-details/2026/Meta-Reports-Third-Quarter-2026-Results/default.aspx">Meta 新聞稿</a>）。</p>
+
+<p>錢不夠的時候它做了兩件事。第一，前九個月發債淨額 249.1 億美元，去年同期是零。長期負債從 2025 年底的 587.4 億升到 809.2 億，九個月多了 222 億，增加 38% <span class="own">自己算的</span>。第二，買回自家股票的金額從去年同期的 262.5 億變成零。它把 2026 年資本支出的預估範圍收窄到 1,350–1,450 億（同上）。</p>
+
+<p>帳上的變化其實是小的那一塊。Meta 在季報附註裡寫了兩個不在資產負債表上的數字（<a href="https://www.sec.gov/Archives/edgar/data/1326801/000162828026066773/meta-20260930.htm">10-Q，附註 10</a>）：</p>
+
+<ul>
+<li>已經簽約、還沒起租的租約，約 <strong>3,557 億美元</strong>。內容是機房、能源設施和主機代管，從 2026 年底到 2036 年陸續起租，租期最長 30 年。</li>
+<li>不可取消的合約承諾，<strong>4,545 億美元</strong>。多數是向別家買雲端算力、買伺服器、機房的供電合約。其中 458.5 億在 2026 年到期，1,214.1 億在 2027 年到期。</li>
+</ul>
+
+<p class="hero">10 倍</p>
+<p>兩項合計約 8,100 億美元，是 Meta 帳上長期負債 809 億的十倍 <span class="own">自己算的</span>。這兩個數字沒有折現，而且其中一部分是買服務的錢，不能跟債務劃等號。但它說明了規模在哪一邊。</p>
+
+<p>再看速度。同一項「未起租租約」，Meta 一年前的季報寫 581 億，2025 年底的年報寫 1,038 億。</p>
+
+<figure class="reveal">
+<p class="title">Meta 已簽約、還沒起租的租約</p>
+<p class="subtitle">億美元，未折現。十二個月變成 6.1 倍</p>
+<div class="chart">
+<svg viewBox="0 0 640 156" role="img" aria-label="Meta 未起租租約：2025 年 9 月 581 億，2025 年 12 月 1038 億，2026 年 9 月 3557 億美元">
+  <line class="grid" x1="150" y1="14" x2="150" y2="116"/>
+  <line class="grid" x1="262.5" y1="14" x2="262.5" y2="116"/>
+  <line class="grid" x1="375" y1="14" x2="375" y2="116"/>
+  <line class="grid" x1="487.5" y1="14" x2="487.5" y2="116"/>
+  <line class="grid" x1="600" y1="14" x2="600" y2="116"/>
+  <text class="label" x="140" y="36" text-anchor="end">2025-09-30</text>
+  <rect class="bar" x="150" y="22" width="65" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="140" y="70" text-anchor="end">2025-12-31</text>
+  <rect class="bar" x="150" y="56" width="117" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="140" y="104" text-anchor="end">2026-09-30</text>
+  <rect class="bar" x="150" y="90" width="400" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="556" y="104">3,557</text>
+  <text class="axis" x="150" y="134" text-anchor="middle">0</text>
+  <text class="axis" x="262.5" y="134" text-anchor="middle">1,000</text>
+  <text class="axis" x="375" y="134" text-anchor="middle">2,000</text>
+  <text class="axis" x="487.5" y="134" text-anchor="middle">3,000</text>
+  <text class="axis" x="600" y="134" text-anchor="middle">4,000</text>
+</svg>
+</div>
+<details class="datatable"><summary>圖的數字</summary>
+<div class="table-scroll">
+<table>
+<thead><tr><th>時點</th><th class="num">未起租租約（億美元）</th><th class="num">合約承諾（億美元）</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2025-09-30</td><td class="num">581.4</td><td class="num">811.9</td><td><a href="https://www.sec.gov/Archives/edgar/data/1326801/000162828025047240/meta-20250930.htm">10-Q</a></td></tr>
+<tr><td class="nowrap">2025-12-31</td><td class="num">1,037.7</td><td class="num">本次未讀到</td><td><a href="https://www.sec.gov/Archives/edgar/data/1326801/000162828026003942/meta-20251231.htm">10-K</a></td></tr>
+<tr><td class="nowrap">2026-09-30</td><td class="num">3,557.3</td><td class="num">4,545.2</td><td><a href="https://www.sec.gov/Archives/edgar/data/1326801/000162828026066773/meta-20260930.htm">10-Q</a></td></tr>
+</tbody>
+</table>
+</div>
+</details>
+<figcaption>6.1 倍是自己算的。合約承諾的定義在兩期文字略有不同（2025 年寫「合約承諾」，2026 年寫「不可取消的合約承諾」），5.6 倍的增幅只能當參考。</figcaption>
+</figure>
+
+<h3>把機房放在別人的公司裡，要多付多少利息</h3>
+
+<p>Meta 在路易斯安那州的 Hyperion 機房沒有放在自己帳上。它和私募信貸業者 Blue Owl 管理的基金合資成立一家公司，Meta 持股 20%。這家公司私下配售了 273 億美元的擔保債券，標準普爾給 A+，比 Meta 自己低一級。Meta 跟它簽租約，2029 年起租，先租四年，可以續到總共 20 年，並對前 16 年提供有限的殘值保障。Meta 不把這家公司併進自己的報表（<a href="https://www.bis.org/publications/bulletin-140-building-ai-credit-structures-and-spillovers.pdf">BIS Bulletin 140，註 3</a>）。</p>
+
+<p>這個安排的價格，BIS 寫得很具體。Hyperion 的債在 2025 年 10 月定價，利率是美國公債加 2.25 個百分點。兩週後 Meta 用自己名字發 20 年和 30 年的債，是公債加 0.88 和 0.98 個百分點（同上，註 5）。</p>
+
+<p><span class="mark">差距是 1.27 到 1.37 個百分點。以 273 億本金算，Meta 為了不讓這筆債出現在自己帳上，一年多付大約 3.5 到 3.7 億美元的利息。</span> <span class="own">自己算的</span></p>
+
+<p>BIS 的解釋是，巨頭用比較高的租金換到三樣東西：帳上不多一筆債、保住信用評等的空間、不必自己持有下一代就可能過時的晶片。</p>
+
+<p>Meta 的季報也交代了它最多會賠多少。到 2026 年 9 月底，它在路易斯安那和德州兩個合資機房的「最大損失曝險」是 684.0 億美元，年初是 459.5 億。其中殘值保證的上限 414.9 億，租約承諾 184.8 億，股權投資帳面值 47.3 億，未來出資承諾 37.0 億（<a href="https://www.sec.gov/Archives/edgar/data/1326801/000162828026066773/meta-20260930.htm">10-Q，附註 5</a>）。</p>
+
+<p>兩個機房的預估開發成本合計約 410 億美元（路易斯安那 270 億、德州 140 億）。Meta 只持有 20% 股權，殘值保證的上限 414.9 億卻跟全部開發成本差不多大 <span class="own">自己比的</span>。這裡要講清楚反方：季報寫明「殘值保證不太可能需要支付，因此沒有認列負債」，上限是天花板，不是預期損失。只有 Meta 決定不續租、而且機房當時的市價低於約定門檻，才會動用。</p>
+
+<h3>Oracle：借款、增資、降評都發生了</h3>
+
+<p>Oracle 是五家裡的例外。到 2026 年 8 月底這一季，它的借款合計 1,253 億美元。單季資本支出 285.0 億，營業現金流 231.0 億，自由現金流 −54.0 億。過去四季的自由現金流加起來是 −287 億 <span class="own">自己算的</span>（<a href="https://investor.oracle.com/investor-news/news-details/2026/Oracle-Announces-Q1-Results-Driven-by-Triple-Digit-Growth-in-Cloud-Infrastructure-Revenues/default.aspx">Oracle Q1 FY27 新聞稿</a>）。</p>
+
+<p>這一季它沒有再多借，改成賣股票。它用「市價增資計畫」（照市價陸續賣新股）賣了約 1.41 億股，淨拿到 199 億美元，同時還掉 42 億的舊債（<a href="https://www.sec.gov/Archives/edgar/data/1341439/000119312526389274/orcl-20260831.htm">Oracle 10-Q</a>）。賣股票拿到的錢是當季自由現金流缺口的 3.7 倍 <span class="own">自己算的</span>。</p>
+
+<p>Oracle 帳外也有一大塊。季報寫，另有 2,880 億美元的租約承諾沒有反映在資產負債表上，幾乎都是機房，租期 15 到 19 年，在 2027 到 2029 會計年度之間起租（同上）。這是它帳上借款的 2.3 倍 <span class="own">自己算的</span>。它手上已簽約、還沒認列的營收（剩餘履約義務）是 6,640 億美元。</p>
+
+<p>標準普爾在 2026 年 7 月 9 日把 Oracle 從 BBB 降到 BBB−，展望穩定。這是投資級的最低一階，再降一級就是俗稱的垃圾債（<a href="https://www.hwataibank.com.tw/news/30440/">華泰銀行公告 2026-07-15</a>、<a href="https://insight.factset.com/hyperscalers-tap-external-financing-as-ai-capex-outruns-cash-flow">FactSet</a>）。FactSet 的整理是，五家裡有四家總債務對稅前息前折舊攤銷前獲利（EBITDA）在 1 倍上下或更低，降評門檻通常在 1 到 1.5 倍，Oracle 是例外。</p>
+
+<p>Alphabet 走了另一條路。2026 年 6 月它定價了 847.5 億美元的股權籌資，其中 447.5 億是一般用途（含波克夏 100 億的私下認購），400 億是支應員工股票獎酬稅款的市價增資計畫（<a href="https://insight.factset.com/hyperscalers-tap-external-financing-as-ai-capex-outruns-cash-flow">FactSet</a>）。這不是借錢，但同樣是向外面要錢。</p>
+</section>
+
+<!-- ───────────────────────── 欄三 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">欄三 · 質押品</p>
+<h2>同一批晶片，利息看的是誰付租金</h2>
+
+<p>第二層借款人是專門出租 GPU（繪圖晶片，訓練 AI 用）算力的公司，業界叫 neocloud。它們沒有巨頭的現金流，借錢時把晶片和客戶合約一起押給貸款方。直覺上，押的東西一樣，利息應該差不多。數字顯示不是這樣。</p>
+
+<p>CoreWeave 是這一層最大的一家。2026 年它用同一種工具（延遲提領定期貸款，額度先談好、要買晶片時再動用）借了三筆，每一筆都有自己的新聞稿：</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>貸款</th><th class="num">金額</th><th>利率</th><th>評等</th><th>背後的客戶合約</th></tr></thead>
+<tbody>
+<tr><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Closes-Landmark-8-5-Billion-Financing-Facility-Achieving-First-Investment-Grade-Rated-GPU-backed-Financing/default.aspx">DDTL 4.0</a><span class="sub">2026-03</span></td><td class="num nowrap">85 億</td><td class="nowrap">SOFR + 2.25%<br>固定利率部分約 5.9%</td><td class="nowrap">A3 ／ A(low)</td><td>一家「領先的 AI 企業」。Wing VC 的整理說是大型雲端業者。2032 年 3 月到期</td></tr>
+<tr><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Closes-3-1-Billion-Loan-Facility-Expanding-Access-to-Public-Markets-for-GPU-Backed-Financing/default.aspx">DDTL 5.0</a><span class="sub">2026-05</span></td><td class="num nowrap">31 億</td><td class="nowrap">SOFR + 4.50%</td><td class="nowrap">Ba2 ／ BB+</td><td>兩家非投資級的大客戶。認購踴躍，利差比原先談的少 0.5 個百分點。約 5.5 年</td></tr>
+<tr><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Closes-2-6-Billion-Loan-Facility-Expanding-Financing-Flexibility-for-AI-Infrastructure/default.aspx">DDTL 5.5</a><span class="sub">2026-08</span></td><td class="num nowrap">26 億</td><td class="nowrap">SOFR + 5.50%</td><td class="nowrap">Ba2 ／ BB+</td><td>合約平均只有約三年，到期後要續約或另找租客。約 5 年</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">SOFR 是美元的隔夜擔保融資利率，浮動利率貸款的基準。評等依序為 Moody's 與 DBRS（4.0）、Moody's 與 Fitch（5.0、5.5）。</p>
+
+<p>這張表可以拆出兩個價格 <span class="own">自己算的</span>。</p>
+
+<p>第一個是租客信用的價格。租客從投資級換成非投資級，利差從 2.25 跳到 4.50，貴了 2.25 個百分點，評等從 A 級掉到 BB 級。</p>
+
+<p>第二個是合約長短的價格。5.0 和 5.5 的評等一模一樣，利差卻差 1 個百分點。差別只在 5.5 背後的合約比較短，貸款還沒還完，合約就先到期了。貸款方多收的這 1 個百分點，是在替「到時候這批晶片還租不租得出去」定價。</p>
+
+<p>換句話說，貸款方真正當成擔保品的是租約，晶片排在後面。BIS 的看法一致：晶片的替代用途少，每出一代新的就可能貶值，而且很多公司手上是同一家供應商的同一種硬體，如果大家同時要賣，二手價會跌得很快（<a href="https://www.bis.org/publications/bulletin-140-building-ai-credit-structures-and-spillovers.pdf">BIS Bulletin 140</a>）。</p>
+
+<figure class="reveal">
+<p class="title">拿晶片借錢，基準利率之上要加多少</p>
+<p class="subtitle">個百分點。由低到高，租客信用越弱、合約越短，加得越多</p>
+<div class="chart">
+<svg viewBox="0 0 640 262" role="img" aria-label="GPU 擔保貸款利差：CoreWeave 4.0 加 2.25，Nebius 加 2.5，Lambda 加 3，CoreWeave 5.0 加 4.5，CoreWeave 5.5 加 5.5，xAI 2025 年 B 類貸款加 7.25 個百分點">
+  <line class="grid" x1="250" y1="14" x2="250" y2="222"/>
+  <line class="grid" x1="337.5" y1="14" x2="337.5" y2="222"/>
+  <line class="grid" x1="425" y1="14" x2="425" y2="222"/>
+  <line class="grid" x1="512.5" y1="14" x2="512.5" y2="222"/>
+  <line class="grid" x1="600" y1="14" x2="600" y2="222"/>
+  <text class="label" x="240" y="36" text-anchor="end">CoreWeave 4.0（投資級租客）</text>
+  <rect class="bar" x="250" y="22" width="98" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="240" y="70" text-anchor="end">Nebius（微軟承租）</text>
+  <rect class="bar" x="250" y="56" width="109" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="240" y="104" text-anchor="end">Lambda（投資級租客）</text>
+  <rect class="bar" x="250" y="90" width="131" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="240" y="138" text-anchor="end">CoreWeave 5.0（非投資級租客）</text>
+  <rect class="bar" x="250" y="124" width="197" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="240" y="172" text-anchor="end">CoreWeave 5.5（三年短約）</text>
+  <rect class="bar" x="250" y="158" width="241" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="240" y="206" text-anchor="end">xAI B 類貸款（2025-06）</text>
+  <rect class="bar" x="250" y="192" width="317" height="20" style="fill:var(--c1)"/>
+  <text class="label" x="573" y="206">+7.25</text>
+  <text class="axis" x="250" y="240" text-anchor="middle">0</text>
+  <text class="axis" x="337.5" y="240" text-anchor="middle">2</text>
+  <text class="axis" x="425" y="240" text-anchor="middle">4</text>
+  <text class="axis" x="512.5" y="240" text-anchor="middle">6</text>
+  <text class="axis" x="600" y="240" text-anchor="middle">8</text>
+</svg>
+</div>
+<details class="datatable"><summary>圖的數字</summary>
+<div class="table-scroll">
+<table>
+<thead><tr><th>貸款</th><th>時間</th><th class="num">金額（美元）</th><th class="num">加碼利差</th><th>評等</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td>CoreWeave DDTL 4.0</td><td class="nowrap">2026-03</td><td class="num">85 億</td><td class="num">2.25</td><td>A3</td><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Closes-Landmark-8-5-Billion-Financing-Facility-Achieving-First-Investment-Grade-Rated-GPU-backed-Financing/default.aspx">公司新聞稿</a></td></tr>
+<tr><td>Nebius 擔保債</td><td class="nowrap">2026-07</td><td class="num">7.75 億</td><td class="num">2.50</td><td>未載</td><td><a href="https://www.wing.vc/content/how-the-gpu-became-collateral">Wing VC 整理</a>（創投的二手整理）</td></tr>
+<tr><td>Lambda B 類定期貸款</td><td class="nowrap">2026-08</td><td class="num">9.26 億</td><td class="num">3.00</td><td>Baa2</td><td><a href="https://www.storagenewsletter.com/2026/09/22/lambda-closes-926-million-senior-secured-term-loan-b-facility-backing-gpu-deployment-for-an-investment-grade-customer/">新聞稿轉載</a>。99.5 折發行，2030 年底到期，分期還清</td></tr>
+<tr><td>CoreWeave DDTL 5.0</td><td class="nowrap">2026-05</td><td class="num">31 億</td><td class="num">4.50</td><td>Ba2</td><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Closes-3-1-Billion-Loan-Facility-Expanding-Access-to-Public-Markets-for-GPU-Backed-Financing/default.aspx">公司新聞稿</a></td></tr>
+<tr><td>CoreWeave DDTL 5.5</td><td class="nowrap">2026-08</td><td class="num">26 億</td><td class="num">5.50</td><td>Ba2</td><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Closes-2-6-Billion-Loan-Facility-Expanding-Financing-Flexibility-for-AI-Infrastructure/default.aspx">公司新聞稿</a></td></tr>
+<tr><td>xAI B 類定期貸款</td><td class="nowrap">2025-06</td><td class="num">10 億</td><td class="num">7.25</td><td>未載</td><td><a href="https://ng.investing.com/news/company-news/elon-musks-xai-raises-debt-offering-yield-to-close-5b-deal-93CH-1974856">Bloomberg 經 Investing.com</a>。96 折發行</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+<figcaption>xAI 那一筆不是純粹以晶片擔保的貸款，放在這裡當「借款人自己信用弱、又沒有大客戶合約」的對照。</figcaption>
+</figure>
+
+<h3>CoreWeave 的利息，是營業利益的四倍</h3>
+
+<p>CoreWeave 2026 年第三季營收 36.61 億美元，營業利益 2.07 億，淨利息費用 8.46 億，淨損 7.09 億。債務合計 468.7 億（有追索權 416.0 億加無追索權 52.7 億，不含融資租賃）。公司預估第四季利息費用 10.5 到 11.5 億，未完成訂單約 1,325 億（<a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Reports-Strong-Third-Quarter-2026-Results/default.aspx">CoreWeave 新聞稿 2026-11-10</a>）。</p>
+
+<p>拿這些數字再算一層 <span class="own">以下都是自己算的</span>：</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>指標</th><th class="num">2025 Q3</th><th class="num">2026 Q3</th><th>怎麼讀</th></tr></thead>
+<tbody>
+<tr><td>營收（億美元）</td><td class="num">13.65</td><td class="num">36.61</td><td>一年 2.7 倍</td></tr>
+<tr><td>淨利息費用（億美元）</td><td class="num">3.10</td><td class="num">8.46</td><td>一年 2.7 倍，跟營收同步</td></tr>
+<tr><td>利息占營收</td><td class="num">22.7%</td><td class="num">23.1%</td><td>每收 100 元，23 元付利息。規模變大沒有讓這個比例下降</td></tr>
+<tr><td>利息對營業利益</td><td class="num">6.0 倍</td><td class="num">4.1 倍</td><td>略有改善，但本業利益仍遠不夠付利息</td></tr>
+<tr><td>債務對年化調整後 EBITDA</td><td class="num">—</td><td class="num">5.2 倍</td><td>巨頭多在 1 倍上下</td></tr>
+<tr><td>單季資本支出對營收</td><td class="num">—</td><td class="num">2.6 倍</td><td>單季資本支出 94.4 億，還在加速擴張</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>公司對第四季利息的預估中間值是 11 億，比第三季再多三成。同一季它另外發了約 42 億美元的可轉換公司債。全年資本支出預估 370 到 390 億。</p>
+
+<p>對照一下 Oracle：同樣被市場擔心，它單季營業利益 67.3 億，利息費用 14.3 億，營業利益是利息的 4.7 倍。CoreWeave 是倒過來的 0.24 倍 <span class="own">自己算的</span>。這就是第一層和第二層的差別。</p>
+
+<h3>晶片本身值多少</h3>
+
+<p>創投 Wing VC 在 2026 年 9 月整理了市場上的說法（<a href="https://www.wing.vc/content/how-the-gpu-became-collateral">Wing VC，Chris Zeoli</a>）。這是二手整理，不是交易所資料：</p>
+<ul>
+<li>GPU 租金，2024 年初約每小時 8 美元，2025 年 10 月 1.70，2026 年 3 月約 2.35。</li>
+<li>折舊年限，CoreWeave 用六年，Nebius 用四年。放空者認為實際經濟壽命只有兩到三年。</li>
+<li>用了兩三年的晶片，繼續營運的價值估計是新品的五到七成，被迫急售估計三到五成。</li>
+<li>已宣布的晶片擔保額度超過 200 億美元。</li>
+</ul>
+<p>二手 GPU 的公開成交資料非常少。同一篇文章引用的資料庫三年只有 3,009 筆掛牌、約 2,630 萬美元。沒有夠深的二手市場，是貸款方不敢只看晶片的原因之一。Dallas Fed 也提到，大型科技公司的晶片折舊年限是五到六年，機房建物則是 10 到 15 年以上（<a href="https://www.dallasfed.org/research/economics/2026/0210-searls-aifinancing">Dallas Fed</a>）。</p>
+</section>
+
+<!-- ───────────────────────── 欄四 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">欄四 · 利息</p>
+<h2>借錢的條件撐得住嗎</h2>
+
+<p>到 2026 年 11 月，答案分兩半。巨頭撐得住。第二層在 10 月已經被重新定價，有些接近借不到。</p>
+
+<h3>巨頭這一邊：還是很好借</h3>
+
+<p>Fed 在 11 月的報告說，營運機房的最大投資級公司今年到第三季發債超過 1,500 億美元，「投資人需求強勁」。高風險債務的利差以歷史標準看仍然偏低，槓桿貸款的利差低於 2009 年以來的中位數。私募信貸新承作的利差「小幅擴大，但仍相對低」（<a href="https://www.federalreserve.gov/publications/files/financial-stability-report-20261113.pdf">Fed，第 1 章</a>）。FactSet 記錄 Amazon 一筆 250 億美元的債券，認購是發行額的 2.5 倍（<a href="https://insight.factset.com/hyperscalers-tap-external-financing-as-ai-capex-outruns-cash-flow">FactSet</a>）。</p>
+
+<h3>第二層這一邊：2026 年 10 月變了</h3>
+
+<p>把能找到的定價事件排成時間表：</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>時間</th><th>誰</th><th>借錢條件</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td class="nowrap">2025-06</td><td>xAI</td><td>借 50 億。債券 30 億，殖利率從原先談的水準加到 12.5%。固定利率貸款 10 億，也是 12.5%。B 類貸款 10 億，基準利率加 7.25 個百分點、96 折</td><td><a href="https://ng.investing.com/news/company-news/elon-musks-xai-raises-debt-offering-yield-to-close-5b-deal-93CH-1974856">Bloomberg 經 Investing.com</a></td></tr>
+<tr><td class="nowrap">2025-10</td><td>Meta 的 Hyperion 合資公司</td><td>273 億，公債加 2.25 個百分點，A+。Meta 自己的債是加 0.88 到 0.98</td><td><a href="https://www.bis.org/publications/bulletin-140-building-ai-credit-structures-and-spillovers.pdf">BIS</a></td></tr>
+<tr><td class="nowrap">2026-03</td><td>CoreWeave 4.0</td><td>85 億，SOFR 加 2.25，A3。第一筆拿到投資級評等的晶片擔保融資</td><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Closes-Landmark-8-5-Billion-Financing-Facility-Achieving-First-Investment-Grade-Rated-GPU-backed-Financing/default.aspx">新聞稿</a></td></tr>
+<tr><td class="nowrap">2026-05</td><td>CoreWeave 5.0</td><td>31 億，SOFR 加 4.50。認購踴躍，利差收窄 0.5</td><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Closes-3-1-Billion-Loan-Facility-Expanding-Access-to-Public-Markets-for-GPU-Backed-Financing/default.aspx">新聞稿</a></td></tr>
+<tr><td class="nowrap">2026-06</td><td>SpaceX（已併入 xAI）</td><td>250 億投資級債，票面 5.35% 到 6.65%，訂單高峰 890 億。還掉 200 億的過橋貸款</td><td><a href="https://www.outlookbusiness.com/corporate/spacex-sells-25-bn-bonds-to-refinance-elon-musks-x-xai-debt">Bloomberg 經 Outlook Business</a></td></tr>
+<tr><td class="nowrap">2026-07</td><td>Oracle</td><td>標準普爾降到 BBB−。五年期信用違約交換（CDS，替債券買倒債保險的年費率）約 2 個百分點，是 2008 年底有紀錄以來最高</td><td>降評見<a href="https://www.hwataibank.com.tw/news/30440/">華泰銀行公告</a>。CDS 數字為多家媒體轉述，本次沒有打開原文（<a href="https://money.udn.com/money/story/123398/9636283">經濟日報 2026-07-18</a>）</td></tr>
+<tr><td class="nowrap">2026-08</td><td>CoreWeave 5.5、Lambda</td><td>SOFR 加 5.50（三年短約）。Lambda SOFR 加 3.00，Baa2</td><td>見欄三</td></tr>
+<tr><td class="nowrap">2026-10</td><td>Oracle</td><td>CDS 升到 2.95 到 3.15 個百分點，一年多了約三倍。標準普爾的分析師說這個水準對應的是非投資級</td><td>CNBC 經 <a href="https://www.wealthprofessional.ca/investments/equity-markets/oracles-default-insurance-hits-high-yield-levels-as-ai-debt-mounts/393817">Wealth Professional 2026-10-20</a></td></tr>
+<tr><td class="nowrap">2026-10</td><td>CoreWeave</td><td>CDS 約 10 個百分點，債券殖利率超過 16%。標準普爾評等 B+</td><td>Reuters、CNBC，同上轉述</td></tr>
+<tr><td class="nowrap">2026-10</td><td>SpaceX</td><td>Musk 說談妥 400 億美元債務買 GPU，並說債市對沒有其他營收的機房公司幾乎關門</td><td><a href="https://www.foxbusiness.com/technology/spacex-secures-40b-financing-gpus-elon-musk-warns-ai-cloud-industry-consolidation">Fox Business 2026-10-26</a></td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">2026 年 7 月以後 Oracle 和 CoreWeave 的 CDS 數字都來自媒體轉述，沒有看到原始報價，精確度只到「大約」。</p>
+
+<p>5 月的時候，CoreWeave 借錢給非投資級客戶買晶片還能讓利差收窄。到 10 月，它的倒債保險一年要付本金的一成。五個月之間，同一家公司的處境差很多。</p>
+
+<h3>Musk 那則貼文說了什麼</h3>
+
+<p>2026 年 10 月下旬，Elon Musk 在 X 上連發幾則。Fox Business 引用的原文是：</p>
+<blockquote>
+<p>"SpaceX closed $40B of debt for GPUs, but we're investment grade and have Starlink &amp; launch revenue."</p>
+<p>（SpaceX 談妥了 400 億美元的債務來買 GPU，不過我們是投資級，而且有 Starlink 和發射業務的營收。）</p>
+<p>"This is primarily callable debt for GPU purchases that will arrive in Q1 and Q2. Not a major factor this quarter."</p>
+<p>（這主要是可提前贖回的債，用來買第一、第二季到貨的 GPU。對這一季影響不大。）</p>
+</blockquote>
+<p>他同時說，最近幾週債市對「機房以外沒有可觀營收」的公司幾乎完全關上了門，並預測兩百多家算力出租公司會大量倒閉和整併，原話是 "guppy-level death and consolidation"（像孔雀魚那樣成批死掉、被吃掉）（<a href="https://www.foxbusiness.com/technology/spacex-secures-40b-financing-gpus-elon-musk-warns-ai-cloud-industry-consolidation">Fox Business 2026-10-26</a>）。</p>
+
+<p>這則貼文要打折看。他是這個市場的競爭者，說別人借不到錢對他有利。報導也指出，貸款方是誰、利率多少、投資人是否已同意定價條件，當時都不清楚。能核對的只有兩件事：金額是他自己說的 400 億，不是外界傳的「資金缺口」。他描述的市場狀況，跟同一週 CoreWeave 的 CDS 報價方向一致。</p>
+
+<h3>xAI 的例子：換一個借款人，利息少四成</h3>
+
+<p>xAI 在 2025 年 6 月用自己的名字借錢，要付 12.5%。2026 年 2 月它併入 SpaceX，SpaceX 拿到投資級評等。6 月 SpaceX 發了 250 億美元的債。據 Bloomberg 的報導，這筆債一年利息約 15 億，原本 X 和 xAI 那 175 億舊債一年利息約 18 億（<a href="https://www.outlookbusiness.com/corporate/spacex-sells-25-bn-bonds-to-refinance-elon-musks-x-xai-debt">Outlook Business 2026-06-24</a>）。</p>
+
+<p>換算成平均利率，舊債約 10.3%，新債約 6.0% <span class="own">自己算的</span>。機房和晶片是同一批，差別只在還款來源多了 Starlink 和火箭發射。這跟 CoreWeave 那張表講的是同一件事。</p>
+
+<p class="pull">晶片是同一批。貸款方算利息的時候，看的是誰在付租金、租多久。</p>
+</section>
+
+<!-- ───────────────────────── 欄五 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">欄五 · 流當</p>
+<h2>如果 AI 收入跟不上，誰先賠</h2>
+
+<p>到目前為止的一手證據指向同一個順序：先賠的是私募信貸基金和專門投資 AI 基礎設施的工具，再來是壽險和高收益債基金，銀行排在後面但不是零。巨頭自己會吸收一部分。</p>
+
+<h3>巨頭會吸收多少</h3>
+
+<p>Fed 的說法有兩面。透過租約和保證，最大的科技公司在景氣反轉時「可能吸收損失」，減輕對金融體系其他部分的衝擊。同一段接著說，這也表示它們實際的經濟曝險「可能遠大於」帳上負債看起來的樣子（<a href="https://www.federalreserve.gov/publications/files/financial-stability-report-20261113.pdf">Fed，Box 2.2</a>）。Meta 那 684 億美元的最大曝險，就是這句話的一個具體例子。</p>
+
+<p>BIS 補了一個細節：保證通常有上限。巨頭不續租的時候，合資公司要自己找新租客或變賣資產，而那個時點市場上多半也有很多同類機房在找租客（<a href="https://www.bis.org/publications/bulletin-140-building-ai-credit-structures-and-spillovers.pdf">BIS Bulletin 140</a>）。</p>
+
+<h3>誰拿著這些債</h3>
+
+<p>Fed 的描述是這樣分的。巨頭和晶片公司帳上的債，主要在共同基金、退休基金和保險公司手上。合資公司和特殊目的公司（SPV，專門為一個專案設立、跟母公司切開的公司）發的債有優先和次順位之分。風險較高的次順位債和股權部位，在高收益債基金、壽險公司、商業發展公司（BDC，一種向散戶募資再放款的基金）和其他私募債務工具手上。</p>
+
+<p>銀行那一邊，Fed 給了一個數字。美國最大的銀行控股公司對大型科技公司、機房開發商、AI 相關的特殊目的公司和私募信貸工具、公用事業的曝險合計接近 1 兆美元，這些曝險會納入年度壓力測試（同上）。這個數字包含借給微軟這類公司的一般貸款，不能讀成「銀行有 1 兆美元押在機房上」。</p>
+
+<p>BIS 提醒了兩條銀行的間接路徑。銀行直接借建築貸款給合資公司。銀行也借錢給買了這些債的基金。它還舉了一個例子：一家保險公司如果同時持有某巨頭的債券，又持有好幾個租給那家巨頭的合資公司的債，它對那家巨頭的實際曝險會比帳面上大。</p>
+
+<h3>一份壓力測試的數字</h3>
+
+<p>Hepp 的工作論文做了一個極端情境：AI 相關債務被市場重新定價。他估計股票市值可能蒸發 10 到 14 兆美元，實際的信用損失約 600 到 1,400 億美元。作者自己說這是示意性的校準，不是預測（<a href="https://www.chicagobooth.edu/review/2026/august/how-worried-should-we-be-about-ai-debt">Chicago Booth Review</a>）。</p>
+
+<p>拿他的存量表對一下，信用損失約是 1.07 兆的 6% 到 13% <span class="own">自己算的</span>。股票的損失是債務損失的 70 到 230 倍。這個比例說明，如果真的出事，一般人會先從股市感受到，債務違約的金額相對小。</p>
+
+<p>他的排序是：永久性損失先落在私募信貸基金和專門的 AI 基礎設施信貸工具上，再傳到它們的出資人，主要是退休基金、校產基金和私募股權旗下的保險平台。銀行在資本結構裡排得比較前面。</p>
+
+<h3>會像 2008 年那樣拖垮銀行嗎</h3>
+
+<p>目前的證據偏向不會，理由有兩個。BIS 指出這些債大多是長期的，不像 2008 年那樣靠短期資金滾動，所以比較不容易發生擠兌。巨頭的槓桿低，FactSet 算五家裡四家債務對 EBITDA 在 1 倍上下。</p>
+
+<p>不能排除的部分也有兩個。BIS 說這些結構不透明，未起租的租約有揭露但不記成負債，保證在可能支付之前幾乎不入帳，所以損失的認列可能延後，市場在壓力下也可能因為沒辦法估價而凍結。IMF 則算了「循環融資」的規模：2023 年以來 14 筆公開交易裡，巨頭對財務較弱的 AI 公司投了約 3,000 億美元股權，搭配 6,500 億美元債務，換到 1.4 兆美元的未來營收承諾。6,500 億裡約 3,200 億在被投資的那一方身上（<a href="https://www.imf.org/-/media/files/publications/gfsr/2026/october/english/ch1.pdf">IMF</a>）。也就是說，將近一半的債由比較弱的那一方背 <span class="own">自己算的，49%</span>。IMF 把這叫做「錯向風險」：被投資的公司出事的時候，投在它身上的股權、借給它的錢、它承諾要付的營收，會同時縮水。</p>
+
+<p>Hepp 還提了 1990 年代的光纖當對照。光纖網路後來成了不可或缺的基礎設施，但第一批業主的資本結構很多沒有活下來。技術有沒有用，跟借錢蓋它的人會不會賠，是兩個問題。Fed 的比較圖顯示，五大雲端業者從 2020 年起的累計資本支出（對 GDP 的比例）跟 1995 年起的電信業走得很近，而且最近在加速，可能很快就超過。差別是巨頭過去靠自己的現金流，不太需要發債，Fed 的原話是「至少到今年為止」。</p>
+</section>
+
+<!-- ───────────────────────── 欄六 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">欄六 · 台灣</p>
+<h2>台灣在哪一格</h2>
+
+<p>台灣的壽險和銀行持有多少 AI 相關公司債，沒有公開數字。這是全文最弱的一環，先講清楚查了哪裡。</p>
+
+<p>查過的地方有金管會保險局的統計與新聞稿、壽險公會、中央銀行 2026 年 5 月的《金融穩定報告》、聯合報系和工商時報的報導。金管會公布過壽險對單一國家的曝險（例如哥倫比亞），沒有公布過按產業或按發行人分的海外債明細。壽險公司年報的前幾大投資標的也不到這個細度。所以查不到的原因是資料沒有這樣分類，不是有人不講。</p>
+
+<p>能找到的是下面幾個間接數字。</p>
+
+<h3>銀行：對美國曝險九個月多了 8,800 億元</h3>
+
+<p>金管會統計，到 2026 年 9 月底，本國銀行的海外曝險是新台幣 17 兆 6,195 億元，前九個月增加 2 兆 4,927 億元，比前兩年加起來還多。其中對美國的曝險 5 兆 1,221 億元，前九個月增加 8,803 億元。海外投資增加的 9,419 億元裡，美國占 5,219 億元（<a href="https://money.udn.com/money/story/5613/9867733">經濟日報 2026-11-10</a>）。</p>
+
+<p>報導引述銀行圈的說法，增加的部分包括買進美國 AI 公司為了籌資而發的債。這句話是受訪者的觀察，金管會沒有拆出金額。能確定的只有：國銀 2026 年多買的海外投資，超過一半在美國 <span class="own">自己算的，55%</span>，而這一年美國投資級新債有三成是 AI 相關。</p>
+
+<p>另一個接觸點是銀行賣給客戶的海外債。華泰銀行 2026 年 7 月 15 日公告，Oracle 2050 年和 2055 年到期的兩檔美元公司債，評等被標準普爾從 BBB 調到 BBB−（<a href="https://www.hwataibank.com.tw/news/30440/">華泰銀行</a>）。公告沒有寫這是銀行自己持有還是賣給客戶的商品。兩檔債都有商品代號（KG50、KG51），推論是銷售給客戶的商品，這一點是推論。</p>
+
+<h3>壽險：資產 33.5 兆元，AI 債占多少不知道</h3>
+
+<p>2025 年壽險業資產規模 33.5 兆元，資產和負債的幣別錯配（收台幣保費、買美元資產）14.9 兆元。保險業可運用資金在 2026 年第二季是 39.6 兆元（<a href="https://udn.com/news/story/7239/9877469">中央社 2026-11-13</a>）。另有報導說壽險業國外投資占資產 58.5%、約 22 兆元（2026 年 2 月），這個數字本次沒有打開原始報導核對，列為未核實。</p>
+
+<p>推論如下，標明是推論。台灣壽險的海外部位以美元投資級公司債為大宗。雲端巨頭現在占全球投資級公司債發行約一成，占美國非金融業約三成。壽險只要照市場比例買新債，2026 年新買的部位裡 AI 巨頭的比重就會比過去高很多。如果國外投資真的在 22 兆元上下，每 1 個百分點就是約 2,200 億元 <span class="own">自己算的</span>。實際是幾個百分點，沒有資料。</p>
+
+<p>要區分的是買到哪一層。照 Fed 的描述，巨頭本身的債主要在共同基金、退休基金和保險公司手上，這是風險最低的一層。次順位和合資公司的部位主要在美國的高收益債基金、美國壽險和私募工具手上。台灣壽險受法規限制，海外債以投資級為主，推論多半落在第一層。但 Oracle 的例子說明，第一層也會被降評，而且壽險買的多是二三十年的長債，降評時價格跌幅比短債大。</p>
+
+<p>政策方向是鼓勵壽險多投 AI。金管會 2026 年 6 月把「AI 新十大建設」列為策略性產業，保險業直接投資的風險係數從 37.5% 降到 30%，透過創投間接投資從 33.75% 降到 17.25%，透過私募股權基金也適用 17.25%（<a href="https://www.ctee.com.tw/news/20260617700088-439901">工商時報 2026-06-17</a>）。風險係數越低，保險公司做這筆投資要準備的自有資本越少。同一場論壇上還提到，專案運用與公共投資的上限從可運用資金的 10% 調到 15%，估計可以多出 1.98 兆元的額度。</p>
+
+<p>業者自己有保留。國泰人壽專案投資部協理黃昶閔在 2026 年 11 月 13 日的論壇上說：「台灣目前逐步出現不同類型的資料中心投資機會，但不同類型，風險也會完全不同。」他的比喻是，傳統機房像出租店面收租金，AI 算力租賃要自己備好 GPU，租期、殘值和再出租都有不確定性（<a href="https://udn.com/news/story/7239/9877469">中央社</a>）。這跟 CoreWeave 那 1 個百分點的短約加碼，講的是同一個風險。</p>
+
+<h3>中央銀行已經點名</h3>
+
+<p>中央銀行 2026 年 5 月的《金融穩定報告》有一個專欄叫〈AI 相關產業投資快速成長與高估值之風險〉。它點了四件事：廠商之間「我投你錢，你買我產品」的循環交易、透過特殊目的公司的表外融資、把 GPU 證券化發行資產擔保債券、私募信貸的脆弱性。它也提到台股資金集中在 AI 族群，外資進出對匯市的影響變大（<a href="https://www.cbc.gov.tw/dl-227233-5e3e8c300d724f1dae14f1dae46852e9.html">中央銀行，專欄 1</a>）。</p>
+
+<p>專欄有一張圖列出美國 AI 相關融資工具 2024 年和 2025 年的發行金額，來源是 Reuters 2025 年 12 月的報導。這份 PDF 轉成文字時數字有缺漏，沒有辦法完整讀出。追到 Reuters 原文，能確認的只有專案融資一項：瑞銀的統計是從 2024 年同期的 150 億美元增加到 2025 年的 1,250 億美元（<a href="https://bnnbloomberg.ca/business/artificial-intelligence/2025/12/12/five-debt-hotspots-in-the-ai-data-centre-boom/">Reuters 經 BNN Bloomberg</a>），跟央行文字殘留的位數相符。投資級債和私募信貸那兩項，未核實。</p>
+
+<p>IMF 也把台灣放在圖上。它用各地股市對全球 AI 股價指數的敏感度（貝他值）排序，結論是「亞洲先進經濟體的股市」在 AI 投資急降時受傷最重，圖上包含台灣加權指數和韓國綜合指數（<a href="https://www.imf.org/-/media/files/publications/gfsr/2026/october/english/ch1.pdf">IMF，圖 1.3</a>）。對多數台灣人來說，這條鏈出事的時候，先看到的會是台股和匯率，然後才是保單和債券。</p>
+
+<h3>供應鏈也在墊錢：廣達的應收帳款</h3>
+
+<p>廣達 2026 年第三季合併營收約 1.12 兆元，季增 7.6%。季底應收帳款 9,318 億元，季增 21.7%，一季多了約 1,660 億元。存貨 8,561 億元，多了 659 億元。淨利息費用 22.9 億元，上一季是 16.9 億元。現金和短期投資從 3,272 億元降到 3,120 億元。8 月它發了 21.64 億美元的海外存託憑證，用來買料（<a href="https://uanalyze.com.tw/articles/8736859074">優分析 2026-11-11</a>，財報原文本次沒有打開）。</p>
+
+<p>拿季底應收帳款除以當季營收，換算成天數 <span class="own">自己算的</span>：第二季約 67 天，第三季約 77 天，多了 10 天左右。第二季的數字是用季增率反推的，只能當近似值。應收帳款成長是營收成長的將近三倍，利息費用一季多了三成五。</p>
+
+<p>公司的說法不一樣。廣達說現金週轉天數比去年同期縮短兩週以上，應收帳款增加是因為營收成長。兩邊不衝突：公司比的是跟去年同期、而且把應付帳款和存貨一起算。這裡算的是跟上一季比、只看應收帳款。能說的是，機房的錢還沒付到伺服器廠手上之前，有一段是台灣的組裝廠用自己的借款和增資在撐。緯創、緯穎、英業達的同一個數字，本次沒有查。</p>
+</section>
+
+<!-- ───────────────────────── 流行說法 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">附欄 · 流行說法</p>
+<h2>四句常聽到的話，對一下數字</h2>
+
+<p>這一節的引文來自網路討論和社群貼文，只用來呈現流行的說法，不當事實依據。</p>
+
+<h3>「科技巨頭現金一大堆，根本不用借錢」</h3>
+<p>投資社群常見的回應，沒有單一出處。對的部分：五家裡四家債務對 EBITDA 在 1 倍上下，Meta 前九個月自由現金流還是正的 110 億美元。不對的部分：Meta 九個月長期負債多了 222 億、庫藏股停掉、第三季單季自由現金流轉負。它帳外的租約和合約承諾有 8,100 億，一年前不到 1,400 億 <span class="own">自己算的</span>。</p>
+
+<h3>「現金真的不夠建設資料中心」「銀行不敢借了找韭菜借」</h3>
+<p>PTT 股板網友在 2026 年 2 月評論 Oracle 宣布籌資，經<a href="https://udn.com/news/story/12806/9304119">聯合新聞網 2026-02-03</a> 引用。對的部分：Oracle 過去四季自由現金流 −287 億美元，確實靠外部資金，7 月被降評。不對的部分：Oracle 後來用的是賣股票（199 億美元）和發債，買的人是基金和保險公司。賣股票是向股東要錢，不是借。「銀行不敢借」對 Oracle 不成立，到 2026 年 10 月對第二層的算力出租公司比較接近事實。</p>
+
+<h3>「這是安隆式的表外融資」</h3>
+<p>Hyperion 發債時，債券市場刊物 IFR 的評論把它跟 24 年前的安隆（Enron）相提並論，社群上大量轉貼。相同的地方：273 億美元的債確實不在 Meta 帳上，Fed、BIS 和台灣央行都點名這類結構資訊不透明。不同的地方：安隆是隱藏負債和作假帳。Hyperion 的債有評等、有大型機構買方，Meta 在季報裡寫出了最大損失 684 億美元和計算方式。Hepp 對這類結構的批評是另一種：看起來分散在很多家公司和基金裡，最後都押在同一件事上，就是 AI 的需求。</p>
+
+<h3>「巨頭把晶片折舊年限拉長，獲利灌水」</h3>
+<p>放空投資人 Michael Burry 2025 年 11 月在 X 上的說法，估計 2026 到 2028 年少提約 1,760 億美元折舊（經 <a href="https://finance.yahoo.com/news/michael-burry-turns-heat-anti-230700285.html">Yahoo Finance</a> 引用）。這是放空者的估算，沒有查核或監理文件支持。跟本文有關的只有一點：如果晶片真的兩三年就不值錢，擔保品縮水會比貸款攤還快。貸款方的定價顯示它們也這樣想，所以才看租約、不看晶片。</p>
+</section>
+
+<!-- ───────────────────────── 沒答案的 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">附欄 · 缺口</p>
+<h2>還沒有答案的地方，和目前的說法</h2>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>問題</th><th>查了哪裡</th><th>目前的說法</th></tr></thead>
+<tbody>
+<tr><td>私募信貸一共借了多少給 AI</td><td>Fed 2026-11 報告、IMF、BIS Bulletin 120 與 140、Reuters、Hepp</td><td>沒有官方總數。Fed 明說私募市場的交易讓總額「難以衡量」。唯一的整體估計是 Hepp 的約 2,000 億美元，作者註明是自己估的。Fed 新編的統計顯示私募信貸工具到 2025 年底持有約 1.5 兆美元的美國企業貸款，2,000 億大約是它的 13%（自己算的，兩個來源口徑不同，只能看量級）。BIS 另提到，連結表外工具的債券和資產擔保證券 2026 年已配售 750 到 1,000 億美元。「2025 年私募信貸新貸給 AI 超過 400 億」這個流傳的數字找不到原文，未核實</td></tr>
+<tr><td>Fed 調查「87% 點名 AI」</td><td>Fed 報告 PDF 的 Box 5.1</td><td>PDF 只有長條圖，沒有印數字。樣本是 23 位市場人士，20 人除以 23 人是 86.96%，跟媒體讀出的 87% 相符（自己算的）。所以這個數字的意思是「23 個人裡有 20 個」。春季那次 AI 排第三，在地緣政治和油價衝擊之後，比例約五成是媒體讀圖，未核實</td></tr>
+<tr><td>Hyperion 債券在次級市場的價格</td><td>BIS、Fortune、債券資料網站</td><td>流傳的「跌到約 91 美分、殖利率約 7.55%」找不到可以打開的出處，未核實。這是私下配售的債，沒有公開報價</td></tr>
+<tr><td>台灣壽險和銀行持有的 AI 相關債券金額</td><td>金管會、壽險公會、央行報告、報紙</td><td>沒有按產業分類的公開統計。推論見欄六</td></tr>
+<tr><td>2026 年五大巨頭資本支出對營業現金流的整體比重</td><td>流傳的版本是某投資銀行估 6,970 億對 5,750 億</td><td>引用的頁面沒有這組數字，未核實。同一頁能看到的是研究機構 Arete 的估計：四大巨頭到 2028 年資本支出 1.8 兆美元，比本業同期產生的現金多約 6,000 億（<a href="https://broadbandbreakfast.com/capex-to-consume-nearly-all-hyperscaler-operating-cash-flow-in-2026.md">Broadband Breakfast 2026-09</a>）。本文改用 Meta 和 Oracle 的財報自己算</td></tr>
+<tr><td>SpaceX 400 億美元債務的條件</td><td>Fox Business、Reuters 轉述</td><td>只有 Musk 自己的說法。貸款方、利率、期限都沒有公布</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ───────────────────────── 對帳 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">附欄 · 對帳</p>
+<h2>一年後拿什麼來檢驗</h2>
+
+<p>上面的結論是現在的答案。下面這些數字明年同一時間可以拿來對，看結論有沒有站住。</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>要對的東西</th><th>現在的值</th><th>來源</th><th>對帳日</th></tr></thead>
+<tbody>
+<tr><td>AI 相關發債累計、占投資級發債比重</td><td>超過 6,800 億美元，約 31%</td><td>Fed 金融穩定報告</td><td class="nowrap">2027-11-15</td></tr>
+<tr><td>七家公司未起租租約、其他承諾</td><td>超過 1 兆、超過 2 兆（未折現）</td><td>同上</td><td class="nowrap">2027-11-15</td></tr>
+<tr><td>五大巨頭新增債務占資本支出</td><td>約 32%</td><td>FactSet</td><td class="nowrap">2027-07-31</td></tr>
+<tr><td>Meta 長期負債、未起租租約、合資機房最大曝險</td><td>809 億、3,557 億、684 億美元</td><td>Meta 10-Q</td><td class="nowrap">2027-10-31</td></tr>
+<tr><td>Oracle 評等、過去四季自由現金流、借款、帳外租約</td><td>BBB−、−287 億、1,253 億、2,880 億美元</td><td>Oracle 10-Q</td><td class="nowrap">2027-09-15</td></tr>
+<tr><td>CoreWeave 利息占營收、利息對營業利益</td><td>23%、4.1 倍</td><td>CoreWeave 季報</td><td class="nowrap">2027-11-15</td></tr>
+<tr><td>CoreWeave 新一筆晶片擔保貸款的利差（如果還借得到）</td><td>SOFR 加 2.25 到 5.50</td><td>公司新聞稿</td><td class="nowrap">2027-11-15</td></tr>
+<tr><td>Musk 的預測：兩百多家算力出租公司大量整併</td><td>2026-10 提出</td><td>X 貼文</td><td class="nowrap">2027-10-25</td></tr>
+<tr><td>金管會是否公布保險業 AI 相關投資金額</td><td>沒有公開數字</td><td>金管會保險局</td><td class="nowrap">2027-11-23</td></tr>
+<tr><td>國銀對美曝險</td><td>5 兆 1,221 億元</td><td>金管會</td><td class="nowrap">2027-11-10</td></tr>
+<tr><td>廣達季底應收帳款對當季營收</td><td>約 77 天</td><td>廣達財報</td><td class="nowrap">2027-11-15</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ───────────────────────── 附錄 ───────────────────────── -->
+<section>
+<p class="eyebrow reveal">附錄 · 完整數據</p>
+<h2>正文沒放完的數字</h2>
+
+<p>查詢日都是 2026-11-23。「轉述」表示只看到二手整理。「未核實」表示引用的頁面裡找不到這個數字。</p>
+
+<h3>市場總量</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>項目</th><th>數字</th><th>期間</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td>五大雲端業者資本支出</td><td>2026 年底前超過 8,000 億美元，約美國 GDP 的 2.5%</td><td>2026 預估</td><td><a href="https://www.bis.org/publications/bulletin-140-building-ai-credit-structures-and-spillovers.pdf">BIS Bulletin 140</a></td></tr>
+<tr><td>巨頭十年以上長債占同天期公司債發行</td><td>約 24%（2024 年約 3%）。占美國公債總發行 13%（2024 年約 1.5%）</td><td>2026</td><td>同上</td></tr>
+<tr><td>連結表外工具的債券與資產擔保證券</td><td>750 到 1,000 億美元</td><td>2026 年初至今</td><td>同上，市場來源</td></tr>
+<tr><td>Nvidia 與六家投資公司的備忘錄</td><td>目標募集超過 5,000 億美元第三方資金。可能對專案最多 25% 提供殘值支持</td><td>2026-08</td><td>同上，註 4</td></tr>
+<tr><td>AI 機房未來三到五年總投資</td><td>3 到 5 兆美元。2023 年以來已投入約 5,000 到 6,000 億，多數來自保留盈餘</td><td>2026-02</td><td><a href="https://www.dallasfed.org/research/economics/2026/0210-searls-aifinancing">Dallas Fed</a></td></tr>
+<tr><td>巨頭 2025 年資本支出</td><td>約 3,800 億美元，2026 年預期約兩倍</td><td>2025–26</td><td><a href="https://www.chicagobooth.edu/review/2026/august/how-worried-should-we-be-about-ai-debt">Hepp</a></td></tr>
+<tr><td>五大業者運算設備占資本支出</td><td>約 60%（2022 年約 43%），2026 年約 3,800 億美元。2028 會計年度資本支出估超過 9,000 億</td><td>2022–28</td><td><a href="https://insight.factset.com/hyperscalers-tap-external-financing-as-ai-capex-outruns-cash-flow">FactSet</a></td></tr>
+<tr><td>五大業者總債務</td><td>約 7,000 億美元</td><td>2026 年中</td><td>同上</td></tr>
+<tr><td>五大業者未入帳的租約相關承諾</td><td>約 8,200 億美元</td><td>2026 年中</td><td>同上</td></tr>
+<tr><td>日經的估計：五家美國科技巨頭的「隱藏債務」</td><td>1.65 兆美元，四年變八倍，超過帳上債務 1.35 兆</td><td>2026</td><td><a href="https://fortune.com/2026/07/31/ai-debt-hypescalers-capex-capital-spending-hidden-borrowing-bond-issuance/">Fortune 轉述</a></td></tr>
+<tr><td>數位基礎設施資產擔保證券</td><td>820 億美元，約美國資產擔保證券市場的 5%。機房占其中 63%，2026 年預估新增 500 到 600 億</td><td>2025-12</td><td><a href="https://bnnbloomberg.ca/business/artificial-intelligence/2025/12/12/five-debt-hotspots-in-the-ai-data-centre-boom/">Reuters，引美銀</a></td></tr>
+<tr><td>私募信貸工具總資產</td><td>從 2012 年約 3,500 億增到 2025 年超過 2.6 兆美元。持有約 1.5 兆美元美國企業貸款，約占非金融企業債務 6%</td><td>2012–25</td><td><a href="https://www.federalreserve.gov/publications/files/financial-stability-report-20261113.pdf">Fed，Box 2.1</a></td></tr>
+<tr><td>私募債務基金的出資人</td><td>退休基金 42%、家庭與非營利組織 23%、壽險 14%</td><td>2025</td><td>同上</td></tr>
+<tr><td>避險基金股票部位加融資占先進經濟體 GDP</td><td>從 10% 升到約 15%。槓桿型 ETF 中單一個股的比重從 16% 升到 28%</td><td>2024–26</td><td><a href="https://www.imf.org/-/media/files/publications/gfsr/2026/october/english/ch1.pdf">IMF</a></td></tr>
+<tr><td>IMF 情境：AI 投資退潮</td><td>到 2028 年全球 GDP、投資、消費最多減少 0.4%、1.3%、0.6%</td><td>2026-10</td><td>同上</td></tr>
+<tr><td>IMF 壓力情境</td><td>短期與長期公債殖利率升 1.5 與 3 個百分點，全球實質 GDP 成長在情境的頭兩年約低於基準 3 個百分點</td><td>2026-10</td><td>同上</td></tr>
+<tr><td>投資銀行估「2026 年初至今巨頭發債 1,940 億」「AI 相關發債近 5,000 億、巨頭約占四成」</td><td>未核實</td><td>2026</td><td>找不到可打開的出處</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Meta</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>項目</th><th>數字（美元）</th><th>期間</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td>營收、淨利</td><td>646.0 億、98.6 億</td><td>2026 Q3</td><td><a href="https://investor.atmeta.com/investor-news/press-release-details/2026/Meta-Reports-Third-Quarter-2026-Results/default.aspx">新聞稿</a></td></tr>
+<tr><td>現金與有價證券</td><td>824.5 億</td><td>2026-09-30</td><td>同上</td></tr>
+<tr><td>營業租賃負債</td><td>流動 25.2 億、非流動 286.5 億</td><td>2026-09-30</td><td>同上</td></tr>
+<tr><td>2026 年總費用預估</td><td>1,750 到 1,790 億</td><td>2026</td><td>同上</td></tr>
+<tr><td>公司債本金合計</td><td>840.0 億，其中 737.5 億在 2031 年以後到期</td><td>2026-09-30</td><td><a href="https://www.sec.gov/Archives/edgar/data/1326801/000162828026066773/meta-20260930.htm">10-Q</a></td></tr>
+<tr><td>前九月購置不動產與設備、融資租賃本金</td><td>830.6 億、27.7 億（2025 同期 483.1 億、17.7 億）</td><td>前九月</td><td>同上</td></tr>
+<tr><td>在建工程</td><td>895.0 億（2025 年底 505.2 億）</td><td>2026-09-30</td><td>同上</td></tr>
+<tr><td>德州合資機房</td><td>2026-07 成立，Meta 持 20%。Meta 投入 22.6 億資產，收到 10.4 億一次性分配。2028 年起租</td><td>2026</td><td>同上，附註 5</td></tr>
+<tr><td>Hyperion 債券買方</td><td>Pimco 約 180 億（Wing VC）、BlackRock 超過 30 億（Fortune）。殖利率 6.58%。Blue Owl 持有合資公司 80%</td><td>2025-10</td><td><a href="https://fortune.com/2025/10/31/metas-27-billion-bet-turns-ai-compute-into-wall-streets-hottest-new-investment/">Fortune</a>、<a href="https://www.wing.vc/content/how-the-gpu-became-collateral">Wing VC</a>，皆轉述</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Oracle 過去四季</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>季別</th><th class="num">營業現金流</th><th class="num">資本支出</th><th class="num">自由現金流</th></tr></thead>
+<tbody>
+<tr><td>Q2 FY26（到 2025-11）</td><td class="num">20.7</td><td class="num">120.3</td><td class="num">−99.7</td></tr>
+<tr><td>Q3 FY26（到 2026-02）</td><td class="num">71.5</td><td class="num">186.4</td><td class="num">−114.8</td></tr>
+<tr><td>Q4 FY26（到 2026-05）</td><td class="num">146.2</td><td class="num">164.9</td><td class="num">−18.7</td></tr>
+<tr><td>Q1 FY27（到 2026-08）</td><td class="num">231.0</td><td class="num">285.0</td><td class="num">−54.0</td></tr>
+<tr><td>四季合計（自己算的）</td><td class="num">469.4</td><td class="num">756.6</td><td class="num">−287.2</td></tr>
+</tbody>
+</table>
+</div>
+<p class="byline">億美元。來源：<a href="https://investor.oracle.com/investor-news/news-details/2026/Oracle-Announces-Q1-Results-Driven-by-Triple-Digit-Growth-in-Cloud-Infrastructure-Revenues/default.aspx">Oracle Q1 FY27 新聞稿</a>。同季營收 193.5 億、借款流動 76.3 億加非流動 1,177.1 億、現金與有價證券 370.8 億、非流動營業租賃負債 305.9 億。FactSet 另記 Oracle 2026 會計年度發債 430 億、增資 50 億，2027 會計年度計畫籌約 400 億（其中債約 200 億）。媒體轉述標準普爾預估 Oracle 2027 會計年度自由營運現金流缺口近 420 億、調整後槓桿約 4.5 倍。</p>
+
+<h3>第二層其他融資</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>項目</th><th>數字（美元）</th><th>時間</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td>CoreWeave DDTL 1.0</td><td>23 億。估計基準利率加 6 到 8.7 個百分點，全包約 11% 到 14%</td><td>2023-08</td><td><a href="https://www.wing.vc/content/how-the-gpu-became-collateral">Wing VC</a>，轉述</td></tr>
+<tr><td>CoreWeave DDTL 2.0</td><td>75 億，利率未載</td><td>2024-05</td><td>同上</td></tr>
+<tr><td>CoreWeave 無擔保公司債</td><td>20 億，票面 9.25%</td><td>2025-05</td><td>同上</td></tr>
+<tr><td>CoreWeave 可轉換公司債</td><td>約 42 億</td><td>2026 Q3</td><td><a href="https://investors.coreweave.com/news/news-details/2026/CoreWeave-Reports-Strong-Third-Quarter-2026-Results/default.aspx">公司新聞稿</a></td></tr>
+<tr><td>CoreWeave 開辦股票市價增資計畫</td><td>本次重讀新聞稿摘要沒有看到，未核實</td><td>2026 Q3</td><td>—</td></tr>
+<tr><td>CoreWeave 其他</td><td>現金 41.2 億。折舊與攤銷 18.9 億。調整後 EBITDA 22.6 億。融資租賃負債 6.5 億</td><td>2026 Q3</td><td>公司新聞稿</td></tr>
+<tr><td>Nvidia 對 CoreWeave 的保證</td><td>63 億，涵蓋到 2032 年賣不掉的算力</td><td>2025-09</td><td>Wing VC，轉述</td></tr>
+<tr><td>Nvidia 殘值保證（SB Energy、OpenAI）</td><td>最高 1,050 億</td><td>2026-08</td><td>同上</td></tr>
+<tr><td>xAI Colossus 2 的特殊目的公司</td><td>約 200 億，xAI 承租晶片。Nvidia 最多出 20 億股權</td><td>未載</td><td>同上</td></tr>
+<tr><td>Fluidstack（Macquarie）</td><td>額度最高 100 億</td><td>未載</td><td>同上</td></tr>
+<tr><td>xAI 2025-06 借款的認購倍數、當時高收益債指數殖利率</td><td>流傳為約 1.5 倍、約 7.6%，未核實</td><td>2025-06</td><td>引用頁面沒有</td></tr>
+<tr><td>SpaceX 過橋貸款</td><td>200 億，2026-03-31 時利率 4.58%</td><td>2026-03</td><td><a href="https://www.outlookbusiness.com/corporate/spacex-sells-25-bn-bonds-to-refinance-elon-musks-x-xai-debt">Outlook Business</a>，轉述 Bloomberg</td></tr>
+<tr><td>xAI 與 X 的營運</td><td>2025 年營收 32 億、營業虧損 64 億（2024 年虧損 16 億）</td><td>2025</td><td>同上</td></tr>
+<tr><td>SpaceX 第四季資本支出預估</td><td>350 到 400 億。第三季營收 145.8 億，年增 161%</td><td>2026 Q3–Q4</td><td><a href="https://www.foxbusiness.com/technology/spacex-secures-40b-financing-gpus-elon-musk-warns-ai-cloud-industry-consolidation">Fox Business</a>，引 Reuters</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>台灣</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>項目</th><th>數字</th><th>期間</th><th>來源</th></tr></thead>
+<tbody>
+<tr><td>國銀海外曝險增加的組成</td><td>投資 9,419 億元（38%）、授信 7,763 億元、同業拆存 7,745 億元。對美曝險占比從 28% 升到 29.1%</td><td>2026 前九月</td><td><a href="https://money.udn.com/money/story/5613/9867733">經濟日報</a></td></tr>
+<tr><td>保險業公共建設投資</td><td>6,385 億元，年增 96 億元</td><td>2026 Q1</td><td><a href="https://www.ctee.com.tw/news/20260617700088-439901">工商時報</a></td></tr>
+<tr><td>私募股權基金投資國內公共建設的持股上限</td><td>20% 調到 25%</td><td>2026-06</td><td>同上</td></tr>
+<tr><td>廣達存銷比</td><td>2026 年 9 月 0.77 倍（2025 年高點 1.01 倍）</td><td>2026-09</td><td><a href="https://uanalyze.com.tw/articles/8736859074">優分析</a></td></tr>
+<tr><td>央行專欄引用的雲端業者資本支出</td><td>TrendForce 估八大業者 2026 年資本支出，PDF 數字缺漏，未核實</td><td>2026-05</td><td><a href="https://www.cbc.gov.tw/dl-227233-5e3e8c300d724f1dae14f1dae46852e9.html">中央銀行</a></td></tr>
+</tbody>
+</table>
+</div>
+
+<p class="byline">本文不談股價和目標價。機房收入追不追得上支出，是另一個問題，這裡只看錢從哪裡來、借的條件是什麼。</p>
+</section>
+
+</article>
+
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
