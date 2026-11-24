@@ -78,7 +78,7 @@ Q19 第一版稿（`research/runs/2026-W47/api/Q19-report.html`）尚未發佈�
 
 **驗收筆記**：`unlimited-token-report`（無限的是 token、有限的是驗收）→ `million-cores-report`（下篇：百萬 CPU 是用來驗的）→ `fomo-flyer`（番外，推測）
 
-**LLM 使用者差異／鏡子**：`ai-mirror-1`（上篇，同一個工具為什麼結果差這麼多）→ `ai-mirror-2`（下篇，鑑別力寫成 repo 裡可執行的工件）→ `ai-mirror-3`（第三篇，測試在測什麼）；延伸 `agent-survival-2026h2`、`everyone-an-architect`；相關 `no-read-1`。2026-11-24 改 v3 後換新 slug 發佈，`ai-amp-or-mir`、`ai-amp-or-mirror-2`、`llm-testing-essence` 是 v1 舊版（owner 是別組，inbox 改不了），已被 `ai-mirror-1`／`-2`／`-3` 取代
+**LLM 使用者差異／鏡子**：`ai-mirror-1`（上篇，同一個工具為什麼結果差這麼多）→ `ai-mirror-2`（下篇，鑑別力寫成 repo 裡可執行的工件）→ `ai-mirror-3`（第三篇，測試在測什麼）；延伸一 `agent-survival-2026h2`（2026H2 Agent 生存指南）→ 延伸二 `everyone-an-architect`（人人都是建築師，原本自標第三篇，11-24 改標）；相關 `no-read-1`。2026-11-24 改 v3 後換新 slug 發佈，`ai-amp-or-mir`、`ai-amp-or-mirror-2`、`llm-testing-essence` 是 v1 舊版（owner 是別組，inbox 改不了），已被 `ai-mirror-1`／`-2`／`-3` 取代
 
 **退休**（推測）：`retire-floor-basics`（地板有多硬）→ `retire-floor-playbook`（實戰篇，用法用量）→ `rent-ratio-or-scale`（番外：租與買，差的是盤子）；相關 `three-pensions-plain`、`bysq-report-tw-case`（只在 R2）、`bysq-report-twvt`、`four-percent-rule`
 
