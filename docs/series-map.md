@@ -96,6 +96,7 @@ Q19 第一版稿（`research/runs/2026-W47/api/Q19-report.html`）不會發佈�
 - `ai-headcount-ledger`（2026-11-23，Q02；v0.3 起走 inbox，原稿在 `research/ai-headcount-ledger/`）：AI 省了人，年報裡對得到哪一格（七家公司對帳）。是 W47 第一批公開的自動研究。
 - `ai-datacenter-debt`（2026-11-24，Q18；原稿在 `research/ai-datacenter-debt/`）：借得到的，替借不到的作保（AI 機房的錢有多少是借的，含 Nvidia 的循環融資）。
 - `ai-power-which-segment`（2026-11-26，Q41 v2；原稿在 `research/ai-power-which-segment/`）：說「AI 缺電」之前，先問缺的是哪一段電（電網到晶片七段，機房外用年算、機房內用季算；含 NVIDIA DSX Ready、固態變壓器）。v1 以台達為主角，Clarence 要求主軸重來，v1 留在原稿資料夾沒上線。
+- `ai-19-percent-40-hours`（2026-11-26，Q23 v2；原稿在 `research/ai-19-percent-40-hours/`）：「AI 讓工程師慢 19%」和「AI 能做 40 小時的工作」是同一家說的（METR 兩把尺、2025–2026 改過幾次數字、你的工作先問是哪一種題）。v1 沒上線，留在原稿資料夾。
 - 其餘自動研究依 `research/questions.md` 排隊，發佈後在這裡補一行。
 
 ## 2025 冷飯重製（新取代舊）
