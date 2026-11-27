@@ -1,0 +1,894 @@
+<!doctype html>
+<!-- 主軸：AI 把「做出來」變便宜了，「確認做對」沒有跟著便宜；方法課教的是前者，所以做給自己用可以只靠方法，要收別人的資料之前得先補驗證、權限、回復三件事。 -->
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="imitator-origin" content="autoresearch Q24">
+<meta name="imitator-style" content="v3">
+<meta name="imitator-register" content="送審 — 把「學一套方法就能做軟體」當成一張送審的圖，逐格看哪裡有人驗過、哪裡沒人簽">
+<meta name="imitator-reference" content="1970 年代建築師事務所送建管單位審查的藍曬圖（diazo blueline），右下角圖框裡的審查欄一格一格等人簽">
+<meta name="imitator-paper" content="hsl(236 38% 95%)">
+<meta name="imitator-accent" content="hsl(246 62% 46%)">
+<title>自動研究｜AI 幫你把軟體做出來，沒幫你驗過</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* imitator report chassis — v3
+ *
+ * Source: https://github.com/clarencechien/imitator/blob/main/style/report.css
+ * How to use it: https://github.com/clarencechien/imitator/blob/main/style/STYLE.md
+ *
+ * This is NOT a house style. A report here is an essay with a point of view —
+ * it should look like someone made it, not like it came off a line. So this
+ * file fixes only what every report must get right no matter its voice:
+ * readability, structure, responsiveness, dark mode, motion hygiene, print.
+ *
+ * Everything that carries voice — paper and ink colours, the accent, which
+ * typefaces do which job, how big the headline is, how sections are signposted
+ * — is yours to choose per report. The tokens in §1 are the seams: override
+ * them in a <style> block AFTER this one and the whole chassis follows.
+ *
+ * Paste this file verbatim. Do not link it at runtime.
+ */
+
+/* ── §1 Tokens ───────────────────────────────────────────────────────────
+ *
+ * Override any of these per report. The defaults are a plain warm neutral —
+ * deliberately unremarkable, so a report that overrides nothing is readable
+ * but obviously unfinished. Redefine BOTH modes: dark is chosen, never an
+ * automatic flip.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- voice: expect to override every one of these --- */
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* raised surface */
+  --ink: #1a1a19;          /* primary text */
+  --ink-2: #4a4a46;        /* secondary text */
+  --mist: #6b6b68;         /* labels, captions, axis ticks */
+  --rule: #e6e6e3;         /* hairlines */
+  --rule-hard: #d3d3ce;    /* the one heavy rule per section */
+  --accent: #b0552b;       /* links, the coloured word, section numbers */
+  --accent-soft: #efe7df;  /* accent at wash strength — chips, marks */
+
+  /* --- faces: four jobs. Give them real families; --disp and --serif may be
+         the same as --sans if the report's voice is plain. --- */
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Noto Sans TC",
+           "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+  --disp:  var(--sans);    /* headlines */
+  --mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- type scale ---
+     Body is deliberately large: this is long-form prose in Chinese, read on a
+     phone as often as a laptop. 17px is the floor, not the target. */
+  --fs-body: clamp(1.0625rem, 1.01rem + .28vw, 1.1875rem);   /* 17 → 19 */
+  --fs-sm:   clamp(.875rem, .85rem + .12vw, .9375rem);       /* 14 → 15 */
+  --fs-xs:   .8125rem;                                        /* 13 — labels only */
+  --lh-body: 1.85;         /* CJK needs more leading than Latin */
+
+  --fs-display: clamp(2.6rem, 1.4rem + 5.4vw, 5.25rem);      /* the one big headline */
+  --fs-1: clamp(1.85rem, 1.45rem + 1.9vw, 2.75rem);
+  --fs-2: clamp(1.4rem, 1.24rem + .78vw, 1.85rem);
+  --fs-3: clamp(1.14rem, 1.08rem + .3vw, 1.32rem);
+
+  /* --- spacing --- */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem; --sp-4: 1.15rem;
+  --sp-5: 1.75rem; --sp-6: 2.75rem; --sp-7: 4.5rem;
+
+  --radius: 10px;
+  --measure: 34em;         /* prose column ≈ 34 CJK characters */
+  --page: 46rem;           /* text column */
+  --page-wide: 66rem;      /* wide devices: tables, figures, tile rows */
+
+  /* How far a wide device spills into the gutter on each side. Bounded by the
+     gutter that actually exists, so it can never push the page sideways. */
+  --bleed: min((var(--page-wide) - var(--page)) / 2, max(0px, (100vw - var(--page)) / 2));
+
+  /* --- motion ---
+     Strong curves only. The built-in CSS easings are too weak to read as
+     intentional, and ease-in on anything a reader is watching feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;       /* entrances only — never a UI response */
+}
+
+/* Dark is a second set of choices, not an inversion. Declared under both
+   scopes so an in-page toggle wins either way. A report that overrides the
+   light tokens MUST override these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: #191917; --card: #222220;
+    --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+    --rule: #333331; --rule-hard: #454542;
+    --accent: #e08a5c; --accent-soft: #3a2f28;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #191917; --card: #222220;
+  --ink: #eeeeec; --ink-2: #b8b8b3; --mist: #9a9a95;
+  --rule: #333331; --rule-hard: #454542;
+  --accent: #e08a5c; --accent-soft: #3a2f28;
+}
+
+/* Chart series colours are NOT part of the voice. They are the one palette a
+   report must not re-pick: the order is what keeps adjacent series apart under
+   colour blindness, and it was validated with a tool rather than an eye. Use
+   them in order, never cycle past --c6. */
+:root {
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c4: #eda100; --c5: #e87ba4; --c6: #008300;
+  --good: #0ca30c; --warn: #fab219; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --c4: #c98500; --c5: #d55181; --c6: #008300;
+  }
+}
+:root[data-theme="dark"] {
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+  --c4: #c98500; --c5: #d55181; --c6: #008300;
+}
+
+/* ── §2 Base & readability ───────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-body)/var(--lh-body) var(--sans);
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  /* Progressive: tightens CJK punctuation where the browser supports it. */
+  text-spacing-trim: trim-start;
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3, h4, .display { text-wrap: balance; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px;
+}
+::selection { background: var(--accent-soft); }
+
+/* ── §3 Layout ───────────────────────────────────────────────────────────── */
+
+.report {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(2rem, 1.2rem + 3.5vw, 5rem) clamp(1.15rem, .7rem + 2.4vw, 2.5rem) 6rem;
+}
+.report > * { max-width: var(--measure); }
+/* Figures, tables and full-width devices opt out of the prose measure. A
+   <section> or <article> is a pass-through: it must not inherit the measure,
+   or every table inside it is trapped at 34em — so the prose cap is re-applied
+   to its children instead. */
+.report :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+.report > :is(section, article) { max-width: none; }
+.report > :is(section, article) > * { max-width: var(--measure); }
+.report > :is(section, article) > :is(figure, .table-scroll, .wide, hr, .tiles, .cols, .banner) { max-width: none; }
+/* Grid items get min-width: 0 so one unbreakable string cannot widen the track.
+   Any grid you write yourself needs the same — see STYLE.md. */
+.cols > *, .tiles > * { min-width: 0; }
+.cols  { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); }
+.tiles { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin-block: var(--sp-5); }
+.card  { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-5); }
+
+/* The text column stays narrow; the wide devices breathe out into the gutter.
+   Tables get this by default — a table trapped at the prose measure is the
+   single most common way a report becomes unusable on a desktop. .wide opts
+   anything else in (a tile row, a chart, a figure).
+
+   It widens by whatever gutter actually exists and no more, so it can never
+   push the page sideways — which the obvious `width + 50% margin` breakout
+   does the moment its percentage resolves against the wrong box.
+   Declared last on purpose: any component using the `margin` shorthand would
+   otherwise zero out the inline margins this depends on. */
+.wide, .table-scroll { margin-inline: calc(-1 * var(--bleed)); }
+
+/* ── §4 Structure & editorial devices ────────────────────────────────────── */
+
+/* The headline. .display is the one oversized thing in the document; a
+   coloured <em> inside it is the report's signature — use it once. */
+.display {
+  font-family: var(--disp);
+  font-size: var(--fs-display);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+  font-weight: 700;
+  margin: 0 0 var(--sp-4);
+}
+.display em { font-style: normal; color: var(--accent); }
+
+h1, h2, h3 { font-family: var(--disp); line-height: 1.25; letter-spacing: -.012em; margin: 0; font-weight: 680; }
+h1 { font-size: var(--fs-1); }
+h2 { font-size: var(--fs-2); margin: var(--sp-7) 0 var(--sp-4); }
+h3 { font-size: var(--fs-3); margin: var(--sp-5) 0 var(--sp-2); }
+h2 + h3 { margin-top: var(--sp-4); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+li + li { margin-top: var(--sp-2); }
+
+/* The signpost. Mono, letterspaced, small — it gives a document a spine:
+   序幕 · PROLOGUE / 01 · VOCABULARY / 第一幕 · 1973 */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-7) 0 var(--sp-2);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.eyebrow + h2 { margin-top: 0; }
+
+.lede { font-size: 1.15em; line-height: 1.7; color: var(--ink-2); }
+.byline { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--mist); }
+
+/* A sentence worth stopping on. Not a highlighter pen on a whole paragraph. */
+.mark { background: var(--accent-soft); box-shadow: 0 0 0 .18em var(--accent-soft); border-radius: 2px; }
+
+/* An inverted label that interrupts the column: 接回 VOL.1 */
+.chip {
+  display: inline-block; background: var(--ink); color: var(--paper);
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  padding: .2em .55em; border-radius: 3px; vertical-align: .08em;
+}
+.chip.soft { background: var(--accent-soft); color: var(--ink-2); }
+
+/* A line pulled out of the argument, set large. Never a repeat of the lede. */
+.pull {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  line-height: 1.5; color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-5);
+  margin-block: var(--sp-6);
+}
+
+blockquote { margin-block: var(--sp-5); padding-left: var(--sp-5); border-left: 2px solid var(--rule-hard); color: var(--ink-2); }
+.note { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--card); padding: var(--sp-5); margin-block: var(--sp-6); }
+.note > :last-child { margin-bottom: 0; }
+.note .head { font-weight: 680; margin-bottom: var(--sp-2); }
+.note.good { border-left-color: var(--good); }
+.note.warn { border-left-color: var(--warn); }
+.note.critical { border-left-color: var(--critical); }
+
+code, kbd, samp { font-family: var(--mono); font-size: .88em; }
+/* A URL or a scope string inside <code> has no break opportunity, so it becomes
+   the min-content width of everything containing it. Inside a grid track — whose
+   default min-width is auto, i.e. min-content — that one string widens the track
+   past the viewport and the whole page scrolls sideways. Breaking it here fixes
+   the cause; see also the note on custom grids in STYLE.md. */
+:not(pre) > code {
+  background: var(--accent-soft); padding: .12em .4em; border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: var(--card); border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent); border-radius: var(--radius);
+  padding: var(--sp-5); overflow-x: auto;
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+hr { border: 0; border-top: 1px solid var(--rule); margin-block: var(--sp-7); }
+
+/* ── §5 Figures, charts, tables ──────────────────────────────────────────── */
+
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); }
+.stat .label { font-size: var(--fs-xs); color: var(--mist); margin: 0 0 var(--sp-1); }
+.stat .value { font-family: var(--disp); font-size: 1.75rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; }
+.stat .delta { font-size: var(--fs-xs); color: var(--ink-2); margin-top: var(--sp-1); display: flex; align-items: center; gap: .3em; }
+.delta.up::before   { content: "▲"; font-size: .8em; color: var(--good); }
+.delta.down::before { content: "▼"; font-size: .8em; color: var(--critical); }
+
+/* At most one per report. */
+.hero { font-family: var(--disp); font-size: clamp(3rem, 2rem + 4vw, 5rem); font-weight: 700; line-height: 1; letter-spacing: -.03em; margin: var(--sp-2) 0; }
+
+figure { margin-block: var(--sp-6); }
+figure > .title { font-family: var(--disp); font-size: var(--fs-3); font-weight: 680; margin: 0 0 var(--sp-1); }
+figure > .subtitle, figure > figcaption { font-size: var(--fs-sm); color: var(--mist); }
+figure > .subtitle { margin: 0 0 var(--sp-4); }
+figure > figcaption { margin-top: var(--sp-3); }
+
+/* A viewBox scales the TEXT too: let a chart shrink freely to a 375px screen
+   and its 12px labels render at 6px. So the rendered width is bounded and the
+   chart scrolls in its own box below the floor, like a wide table.
+   Author charts on a 640-unit viewBox with font-size 12. */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; height: auto; width: 100%; min-width: 34rem; max-width: 44rem; overflow: visible; }
+.chart .grid  { stroke: var(--rule); stroke-width: 1; }
+.chart .axis  { fill: var(--mist); font-size: 12px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.chart .label { fill: var(--ink-2); font-size: 12px; font-family: var(--sans); }
+.chart .line  { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot   { stroke: var(--card); stroke-width: 2; }
+.chart .bar   { rx: 4; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); margin-top: var(--sp-3); }
+.legend .key { display: inline-flex; align-items: center; gap: .45em; }
+.legend .swatch { width: .7em; height: .7em; border-radius: 2px; flex: none; }
+
+.datatable > summary {
+  cursor: pointer; font-size: var(--fs-sm); color: var(--mist);
+  padding: var(--sp-2) 0; min-height: 44px;
+  display: flex; align-items: center; gap: .4em; list-style: none;
+}
+.datatable > summary::-webkit-details-marker { display: none; }
+.datatable > summary::before { content: "▸"; transition: transform var(--dur-fast) var(--ease-out); }
+.datatable[open] > summary::before { transform: rotate(90deg); }
+
+/* Every table lives in this wrapper: it scrolls itself instead of widening
+   the page. On a desktop it should never need to — cells wrap and the wrapper
+   widens into the gutter. On a phone a table with real columns still has to
+   scroll, and that is the correct trade: a model number broken across three
+   lines is worse than a swipe. `overscroll-behavior-inline` keeps that swipe
+   inside the table instead of dragging the page or triggering back-navigation. */
+.table-scroll { overflow-x: auto; overscroll-behavior-inline: contain; margin-block: var(--sp-5); border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+
+/* Phone: the first column is the row's label — pin it, so what you are reading
+   the specs OF stays on screen while you swipe through them, and the shadow at
+   its edge says there is more to the right. Add .plain to opt a table out (a
+   two-column table, or one whose first column is not a label). Semantics are
+   untouched: nothing here changes `display`, so the table is still a table to
+   a screen reader. */
+@media (max-width: 40rem) {
+  .table-scroll:not(.plain) :is(th, td):first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--rule), 7px 0 7px -7px rgb(0 0 0 / .22);
+  }
+  .table-scroll:not(.plain) th:first-child { z-index: 2; }
+}
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 620; color: var(--ink-2); background: var(--card); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Cells wrap by default: nowrap makes a table's min-content width the sum of
+   every cell's longest unbroken line, which is what forces the horizontal
+   scroll. Opt individual cells out — a model number, a date, a figure — with
+   .nowrap. (`.wrap` is the old opt-in, kept so it stays a no-op.) */
+.nowrap, td.nowrap, th.nowrap { white-space: nowrap; }
+td.wrap { white-space: normal; }
+/* A mono sub-label under a term, the way a glossary sets it. */
+td .sub { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--mist); text-transform: uppercase; margin-top: .15em; }
+
+/* ── §6 Motion ───────────────────────────────────────────────────────────────
+ *
+ * A report is read, not operated, so motion here has exactly one job: mark
+ * arrival. Entrances only, on the reader's own scroll, and only for elements
+ * that carry a beat — a section opening, a figure, a pulled line. Never on
+ * body paragraphs, and never anything that has to finish before the reader
+ * can read.
+ *
+ * All of it is progressive: without scroll-driven animation support every
+ * element is simply already visible. Nothing is gated behind motion.
+ */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    @keyframes reveal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Group entrance: 30–80ms between items reads as one gesture. Longer
+       feels slow, and it is decorative — nothing waits for it. */
+    .stagger > * { animation: reveal-in var(--dur-slow) var(--ease-out) both; }
+    .stagger > :nth-child(2) { animation-delay: 60ms; }
+    .stagger > :nth-child(3) { animation-delay: 120ms; }
+    .stagger > :nth-child(4) { animation-delay: 180ms; }
+    .stagger > :nth-child(n+5) { animation-delay: 240ms; }
+  }
+}
+
+/* The theme toggle: one fixed button that flips data-theme on <html>. It exists
+   because a reader whose every device is dark can otherwise never see the light
+   palette a report designed — and vice versa. State lives in a variable (storage
+   APIs throw in the sandbox), so it resets on reload; that is the correct trade.
+   Until the reader clicks, <html> stays un-stamped and the page follows the
+   system. Markup and the five-line script are in STYLE.md, floor item 5. */
+.theme-toggle {
+  position: fixed; top: 1rem; right: 1rem; z-index: 20;
+  min-height: 44px; padding: .4rem .85rem;
+  background: var(--card); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font: var(--fs-xs)/1 var(--mono); letter-spacing: .06em; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+@media (max-width: 40rem) { .theme-toggle { top: auto; bottom: 1rem; } }
+
+/* Reading progress, drawn by the scroll position itself — no JS, no listener. */
+.progress {
+  position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 10;
+  background: var(--accent); transform-origin: 0 50%; transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .progress { animation: progress linear both; animation-timeline: scroll(root block); }
+  @keyframes progress { to { transform: scaleX(1); } }
+}
+@media (prefers-reduced-motion: reduce) { .progress { display: none; } }
+
+/* Pressable things acknowledge the press. Hover motion is gated — a touch
+   device fires :hover on tap and the animation reads as a glitch. */
+@media (hover: hover) and (pointer: fine) {
+  a[href], .chip, summary { transition: color var(--dur-fast) var(--ease-out); }
+}
+button:active, summary:active { transform: scale(.98); }
+button, summary { transition: transform var(--dur-fast) var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not zero: colour and opacity stay, movement goes. */
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── §7 Print & forced colours ───────────────────────────────────────────── */
+
+@media print {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --ink-2: #333; --mist: #555; --rule: #ccc; }
+  .report { max-width: none; padding: 0; }
+  .report > * { max-width: none; }
+  .progress, .theme-toggle, .datatable > summary { display: none; }
+  .datatable { display: block; }
+  /* A scroll-driven entrance never runs on paper — without this, everything
+     marked .reveal prints as blank space. Content is never gated behind
+     motion; this is the rule that keeps that true. */
+  .reveal, .stagger > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+  figure, .card, .stat, .table-scroll, .note, pre { break-inside: avoid; }
+  h2, h3, .eyebrow { break-after: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+
+@media (forced-colors: active) {
+  .card, .stat, .table-scroll, .note, pre, .chip { border: 1px solid CanvasText; }
+  .mark { background: Mark; color: MarkText; box-shadow: none; }
+}
+
+</style>
+<style>
+/* REGISTER:  送審 — 把「學一套方法就能做軟體」當成一張送審的圖，逐格看哪裡有人驗過、哪裡沒人簽。讀者是想上方法課、不會寫程式的人。
+   REFERENCE: 1970 年代建築師事務所送建管單位審查的藍曬圖（diazo blueline）— 藍紫線條、右下角圖框、審查欄一格一格等人簽。
+   PAPER:     藍曬圖的感光紙 — 白裡帶藍紫，hsl(236 38% 95%)。236° 是重氮顯影留下的底色，不是冷灰。
+   VOICE:     線條的藍紫只給標題那個字、節號和連結；窄體標題像圖框裡的工程字；等寬體放圖號和來源。
+   NOT:       儀表板，也不是課程銷售頁。沒有互動元件，數字是證據。
+   RECENT:    paper 350° 348° 44° · accent 160° 346° 158° — 236° 和 246° 都離得夠遠，不用改。 */
+:root {
+  --paper: hsl(236 38% 95%); --card: hsl(236 44% 98%);
+  --ink: hsl(240 28% 14%); --ink-2: hsl(240 16% 30%); --mist: hsl(240 10% 40%);
+  --rule: hsl(236 30% 86%); --rule-hard: hsl(236 28% 70%);
+  --accent: hsl(246 62% 46%); --accent-soft: hsl(240 60% 91%);
+  --disp: "IBM Plex Sans Condensed", "Noto Sans TC", sans-serif;
+  --sans: "Noto Sans TC", ui-sans-serif, system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 2px;
+}
+/* 暗色是另一種材料：真正的藍圖（氰版），深藍底、淺線 */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --paper: hsl(226 46% 9%); --card: hsl(226 40% 13%);
+    --ink: hsl(224 30% 92%); --ink-2: hsl(224 18% 76%); --mist: hsl(224 12% 64%);
+    --rule: hsl(226 30% 19%); --rule-hard: hsl(226 24% 32%);
+    --accent: hsl(236 88% 80%); --accent-soft: hsl(238 40% 20%);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: hsl(226 46% 9%); --card: hsl(226 40% 13%);
+  --ink: hsl(224 30% 92%); --ink-2: hsl(224 18% 76%); --mist: hsl(224 12% 64%);
+  --rule: hsl(226 30% 19%); --rule-hard: hsl(226 24% 32%);
+  --accent: hsl(236 88% 80%); --accent-soft: hsl(238 40% 20%);
+}
+.tick { display: block; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--accent); }
+.stat .n { display: block; font-family: var(--disp); font-weight: 700; font-size: var(--fs-1); line-height: 1.15; color: var(--ink); margin: var(--sp-2) 0; }
+.stat .l { display: block; font-size: var(--fs-sm); line-height: 1.7; color: var(--ink-2); }
+.stat .s { display: block; font-family: var(--mono); font-size: var(--fs-xs); color: var(--mist); margin-top: var(--sp-2); }
+.answer-list { padding-left: 1.2em; }
+.answer-list li { margin-bottom: var(--sp-3); }
+.small { font-size: var(--fs-sm); color: var(--mist); }
+.unv { font-family: var(--mono); font-size: var(--fs-xs); border: 1px solid var(--rule-hard); border-radius: var(--radius); padding: 0 .35em; color: var(--ink-2); white-space: nowrap; }
+blockquote.en { font-family: var(--mono); font-size: var(--fs-sm); color: var(--ink-2); border-left: 2px solid var(--accent); margin: var(--sp-4) 0; padding: var(--sp-2) var(--sp-4); }
+.hero-row { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: var(--sp-5); align-items: center; }
+.hero-row > * { min-width: 0; }
+@media (max-width: 560px) { .hero-row { grid-template-columns: minmax(0, 1fr); } }
+tr.group td { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; color: var(--accent); background: var(--accent-soft); }
+td.src { font-size: var(--fs-sm); }
+svg .grid { stroke: var(--rule); stroke-width: 1; }
+svg .axis { fill: var(--mist); }
+svg .label { fill: var(--ink-2); }
+svg .b { fill: var(--ink); font-weight: 700; }
+svg .line { stroke-width: 2; fill: none; }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .box { fill: var(--card); stroke: var(--rule-hard); }
+svg .box.key { stroke: var(--accent); stroke-width: 1.5; }
+svg .arrow { stroke: var(--mist); stroke-width: 1.5; fill: none; }
+svg .head { fill: var(--mist); }
+</style>
+<body>
+<div class="progress"></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">theme · auto</button>
+<main>
+<article class="report">
+<p class="ar-tag" style="font-family:var(--mono, ui-monospace, monospace);font-size:var(--fs-xs, .75rem);letter-spacing:.12em;color:var(--mist, #777);margin:0 0 var(--sp-5, 1.5rem);max-width:none">AUTORESEARCH · 自動研究 · Q24 · v1<span style="white-space:nowrap"> · 查詢日 2026-11-26</span></p>
+<header class="form-head">
+<p class="eyebrow">送審藍圖 · AI 與工作</p>
+<h1 class="display">AI 幫你做出來，<br>沒幫你<em>驗過</em></h1>
+<p class="lede">2025 年 3 月，一位工程師掃了 1,645 個用 AI 建站平台 Lovable 做出來、已經上線的網站。其中 170 個的資料庫，外人不用登入就讀得到，大約每十個有一個。這些網站都做出來了，也都能用。少的那一步，是沒有人確認過誰讀得到資料。不會寫程式的人去學一套「用 AI 做軟體」的方法，補不補得上這一步，是這篇要回答的事。</p>
+</header>
+
+<section class="reveal">
+<p class="eyebrow">頁 00 · 答案先講</p>
+<h2>做給自己用，一套方法夠；要收別人的資料，先補三件事</h2>
+<p>一般人的直覺是：AI 會寫程式，我只要學會怎麼下指令、照流程走就好。數字支持一半。</p>
+<div class="tiles wide stagger">
+<div class="stat"><span class="tick">能跑，不等於安全</span><span class="n">約 100% 對 62%</span><span class="l">AI 寫的程式幾乎都能編譯。通過資安測試的平均是六成二。前四次測試都停在五成五上下，這是第一次往上。</span><span class="s">Veracode 2026 年 7 月、10 月</span></div>
+<div class="stat"><span class="tick">會寫程式的人怎麼用</span><span class="n">48% 對 6.6%</span><span class="l">近半數開發者說，容易驗證的時候才信 AI 的輸出。連重要決定都信的只有 6.6%。拿到回答直接照用的是一成。</span><span class="s">Stack Overflow 2026</span></div>
+<div class="stat"><span class="tick">沒人驗的結果</span><span class="n">170／1,645</span><span class="l">上線的 Lovable 網站裡，資料庫權限沒設好、外人讀得到資料的比例，約一成。掃描只看了首頁。</span><span class="s">Matt Palmer 聲明 2025-05-29</span></div>
+</div>
+<div class="pull reveal">方法教你該做什麼、為什麼這樣做。它沒教的是做完之後，怎麼知道真的做對了。</div>
+<p>現有的資料分成三格。速度那一格在變好：最嚴格的實驗在 2025 年量到資深工程師用 AI 反而多花 19% 的時間，同一個團隊 2026 年初說現在很可能已經變快，只是新數字不可靠。安全那一格剛開始動，進步集中在本來就比較好擋的漏洞。維護那一格還在變差。</p>
+<p>三格合起來是同一件事：AI 把「做出來」變便宜了，「確認做對」沒有跟著便宜。會寫程式的人自己也是這樣用的，拿到答案先檢查。</p>
+<p>要先講清楚限制。這些研究量的都是會寫程式的人，或是模型本身。直接量「不會寫程式的人」的研究，我們沒有找到。所以「不會寫程式的人更容易出事」是推論，不是測量結果，根據寫在頁 06。</p>
+<p>落到決定上：做給自己用、不碰別人資料和金流的小工具，一套方法大致夠。要給別人用、要收個資、要撐過幾個月，至少得補上驗證、權限、回復這三項（頁 07）。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 01 · 借鏡史 · 類比，出處未核實</p>
+<h2>「方法」從建築借到軟體再借到 AI，驗收那一層每次都在別處</h2>
+<p>賣 AI 寫程式方法課的人，常引建築師 Christopher Alexander 等人 1977 年的《A Pattern Language》。通行的說法是這樣：這本書收了 253 個「模式」，每個模式寫一個反覆出現的問題、為什麼這樣解、怎麼做。1987 年，Kent Beck 和 Ward Cunningham 在 OOPSLA 研討會把這種寫法用到物件導向程式。1994 年，四位作者（俗稱 GoF）的《Design Patterns》在第一章引用 Alexander 對模式的定義。到了 2025 年，AI 寫程式的方法課又借了一次。</p>
+<p>以上年份和出處，這次都沒有開到原書和論文核對，列為<span class="unv">未核實</span>。下面的圖是類比，不是測量。</p>
+<figure class="wide reveal">
+<p class="title">三次轉手，帶過去的是寫法，把關的另有一套</p>
+<div class="chart"><svg viewBox="0 0 640 240" role="img" aria-label="模式語言三次轉手：建築、軟體、AI 方法課各自帶過去什麼，旁邊由什麼把關" font-size="12"><rect class="box" x="10" y="10" width="190" height="56" rx="2"/><text class="label b" x="105" y="34" text-anchor="middle">1977 · 建築</text><text class="axis" x="105" y="53" text-anchor="middle">《A Pattern Language》</text><path class="arrow" d="M203,38 H218"/><path class="head" d="M218,33 L225,38 L218,43 Z"/><rect class="box" x="225" y="10" width="190" height="56" rx="2"/><text class="label b" x="320" y="34" text-anchor="middle">1987／1994 · 軟體</text><text class="axis" x="320" y="53" text-anchor="middle">Beck 與 Cunningham、GoF</text><path class="arrow" d="M418,38 H433"/><path class="head" d="M433,33 L440,38 L433,43 Z"/><rect class="box" x="440" y="10" width="190" height="56" rx="2"/><text class="label b" x="535" y="34" text-anchor="middle">2025 起 · AI 方法課</text><text class="axis" x="535" y="53" text-anchor="middle">對象是不會寫程式的人</text><text class="axis" x="10" y="86">帶過去的</text><rect class="box" x="10" y="92" width="190" height="56" rx="2"/><text class="label" x="105" y="116" text-anchor="middle">253 個模式</text><text class="label" x="105" y="134" text-anchor="middle">問題、理由、做法寫在一起</text><rect class="box" x="225" y="92" width="190" height="56" rx="2"/><text class="label" x="320" y="116" text-anchor="middle">模式的寫法</text><text class="label" x="320" y="134" text-anchor="middle">用在物件導向程式的設計</text><rect class="box" x="440" y="92" width="190" height="56" rx="2"/><text class="label" x="535" y="116" text-anchor="middle">流程和下指令的寫法</text><text class="label" x="535" y="134" text-anchor="middle">每一步附上為什麼</text><text class="axis" x="10" y="168">旁邊另有一套在把關</text><rect class="box" x="10" y="174" width="190" height="56" rx="2"/><text class="label" x="105" y="198" text-anchor="middle">結構計算、建築法規</text><text class="label" x="105" y="216" text-anchor="middle">技師簽證</text><rect class="box" x="225" y="174" width="190" height="56" rx="2"/><text class="label" x="320" y="198" text-anchor="middle">編譯器、測試</text><text class="label" x="320" y="216" text-anchor="middle">同事審查程式碼</text><rect class="box key" x="440" y="174" width="190" height="56" rx="2"/><text class="label b" x="535" y="198" text-anchor="middle">誰來確認做對了</text><text class="label" x="535" y="216" text-anchor="middle">方法本身沒有這一層</text></svg></div>
+<figcaption>圖解，是類比。年份和書名是通行說法，原書、1987 年論文都沒開到，未核實。最下面一列是我們的推論，不是這幾本書寫的。</figcaption>
+<details class="datatable"><summary>圖的內容</summary><div class="table-scroll"><table><thead><tr><th>站</th><th>帶過去的</th><th>旁邊把關的（推論）</th><th>核實狀態</th></tr></thead><tbody><tr><td class="nowrap">1977 建築</td><td>253 個模式，問題、理由、做法寫在一起</td><td>結構計算、建築法規、技師簽證</td><td>未核實，原書沒開</td></tr><tr><td class="nowrap">1987／1994 軟體</td><td>模式的寫法，用在物件導向設計</td><td>編譯器、測試、同事審查</td><td>未核實，論文和原書沒開</td></tr><tr><td class="nowrap">2025 起 AI 方法課</td><td>流程和下指令的寫法</td><td>沒有固定的一套</td><td>推論</td></tr></tbody></table></div></details>
+</figure>
+<p>「方法能讓外行人參與」有歷史根據。Alexander 寫模式語言，本來就是想讓一般人參與設計自己的房子。據記憶，Beck 與 Cunningham 那篇也是讓使用者拿五個模式設計自己的介面（<span class="unv">未核實</span>）。</p>
+<p>可是三次轉手裡，模式都沒有取代驗收。模式告訴你窗戶開在哪、為什麼。梁撐不撐得住，是結構計算和法規在管。GoF 預設讀者會寫程式，寫錯了有編譯器和測試擋著。每一次借過去的，是「把判斷附上理由」這種寫法。沒跟著過去的是驗收。</p>
+<p class="mark">比較站得住的講法：方法課對應的是模式。模式一向不管驗收，驗收一直是另一套東西在做。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 02 · 速度 · 證據在翻轉，新數字不可靠</p>
+<h2>資深工程師以為自己快了兩成，實測是多花兩成時間</h2>
+<p>連會寫程式的人，都量不準 AI 幫了自己多少。這是「確認做對」很難的第一個證據。</p>
+<p>研究機構 METR 在 2025 年 2 到 6 月找了 16 位資深開源開發者，拿他們自己專案裡的 246 個真實工作項目，隨機決定哪些可以用 AI。當時用的主要是 Cursor Pro 搭配 Claude 3.5 和 3.7 Sonnet。可以用 AI 的那些項目，完成時間多了 19%（信賴區間 +2% 到 +39%）。開發者事前預期會快 24%，做完之後仍然覺得自己快了 20%。來源是 <a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/">METR 2025-07-10</a>（預印本）。</p>
+<figure class="wide reveal">
+<p class="title">感覺快了兩成，碼錶說慢了兩成</p>
+<div class="chart"><svg viewBox="0 0 640 260" role="img" aria-label="METR 2025 年實驗：開發者預期、事後自認與實測的完成時間變化" font-size="12"><line class="grid" x1="64" x2="620" y1="220" y2="220"/><text class="axis" x="56" y="224" text-anchor="end">−30%</text><line class="grid" x1="64" x2="620" y1="187" y2="187"/><text class="axis" x="56" y="191" text-anchor="end">−20%</text><line class="grid" x1="64" x2="620" y1="153" y2="153"/><text class="axis" x="56" y="157" text-anchor="end">−10%</text><line class="grid" x1="64" x2="620" y1="120" y2="120"/><text class="axis" x="56" y="124" text-anchor="end">0</text><line class="grid" x1="64" x2="620" y1="87" y2="87"/><text class="axis" x="56" y="91" text-anchor="end">+10%</text><line class="grid" x1="64" x2="620" y1="53" y2="53"/><text class="axis" x="56" y="57" text-anchor="end">+20%</text><line class="grid" x1="64" x2="620" y1="20" y2="20"/><text class="axis" x="56" y="24" text-anchor="end">+30%</text><path d="M148,120 V196 Q148,200 152,200 H168 Q172,200 172,196 V120 Z" style="fill:var(--c1)"/><text class="axis" x="160" y="244" text-anchor="middle">事前預期</text><text class="label" x="160" y="216" text-anchor="middle">−24%</text><path d="M328,120 V183 Q328,187 332,187 H348 Q352,187 352,183 V120 Z" style="fill:var(--c1)"/><text class="axis" x="340" y="244" text-anchor="middle">做完後自認</text><text class="label" x="340" y="203" text-anchor="middle">−20%</text><path d="M508,120 V61 Q508,57 512,57 H528 Q532,57 532,61 V120 Z" style="fill:var(--c1)"/><text class="axis" x="520" y="244" text-anchor="middle">實際測到</text><text class="label" x="520" y="49" text-anchor="middle">+19%</text><line x1="64" x2="620" y1="120" y2="120" style="stroke:var(--rule-hard)"/></svg></div>
+<figcaption>完成時間的變化，負值是變快。METR 的講法是預期「加速 24%」、實測「多花 19% 時間」，這裡統一畫成時間變化。感覺和實測差 39 個百分點（自己算的）。來源：<a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/">METR 2025</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>項目</th><th class="num">數值</th></tr></thead><tbody><tr><td>事前預期</td><td class="num nowrap">快 24%</td></tr><tr><td>做完後自認</td><td class="num nowrap">快 20%</td></tr><tr><td>實際測到</td><td class="num nowrap">多花 19%（+2% 到 +39%）</td></tr><tr><td>樣本</td><td class="num">16 人、246 個項目，2025 年 2–6 月</td></tr></tbody></table></div></details>
+</figure>
+<h3>2026 年的更新：很可能變快了，但量不準</h3>
+<p>METR 在 2025 年 8 月開了第二輪，2026 年 2 月公布進度。這一輪有 57 位開發者，其中 10 位是原班人馬，47 位新招募，橫跨 143 個程式庫、800 多個任務。原班人馬的估計是快 18%，新招募的是快 4%。兩個區間都跨過零。</p>
+<p>METR 自己說這組數字不可靠。受訪的開發者裡有三到五成承認，有些任務因為不想在沒有 AI 的情況下做，就沒有提交。最看好 AI 的人和最適合 AI 的任務，都被篩掉了。時薪也從 150 美元降到 50 美元。他們的判斷是：</p>
+<blockquote class="en">"we believe it is likely that developers are more sped up from AI tools now"</blockquote>
+<p>（我們認為，現在開發者因為 AI 而加速的程度很可能比之前大。）來源是 <a href="https://metr.org/blog/2026-02-24-uplift-update/">METR 2026-02-24</a>。</p>
+<figure class="wide reveal">
+<p class="title">第二輪的兩個估計都偏向變快，區間都跨過零</p>
+<div class="chart"><svg viewBox="0 0 640 168" role="img" aria-label="METR 三個估計與信賴區間：用 AI 之後完成時間的變化" font-size="12"><line class="grid" x1="230" x2="230" y1="14" y2="134"/><text class="axis" x="230" y="152" text-anchor="middle">−40%</text><line class="grid" x1="325" x2="325" y1="14" y2="134"/><text class="axis" x="325" y="152" text-anchor="middle">−20%</text><line class="grid" x1="420" x2="420" y1="14" y2="134"/><text class="axis" x="420" y="152" text-anchor="middle">0</text><line class="grid" x1="515" x2="515" y1="14" y2="134"/><text class="axis" x="515" y="152" text-anchor="middle">+20%</text><line class="grid" x1="610" x2="610" y1="14" y2="134"/><text class="axis" x="610" y="152" text-anchor="middle">+40%</text><line x1="420" x2="420" y1="14" y2="134" style="stroke:var(--rule-hard)"/><text class="label" x="218" y="38" text-anchor="end">2025 年 2–6 月，16 人</text><line class="line" x1="430" x2="605" y1="34" y2="34" style="stroke:var(--c1)"/><circle class="dot" cx="510" cy="34" r="5" style="fill:var(--c1)"/><text class="label" x="510" y="24" text-anchor="middle">+19%</text><text class="label" x="218" y="78" text-anchor="end">2025 年 8 月起，原班 10 人</text><line class="line" x1="240" x2="463" y1="74" y2="74" style="stroke:var(--c1)"/><circle class="dot" cx="334" cy="74" r="5" style="fill:var(--c1)"/><text class="label" x="334" y="64" text-anchor="middle">−18%</text><text class="label" x="218" y="118" text-anchor="end">2025 年 8 月起，新招募 47 人</text><line class="line" x1="349" x2="463" y1="114" y2="114" style="stroke:var(--c1)"/><circle class="dot" cx="401" cy="114" r="5" style="fill:var(--c1)"/><text class="label" x="401" y="104" text-anchor="middle">−4%</text></svg></div>
+<figcaption>用 AI 之後完成時間的變化，負值是變快，橫線是信賴區間。METR 說第二輪因為選樣偏誤，只能當下限。來源：<a href="https://metr.org/blog/2026-02-24-uplift-update/">METR 2026-02-24</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>實驗</th><th class="num">估計</th><th class="num">信賴區間</th></tr></thead><tbody><tr><td>2025 年 2–6 月，16 人、246 項</td><td class="num nowrap">+19%</td><td class="num nowrap">+2% 到 +39%</td></tr><tr><td>2025 年 8 月起，原班 10 人</td><td class="num nowrap">−18%</td><td class="num nowrap">−38% 到 +9%</td></tr><tr><td>2025 年 8 月起，新招募 47 人</td><td class="num nowrap">−4%</td><td class="num nowrap">−15% 到 +9%</td></tr></tbody></table></div></details>
+</figure>
+<p>其他來源也偏向變快。程式碼分析公司 GitClear 說，重度用 AI 的人產出是不用的人的 4 到 10 倍，但大部分差距在 AI 出現之前就有。跟自己過去比，速度約快 25%（<a href="https://www.gitclear.com/the_ai_code_quality_maintainability_gap">GitClear</a>，廠商研究）。Google 的 DORA 研究團隊看到，AI 用得多的組織交付量比較高，交付不穩定的情況也比較多（<a href="https://dora.dev/insights/balancing-ai-tensions/">DORA</a>）。</p>
+<p class="mark">「AI 讓工程師變慢」不能再當結論。留得住的是另一半：人對自己快了多少的感覺，連資深的人都不準。</p>
+<p>資深工程師有十年經驗可以比，還是估錯方向。沒有寫過程式的人沒有基準，更難判斷自己做出來的東西到哪個程度。這一步是推論。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 03 · 安全 · 剛開始動</p>
+<h2>AI 寫的程式幾乎都能跑，通過資安測試的只有六成</h2>
+<p>「能跑」是不會寫程式的人唯一能自己檢查的訊號，偏偏它和「安全」是分開的兩格。</p>
+<p>資安公司 Veracode 從 2025 年 7 月起，定期拿程式任務去測 100 多個模型，語言涵蓋 Java、JavaScript、Python 和 C#。它量兩件事：寫出來的程式能不能編譯，以及有沒有已知的資安漏洞。前四次測試，平均資安通過率是 55%、約 55%、55%、56%。同一份 2026 年 7 月的報告說，編譯通過率接近 100%。2025 年那一版的結論是：</p>
+<blockquote class="en">"Larger, newer AI models didn't improve security."</blockquote>
+<p>（更大、更新的模型沒有讓安全變好。）2026 年 10 月底的第五次測試，數字第一次離開原地：平均通過率 62%，帶漏洞的比例從約 44% 降到約 38%，最高分的兩個模型是 73%。Veracode 自己的說明是，進步並不平均，集中在比較容易的類型。</p>
+<figure class="wide reveal">
+<p class="title">停了四次的五成五，第五次升到六成二</p>
+<div class="legend"><span class="key"><span class="swatch" style="background:var(--c1)"></span>平均資安通過率</span><span class="key"><span class="swatch" style="background:var(--c2)"></span>編譯通過率（只有 2026 年 7 月報告提到）</span></div>
+<div class="chart"><svg viewBox="0 0 640 250" role="img" aria-label="Veracode 五次測試的平均資安通過率，2025 年 7 月到 2026 年 10 月" font-size="12"><line class="grid" x1="64" x2="600" y1="210" y2="210"/><text class="axis" x="56" y="214" text-anchor="end">0%</text><line class="grid" x1="64" x2="600" y1="164" y2="164"/><text class="axis" x="56" y="168" text-anchor="end">25%</text><line class="grid" x1="64" x2="600" y1="117" y2="117"/><text class="axis" x="56" y="121" text-anchor="end">50%</text><line class="grid" x1="64" x2="600" y1="70" y2="70"/><text class="axis" x="56" y="74" text-anchor="end">75%</text><line class="grid" x1="64" x2="600" y1="24" y2="24"/><text class="axis" x="56" y="28" text-anchor="end">100%</text><circle class="dot" cx="446" cy="24" r="5" style="fill:var(--c2)"/><text class="label" x="436" y="40" text-anchor="end">能編譯：約 100%</text><polyline class="line" points="104,108 218,108 332,108 446,106 560,95" style="stroke:var(--c1)"/><circle class="dot" cx="104" cy="108" r="5" style="fill:var(--c1)"/><text class="axis" x="104" y="230" text-anchor="middle">2025-07</text><circle class="dot" cx="218" cy="108" r="5" style="fill:var(--c1)"/><text class="axis" x="218" y="230" text-anchor="middle">2025-10</text><circle class="dot" cx="332" cy="108" r="5" style="fill:var(--c1)"/><text class="axis" x="332" y="230" text-anchor="middle">2026 春</text><circle class="dot" cx="446" cy="106" r="5" style="fill:var(--c1)"/><text class="axis" x="446" y="230" text-anchor="middle">2026-07</text><circle class="dot" cx="560" cy="95" r="5" style="fill:var(--c1)"/><text class="axis" x="560" y="230" text-anchor="middle">2026-10</text><text class="label" x="104" y="128" text-anchor="middle">55%</text><text class="label" x="560" y="115" text-anchor="middle">62%</text></svg></div>
+<figcaption>Veracode 是賣程式碼掃描的公司，這是它自己設計的測試，沒有給模型任何資安提示。2025-10 的 55% 是用該版「45% 帶漏洞」倒推的（自己算的）。來源：<a href="https://www.veracode.com/resources/analyst-reports/2025-genai-code-security-report/">2025 報告</a>、<a href="https://www.veracode.com/blog/spring-2026-genai-code-security/">2026 春季</a>、<a href="https://www.veracode.com/blog/2026-genai-code-security-report-ai-risk/">2026 年 7 月報告</a>、<a href="https://www.veracode.com/blog/fall-2026-genai-code-security">2026 秋季</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>測試</th><th class="num">資安通過率</th><th class="num">帶漏洞</th></tr></thead><tbody><tr><td class="nowrap">2025-07 首版</td><td class="num nowrap">55%</td><td class="num nowrap">45%</td></tr><tr><td class="nowrap">2025-10 更新</td><td class="num nowrap">約 55%（自己算的）</td><td class="num nowrap">45%</td></tr><tr><td class="nowrap">2026 春季</td><td class="num nowrap">55%</td><td class="num nowrap">—</td></tr><tr><td class="nowrap">2026-07 年度報告</td><td class="num nowrap">56%</td><td class="num nowrap">約 44%</td></tr><tr><td class="nowrap">2026-10 秋季</td><td class="num nowrap">62%</td><td class="num nowrap">約 38%</td></tr><tr><td>編譯通過率（2026-07）</td><td class="num nowrap">約 100%</td><td class="num nowrap">—</td></tr></tbody></table></div></details>
+</figure>
+<p>把漏洞類型拆開，差距更清楚。2026 年春季那一次，SQL 注入（把惡意指令塞進資料庫查詢）有 82% 擋得住，不安全的加密演算法有 86%。跨站腳本（XSS，讓別人的程式碼在你的網頁上執行）只有 15% 通過，日誌注入只有 13%。</p>
+<figure class="wide reveal">
+<p class="title">SQL 注入八成擋得住，跨站腳本只有一成五</p>
+<div class="chart"><svg viewBox="0 0 640 170" role="img" aria-label="四類漏洞的資安通過率，Veracode 2026 年春季更新" font-size="12"><line class="grid" x1="150" x2="150" y1="12" y2="140"/><text class="axis" x="150" y="158" text-anchor="middle">0%</text><line class="grid" x1="263" x2="263" y1="12" y2="140"/><text class="axis" x="263" y="158" text-anchor="middle">25%</text><line class="grid" x1="375" x2="375" y1="12" y2="140"/><text class="axis" x="375" y="158" text-anchor="middle">50%</text><line class="grid" x1="488" x2="488" y1="12" y2="140"/><text class="axis" x="488" y="158" text-anchor="middle">75%</text><line class="grid" x1="600" x2="600" y1="12" y2="140"/><text class="axis" x="600" y="158" text-anchor="middle">100%</text><path d="M150,19 H533 Q537,19 537,23 V33 Q537,37 533,37 H150 Z" style="fill:var(--c1)"/><text class="label" x="140" y="32" text-anchor="end">加密演算法</text><text class="label" x="543" y="32">86%</text><path d="M150,51 H515 Q519,51 519,55 V65 Q519,69 515,69 H150 Z" style="fill:var(--c1)"/><text class="label" x="140" y="64" text-anchor="end">SQL 注入</text><path d="M150,83 H214 Q218,83 218,87 V97 Q218,101 214,101 H150 Z" style="fill:var(--c1)"/><text class="label" x="140" y="96" text-anchor="end">跨站腳本（XSS）</text><path d="M150,115 H205 Q209,115 209,119 V129 Q209,133 205,133 H150 Z" style="fill:var(--c1)"/><text class="label" x="140" y="128" text-anchor="end">日誌注入</text><text class="label" x="215" y="128">13%</text></svg></div>
+<figcaption>各類漏洞的平均資安通過率。來源：<a href="https://www.veracode.com/blog/spring-2026-genai-code-security/">Veracode 2026 春季更新</a>。秋季各類的新數字沒有開到。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>漏洞類型</th><th class="num">通過率</th></tr></thead><tbody><tr><td>不安全的加密演算法（CWE-327）</td><td class="num nowrap">86%</td></tr><tr><td>SQL 注入（CWE-89）</td><td class="num nowrap">82%（2026-07 報告是 83%）</td></tr><tr><td>跨站腳本（CWE-80）</td><td class="num nowrap">15%</td></tr><tr><td>日誌注入（CWE-117）</td><td class="num nowrap">13%</td></tr><tr><td>Python 整體</td><td class="num nowrap">62%</td></tr></tbody></table></div></details>
+</figure>
+<p>通過率低的那兩類有一個共通點：要知道資料從哪裡進來、最後會顯示在哪裡，才判斷得出危不危險。這是我們的推論，不是 Veracode 那一頁寫的。如果成立，最難被模型自動擋掉的，正好也是外行人最看不出來的。</p>
+<h3>一個實際上線的例子</h3>
+<div class="hero-row"><p class="hero">10.3%</p><p class="small">1,645 個上線的 Lovable 專案裡，有 170 個找得到權限沒設好的資料庫端點，共 303 個。掃描只看了各專案的首頁。</p></div>
+<p>Lovable 是用自然語言生出整個網站的平台，後端接 Supabase 資料庫。網頁裡會放一把公開金鑰，這是設計如此。前提是資料庫每一張表都開了「列層級權限」，也就是規定誰可以讀哪一列資料。工程師 Matt Palmer 在 2025 年 3 月 21 日掃完之後通報 Lovable。他的時間表寫著，Lovable 在 4 月 24 日推出帶安全掃描功能的 2.0 版，他認為沒有實質修補，也沒有通知用戶，於是在 5 月 29 日公開，編號 CVE-2025-48757。被讀到的資料包含姓名、電話、付款資訊和其他服務的金鑰。來源是 <a href="https://mattpalmer.io/posts/statement-on-CVE-2025-48757/">Palmer 的聲明</a>。他當時在 Lovable 的同業 Replit 任職，這一點讀的時候要記得。</p>
+<p>多個資安部落格寫美國國家漏洞資料庫給這個漏洞 9.3 分（滿分 10），並註記平台方有異議，理由是保護資料的責任在每一位客戶身上（<a href="https://www.buttercloud.com/blog/is-lovable-secure">ButterCloud</a>，二手整理，官方頁沒開到，<span class="unv">未核實</span>）。</p>
+<h3>人用了 AI 之後，更相信自己寫的是安全的</h3>
+<p>史丹佛的 Perry 等人在 2023 年做過使用者實驗。五道跟資安有關的程式題裡，有四題是能用 AI 助手的那一組寫得比較不安全。同一組人卻更傾向認為自己寫的是安全的（<a href="https://dl.acm.org/doi/pdf/10.1145/3576915.3623157">CCS 2023</a>）。受試者是會寫程式的人，用的是當年的模型。</p>
+<p class="mark">比較站得住的講法：安全這一格剛開始進步，但「能跑」和「安全」之間還差將近四成，而且人用了 AI 之後更容易以為沒問題。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 04 · 維護 · 還在變差</p>
+<h2>程式碼愈寫愈多，回頭整理的愈來愈少</h2>
+<p>「確認做對」的帳，有一部分是幾個月後才來的。</p>
+<p>GitClear 分析了 2023 到 2026 年的 6.23 億筆程式碼變更，追蹤七個訊號。四個是風險，三個是重用。每百萬行變更裡的重複程式碼區塊，從 2023 年的 40.3 升到 2026 年至今的 73.0。新寫的程式呼叫其他函式的次數，每千行從 343 降到 223。回頭更新一年以上舊程式碼的比例，從 1.7% 降到 0.46%。</p>
+<figure class="wide reveal">
+<p class="title">四個風險訊號往上，三個重用訊號往下</p>
+<div class="legend"><span class="key"><span class="swatch" style="background:var(--c1)"></span>重用訊號</span><span class="key"><span class="swatch" style="background:var(--c2)"></span>風險訊號</span></div>
+<div class="chart"><svg viewBox="0 0 640 252" role="img" aria-label="GitClear：七個程式碼訊號，2026 年對 2023 年的變化" font-size="12"><line class="grid" x1="150" x2="150" y1="12" y2="222"/><text class="axis" x="150" y="240" text-anchor="middle">−100%</text><line class="grid" x1="265" x2="265" y1="12" y2="222"/><text class="axis" x="265" y="240" text-anchor="middle">−50%</text><line class="grid" x1="380" x2="380" y1="12" y2="222"/><text class="axis" x="380" y="240" text-anchor="middle">0</text><line class="grid" x1="495" x2="495" y1="12" y2="222"/><text class="axis" x="495" y="240" text-anchor="middle">+50%</text><line class="grid" x1="610" x2="610" y1="12" y2="222"/><text class="axis" x="610" y="240" text-anchor="middle">+100%</text><path d="M380,18 H562 Q566,18 566,22 V32 Q566,36 562,36 H380 Z" style="fill:var(--c2)"/><text class="label" x="142" y="31" text-anchor="end">重複程式碼區塊</text><text class="label" x="572" y="31">+81%</text><path d="M380,48 H484 Q488,48 488,52 V62 Q488,66 484,66 H380 Z" style="fill:var(--c2)"/><text class="label" x="142" y="61" text-anchor="end">掩蓋錯誤的寫法</text><path d="M380,78 H470 Q474,78 474,82 V92 Q474,96 470,96 H380 Z" style="fill:var(--c2)"/><text class="label" x="142" y="91" text-anchor="end">同次提交內複製貼上</text><path d="M380,108 H410 Q414,108 414,112 V122 Q414,126 410,126 H380 Z" style="fill:var(--c2)"/><text class="label" x="142" y="121" text-anchor="end">兩週內又被改掉</text><path d="M380,138 H304 Q300,138 300,142 V152 Q300,156 304,156 H380 Z" style="fill:var(--c1)"/><text class="label" x="142" y="151" text-anchor="end">跨函式呼叫</text><path d="M380,168 H223 Q219,168 219,172 V182 Q219,186 223,186 H380 Z" style="fill:var(--c1)"/><text class="label" x="142" y="181" text-anchor="end">重構搬移</text><path d="M380,198 H214 Q210,198 210,202 V212 Q210,216 214,216 H380 Z" style="fill:var(--c1)"/><text class="label" x="142" y="211" text-anchor="end">回頭維護舊程式碼</text><text class="label" x="386" y="211">−74%</text><line x1="380" x2="380" y1="12" y2="222" style="stroke:var(--rule-hard)"/></svg></div>
+<figcaption>2026 年至今對 2023 年的變化。GitClear 的摘要句寫「對 2022 年」，各小節的原始數字寫的都是 2023 年起，兩處不一致，這裡照小節。GitClear 是賣程式碼分析工具的公司，全文要留資料才能下載，我們只讀到公開頁。來源：<a href="https://www.gitclear.com/the_ai_code_quality_maintainability_gap">GitClear〈The Maintainability Gap〉</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>訊號</th><th class="num">2022</th><th class="num">2023</th><th class="num">2026 至今</th><th class="num">對 2023</th></tr></thead><tbody><tr><td>重複程式碼區塊（每百萬行變更）</td><td class="num">—</td><td class="num nowrap">40.3</td><td class="num nowrap">73.0</td><td class="num nowrap">+81%</td></tr><tr><td>掩蓋錯誤的寫法</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num nowrap">+47%</td></tr><tr><td>同次提交內複製貼上（占變更行數）</td><td class="num nowrap">9.4%</td><td class="num nowrap">約 11.1%（自己倒推）</td><td class="num nowrap">15.7%（上半年）</td><td class="num nowrap">+41%</td></tr><tr><td>兩週內又被改掉</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num nowrap">+15%</td></tr><tr><td>跨函式呼叫（每千行變更）</td><td class="num">—</td><td class="num nowrap">343</td><td class="num nowrap">223</td><td class="num nowrap">−35%</td></tr><tr><td>重構搬移（占變更行數）</td><td class="num nowrap">21%</td><td class="num nowrap">13%</td><td class="num nowrap">3.8%</td><td class="num nowrap">−70%</td></tr><tr><td>回頭維護一年以上舊程式碼</td><td class="num">—</td><td class="num nowrap">1.7%</td><td class="num nowrap">0.46%</td><td class="num nowrap">−74%</td></tr></tbody></table></div></details>
+</figure>
+<p>把其中兩個數字放在一起看。2022 年，被「搬移」的程式碼（代表有人在整理）占 21%，複製貼上占 9.4%，整理是貼上的兩倍多。2026 年，搬移剩 3.8%，貼上是 15.7%，貼上變成搬移的四倍（比例自己算的，GitClear 寫約五倍）。如果拿 2022 年當基期，搬移少了約 82%（自己算的）。</p>
+<p>GitClear 自己的說法是，重點在現在預設的用法：先把眼前這一張單做完，重用和整理就往後延。DORA 也看到同一個方向：AI 用得多的組織，交付量和交付不穩定一起增加（<a href="https://dora.dev/insights/balancing-ai-tensions/">DORA</a>）。DORA 2025 年報告給 AI 的定位是：</p>
+<blockquote class="en">"AI’s primary role is as an amplifier"</blockquote>
+<p>（AI 主要的角色是放大器。）原句接著說，被放大的是組織原本的長處和弱點（<a href="https://dora.dev/research/2025/dora-report/">DORA 2025</a>）。這個結論量的是工程組織。套到個人身上是外推：沒有測試、版本控制和權限管理這些底子的人，可以被放大的長處比較少。</p>
+<p class="mark">比較站得住的講法：用完就丟的小工具不會遇到這筆帳，要撐過幾個月的東西會。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 05 · 專業的人怎麼用 · 對得上</p>
+<h2>會寫程式的人拿到 AI 的答案，先做的是檢查</h2>
+<p>最常用 AI 寫程式的一群人，把「確認做對」留在自己手上。</p>
+<p>Stack Overflow 的 2026 年開發者調查在 10 月 6 日公布，有 30,903 份回覆。沒在用 AI 工具的只剩 17.2%。可是問到「什麼情況下信任 AI 的輸出」，最多人選的是容易驗證的時候。</p>
+<figure class="wide reveal">
+<p class="title">近半數只在驗得出來的時候才信</p>
+<div class="chart"><svg viewBox="0 0 640 234" role="img" aria-label="Stack Overflow 2026 年調查：開發者在什麼情況下信任 AI 的輸出" font-size="12"><line class="grid" x1="200" x2="200" y1="12" y2="204"/><text class="axis" x="200" y="222" text-anchor="middle">0%</text><line class="grid" x1="333" x2="333" y1="12" y2="204"/><text class="axis" x="333" y="222" text-anchor="middle">20%</text><line class="grid" x1="467" x2="467" y1="12" y2="204"/><text class="axis" x="467" y="222" text-anchor="middle">40%</text><line class="grid" x1="600" x2="600" y1="12" y2="204"/><text class="axis" x="600" y="222" text-anchor="middle">60%</text><path d="M200,19 H516 Q520,19 520,23 V33 Q520,37 516,37 H200 Z" style="fill:var(--c1)"/><text class="label" x="190" y="32" text-anchor="end">容易驗證時才信</text><text class="label" x="526" y="32">48.0%</text><path d="M200,51 H305 Q309,51 309,55 V65 Q309,69 305,69 H200 Z" style="fill:var(--c1)"/><text class="label" x="190" y="64" text-anchor="end">很多事都信，重要決定除外</text><path d="M200,83 H305 Q309,83 309,87 V97 Q309,101 305,101 H200 Z" style="fill:var(--c1)"/><text class="label" x="190" y="96" text-anchor="end">只信低風險的事</text><path d="M200,115 H278 Q282,115 282,119 V129 Q282,133 278,133 H200 Z" style="fill:var(--c1)"/><text class="label" x="190" y="128" text-anchor="end">大部分的事都不信</text><path d="M200,147 H240 Q244,147 244,151 V161 Q244,165 240,165 H200 Z" style="fill:var(--c1)"/><text class="label" x="190" y="160" text-anchor="end">很多事都信，含重要決定</text><text class="label" x="250" y="160">6.6%</text><path d="M200,179 H201 Q205,179 205,183 V193 Q205,197 201,197 H200 Z" style="fill:var(--c1)"/><text class="label" x="190" y="192" text-anchor="end">不確定或沒在用</text></svg></div>
+<figcaption>單選題，作答 14,304 人。選項是我們翻的。來源：<a href="https://survey.stackoverflow.co/2026/ai/data">Stack Overflow 2026 AI 資料頁</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>選項</th><th class="num">人數</th><th class="num">占比</th></tr></thead><tbody><tr><td>容易驗證輸出時才信</td><td class="num nowrap">6,872</td><td class="num nowrap">48.0%</td></tr><tr><td>很多事都信，重要的工作決定除外</td><td class="num nowrap">2,329</td><td class="num nowrap">16.3%</td></tr><tr><td>只信低風險的工作</td><td class="num nowrap">2,326</td><td class="num nowrap">16.3%</td></tr><tr><td>大部分的工作都不信</td><td class="num nowrap">1,754</td><td class="num nowrap">12.3%</td></tr><tr><td>很多事都信，包含重要的工作決定</td><td class="num nowrap">949</td><td class="num nowrap">6.6%</td></tr><tr><td>不確定，或沒在用 AI 工具</td><td class="num nowrap">74</td><td class="num nowrap">0.5%</td></tr></tbody></table></div></details>
+</figure>
+<p>同一份調查問了下一步：拿到 AI 的回答之後做什麼。</p>
+<figure class="wide reveal">
+<p class="title">直接照用的只有一成</p>
+<div class="chart"><svg viewBox="0 0 640 170" role="img" aria-label="Stack Overflow 2026 年調查：開發者拿到 AI 回答之後做什麼" font-size="12"><line class="grid" x1="170" x2="170" y1="12" y2="140"/><text class="axis" x="170" y="158" text-anchor="middle">0%</text><line class="grid" x1="278" x2="278" y1="12" y2="140"/><text class="axis" x="278" y="158" text-anchor="middle">25%</text><line class="grid" x1="385" x2="385" y1="12" y2="140"/><text class="axis" x="385" y="158" text-anchor="middle">50%</text><line class="grid" x1="492" x2="492" y1="12" y2="140"/><text class="axis" x="492" y="158" text-anchor="middle">75%</text><line class="grid" x1="600" x2="600" y1="12" y2="140"/><text class="axis" x="600" y="158" text-anchor="middle">100%</text><path d="M170,19 H493 Q497,19 497,23 V33 Q497,37 493,37 H170 Z" style="fill:var(--c1)"/><text class="label" x="160" y="32" text-anchor="end">在自己電腦上跑一次</text><text class="label" x="503" y="32">76%</text><path d="M170,51 H441 Q445,51 445,55 V65 Q445,69 441,69 H170 Z" style="fill:var(--c1)"/><text class="label" x="160" y="64" text-anchor="end">拿去跟現有程式碼比對</text><path d="M170,83 H394 Q398,83 398,87 V97 Q398,101 394,101 H170 Z" style="fill:var(--c1)"/><text class="label" x="160" y="96" text-anchor="end">檢查測試或資安</text><path d="M170,115 H209 Q213,115 213,119 V129 Q213,133 209,133 H170 Z" style="fill:var(--c1)"/><text class="label" x="160" y="128" text-anchor="end">直接照用</text><text class="label" x="219" y="128">10%</text></svg></div>
+<figcaption>可複選。來源：<a href="https://survey.stackoverflow.co/2026/ai/data">Stack Overflow 2026 AI 資料頁</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>做法</th><th class="num">占比</th></tr></thead><tbody><tr><td>在本機跑一次</td><td class="num nowrap">76%</td></tr><tr><td>跟現有程式碼比對</td><td class="num nowrap">64%</td></tr><tr><td>檢查測試或資安</td><td class="num nowrap">53%</td></tr><tr><td>直接照用</td><td class="num nowrap">10%</td></tr></tbody></table></div></details>
+</figure>
+<p>用途也有界線。開發者用 AI 最多的是在自己熟的領域產生程式碼（67%）和除錯（61%）。拿來部署、營運或排查正式環境的只有 20%（<a href="https://stackoverflow.blog/2026/10/06/the-results-of-the-2026-developer-survey-are-here/">Stack Overflow 部落格</a>）。</p>
+<p>前一年的調查方向相同。2025 年有 84% 的受訪者正在用或打算用 AI 寫程式，專業開發者 51% 每天用。同時不信任 AI 準確度的占 46%，信任的 33%，高度信任只有 3%。十年以上資歷的人，高度不信任的比例最高，是 20%（<a href="https://survey.stackoverflow.co/2025/ai">Stack Overflow 2025</a>）。</p>
+<p>這三種檢查裡，不會寫程式的人做得到第一種：跑跑看。跟現有程式碼比對、檢查測試和資安，都要先讀得懂程式。這是我們的推論。</p>
+<p class="mark">比較站得住的講法：專業的人用得愈多，愈不照單全收。方法課如果只教到「讓 AI 生出來」，教的是他們流程的前半段。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 06 · 不會寫程式的人 · 沒有直接測量</p>
+<h2>直接量外行人的研究沒找到，最接近的三份指向同一邊</h2>
+<p>「確認做對」對外行人更難，這句話目前是推論。我們只開到三份接近的資料，對象都還是會寫一點程式的人。</p>
+<h3>交給 AI 做完，懂的少了一截</h3>
+<p>Anthropic 在 2026 年 1 月發表一項隨機實驗。52 位開發者學一個沒用過的 Python 函式庫，一半可以用 AI，一半自己寫。做完之後馬上考理解測驗，考的就是幾分鐘前用過的觀念。用 AI 的一組分數低了 17%，花的時間沒有顯著差別。例外是把 AI 拿來問解釋的人，分數保住了。整段交給 AI 代做的人掉得最多（<a href="https://www.anthropic.com/research/AI-assistance-coding-skills">Anthropic</a>）。</p>
+<figure class="wide reveal">
+<p class="title">花的時間差不多，測驗分數差了十五分以上</p>
+<div class="chart"><svg viewBox="0 0 640 230" role="img" aria-label="Anthropic 實驗：學新函式庫後的理解測驗分數，用 AI 與手寫兩組" font-size="12"><line class="grid" x1="64" x2="620" y1="190" y2="190"/><text class="axis" x="56" y="194" text-anchor="end">0%</text><line class="grid" x1="64" x2="620" y1="148" y2="148"/><text class="axis" x="56" y="152" text-anchor="end">25%</text><line class="grid" x1="64" x2="620" y1="105" y2="105"/><text class="axis" x="56" y="109" text-anchor="end">50%</text><line class="grid" x1="64" x2="620" y1="62" y2="62"/><text class="axis" x="56" y="66" text-anchor="end">75%</text><line class="grid" x1="64" x2="620" y1="20" y2="20"/><text class="axis" x="56" y="24" text-anchor="end">100%</text><path d="M218,190 V109 Q218,105 222,105 H238 Q242,105 242,109 V190 Z" style="fill:var(--c1)"/><text class="axis" x="230" y="212" text-anchor="middle">用 AI 協助</text><text class="label" x="230" y="97" text-anchor="middle">約 50%</text><path d="M438,190 V84 Q438,80 442,80 H458 Q462,80 462,84 V190 Z" style="fill:var(--c1)"/><text class="axis" x="450" y="212" text-anchor="middle">自己手寫</text><text class="label" x="450" y="72" text-anchor="middle">約 65%</text></svg></div>
+<figcaption>理解測驗平均分數。官方頁的圖說寫手寫組約 65%，多篇報導寫 67%，兩個版本並列。來源：<a href="https://www.anthropic.com/research/AI-assistance-coding-skills">Anthropic〈How AI assistance impacts the formation of coding skills〉</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>項目</th><th class="num">用 AI</th><th class="num">手寫</th><th>檢定</th></tr></thead><tbody><tr><td>測驗分數</td><td class="num nowrap">約 50%</td><td class="num nowrap">約 65%（報導 67%）</td><td class="nowrap">p = 0.010</td></tr><tr><td>完成時間</td><td class="num nowrap">約 23 分鐘</td><td class="num nowrap">約 25 分鐘</td><td class="nowrap">p = 0.391，不顯著</td></tr><tr><td>樣本</td><td class="num" colspan="2">52 位開發者，學 Trio 函式庫</td><td>隨機分組</td></tr></tbody></table></div></details>
+</figure>
+<h3>正在學的人，對 AI 反而比較保留</h3>
+<p>Stack Overflow 2025 年調查有一群「正在學寫程式」的受訪者。他們每天用 AI 的比例是 39.5%，低於全體的 47.1%。不打算用的有 19.5%，高於全體的 16.2%。對 AI 有好感的是 53%，專業開發者是 61%。</p>
+<figure class="wide reveal">
+<p class="title">正在學的人，每天用的比較少，不打算用的比較多</p>
+<div class="legend"><span class="key"><span class="swatch" style="background:var(--c1)"></span>正在學寫程式</span><span class="key"><span class="swatch" style="background:var(--c2)"></span>全體受訪者</span></div>
+<div class="chart"><svg viewBox="0 0 640 262" role="img" aria-label="Stack Overflow 2025 年調查：正在學寫程式的人與全體受訪者使用 AI 的頻率" font-size="12"><line class="grid" x1="150" x2="150" y1="12" y2="232"/><text class="axis" x="150" y="250" text-anchor="middle">0%</text><line class="grid" x1="240" x2="240" y1="12" y2="232"/><text class="axis" x="240" y="250" text-anchor="middle">10%</text><line class="grid" x1="330" x2="330" y1="12" y2="232"/><text class="axis" x="330" y="250" text-anchor="middle">20%</text><line class="grid" x1="420" x2="420" y1="12" y2="232"/><text class="axis" x="420" y="250" text-anchor="middle">30%</text><line class="grid" x1="510" x2="510" y1="12" y2="232"/><text class="axis" x="510" y="250" text-anchor="middle">40%</text><line class="grid" x1="600" x2="600" y1="12" y2="232"/><text class="axis" x="600" y="250" text-anchor="middle">50%</text><path d="M150,18 H502 Q506,18 506,22 V28 Q506,32 502,32 H150 Z" style="fill:var(--c1)"/><path d="M150,35 H570 Q574,35 574,39 V45 Q574,49 570,49 H150 Z" style="fill:var(--c2)"/><text class="label" x="140" y="38" text-anchor="end">每天用</text><text class="label" x="512" y="29">39.5%</text><text class="label" x="580" y="46">47.1%</text><path d="M150,62 H314 Q318,62 318,66 V72 Q318,76 314,76 H150 Z" style="fill:var(--c1)"/><path d="M150,79 H305 Q309,79 309,83 V89 Q309,93 305,93 H150 Z" style="fill:var(--c2)"/><text class="label" x="140" y="82" text-anchor="end">每週用</text><path d="M150,106 H282 Q286,106 286,110 V116 Q286,120 282,120 H150 Z" style="fill:var(--c1)"/><path d="M150,123 H269 Q273,123 273,127 V133 Q273,137 269,137 H150 Z" style="fill:var(--c2)"/><text class="label" x="140" y="126" text-anchor="end">每月或更少</text><path d="M150,150 H211 Q215,150 215,154 V160 Q215,164 211,164 H150 Z" style="fill:var(--c1)"/><path d="M150,167 H194 Q198,167 198,171 V177 Q198,181 194,181 H150 Z" style="fill:var(--c2)"/><text class="label" x="140" y="170" text-anchor="end">還沒用，打算用</text><path d="M150,194 H322 Q326,194 326,198 V204 Q326,208 322,208 H150 Z" style="fill:var(--c1)"/><path d="M150,211 H292 Q296,211 296,215 V221 Q296,225 292,225 H150 Z" style="fill:var(--c2)"/><text class="label" x="140" y="214" text-anchor="end">不打算用</text><text class="label" x="332" y="205">19.5%</text><text class="label" x="302" y="222">16.2%</text></svg></div>
+<figcaption>會填 Stack Overflow 問卷的人本來就偏開發者，這一群不能代表完全不會寫程式的一般人，只是最接近的替代指標。來源：<a href="https://survey.stackoverflow.co/2025/ai">Stack Overflow 2025</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>頻率</th><th class="num">正在學寫程式</th><th class="num">全體受訪者</th></tr></thead><tbody><tr><td>每天</td><td class="num nowrap">39.5%</td><td class="num nowrap">47.1%</td></tr><tr><td>每週</td><td class="num nowrap">18.7%</td><td class="num nowrap">17.7%</td></tr><tr><td>每月或更少</td><td class="num nowrap">15.1%</td><td class="num nowrap">13.7%</td></tr><tr><td>還沒用但打算用</td><td class="num nowrap">7.2%</td><td class="num nowrap">5.3%</td></tr><tr><td>不打算用</td><td class="num nowrap">19.5%</td><td class="num nowrap">16.2%</td></tr><tr><td>對 AI 有好感</td><td class="num nowrap">53%</td><td class="num nowrap">專業開發者 61%</td></tr></tbody></table></div></details>
+</figure>
+<p>第三份是頁 03 的 Perry 等人：用了 AI 的人寫得比較不安全，卻比較有信心。</p>
+<p>三份合起來的推論是這樣。會寫程式的人把 AI 當代工時，懂的會變少，而且自己不覺得。完全不會寫的人沒有「懂」這一層可以退，只能看結果能不能跑。所以風險不會比較低。這句話沒有被直接量過。</p>
+<p class="mark">比較站得住的講法：方法能補的是用法。把 AI 拿來問「為什麼」的人保住了理解，整段交出去的人沒有。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 07 · 哪些省得掉 · 推論</p>
+<h2>語法可以交出去，驗證、權限、回復要自己顧</h2>
+<p>「確認做對」拆開來是三件具體的事，目前都還沒有人替你做完。</p>
+<div class="table-scroll"><table class="register"><thead><tr><th>基本功</th><th>現在誰在顧</th><th>根據</th></tr></thead><tbody>
+<tr><td>語法、樣板、把功能拼起來</td><td>模型，幾乎不用你管</td><td>編譯通過率約 100%（Veracode 2026-07）</td></tr>
+<tr><td>常見的注入漏洞</td><td>模型大致顧得到</td><td>SQL 注入通過率 82% 到 83%</td></tr>
+<tr><td>要看上下文的漏洞</td><td>還沒有人替你顧</td><td>跨站腳本 15%、日誌注入 13%</td></tr>
+<tr><td>權限<span class="sub">誰讀得到哪些資料</span></td><td>平台預設不一定開。Lovable 事後加了掃描功能</td><td>170／1,645 個專案外露（Palmer）</td></tr>
+<tr><td>驗證<span class="sub">怎麼知道做對了</span></td><td>你</td><td>開發者 76% 自己跑、53% 查測試或資安，10% 照用</td></tr>
+<tr><td>回復<span class="sub">改壞了退得回去、資料有備份</span></td><td>你</td><td>只有個案（頁 09），沒有統計</td></tr>
+</tbody></table></div>
+<p>三項用白話講：</p>
+<ul class="answer-list">
+<li><b>驗證。</b>看畫面對不對還不夠。要拿錯的輸入、別人的帳號、沒登入的瀏覽器各試一次。</li>
+<li><b>權限。</b>弄清楚誰讀得到哪些資料。放在網頁上的金鑰，不能是打得開整個資料庫的那一把。</li>
+<li><b>回復。</b>改壞了能退回上一版。資料在別的地方還有一份。</li>
+</ul>
+<p>要補多少，看東西給誰用。</p>
+<figure class="wide reveal">
+<p class="title">用的人愈多、收的資料愈敏感，要自己顧的愈多</p>
+<div class="chart"><svg viewBox="0 0 640 250" role="img" aria-label="風險階梯：自己用、團隊內部用、對外收個資或金流，各階要補的基本功" font-size="12"><rect class="box" x="10" y="130" width="190" height="110" rx="2"/><text class="label b" x="22" y="152">第一階 · 自己用</text><text class="axis" x="22" y="170">試算表巨集、個人小工具</text><text class="label" x="22" y="194">一套方法大致夠</text><text class="label" x="22" y="212">會跑跑看、留一份備份</text><rect class="box" x="225" y="80" width="190" height="160" rx="2"/><text class="label b" x="237" y="102">第二階 · 團隊內部用</text><text class="axis" x="237" y="120">內部表單、報表、排程</text><text class="label" x="237" y="144">加上：改壞了退得回上一版</text><text class="label" x="237" y="162">加上：一人一個帳號</text><text class="label" x="237" y="180">加上：有第二個人看得懂</text><rect class="box key" x="440" y="30" width="190" height="210" rx="2"/><text class="label b" x="452" y="52">第三階 · 對外，收個資或金流</text><text class="axis" x="452" y="70">報名、預約、會員、收款</text><text class="label" x="452" y="94">加上：資料庫權限逐表檢查</text><text class="label" x="452" y="112">加上：上線前做資安掃描</text><text class="label" x="452" y="130">加上：個資法的安全維護</text><text class="label" x="452" y="148">加上：找懂的人驗過一次</text></svg></div>
+<figcaption>圖解，是我們依前面幾節的資料整理的建議，不是任何一份研究的結論。</figcaption>
+<details class="datatable"><summary>圖的內容</summary><div class="table-scroll"><table><thead><tr><th>階</th><th>例子</th><th>最少要會的</th></tr></thead><tbody><tr><td class="nowrap">第一階 自己用</td><td>試算表巨集、個人小工具</td><td>跑跑看、留備份。一套方法大致夠</td></tr><tr><td class="nowrap">第二階 團隊內部</td><td>內部表單、報表、排程</td><td>加上版本回復、分帳號、有第二個人看得懂</td></tr><tr><td class="nowrap">第三階 對外</td><td>報名、預約、會員、收款</td><td>加上資料庫權限逐表檢查、資安掃描、個資法安全維護、找懂的人驗一次</td></tr></tbody></table></div></details>
+</figure>
+<p>做給自己用的小工具和收別人個資的系統，差在出錯的時候誰受害。第一階壞了，損失的是你自己的時間。第三階壞了，外流的是別人的姓名和電話，而且你可能不知道已經外流。Lovable 那 170 個專案的主人，多半就是這種情況。</p>
+<p class="mark">比較站得住的講法：方法課夠你走完第一階。要上第三階，三項基本功得有人會，自己學或找人驗都可以。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 08 · 台灣 · 條文對得上，市場數字沒查到</p>
+<h2>報名表收了別人的個資，安全維護的義務在你身上</h2>
+<p>在台灣，「確認做對」有一部分是法律義務，而且落在蒐集資料的人身上。</p>
+<p>《個人資料保護法》第 27 條第 1 項規定，非公務機關保有個人資料檔案，應採行適當的安全措施（<a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0050021&amp;flno=27">全國法規資料庫</a>）。沒做到的罰則在第 48 條：2 萬到 200 萬元罰鍰並限期改正，屆期沒改的按次罰 15 萬到 1,500 萬元。情節重大的直接適用 15 萬到 1,500 萬元這一級（<a href="https://www.twba.org.tw/upload/article/20251015/0b750922031e462f8993feda3c2d1016/0b750922031e462f8993feda3c2d1016.pdf">《全國律師》2025 年 10 月號</a>對條文的整理）。</p>
+<figure class="wide reveal">
+<p class="title">沒做好安全維護：2 萬到 200 萬，情節重大最高 1,500 萬</p>
+<div class="chart"><svg viewBox="0 0 640 134" role="img" aria-label="個資法第 48 條：未採行適當安全措施的罰鍰級距" font-size="12"><line class="grid" x1="230" x2="230" y1="14" y2="102"/><text class="axis" x="230" y="120" text-anchor="middle">0</text><line class="grid" x1="353" x2="353" y1="14" y2="102"/><text class="axis" x="353" y="120" text-anchor="middle">500 萬</text><line class="grid" x1="477" x2="477" y1="14" y2="102"/><text class="axis" x="477" y="120" text-anchor="middle">1,000 萬</text><line class="grid" x1="600" x2="600" y1="14" y2="102"/><text class="axis" x="600" y="120" text-anchor="middle">1,500 萬</text><path d="M230,27 H275 Q279,27 279,31 V41 Q279,45 275,45 H230 Z" style="fill:var(--c1)"/><text class="label" x="220" y="40" text-anchor="end">違反安全維護義務</text><text class="label" x="285" y="40">2 萬至 200 萬元</text><path d="M234,71 H596 Q600,71 600,75 V85 Q600,89 596,89 H234 Z" style="fill:var(--c1)"/><text class="label" x="220" y="84" text-anchor="end">限期未改正（按次），或情節重大</text><text class="label" x="592" y="66" text-anchor="end">15 萬至 1,500 萬元</text></svg></div>
+<figcaption>新台幣。現行第 27 條、第 48 條。來源：<a href="https://law.moj.gov.tw/LawClass/LawSingleRela.aspx?PCODE=I0050021&amp;FLNO=48&amp;ty=L">全國法規資料庫第 48 條</a>、<a href="https://www.twba.org.tw/upload/article/20251015/0b750922031e462f8993feda3c2d1016/0b750922031e462f8993feda3c2d1016.pdf">《全國律師》</a>。</figcaption>
+<details class="datatable"><summary>圖的數字</summary><div class="table-scroll"><table><thead><tr><th>情形</th><th class="num">罰鍰</th></tr></thead><tbody><tr><td>違反第 27 條第 1 項（未採行適當安全措施）</td><td class="num nowrap">2 萬至 200 萬元，並限期改正</td></tr><tr><td>屆期未改正</td><td class="num nowrap">按次 15 萬至 1,500 萬元</td></tr><tr><td>情節重大</td><td class="num nowrap">15 萬至 1,500 萬元，並限期改正</td></tr></tbody></table></div></details>
+</figure>
+<p>這部法律正在換條號。2025 年 11 月 11 日的修正刪掉第 27 條，把安全維護義務改列在新增的第 20 條之 1，罰鍰級距在新的第 48 條裡維持 2 萬到 200 萬元。我們開到的全國法規資料庫頁面寫，施行日期由行政院定之，還沒有生效日。</p>
+<p>把條文和頁 03 的例子放在一起：用 AI 做一個收會員資料的報名頁，資料庫權限沒設好，保有那份個資檔案的是網站主人。Lovable 那個漏洞的官方紀錄據報也註記，平台方主張保護資料的責任在客戶（<span class="unv">未核實</span>）。這一段是我們對條文的解讀，不是法律意見。</p>
+<h3>落到你身上</h3>
+<ul class="answer-list">
+<li><b>行政人員用 AI 寫試算表巨集。</b>自己用，第一階。壞了重做。</li>
+<li><b>小店老闆用 AI 做預約表單。</b>看起來是自用，可是表單收了客人的姓名和電話，就是個資，算第三階。</li>
+<li><b>社團用 AI 做報名系統。</b>第三階。上線前至少用沒登入的瀏覽器試一次，看讀不讀得到別人的報名資料。</li>
+</ul>
+<h3>課程市場和企業調查</h3>
+<p>台灣線上課程平台上「不會寫程式也能用 AI 做 App」這類課有幾門、多少人報名，這次沒有查到。台灣企業讓非工程部門用 AI 做內部工具的調查也沒有查到。兩項都寫在頁 11。這篇不評任何一門課。</p>
+<p class="mark">比較站得住的講法：台灣這一格站得住的是制度。收了別人的個資，確認安全是你的事，不是 AI 平台的事。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 09 · 大家怎麼說</p>
+<h2>四句流行說法，逐句對帳</h2>
+<p>這一節的出處是社群貼文和常見論調，只用來呈現流行說法，不當事實依據。原貼文這次都沒有重新開到。</p>
+<h3>「完全順著感覺走，忘掉程式碼的存在」</h3>
+<p>出處：Andrej Karpathy 2025 年 2 月在 X 上提出 vibe coding（只用自然語言叫 AI 生出整個應用程式）時的大意，原話<span class="unv">未核實</span>。對的地方：他講的情境是週末的拋棄式小專案。在第一階，資料沒有反對。不對的地方：這句話後來被拿去當做正式產品的方法。Stack Overflow 2026 年的調查裡，開發者把 AI 用在正式環境的部署和排查的只有 20%。另有說法是 2025 年調查裡約 72% 的開發者表示 vibe coding 不是他們工作的一部分，這個數字原頁沒開到，<span class="unv">未核實</span>。</p>
+<h3>「不會寫程式也能做出 App，學會這套方法就好」</h3>
+<p>出處：這類課程介紹常見的說法。對的地方：做得出來是真的，編譯通過率接近 100%。方法讓外行人參與，也有歷史根據（頁 01）。不對的地方：「做出 App」和「做出可以給別人用的 App」中間隔著驗證、權限、回復。方法本身不含這一層。</p>
+<h3>「AI 代理把正式資料庫刪了」</h3>
+<p>出處：2025 年 7 月，SaaStr 創辦人 Jason Lemkin 在 X 上說，Replit 的 AI 代理在程式凍結期間刪了他的正式資料庫。這是當事人一方的說法，細節<span class="unv">未核實</span>。對的地方：它說明沒有備份和權限隔離的代價。不對的地方：一個事件不能當比例。我們找到最接近統計的，是 Palmer 那次掃描的 10.3%，而且只涵蓋一個平台、一種漏洞。</p>
+<h3>「外行人用 AI 做出來的都是垃圾」</h3>
+<p>出處：工程師社群常見的論調，沒有指定貼文。不對的地方：速度的證據在變好，安全通過率在 2026 年秋天也第一次上升。對的地方：重複程式碼、掩蓋錯誤的寫法這些維護訊號確實在變差。不過這些數字量的是工程師自己的程式碼。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 10 · 兩邊的證據</p>
+<h2>反對「基本功省不掉」的，和支持它的</h2>
+<div class="cols">
+<div>
+<h3>反方</h3>
+<ul class="answer-list">
+<li><b>研究對象都不是外行人。</b>METR、Veracode、GitClear、Stack Overflow 量的是工程師或模型。把結論套到不會寫程式的人身上是外推。這是方法上最有份量的反對，我們接受。</li>
+<li><b>速度的證據已經翻轉。</b>METR 自己說 2025 年的結果過時，現在很可能變快。</li>
+<li><b>基本功會被平台和模型吃掉。</b>SQL 注入已經有八成擋得住。Veracode 平均通過率半年內從 56% 升到 62%。Lovable 也加了安全掃描。照這個方向，要自己顧的清單會縮短。</li>
+<li><b>AI 對資安的影響可能很小。</b>另一項使用者研究的摘要說，用 AI 的人犯嚴重資安錯誤的比率，比對照組多不超過 10%（<a href="https://www.semanticscholar.org/paper/Do-Users-Write-More-Insecure-Code-with-AI-Perry-Srivastava/ce3f027b68dad014a58aa35f52380932c8d0b209">Semantic Scholar 上的引用摘要</a>，論文沒開到）。</li>
+<li><b>用 AI 學不一定學得差。</b>一份預印本整理的另一項實驗（211 人）方向相反：能用助手的一組，之後不靠助手的測驗分數高了 0.27 個標準差。好處集中在拿它問觀念的人（<a href="https://arxiv.org/pdf/2605.16283">arXiv 2605.16283</a>，預印本，只讀到摘錄）。</li>
+</ul>
+</div>
+<div>
+<h3>支持的一面</h3>
+<ul class="answer-list">
+<li><b>能跑和安全之間還差將近四成。</b>編譯約 100%，資安通過 62%。跨站腳本這類只有一成五。</li>
+<li><b>專業的人不照單全收。</b>48% 只在驗得出來時信，10% 直接照用。</li>
+<li><b>人會高估。</b>資深工程師把慢 19% 感覺成快 20%。用了 AI 的人更相信自己寫的安全。</li>
+<li><b>維護訊號變差。</b>重複區塊多 81%，回頭維護舊程式碼少 74%。</li>
+<li><b>實際上線的例子。</b>170 個專案、303 個端點，外人讀得到資料。</li>
+<li><b>交出去就不懂。</b>Anthropic 的實驗裡，用 AI 的一組理解分數低 17%。</li>
+</ul>
+</div>
+</div>
+<p>兩邊其實沒有互相推翻。反方說的是清單在縮短，支持的一面說的是清單現在還在。平台吃掉多少，下一輪的通過率數字會說話。</p>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">頁 11 · 還不知道的</p>
+<h2>查不到的地方，和目前的說法</h2>
+<div class="table-scroll"><table class="register"><thead><tr><th>還不知道</th><th>查過哪裡</th><th>目前的說法</th></tr></thead><tbody>
+<tr><td>完全不會寫程式的人用 AI 做軟體，出錯率是多少</td><td>只開到 Perry 等人和 Anthropic 兩篇，對象都會寫程式。Pearce 等人 2022 年和 Prather 等人的新手研究沒開到</td><td>推論是風險不會比較低，依據在頁 06。沒有直接測量</td></tr>
+<tr><td>用 AI 做出來的網站上線後出事的比例</td><td>只有 Palmer 對 Lovable 的一次掃描，和幾個個案</td><td>10.3% 是一個平台、一種漏洞、只看首頁的數字。不能當整體比例，方向上可能低估</td></tr>
+<tr><td>台灣平台上這類課程的數量和報名數</td><td>Hahow、PressPlay 站內搜尋沒有做到</td><td>只能當溫度計。就算有數字，也只說明有多少人想學，不說明課有沒有用</td></tr>
+<tr><td>台灣企業讓非工程部門用 AI 做內部工具的情況</td><td>資策會、國發會、人力銀行的調查都沒開到</td><td>沒有資料。內部工具落在第二階，風險主要在權限和沒人接手</td></tr>
+<tr><td>借鏡史的原書頁碼，和 Alexander 對軟體界的批評</td><td>《A Pattern Language》、GoF 第一章、1987 年論文、Alexander 1996 年 OOPSLA 演講都沒開到</td><td>年份和書名是通行說法。據記憶他批評過軟體界只借了形式，這一點未核實，正文沒有採用</td></tr>
+<tr><td>Lovable 漏洞的官方分數，和平台後來改了什麼</td><td>美國國家漏洞資料庫的頁面沒開到。平台沒有公開完整檢討（二手說法）</td><td>9.3 分和「平台有異議」都只有二手來源。Palmer 的時間表只寫到 2.0 版加了安全掃描</td></tr>
+<tr><td>Stack Overflow 2025 年的三個數字：72%、66%、45%</td><td>2025 年 AI 頁開到的部分沒有這三題</td><td>66%（答案差一點就對）和 45%（除錯很花時間）有多篇二手整理一致。72% 只有搜尋摘要，未核實</td></tr>
+<tr><td>Stack Overflow 2026 年有沒有問非專業開發者</td><td>只開到 AI 資料頁、部落格和新聞稿</td><td>沒看到這一題</td></tr>
+<tr><td>Veracode 秋季進步在哪幾類，測試題數</td><td>秋季文章只讀到摘錄。80 題的說法來自媒體報導</td><td>Veracode 自己說進步集中在容易的類型。80 題未核實</td></tr>
+<tr><td>GitClear 的基期到底是哪一年</td><td>公開頁摘要寫 2022，各小節寫 2023。全文要留資料才能下載</td><td>照小節的原始數字，用 2023</td></tr>
+<tr><td>DORA 說 AI 和交付速度的關係從 2024 年負相關轉成 2025 年正相關</td><td>只有二手整理。完整報告沒下載</td><td>未核實。開到的官方頁只寫 2025 年交付量和不穩定同時增加</td></tr>
+<tr><td>METR 改版後的新結果</td><td>2026-02 的更新說要改實驗設計</td><td>還沒有新數字。現有的只能當下限</td></tr>
+<tr><td>個資法 2025 年修正什麼時候施行</td><td>全國法規資料庫頁面寫施行日期由行政院定之</td><td>現行仍是第 27 條。新舊條文的罰鍰級距相同</td></tr>
+<tr><td>Karpathy 和 Lemkin 的原貼文</td><td>沒有重新開到</td><td>只放在頁 09 當流行說法，字句是大意</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="reveal">
+<p class="eyebrow">附錄 · 完整數據</p>
+<h2>這篇用到的每一個數字</h2>
+<p>查詢日都是 2026-11-26。標「自己算的」是用來源數字換算。標「未核實」的只看到二手整理或憑記憶，原頁沒開到。</p>
+<div class="table-scroll"><table class="register ledger"><thead><tr><th>項目</th><th>數值</th><th>期間</th><th>來源</th></tr></thead><tbody>
+<tr class="group"><td colspan="4">速度</td></tr>
+<tr><td>METR 第一輪規模</td><td>16 位資深開源開發者、246 個工作項目。主要工具 Cursor Pro 搭配 Claude 3.5／3.7 Sonnet</td><td class="nowrap">2025-02 至 06</td><td class="src"><a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/">METR 2025</a>（預印本）</td></tr>
+<tr><td>預期／事後自認／實測</td><td>快 24%／快 20%／多花 19%（+2% 到 +39%）</td><td class="nowrap">同上</td><td class="src"><a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/">METR 2025</a>、<a href="https://metr.org/blog/2026-02-24-uplift-update/">METR 2026</a></td></tr>
+<tr><td>感覺和實測的差距（自己算的）</td><td>39 個百分點</td><td class="nowrap">同上</td><td class="src">同上</td></tr>
+<tr><td>METR 第二輪規模</td><td>57 人（原班 10、新招募 47）、143 個程式庫、800 多個任務。時薪由 150 降到 50 美元</td><td class="nowrap">2025-08 起</td><td class="src"><a href="https://metr.org/blog/2026-02-24-uplift-update/">METR 2026-02-24</a></td></tr>
+<tr><td>第二輪估計</td><td>原班 −18%（−38% 到 +9%）<br>新招募 −4%（−15% 到 +9%）</td><td class="nowrap">同上</td><td class="src">同上</td></tr>
+<tr><td>承認有任務沒提交的開發者</td><td>30% 到 50%</td><td class="nowrap">同上</td><td class="src">同上</td></tr>
+<tr><td>GitHub 上由 Claude Code 寫成的 commit</td><td>約 4%</td><td class="nowrap">2026 年初</td><td class="src"><a href="https://metr.org/blog/2026-02-24-uplift-update/">METR</a> 轉引 <a href="https://newsletter.semianalysis.com/p/claude-code-is-the-inflection-point">SemiAnalysis</a>（原文沒開）</td></tr>
+<tr><td>技術工作者自評 AI 帶來的工作價值</td><td>349 人，中位數 1.4 到 2 倍。METR 自己說幅度值得懷疑</td><td class="nowrap">2026 年初</td><td class="src">METR 網站摘要（<a href="https://metr.org/blog/2026-05-11-ai-usage-survey/">調查頁</a>沒開）</td></tr>
+<tr><td>重度 AI 使用者的產出</td><td>是不用者的 4 到 10 倍，多數差距在 AI 之前就有。跟自己過去比約快 25%</td><td class="nowrap">2026-01 報告</td><td class="src"><a href="https://www.gitclear.com/the_ai_code_quality_maintainability_gap">GitClear</a>（只讀到摘要）</td></tr>
+<tr><td>DORA 2025</td><td>九成科技從業者工作上用 AI，八成以上自認生產力提高。採用度高同時對上交付量和交付不穩定增加</td><td class="nowrap">2025</td><td class="src"><a href="https://dora.dev/insights/balancing-ai-tensions/">DORA</a></td></tr>
+<tr><td>DORA 2025 樣本</td><td>近 5,000 人問卷、100 多小時訪談</td><td class="nowrap">2025</td><td class="src"><a href="https://www.infoq.com/news/2026/05/dora-roi-ai-assisted-dev-report/">InfoQ</a></td></tr>
+<tr><td>DORA：AI 與交付速度由負相關轉正（未核實）</td><td>2024 年負相關，2025 年正相關</td><td class="nowrap">2024–2025</td><td class="src">二手整理，完整報告沒開</td></tr>
+<tr class="group"><td colspan="4">安全</td></tr>
+<tr><td>Veracode 平均資安通過率</td><td>55%／約 55%／55%／56%／62%</td><td class="nowrap">2025-07 至 2026-10</td><td class="src"><a href="https://www.veracode.com/resources/analyst-reports/2025-genai-code-security-report/">2025 報告</a>、<a href="https://www.veracode.com/blog/spring-2026-genai-code-security/">2026 春</a>、<a href="https://www.businesswire.com/news/home/20260728207685/en/LLMs-Are-Getting-Smarter-But-Not-Safer-Veracode-2026-GenAI-Code-Security-Report-Finds-AI-Generated-Code-Security-Has-Stalled-at-56-Pass-Rate">2026-07 新聞稿</a>、<a href="https://www.veracode.com/blog/fall-2026-genai-code-security">2026 秋</a></td></tr>
+<tr><td>帶漏洞的比例</td><td>45% → 約 44% → 約 38%</td><td class="nowrap">2025-10、2026-07、2026-10</td><td class="src">同上</td></tr>
+<tr><td>測試範圍</td><td>100 多個模型。Java、JavaScript、Python、C#</td><td class="nowrap">2025–2026</td><td class="src"><a href="https://www.veracode.com/resources/analyst-reports/2025-genai-code-security-report/">Veracode 2025</a></td></tr>
+<tr><td>測試題數（未核實）</td><td>80 題</td><td class="nowrap">2025-07</td><td class="src">媒體報導，原頁沒有</td></tr>
+<tr><td>編譯通過率</td><td>約 100%</td><td class="nowrap">2026-07</td><td class="src"><a href="https://www.veracode.com/blog/2026-genai-code-security-report-ai-risk/">Veracode 2026 報告</a></td></tr>
+<tr><td>專門寫程式的模型對一般模型</td><td>51% 對 52%</td><td class="nowrap">2026-07</td><td class="src"><a href="https://www.businesswire.com/news/home/20260728207685/en/LLMs-Are-Getting-Smarter-But-Not-Safer-Veracode-2026-GenAI-Code-Security-Report-Finds-AI-Generated-Code-Security-Has-Stalled-at-56-Pass-Rate">Veracode 新聞稿</a></td></tr>
+<tr><td>各類通過率</td><td>加密演算法 86%、SQL 注入 82%（7 月報告 83%）、跨站腳本 15%、日誌注入 13%。Python 62%</td><td class="nowrap">2026 春</td><td class="src"><a href="https://www.veracode.com/blog/spring-2026-genai-code-security/">Veracode 2026 春</a></td></tr>
+<tr><td>秋季最高分</td><td>兩個模型並列 73%</td><td class="nowrap">2026-10-29</td><td class="src"><a href="https://www.veracode.com/blog/fall-2026-genai-code-security">Veracode 2026 秋</a></td></tr>
+<tr><td>Lovable 掃描</td><td>303 個端點、170 個專案，占受檢 1,645 個的 10.3%。只看首頁</td><td class="nowrap">掃描 2025-03-21</td><td class="src"><a href="https://mattpalmer.io/posts/statement-on-CVE-2025-48757/">Matt Palmer 聲明</a></td></tr>
+<tr><td>Lovable 時間表</td><td>03-21 通報。04-24 推出含安全掃描的 2.0 版。05-29 公開 CVE-2025-48757</td><td class="nowrap">2025</td><td class="src">同上</td></tr>
+<tr><td>漏洞嚴重度（未核實）</td><td>CVSS 9.3，平台方有異議</td><td class="nowrap">2025</td><td class="src"><a href="https://www.buttercloud.com/blog/is-lovable-secure">ButterCloud</a>（二手，官方頁沒開）</td></tr>
+<tr><td>用 AI 助手寫資安相關程式</td><td>五題裡四題寫得較不安全，卻更相信自己寫的安全</td><td class="nowrap">2023</td><td class="src"><a href="https://dl.acm.org/doi/pdf/10.1145/3576915.3623157">Perry 等人，CCS 2023</a></td></tr>
+<tr><td>另一項使用者研究</td><td>用 AI 的人嚴重資安錯誤比對照組多不超過 10%</td><td class="nowrap">—</td><td class="src"><a href="https://www.semanticscholar.org/paper/Do-Users-Write-More-Insecure-Code-with-AI-Perry-Srivastava/ce3f027b68dad014a58aa35f52380932c8d0b209">Semantic Scholar 引用摘要</a>（論文沒開）</td></tr>
+<tr class="group"><td colspan="4">維護</td></tr>
+<tr><td>GitClear 資料範圍</td><td>6.23 億筆程式碼變更，七個訊號</td><td class="nowrap">2023–2026</td><td class="src"><a href="https://www.gitclear.com/the_ai_code_quality_maintainability_gap">GitClear</a>（廠商研究）</td></tr>
+<tr><td>重複程式碼區塊</td><td>每百萬行變更 40.3 → 73.0（+81%）</td><td class="nowrap">2023 → 2026 至今</td><td class="src">同上</td></tr>
+<tr><td>重構搬移</td><td>21% → 13% → 3.8%。對 2023 −70%，對 2022 約 −82%（自己算的）</td><td class="nowrap">2022、2023、2026 至今</td><td class="src">同上</td></tr>
+<tr><td>同次提交內複製貼上</td><td>9.4% → 15.7%。對 2023 +41%，對 2022 約 +67%（自己算的）</td><td class="nowrap">2022、2026 上半年</td><td class="src">同上</td></tr>
+<tr><td>搬移對貼上（自己算的）</td><td>2022 年搬移是貼上的 2.2 倍。2026 年貼上是搬移的 4.1 倍（GitClear 寫約 5 倍）</td><td class="nowrap">2022、2026</td><td class="src">同上</td></tr>
+<tr><td>跨函式呼叫</td><td>每千行變更 343 → 223（−35%）</td><td class="nowrap">2023 → 2026 至今</td><td class="src">同上</td></tr>
+<tr><td>回頭維護一年以上舊程式碼</td><td>1.7% → 0.46%（−74%）</td><td class="nowrap">2023 → 2026 至今</td><td class="src">同上</td></tr>
+<tr><td>掩蓋錯誤的寫法／兩週內又被改掉</td><td>+47%／+15%</td><td class="nowrap">對 2023</td><td class="src">同上</td></tr>
+<tr><td>DORA 2026 年的投資報酬報告</td><td>延續放大器的說法，提到交付不穩定的代價</td><td class="nowrap">2026</td><td class="src"><a href="https://www.infoq.com/news/2026/05/dora-roi-ai-assisted-dev-report/">InfoQ</a></td></tr>
+<tr class="group"><td colspan="4">開發者調查</td></tr>
+<tr><td>正在用或打算用 AI 寫程式</td><td>84%（2024 年 76%）。專業開發者每天用 51%</td><td class="nowrap">2025</td><td class="src"><a href="https://survey.stackoverflow.co/2025/ai">Stack Overflow 2025</a></td></tr>
+<tr><td>目前在用 AI 工具</td><td>44% → 62% → 79%。2026 年沒在用的 17.2%，約 83% 在用（自己算的）</td><td class="nowrap">2023–2026</td><td class="src"><a href="https://stackoverflow.blog/2026/09/30/getting-ready-for-2026-results-a-look-back-on-developer-survey-findings/">Stack Overflow 回顧</a>、<a href="https://stackoverflow.co/company/press/archive/stack-overflow-annual-developer-survey-ai-trust-conditional">2026 新聞稿</a></td></tr>
+<tr><td>信任 AI 的準確度</td><td>不信任 46%、信任 33%、高度信任 3%。十年以上資歷：高度信任 2.6%、高度不信任 20%</td><td class="nowrap">2025</td><td class="src"><a href="https://survey.stackoverflow.co/2025/ai">Stack Overflow 2025</a></td></tr>
+<tr><td>對 AI 有好感</td><td>2023、2024 年七成以上，2025 年 60%。專業開發者 61%、正在學的 53%。2026 年 62%，每天用的人 71%</td><td class="nowrap">2023–2026</td><td class="src"><a href="https://survey.stackoverflow.co/2025/ai">2025</a>、<a href="https://stackoverflow.blog/2026/10/06/the-results-of-the-2026-developer-survey-are-here/">2026 部落格</a></td></tr>
+<tr><td>正在學寫程式的人用 AI 的頻率</td><td>每天 39.5%、每週 18.7%、每月或更少 15.1%、打算用 7.2%、不打算用 19.5%</td><td class="nowrap">2025</td><td class="src"><a href="https://survey.stackoverflow.co/2025/ai">Stack Overflow 2025</a></td></tr>
+<tr><td>全體受訪者用 AI 的頻率</td><td>每天 47.1%、每週 17.7%、每月或更少 13.7%、打算用 5.3%、不打算用 16.2%</td><td class="nowrap">2025</td><td class="src">同上</td></tr>
+<tr><td>vibe coding 不是工作的一部分（未核實）</td><td>約 72%，另 5% 強烈表示不做</td><td class="nowrap">2025</td><td class="src">搜尋摘要，原頁沒開</td></tr>
+<tr><td>AI 答案差一點就對／除錯很花時間</td><td>66%／45%</td><td class="nowrap">2025</td><td class="src">二手整理，原頁沒開到這兩題</td></tr>
+<tr><td>2026 年調查規模</td><td>30,903 份、169 國，10 月 6 日公布</td><td class="nowrap">2026</td><td class="src"><a href="https://www.theregister.com/software/2026/10/10/stack-overflow-survey-finds-devs-hooked-on-ai-but-not-totally-sold-on-its-judgment/5301662">The Register</a></td></tr>
+<tr><td>什麼情況下信任 AI 輸出</td><td>48.0%／16.3%／16.3%／12.3%／6.6%／0.5%，作答 14,304 人</td><td class="nowrap">2026</td><td class="src"><a href="https://survey.stackoverflow.co/2026/ai/data">Stack Overflow 2026</a></td></tr>
+<tr><td>拿到 AI 回答後的做法</td><td>本機跑 76%、比對程式碼 64%、檢查測試或資安 53%、直接照用 10%</td><td class="nowrap">2026</td><td class="src">同上</td></tr>
+<tr><td>AI 處理複雜任務</td><td>16% 說很好，39% 說還不錯但不算很好</td><td class="nowrap">2026</td><td class="src">同上</td></tr>
+<tr><td>用 AI 做什麼</td><td>熟悉領域產生程式碼 67%、除錯 61%、正式環境部署營運排查 20%</td><td class="nowrap">2026</td><td class="src"><a href="https://stackoverflow.blog/2026/10/06/the-results-of-the-2026-developer-survey-are-here/">2026 部落格</a></td></tr>
+<tr><td>使用強度</td><td>用程式助手或代理的人 73% 每天用。每天用的人約三成一天 4 小時以上</td><td class="nowrap">2026</td><td class="src">同上</td></tr>
+<tr><td>用 AI 產碼工具學新技能</td><td>7,650 人，52.6%</td><td class="nowrap">2026</td><td class="src"><a href="https://survey.stackoverflow.co/2026/community">Stack Overflow 2026 社群頁</a></td></tr>
+<tr class="group"><td colspan="4">學習</td></tr>
+<tr><td>Anthropic 隨機實驗</td><td>52 位開發者。用 AI 的一組測驗低 17%，約 50% 對約 65%（報導 67%）。時間約 23 對 25 分鐘，不顯著</td><td class="nowrap">2026-01 發表</td><td class="src"><a href="https://www.anthropic.com/research/AI-assistance-coding-skills">Anthropic</a></td></tr>
+<tr><td>方向相反的實驗</td><td>211 人，能用助手的一組事後測驗高 0.27 個標準差</td><td class="nowrap">2026</td><td class="src"><a href="https://arxiv.org/pdf/2605.16283">arXiv 2605.16283</a>（預印本，只讀到摘錄）</td></tr>
+<tr class="group"><td colspan="4">借鏡史（未核實）</td></tr>
+<tr><td>《A Pattern Language》</td><td>1977 年出版，253 個模式</td><td class="nowrap">1977</td><td class="src">通行說法，原書沒開</td></tr>
+<tr><td>Beck 與 Cunningham</td><td>在 OOPSLA 把模式語言用到物件導向程式</td><td class="nowrap">1987</td><td class="src">通行說法，論文沒開</td></tr>
+<tr><td>GoF《Design Patterns》</td><td>第一章引用 Alexander 對模式的定義</td><td class="nowrap">1994</td><td class="src">通行說法，原書沒開</td></tr>
+<tr class="group"><td colspan="4">台灣</td></tr>
+<tr><td>個資法安全維護義務</td><td>非公務機關保有個人資料檔案，應採行適當安全措施</td><td class="nowrap">現行第 27 條第 1 項</td><td class="src"><a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0050021&amp;flno=27">全國法規資料庫</a>、<a href="https://www.twba.org.tw/upload/article/20251015/0b750922031e462f8993feda3c2d1016/0b750922031e462f8993feda3c2d1016.pdf">《全國律師》</a></td></tr>
+<tr><td>罰鍰</td><td>2 萬至 200 萬元。屆期未改正按次 15 萬至 1,500 萬元。情節重大 15 萬至 1,500 萬元</td><td class="nowrap">現行第 48 條</td><td class="src"><a href="https://law.moj.gov.tw/LawClass/LawSingleRela.aspx?PCODE=I0050021&amp;FLNO=48&amp;ty=L">全國法規資料庫</a>、<a href="https://www.twba.org.tw/upload/article/20251015/0b750922031e462f8993feda3c2d1016/0b750922031e462f8993feda3c2d1016.pdf">《全國律師》</a></td></tr>
+<tr><td>2025 年修正</td><td>刪除第 27 條，增訂第 20 條之 1。施行日期由行政院定之</td><td class="nowrap">2025-11-11 修正</td><td class="src"><a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0050021&amp;flno=27">全國法規資料庫</a></td></tr>
+<tr><td>台灣 AI 寫程式課程數、企業調查</td><td>沒查到</td><td class="nowrap">—</td><td class="src">見頁 11</td></tr>
+</tbody></table></div>
+</section>
+</article>
+</main>
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById('theme-toggle');
+  let dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.textContent = 'theme · ' + (dark ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    dark = !dark; root.dataset.theme = dark ? 'dark' : 'light';
+    btn.textContent = 'theme · ' + (dark ? 'dark' : 'light'); btn.setAttribute('aria-pressed', 'true');
+  });
+})();
+</script>
+</body>
+</html>
